@@ -38,10 +38,10 @@ After pushing to a GitHub repository:
 2. Go to `Settings -> Pages`.
 3. Set `Source` to `Deploy from a branch`.
 4. Select branch `main`.
-5. Select folder `/docs`.
+5. Select folder `/root`.
 6. Save.
 
-The deployed Pages site serves the static app from `docs/`.
+The deployed Pages site serves the static app from the repository root. A `/docs` copy is also kept as a fallback, but `/root` is the recommended setting.
 
 Local development uses `server.mjs` as an API proxy. On GitHub Pages, the app falls back to browser-side Financial Modeling Prep requests when the user enters an FMP key in Settings. API keys are not committed to the repository and remain in the browser session.
 
