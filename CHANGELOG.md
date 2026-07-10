@@ -1,0 +1,301 @@
+# Changelog
+
+## Version 6.0 - Ranking, Comparison & Market Color System
+
+### Added
+
+- Added deterministic `Ranking Engine` in `public/src/engines/rankingEngine.js`.
+- Added `RANKING_ENGINE.md`.
+- Added centralized semantic color system in `public/src/domain/marketColorSystem.js`.
+- Added Ranking Score, Ranking Confidence, Main Positive Factor, Main Negative Factor, and ranking component coverage to evaluated companies.
+- Added Home table columns for Rank, Investment Score, and Recommendation.
+- Added ranking filters:
+  - All
+  - BUY
+  - HOLD
+  - SELL
+  - Positive Upside
+  - Negative Upside
+  - High Data Quality
+- Added optional sector filter when verified sector data exists.
+- Added 2-5 company comparison from the Home table.
+- Added deterministic comparison conclusion derived only from calculated metrics.
+- Added semantic badges/icons for upside, fair value, recommendation, risk, and scores.
+- Added tests in `tests/version6.test.mjs`.
+
+### Changed
+
+- Home table default sorting now prioritizes actionable companies, Ranking Score, Data Quality, and ticker.
+- Home table now preserves Arabic labels while keeping tickers, numbers, ratios, and English financial terms stable.
+- Home table uses sticky Rank and Stock columns where practical.
+- Valuation method fair values now use the same fair-value color logic as Home.
+- Executive Summary score strip now uses the shared score/risk color categories.
+- Missing ranking inputs remain missing and reduce Ranking Confidence instead of becoming zero.
+
+### Rules Enforced
+
+- Ranking does not change deterministic Buy / Hold / Sell recommendations.
+- Rank numbers are recalculated from the evaluated-company set and are not stored as permanent truth.
+- Extreme upside is capped before ranking normalization.
+- Risk Score direction is preserved: higher score means lower risk.
+- Color is never the only signal; values include arrows, signs, badges, and missing markers.
+- No entire Home table row is colored based on a financial signal.
+
+### Verification
+
+- JavaScript syntax check passed for:
+  - `public/src/ui/components.js`
+  - `public/src/domain/marketColorSystem.js`
+  - `public/src/engines/rankingEngine.js`
+  - `public/src/state/store.js`
+  - `server.mjs`
+- Automated Version 6 tests passed:
+  - deterministic ranking output
+  - missing-data behavior
+  - ranking order
+  - upside cap
+  - color thresholds
+  - recommendation colors
+  - Risk Score direction
+  - score thresholds
+  - Arabic/English labels
+  - signed percentage formatting
+  - evaluated-company de-duplication
+- Browser verification passed on `localhost:4321`:
+  - Version 6 title and Arabic labels render correctly
+  - Home filters render correctly
+  - Comparison panel opens for two evaluated companies
+  - Missing comparison values remain `—` and do not enter the deterministic conclusion
+  - Mobile viewport `390x844` has horizontal table scrolling
+  - Rank and Stock sticky offsets are active
+  - No browser console errors
+
+## Version 5.1 - Bilingual Home Dashboard & Evaluated Companies
+
+### Added
+
+- Added bilingual Arabic/English language system.
+- Added `LANGUAGE_SYSTEM.md`.
+- Added centralized language helpers in `public/src/i18n/language.js`.
+- Added daily Home workspace with application title, language toggle, search, and Evaluated Companies table.
+- Added persistent Evaluated Companies storage in `localStorage`.
+- Added deterministic `Range FV`, `Upside %`, `Highest Fair Value`, and `Max FV Upside %` calculations in `public/src/domain/evaluatedCompanies.js`.
+- Added sortable professional table columns for Stock, Current Price, Bear, Base, Bull, Morningstar, Range FV, Upside %, and Max FV Upside %.
+- Added Arabic Executive Summary and Investment Decision narratives.
+- Added Arabic status, rating, UI label, and explanation formatting.
+- Added RTL document setup for Arabic investors.
+
+### Changed
+
+- Localized the app shell, navigation, settings, watch list, history, research modules, and empty states.
+- Home now defaults to the evaluated companies workspace instead of the full report.
+- Selecting an already evaluated company opens the saved report.
+- Selecting a new company analyzes it and saves the latest evaluation automatically.
+- Latest evaluation replaces the visible row while preserving prior evaluation history.
+- Kept professional financial terms in English, including DCF, FCF, ROIC, EPS, P/E, PEG, EV/EBITDA, EV/Sales, Revenue, Quality, Growth, Management, Risk, Bull, Bear, and Base.
+- Updated Institutional Research thesis and CIO memo output to Arabic.
+- Preserved formulas in English without mixing formula syntax with Arabic.
+- Added CSS rules to keep numbers, tickers, ratios, formulas, and financial terms visually stable in RTL layout.
+
+### Rules Enforced
+
+- Language layer does not calculate numbers.
+- Language layer does not change deterministic engine outputs.
+- Range FV excludes Morningstar and uses Bear/Base/Bull probabilities only.
+- Max FV Upside uses the highest available value across Bear, Base, Bull, and Morningstar.
+- Missing values display as `—`, never as zero.
+- Missing provider text is not converted into invented Arabic content.
+- Long unlocalized provider narratives are shown as needing research-grade Arabic wording instead of being machine-translated.
+
+### Verification
+
+- JavaScript syntax check passed for:
+  - `public/src/i18n/language.js`
+  - `public/src/domain/evaluatedCompanies.js`
+  - `public/src/ui/components.js`
+  - `public/src/research/institutionalResearch.js`
+- Formula check passed for the documented example:
+  - Current Price `202`
+  - Bear `220`
+  - Base `240`
+  - Bull `300`
+  - Morningstar `280`
+  - Range FV `250`
+  - Max FV Upside `49%`
+
+## Version 5.0 - Institutional Research
+
+### Added
+
+- Added Institutional Research layer above the existing investment engine.
+- Added `INSTITUTIONAL_RESEARCH.md`.
+- Added Research panel with:
+  - Company Profile
+  - Competitive Analysis
+  - Historical Performance
+  - Historical Valuation
+  - Earnings Center
+  - Analyst Consensus
+  - Investment Thesis
+  - Research Timeline
+  - Explain Like CIO
+- Added local Watch List with:
+  - investment thesis
+  - target price
+  - review date
+  - notes
+
+### Changed
+
+- Updated app label and title to Version 5.
+- Added verified profile fields from FMP profile response when available.
+- Kept architecture, data platform, and investment engine stable.
+- Kept the existing V4 storage key to preserve local data platform history.
+
+### Rules Enforced
+
+- Research layer does not fetch directly.
+- Research layer does not invent missing financial data.
+- CIO summary is deterministic and capped at 300 words.
+- Historical valuation percentiles remain unavailable until verified historical market data exists.
+
+### Verification
+
+- JavaScript syntax check passed.
+- Empty company produces institutional research modules with unavailable fields, not fabricated content.
+- Test company with verified financials produced historical performance rows, current valuation multiples, capital return timeline events, and a CIO summary under 300 words.
+- Browser reload on `localhost:4321` showed Version 5, Research modules, and Watch List with no JavaScript console errors.
+
+## Version 4.0 - Data Platform
+
+### Added
+
+- Added unified data platform layer.
+- Added provider contracts for:
+  - `QuoteProvider`
+  - `FinancialProvider`
+  - `AnalystProvider`
+  - `ResearchProvider`
+- Added provider fallback order:
+  - Morningstar future placeholder
+  - Financial Modeling Prep
+  - Manual Input
+  - Missing
+- Added field-level provenance:
+  - value
+  - source
+  - timestamp
+  - confidence
+  - update status
+- Added Data Health:
+  - Overall Data Quality
+  - Missing fields
+  - Outdated fields
+  - Conflicting fields
+- Added annual and quarterly financial timeline support.
+- Added `DATA_PLATFORM.md`.
+
+### Changed
+
+- Engines now receive a unified data company from `researchEngine.js`.
+- `financialMetrics.js` reads values from documented data fields.
+- Browser storage key moved to `equityResearchV4State`.
+- Backend research payload now includes provider metadata and financial statement timelines.
+- UI label updated to Version 4 without redesigning the layout.
+
+### Improved
+
+- API keys are not persisted inside company data.
+- Provider logic is isolated from engines.
+- Timeline rows retain prior versions when refreshed.
+- Search and company loading now run through provider registry/fallback.
+
+### Verification
+
+- JavaScript syntax check passed.
+- Empty company returns:
+  - decision: `HOLD`
+  - status: `INSUFFICIENT_DATA`
+  - Data Quality: `0`
+  - source: `Missing`
+- Complete manual test company returns:
+  - status: `ACTIONABLE`
+  - populated Data Health
+  - source: `Manual Input`
+  - annual timeline periods: `2`
+- Browser reload on `localhost:4321` showed Version 4 and the Data Health panel with no JavaScript console errors.
+
+## Version 3.0 - Investment Engine
+
+### Changed
+
+- Refactored the app into a deterministic investment engine architecture.
+- Moved API keys and manual assumptions into a dedicated Settings panel.
+- Reworked the first screen around Search, Executive Summary, and Investment Decision.
+- Changed app storage key to `equityResearchV3State` to avoid stale Version 2 sample financial data.
+
+### Added
+
+- Data Completeness Engine.
+- Decision Engine.
+- Explainability Engine.
+- Shared engine reporting structure.
+- `INVESTMENT_ENGINE.md`.
+- `TODO.md`.
+
+### Improved
+
+- Valuation methods now run only when required inputs exist.
+- Every engine now exposes inputs, formula, weighting, output, confidence, and explanation.
+- Buy / Hold / Sell decisions are reproducible from deterministic formulas.
+- Missing data lowers confidence before valuation output is trusted.
+
+### Removed
+
+- Removed fake default stock prices and fake financial statements from bundled app data.
+- Removed zero and one fallbacks from core metric calculations.
+- Removed backend heuristic moat and risk inference.
+- Removed technical API inputs from the home search area.
+
+### Verification
+
+- JavaScript syntax check passed for the project files.
+- Empty-company engine run returns:
+  - decision: `HOLD`
+  - status: `INSUFFICIENT_DATA`
+  - valuation methods: `0`
+  - composite fair value: `null`
+- Browser reload on `localhost:4321` showed the Version 3 home screen with API keys hidden from the home page and no JavaScript console errors.
+
+## Version 2.1
+
+### Added
+
+- Created formal Version 2.1 documentation set.
+- Added `PROJECT_REVIEW.md`.
+- Added root-level `ARCHITECTURE.md`.
+- Added `CHANGELOG.md`.
+- Documented source code structure.
+- Documented engine architecture and product philosophy.
+
+## Version 2.0
+
+### Added
+
+- Rebuilt the project direction from dashboard to AI equity research platform.
+- Introduced deterministic research engines.
+- Added professional investor decision framework.
+- Created V2 project folder.
+
+## Version 1.0
+
+### Added
+
+- Original Valuation Desk prototype.
+- Stock search page.
+- Overview page.
+- Manual valuation sources.
+- Financial data paste area.
+- AI valuation model page.
+- Final summary page.
+- History page.
