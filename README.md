@@ -32,16 +32,16 @@ Open the printed local URL.
 
 ## GitHub Pages
 
-This repository includes a GitHub Actions workflow at `.github/workflows/pages.yml`.
-
 After pushing to a GitHub repository:
 
 1. Open the repository on GitHub.
 2. Go to `Settings -> Pages`.
-3. Set `Source` to `GitHub Actions`.
-4. Push to `main` or run the workflow manually.
+3. Set `Source` to `Deploy from a branch`.
+4. Select branch `main`.
+5. Select folder `/docs`.
+6. Save.
 
-The deployed Pages site serves the static app from `public/`.
+The deployed Pages site serves the static app from `docs/`.
 
 Local development uses `server.mjs` as an API proxy. On GitHub Pages, the app falls back to browser-side Financial Modeling Prep requests when the user enters an FMP key in Settings. API keys are not committed to the repository and remain in the browser session.
 
