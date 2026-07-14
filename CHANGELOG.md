@@ -1,5 +1,26 @@
 # Changelog
 
+## Version 6.1 - Mobile Onboarding
+
+### Added
+
+- Added a mobile-first "Start here" card that explains the analysis flow in three steps.
+- Added quick ticker examples for `AAPL`, `MSFT`, `NVDA`, and `AMZN`.
+- Added clearer search labels and Arabic onboarding copy for starting a new analysis.
+- Added `AMZN` starter metadata without inventing financial values.
+
+### Changed
+
+- Improved mobile spacing, search layout, and horizontal scrolling behavior.
+- Fixed a mobile CSS grouping issue so responsive rules apply only at the intended breakpoint.
+- Kept wide financial tables scrollable inside the page instead of widening the full mobile viewport.
+
+### Verification
+
+- JavaScript syntax checks passed for updated UI, language, and starter data files.
+- Version 6 deterministic ranking and color tests still pass.
+- CSS brace balance is valid for local, root GitHub Pages, and docs stylesheets.
+
 ## Version 6.0 - Ranking, Comparison & Market Color System
 
 ### Added

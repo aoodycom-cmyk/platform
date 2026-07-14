@@ -106,6 +106,7 @@ function homeDashboard(state) {
           <button class="icon-btn" data-action="toggle-theme" title="${uiLabel("Toggle theme")}">${state.theme === "dark" ? uiLabel("Light") : uiLabel("Dark")}</button>
         </div>
       </header>
+      ${homeStartCard(state)}
       ${homeSearchBlock(state)}
       ${evaluatedCompaniesTable(state)}
     </main>
@@ -125,9 +126,16 @@ function languageToggle(state) {
 function homeSearchBlock(state) {
   return `
     <section class="home-search">
+      <div class="search-heading">
+        <span>${uiLabel("New analysis")}</span>
+        <strong>${uiLabel("Enter a ticker to start")}</strong>
+      </div>
       <div class="search-line">
         <input id="searchInput" value="${escapeHtml(state.query)}" placeholder="${uiLabel("Search by company name or ticker")}" autocomplete="off">
-        <button class="primary-btn" data-action="search">${state.loading ? uiLabel("Searching") : uiLabel("Search")}</button>
+        <button class="primary-btn" data-action="search">${state.loading ? uiLabel("Searching") : uiLabel("Start analysis")}</button>
+      </div>
+      <div class="quick-tickers" aria-label="${uiLabel("Common examples")}">
+        ${["AAPL", "MSFT", "NVDA", "AMZN"].map((ticker) => `<button data-sample-query="${ticker}">${ticker}</button>`).join("")}
       </div>
       ${state.notice ? `<p class="home-note">${escapeHtml(state.notice)}</p>` : ""}
       ${state.searchResults.length ? `<div class="results home-results">
@@ -135,6 +143,38 @@ function homeSearchBlock(state) {
         ${state.searchResults.map(searchResult).join("")}
       </div>` : ""}
     </section>
+  `;
+}
+
+function homeStartCard(state) {
+  const hasMarketKey = Boolean(state.apiKeys.fmp);
+  return `
+    <section class="start-card">
+      <div>
+        <p class="eyebrow">${uiLabel("Start here")}</p>
+        <h2>${uiLabel("Analyze any stock in three steps")}</h2>
+        <p>${uiLabel("Type a ticker, choose the company, then read the decision summary first.")}</p>
+      </div>
+      <div class="start-steps">
+        ${startStep("1", uiLabel("Search"), uiLabel("Use a ticker like AAPL or MSFT."))}
+        ${startStep("2", uiLabel("Choose"), uiLabel("Tap the company result to run the analysis."))}
+        ${startStep("3", uiLabel("Read"), uiLabel("Start with Buy, Hold, or Sell before the details."))}
+      </div>
+      <div class="start-footer">
+        <span class="${hasMarketKey ? "ready" : "limited"}">${hasMarketKey ? uiLabel("Market data key connected") : uiLabel("Add FMP key for live data")}</span>
+        <button class="icon-btn" data-panel="settings">${uiLabel("Settings")}</button>
+      </div>
+    </section>
+  `;
+}
+
+function startStep(number, title, detail) {
+  return `
+    <div class="start-step">
+      <b>${escapeHtml(number)}</b>
+      <span>${escapeHtml(title)}</span>
+      <small>${escapeHtml(detail)}</small>
+    </div>
   `;
 }
 
@@ -172,7 +212,7 @@ function searchResult(company) {
     <button class="result" data-result-ticker="${escapeHtml(company.ticker)}">
       <strong>${escapeHtml(company.ticker)}</strong>
       <span>${escapeHtml(company.name)}</span>
-      <small>${escapeHtml(company.exchange || company.sector || uiLabel("Market"))}</small>
+      <small>${escapeHtml(company.exchange || company.sector || uiLabel("Market"))} / ${uiLabel("Tap to analyze")}</small>
     </button>
   `;
 }
@@ -990,6 +1030,12 @@ function bind(root, store, actions) {
   root.querySelector("#searchInput")?.addEventListener("input", (event) => store.set({ query: event.target.value }));
   root.querySelector("#searchInput")?.addEventListener("keydown", (event) => {
     if (event.key === "Enter") actions.search();
+  });
+  root.querySelectorAll("[data-sample-query]").forEach((button) => {
+    button.addEventListener("click", () => {
+      store.set({ query: button.dataset.sampleQuery });
+      actions.search();
+    });
   });
   root.querySelectorAll("[data-key]").forEach((input) => {
     input.addEventListener("input", () => store.setApiKey(input.dataset.key, input.value));

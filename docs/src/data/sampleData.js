@@ -22,6 +22,14 @@ export const starterUniverse = [
     industry: "Consumer Electronics",
     currency: "USD",
     exchange: "NASDAQ"
+  },
+  {
+    ticker: "AMZN",
+    name: "Amazon.com, Inc.",
+    sector: "Consumer Discretionary",
+    industry: "Internet Retail",
+    currency: "USD",
+    exchange: "NASDAQ"
   }
 ];
 
