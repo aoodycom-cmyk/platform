@@ -1,12 +1,14 @@
-# AI Equity Research Platform V6
+# AI Equity Research Platform V7
 
-Version 6 is a deterministic investment engine with a unified financial data platform, an institutional research layer, bilingual Arabic/English output, a daily Home workspace for evaluated companies, and a professional ranking/comparison layer.
+Version 7 adds a fixed-methodology valuation workflow above the existing deterministic investment engine, unified financial data platform, institutional research layer, bilingual Arabic/English output, daily Home workspace, and ranking/comparison layer.
 
 The app answers one question:
 
 > Should I buy this stock today?
 
-It is not a stock dashboard. It calculates a reproducible Buy / Hold / Sell recommendation, tracks data provenance, and produces professional research modules without inventing missing facts.
+It is not a stock dashboard. A ticker search now opens a Company Valuation Workspace. The investor pastes or enters data, reviews and confirms it, runs a fixed-methodology valuation analyst, reviews the report, and only then approves and exports the valuation to Home.
+
+Drafts and unapproved valuations do not appear in the final Evaluated Companies dashboard.
 
 The Home workspace shows previously evaluated companies with:
 
@@ -18,7 +20,11 @@ The Home workspace shows previously evaluated companies with:
 - Upside %
 - Max FV Upside %
 - Investment Score
+- Confidence
+- Data Quality
 - Recommendation
+- Approved Date
+- Valuation Version
 
 It also supports deterministic ranking filters, 2-5 company comparison, and a semantic color system for upside/downside, recommendations, risk, and scores.
 
@@ -54,6 +60,11 @@ Local development uses `server.mjs` as an API proxy. On GitHub Pages, the app fa
 - `INVESTMENT_ENGINE.md`: formulas, assumptions, weights, and decision rules
 - `LANGUAGE_SYSTEM.md`: Arabic/English behavior, RTL/LTR rules, and financial terminology policy
 - `RANKING_ENGINE.md`: Version 6 ranking formula, comparison behavior, and color system
+- `VALUATION_WORKFLOW.md`: Version 7 workspace, data review, approval, and export workflow
+- `VALUATION_METHODOLOGY.md`: fixed valuation methodology
+- `VALUATION_POLICY.json`: versioned assumptions and policy defaults
+- `VALUATION_OUTPUT_SCHEMA.json`: fixed JSON report schema
+- `AI_ANALYST_CONTRACT.md`: AI vs deterministic responsibility contract
 - `CHANGELOG.md`: version history
 - `TODO.md`: next development phases
 
@@ -67,6 +78,7 @@ Local development uses `server.mjs` as an API proxy. On GitHub Pages, the app fa
 - `public/src/research`: institutional research layer
 - `public/src/state`: local app state and persistence
 - `public/src/ui`: rendering and interaction components
+- `public/src/valuationWorkflow`: fixed-methodology valuation workspace, parser, validation, report, approval, and export logic
 - `server.mjs`: local static server and FMP API proxy
 
 ## Investment Rules
@@ -78,6 +90,8 @@ Local development uses `server.mjs` as an API proxy. On GitHub Pages, the app fa
 - Engines read from the unified data layer and never fetch directly.
 - Research modules summarize verified information only.
 - Valuation methods are skipped when required inputs are unavailable.
+- A ticker search opens a draft valuation workspace, not a final recommendation.
+- Only approved valuation reports export to Home.
 - Buy / Hold / Sell decisions are deterministic and reproducible.
 - Ranking and comparison are deterministic and reproducible.
 - AI may later explain, summarize, or challenge assumptions, but cannot alter calculations.

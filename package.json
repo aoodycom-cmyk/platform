@@ -1,10 +1,10 @@
 {
   "name": "ai-equity-research-platform",
-  "version": "6.0.0",
+  "version": "7.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --experimental-vm-modules tests/version6.test.mjs"
+    "test": "node --experimental-vm-modules tests/version6.test.mjs && node --experimental-vm-modules tests/version7.test.mjs"
   }
 }

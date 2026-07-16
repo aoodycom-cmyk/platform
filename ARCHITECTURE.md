@@ -1,18 +1,16 @@
-# Architecture - Version 6
+# Architecture - Version 7
 
 ## Product Definition
 
-AI Equity Research Platform V6 keeps the architecture, data platform, investment engine, institutional research layer, Arabic/English language system, and evaluated-company storage stable, then adds deterministic ranking, company comparison, and a semantic market color system.
+AI Equity Research Platform V7 keeps the investment engine, data platform, ranking engine, comparison module, language system, semantic color system, evaluated-company dashboard, and institutional research layer stable. It adds a fixed-methodology valuation workflow above them.
 
 The product still answers:
 
 > Should I buy this stock today?
 
-Version 5 focuses on turning verified data and deterministic engine output into a professional research workflow.
+Version 7 changes the path to that answer:
 
-Version 5.1 focused on making that workflow usable for Arabic-speaking investors while preserving standard English financial terminology and giving the investor a fast daily table of evaluated companies.
-
-Version 6 focuses on making that daily table decision-ready by ranking opportunities, comparing evaluated companies, and visually separating positive, neutral, missing, and negative signals.
+> Search does not create a final recommendation. The investor must open a workspace, supply and confirm data, run the fixed analyst, review the report, and approve export.
 
 ## Runtime Flow
 
@@ -24,6 +22,20 @@ Provider Registry
 Provider Fallback
   ↓
 Unified Data Layer
+  ↓
+Valuation Workspace Draft
+  ↓
+Paste / Manual Input Parser
+  ↓
+Data Review + Completeness Gate
+  ↓
+Fixed Methodology Analyst
+  ↓
+Structured Valuation Report JSON
+  ↓
+Investor Approval
+  ↓
+Approved Export
   ↓
 Domain Metrics
   ↓
@@ -71,11 +83,36 @@ public/src/
 │   └── apiClient.js
 ├── research/
 │   └── institutionalResearch.js
+├── valuationWorkflow/
+│   └── workflow.js
 ├── state/
 │   └── store.js
 └── ui/
     └── components.js
 ```
+
+## Version 7 Workflow Layer
+
+Location:
+
+```text
+public/src/valuationWorkflow/workflow.js
+```
+
+Responsibilities:
+
+- Create Company Valuation Workspace drafts
+- Define structured input sections and required fields
+- Parse pasted text, HTML-like table text, tab-separated data, and CSV-style rows
+- Preserve original pasted text, source, source date, confidence, confirmation state, and original text references
+- Build Data Review groups
+- Enforce minimum completeness before valuation
+- Classify the company using deterministic evidence rules
+- Calculate WACC, FCF bridge, DCF, multiples, scenarios, and fair values
+- Produce fixed-structure valuation report JSON
+- Validate the report
+- Preserve valuation versions
+- Export only approved valuations to Home
 
 ## Data Platform Layer
 

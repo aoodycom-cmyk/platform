@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Fixed Methodology Valuation Output",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "methodologyVersion",
+    "companyAndValuationDate",
+    "executiveConclusion",
+    "dataQuality",
+    "companyClassification",
+    "financialPerformanceReview",
+    "assumptionRationale",
+    "valuationModels",
+    "bearScenario",
+    "baseScenario",
+    "bullScenario",
+    "risks",
+    "catalysts",
+    "whatWouldChangeTheValuation",
+    "finalInvestmentDecision"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "methodologyVersion": { "type": "string" },
+    "language": { "enum": ["ar", "en"] },
+    "companyAndValuationDate": {
+      "type": "object",
+      "required": ["ticker", "companyName", "valuationDate", "currentPrice", "currency"]
+    },
+    "executiveConclusion": {
+      "type": "object",
+      "required": [
+        "recommendation",
+        "confidence",
+        "currentPrice",
+        "bearFairValue",
+        "baseFairValue",
+        "bullFairValue",
+        "rangeFairValue",
+        "expectedUpside",
+        "maximumUpside",
+        "investmentScore",
+        "why"
+      ]
+    },
+    "assumptionRationale": {
+      "type": "object",
+      "required": [
+        "wacc",
+        "revenueGrowth",
+        "fcfGrowth",
+        "marginForecast",
+        "capex",
+        "workingCapital",
+        "taxRate",
+        "terminalGrowth",
+        "exitMultiple",
+        "dilution"
+      ]
+    },
+    "valuationModels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["method", "assumptions", "weight", "confidence", "fairValue", "explanation"]
+      }
+    },
+    "bearScenario": { "$ref": "#/$defs/scenario" },
+    "baseScenario": { "$ref": "#/$defs/scenario" },
+    "bullScenario": { "$ref": "#/$defs/scenario" }
+  },
+  "$defs": {
+    "scenario": {
+      "type": "object",
+      "required": [
+        "probability",
+        "fairValue",
+        "revenueAssumptions",
+        "marginAssumptions",
+        "fcfAssumptions",
+        "capexAssumptions",
+        "wacc",
+        "terminalGrowth",
+        "keyRisks",
+        "keyCatalysts"
+      ]
+    }
+  }
+}

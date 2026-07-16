@@ -1,5 +1,38 @@
 # Changelog
 
+## Version 7.0 - Fixed-Methodology AI Valuation Workflow
+
+### Added
+
+- Added Company Valuation Workspace.
+- Added structured input sections for basics, income statement, balance sheet, cash flow, guidance, analyst estimates, Morningstar research, and qualitative research.
+- Added paste drafts, parser preview, source metadata, confidence, confirmation status, and original text references.
+- Added Data Review groups for confirmed, missing, conflicting, outdated, unconfirmed parsed, automatic, and manual data.
+- Added fixed-methodology valuation workflow in `public/src/valuationWorkflow/workflow.js`.
+- Added deterministic WACC, FCF bridge, DCF, model selection, Bear/Base/Bull scenarios, recommendation, and report JSON.
+- Added investor approval and export workflow.
+- Added valuation version IDs, methodology version snapshots, input snapshots, source snapshots, and report snapshots.
+- Added Home export fields for confidence, data quality, approved date, and valuation version.
+- Added `VALUATION_WORKFLOW.md`, `VALUATION_METHODOLOGY.md`, `VALUATION_POLICY.json`, `VALUATION_OUTPUT_SCHEMA.json`, `AI_ANALYST_CONTRACT.md`, and root `SCHEMA.md`.
+
+### Changed
+
+- Searching a ticker no longer creates a final valuation or automatically adds the company to Home.
+- Search results now open a draft valuation workspace.
+- Draft and unapproved valuations remain separate from the Evaluated Companies dashboard.
+- Home rows now open the approved valuation report when available.
+- The report is rendered from fixed JSON sections in the same order for every company.
+
+### Rules Enforced
+
+- Financial calculations are deterministic.
+- AI is limited to explanation and structured reporting, not arithmetic.
+- Missing data remains missing and reduces confidence.
+- Methodology defaults are labeled as assumptions.
+- Investor overrides are labeled and require a reason.
+- Scenario probabilities must total 100%.
+- Only approved valuations export to Home.
+
 ## Version 6.1 - Mobile Onboarding
 
 ### Added

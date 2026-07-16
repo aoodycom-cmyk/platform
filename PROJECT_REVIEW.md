@@ -1,8 +1,12 @@
-# Project Review - Version 6
+# Project Review - Version 7
 
 ## Executive Assessment
 
-Version 6 freezes the architecture, data platform, investment engine, institutional research layer, Arabic/English language system, and evaluated-company storage, then adds a deterministic ranking engine, company comparison, and semantic market color system.
+Version 7 keeps the existing deterministic engines and research platform, then adds a fixed-methodology valuation workflow that better matches a professional investor's process.
+
+The most important product change:
+
+> A ticker search no longer creates a final valuation or Home row. It opens a Company Valuation Workspace. Only approved valuations export to the dashboard.
 
 The application is still decision-first, but every important financial field now carries provenance:
 
@@ -38,6 +42,10 @@ Version 6 refines that into:
 
 > Which evaluated companies deserve attention first, and how do they compare?
 
+Version 7 adds:
+
+> Has the investor supplied, reviewed, and approved enough evidence for this valuation to become an official dashboard record?
+
 ## Technology Stack
 
 - Frontend: vanilla JavaScript modules, HTML, CSS
@@ -46,6 +54,7 @@ Version 6 refines that into:
 - Evaluated companies: deterministic snapshot formulas in `public/src/domain/evaluatedCompanies.js`
 - Ranking engine: deterministic opportunity ranking in `public/src/engines/rankingEngine.js`
 - Market color system: semantic signal colors in `public/src/domain/marketColorSystem.js`
+- Valuation workflow: fixed-methodology workspace in `public/src/valuationWorkflow/workflow.js`
 - Storage:
   - `localStorage` for app state, saved theses, and local financial timeline
   - `sessionStorage` for API keys
@@ -67,6 +76,11 @@ equity-research-v2/
 ├── INVESTMENT_ENGINE.md
 ├── LANGUAGE_SYSTEM.md
 ├── RANKING_ENGINE.md
+├── VALUATION_WORKFLOW.md
+├── VALUATION_METHODOLOGY.md
+├── VALUATION_POLICY.json
+├── VALUATION_OUTPUT_SCHEMA.json
+├── AI_ANALYST_CONTRACT.md
 ├── TODO.md
 ├── server.mjs
 └── public/src/
@@ -84,6 +98,7 @@ equity-research-v2/
     ├── i18n/language.js
     ├── research/institutionalResearch.js
     ├── providers/apiClient.js
+    ├── valuationWorkflow/workflow.js
     ├── state/store.js
     └── ui/components.js
 ```

@@ -31,9 +31,17 @@ import {
 } from "../i18n/language.js";
 import { fetchResearchData, searchCompanies } from "../providers/apiClient.js";
 import { formatResearchValue } from "../research/institutionalResearch.js";
+import {
+  FIELD_DEFINITIONS,
+  VALUATION_SECTIONS,
+  WORKFLOW_STATUS,
+  compareValuationVersions,
+  statusLabel as workflowStatusLabel
+} from "../valuationWorkflow/workflow.js";
 
 const panels = [
   ["home", "Home"],
+  ["workspace", "Valuation Workspace"],
   ["summary", "Executive"],
   ["valuation", "Valuation"],
   ["quality", "Quality"],
@@ -61,10 +69,11 @@ function render(root, store, actions) {
     bind(root, store, actions);
     return;
   }
+  const isWorkflow = state.activePanel === "workspace";
   root.innerHTML = `
     <aside class="rail">
       <div class="brand">
-        <div class="mark">V5.1</div>
+        <div class="mark">V7</div>
         <div>
           <h1>${uiLabel("Institutional Research")}</h1>
           <p>${uiLabel("Equity research layer")}</p>
@@ -81,13 +90,13 @@ function render(root, store, actions) {
     </aside>
     <main class="workspace">
       ${topBar(state)}
-      ${searchBlock(state)}
+      ${isWorkflow ? "" : searchBlock(state)}
       ${state.notice ? `<div class="notice">${escapeHtml(state.notice)}</div>` : ""}
-      ${executiveSummary(state)}
+      ${isWorkflow ? "" : executiveSummary(state)}
       ${panelContent(state)}
     </main>
     <nav class="mobile-nav">
-      ${panels.filter(([key]) => ["home", "summary", "research", "risk", "settings"].includes(key)).map(([key, label]) => `<button class="${state.activePanel === key ? "active" : ""}" data-panel="${key}">${uiLabel(label)}</button>`).join("")}
+      ${panels.filter(([key]) => ["home", "workspace", "summary", "research", "settings"].includes(key)).map(([key, label]) => `<button class="${state.activePanel === key ? "active" : ""}" data-panel="${key}">${uiLabel(label)}</button>`).join("")}
     </nav>
   `;
   bind(root, store, actions);
@@ -98,7 +107,7 @@ function homeDashboard(state) {
     <main class="home-workspace">
       <header class="home-topbar">
         <div>
-          <p class="eyebrow">${uiLabel("Version 6")}</p>
+          <p class="eyebrow">${uiLabel("Version 7")}</p>
           <h1>${uiLabel("AI Equity Research Platform")}</h1>
         </div>
         <div class="home-actions">
@@ -152,13 +161,13 @@ function homeStartCard(state) {
     <section class="start-card">
       <div>
         <p class="eyebrow">${uiLabel("Start here")}</p>
-        <h2>${uiLabel("Analyze any stock in three steps")}</h2>
-        <p>${uiLabel("Type a ticker, choose the company, then read the decision summary first.")}</p>
+        <h2>${uiLabel("Build an approved valuation before it reaches Home")}</h2>
+        <p>${uiLabel("Search a ticker, paste data, review it, run the fixed analyst, then approve and export.")}</p>
       </div>
       <div class="start-steps">
-        ${startStep("1", uiLabel("Search"), uiLabel("Use a ticker like AAPL or MSFT."))}
-        ${startStep("2", uiLabel("Choose"), uiLabel("Tap the company result to run the analysis."))}
-        ${startStep("3", uiLabel("Read"), uiLabel("Start with Buy, Hold, or Sell before the details."))}
+        ${startStep("1", uiLabel("Search"), uiLabel("Open a valuation workspace, not a final decision."))}
+        ${startStep("2", uiLabel("Data"), uiLabel("Paste or enter company data and confirm the source."))}
+        ${startStep("3", uiLabel("Approve"), uiLabel("Only approved valuations appear in the dashboard."))}
       </div>
       <div class="start-footer">
         <span class="${hasMarketKey ? "ready" : "limited"}">${hasMarketKey ? uiLabel("Market data key connected") : uiLabel("Add FMP key for live data")}</span>
@@ -182,7 +191,7 @@ function topBar(state) {
   return `
     <header class="topbar compact">
       <div>
-        <p class="eyebrow">${uiLabel("Version 6")}</p>
+        <p class="eyebrow">${uiLabel("Version 7")}</p>
         <h2>${escapeHtml(state.company.name)}</h2>
       </div>
       <div class="top-actions">
@@ -212,7 +221,7 @@ function searchResult(company) {
     <button class="result" data-result-ticker="${escapeHtml(company.ticker)}">
       <strong>${escapeHtml(company.ticker)}</strong>
       <span>${escapeHtml(company.name)}</span>
-      <small>${escapeHtml(company.exchange || company.sector || uiLabel("Market"))} / ${uiLabel("Tap to analyze")}</small>
+      <small>${escapeHtml(company.exchange || company.sector || uiLabel("Market"))} / ${uiLabel("Open valuation workspace")}</small>
     </button>
   `;
 }
@@ -237,7 +246,11 @@ function evaluatedCompaniesTable(state) {
     ["upside", uiLabel("Upside %"), "percent"],
     ["maxFairValueUpside", uiLabel("Max FV Upside %"), "percent"],
     ["investmentScore", financialTerm("Investment Score"), "number"],
-    ["recommendation", uiLabel("Recommendation"), "text"]
+    ["confidence", uiLabel("Confidence"), "number"],
+    ["dataQuality", uiLabel("Data Quality"), "number"],
+    ["recommendation", uiLabel("Recommendation"), "text"],
+    ["approvedDate", uiLabel("Approved Date"), "text"],
+    ["valuationVersion", uiLabel("Valuation Version"), "text"]
   ];
 
   return `
@@ -295,7 +308,11 @@ function evaluatedRow(item) {
       <td class="num">${upsideSignal(item.upside)}</td>
       <td class="num">${upsideSignal(item.maxFairValueUpside)}</td>
       <td class="num">${scoreSignal(item.investmentScore)}</td>
+      <td class="num">${scoreSignal(item.confidence)}</td>
+      <td class="num">${scoreSignal(item.dataQuality)}</td>
       <td>${recommendationBadge(item)}</td>
+      <td>${escapeHtml(item.approvedDate || item.evaluationDate || "—")}</td>
+      <td>${escapeHtml(item.valuationVersion || "—")}</td>
     </tr>
   `;
 }
@@ -603,6 +620,7 @@ function executiveSummary(state) {
 
 function panelContent(state) {
   const r = state.research;
+  if (state.activePanel === "workspace") return valuationWorkspacePanel(state);
   if (state.activePanel === "valuation") return valuationPanel(r, state.company);
   if (state.activePanel === "quality") return enginePanel(uiLabel("Quality Engine"), r.quality);
   if (state.activePanel === "growth") return enginePanel(uiLabel("Growth Engine"), r.growth);
@@ -613,6 +631,365 @@ function panelContent(state) {
   if (state.activePanel === "settings") return settingsPanel(state);
   if (state.activePanel === "history") return historyPanel(state);
   return summaryPanel(r);
+}
+
+function valuationWorkspacePanel(state) {
+  const workspace = state.valuationWorkspace;
+  if (!workspace) {
+    return `
+      <section class="panel workflow-empty">
+        <h3>${uiLabel("Valuation Workspace")}</h3>
+        <p>${uiLabel("Search for a company to open a disciplined valuation workspace.")}</p>
+        ${searchBlock(state)}
+      </section>
+    `;
+  }
+  const review = workspace.dataReview || {};
+  const report = workspace.report;
+  return `
+    <section class="workflow-shell">
+      <article class="panel workflow-header">
+        <div>
+          <p class="eyebrow">${uiLabel("Valuation Workspace")}</p>
+          <h2>${escapeHtml(workspace.companyName || workspace.ticker)}</h2>
+          <p class="muted">${escapeHtml(workspace.ticker)} / ${uiLabel("Methodology")}: ${escapeHtml(workspace.methodologyVersion)}</p>
+        </div>
+        <div class="workflow-metrics">
+          ${metric(uiLabel("Research status"), workflowStatusLabel(workspace.status, state.language))}
+          ${metric(uiLabel("Current Price"), money(workspace.inputs?.currentPrice?.value, 2))}
+          ${metric(uiLabel("Data completeness"), `${review.completeness || 0}/100`)}
+          ${metric(uiLabel("Last saved"), workspace.lastSavedAt ? workspace.lastSavedAt.slice(0, 10) : "-")}
+        </div>
+      </article>
+      ${workflowSteps(workspace, state)}
+      ${workspace.pastePreview ? pastePreviewCard(workspace) : ""}
+      <section class="content-grid workflow-grid">
+        <article class="panel full">
+          <h3>${uiLabel("Input Data")}</h3>
+          <p class="muted">${uiLabel("Paste tables or enter values manually. Every value keeps source, date, confidence, and confirmation status.")}</p>
+          ${VALUATION_SECTIONS.map(([sectionId, label]) => workflowSection(workspace, sectionId, label)).join("")}
+        </article>
+        <article class="panel">${dataReviewPanel(workspace, state)}</article>
+        <article class="panel">${methodologyOverridesPanel(workspace)}</article>
+        ${report ? `<article class="panel full">${fixedReportPanel(workspace, state)}</article>` : ""}
+        ${workspace.versions?.length ? `<article class="panel full">${versionHistoryPanel(workspace)}</article>` : ""}
+      </section>
+    </section>
+  `;
+}
+
+function workflowSteps(workspace, state) {
+  const steps = [
+    ["1", uiLabel("Open Workspace"), Boolean(workspace)],
+    ["2", uiLabel("Paste / Enter Data"), (workspace.dataReview?.confirmed?.length || 0) > 0],
+    ["3", uiLabel("Review and Confirm Data"), workspace.dataReview?.canRun],
+    ["4", uiLabel("Run Valuation Analyst"), Boolean(workspace.report)],
+    ["5", uiLabel("Approve and Export"), workspace.status === WORKFLOW_STATUS.APPROVED]
+  ];
+  return `
+    <div class="workflow-steps">
+      ${steps.map(([number, label, done]) => `
+        <span class="${done ? "done" : ""}"><b>${number}</b>${escapeHtml(label)}</span>
+      `).join("")}
+    </div>
+  `;
+}
+
+function workflowSection(workspace, sectionId, label) {
+  const fields = FIELD_DEFINITIONS.filter((field) => field.sectionId === sectionId);
+  const source = workspace.sectionSources?.[sectionId] || {};
+  return `
+    <details class="workflow-section" ${sectionId === "basics" ? "open" : ""}>
+      <summary>
+        <strong>${uiLabel(label)}</strong>
+        <span>${fields.filter((field) => workspace.inputs?.[field.id]?.userConfirmed).length}/${fields.length}</span>
+      </summary>
+      <div class="workflow-source-row">
+        <label>${uiLabel("Source")}<input data-workflow-source="${sectionId}" data-source-field="source" value="${escapeHtml(source.source || "Manual Paste")}"></label>
+        <label>${uiLabel("Source Date")}<input type="date" data-workflow-source="${sectionId}" data-source-field="sourceDate" value="${escapeHtml(source.sourceDate || "")}"></label>
+      </div>
+      <textarea class="paste-box" data-workflow-paste="${sectionId}" placeholder="${uiLabel("Paste copied tables, plain text, tab-separated data, or CSV-style data here.")}">${escapeHtml(workspace.pasteDrafts?.[sectionId] || "")}</textarea>
+      <button class="icon-btn" data-action="parse-paste" data-section="${sectionId}">${uiLabel("Parse pasted data")}</button>
+      <div class="workflow-fields">
+        ${fields.map((field) => workflowField(workspace, field)).join("")}
+      </div>
+    </details>
+  `;
+}
+
+function workflowField(workspace, field) {
+  const item = workspace.inputs?.[field.id] || {};
+  const inputType = field.type === "number" ? "text" : field.type === "date" ? "date" : "text";
+  const status = item.userConfirmed ? uiLabel("Confirmed") : item.value !== undefined && item.value !== null && item.value !== "" ? uiLabel("Needs confirmation") : field.required ? uiLabel("Required") : uiLabel("Optional");
+  const statusClass = item.userConfirmed ? "ready" : field.required ? "limited" : "";
+  return `
+    <label class="workflow-field ${statusClass}">
+      <span>${uiLabel(field.label)} ${field.required ? "<b>*</b>" : ""}</span>
+      <input data-workflow-field="${field.id}" type="${inputType}" value="${escapeHtml(item.value ?? "")}" placeholder="${field.type === "number" ? "0" : ""}">
+      <small>${escapeHtml(status)} / ${escapeHtml(item.source || uiLabel("No source"))}</small>
+    </label>
+  `;
+}
+
+function pastePreviewCard(workspace) {
+  const preview = workspace.pastePreview;
+  return `
+    <article class="panel paste-preview">
+      <div class="compare-head">
+        <div>
+          <p class="eyebrow">${uiLabel("Paste Preview")}</p>
+          <h3>${uiLabel("Review parsed values before saving")}</h3>
+        </div>
+        <button class="primary-btn" data-action="apply-paste-preview">${uiLabel("Save parsed values")}</button>
+      </div>
+      <div class="review-table">
+        ${preview.candidates.length ? preview.candidates.map((item) => `
+          <div class="${item.ambiguous ? "uncertain" : ""}">
+            <strong>${uiLabel(item.label)}</strong>
+            <span>${escapeHtml(formatWorkflowValue(item.value))}</span>
+            <small>${Math.round(item.confidence * 100)}% / ${item.ambiguous ? uiLabel("Needs confirmation") : uiLabel("Confirmed")}</small>
+          </div>
+        `).join("") : `<p class="muted">${uiLabel("No values were mapped. You can still enter fields manually.")}</p>`}
+      </div>
+    </article>
+  `;
+}
+
+function dataReviewPanel(workspace, state) {
+  const review = workspace.dataReview || {};
+  return `
+    <h3>${uiLabel("Data Review")}</h3>
+    <div class="two-col">
+      ${metric(uiLabel("Completeness"), `${review.completeness || 0}/100`)}
+      ${metric(uiLabel("Minimum"), `${review.minimumCompleteness || 68}/100`)}
+    </div>
+    ${reviewGroup(uiLabel("Unconfirmed Parsed Data"), review.unconfirmedParsed, true)}
+    ${reviewGroup(uiLabel("Missing Data"), review.missing, false)}
+    ${reviewGroup(uiLabel("Confirmed Data"), review.confirmed?.slice(0, 10), true)}
+    ${reviewGroup(uiLabel("Conflicting Data"), review.conflicting, true)}
+    ${reviewGroup(uiLabel("Outdated Data"), review.outdated, true)}
+    <button class="primary-btn full-action" data-action="run-valuation-analyst" ${review.canRun ? "" : "disabled"}>${uiLabel("Run Valuation Analyst")}</button>
+    ${review.canRun ? "" : `<p class="muted">${uiLabel("Confirm required fields and resolve critical issues before running the analyst.")}</p>`}
+  `;
+}
+
+function reviewGroup(title, items = [], withActions) {
+  const visible = items?.length ? items : [];
+  return `
+    <div class="review-group">
+      <h4>${title}</h4>
+      ${visible.length ? visible.map((item) => `
+        <div class="review-item">
+          <strong>${uiLabel(item.label)}</strong>
+          <span>${escapeHtml(formatWorkflowValue(item.value))}</span>
+          <small>${escapeHtml(item.source || "-")} / ${escapeHtml(item.sourceDate || "-")}</small>
+          ${withActions ? `<div>
+            <button data-confirm-field="${escapeHtml(item.fieldId)}">${uiLabel("Confirm")}</button>
+            <button data-reject-field="${escapeHtml(item.fieldId)}">${uiLabel("Reject")}</button>
+            <button data-na-field="${escapeHtml(item.fieldId)}">${uiLabel("Mark as Not Available")}</button>
+          </div>` : ""}
+        </div>
+      `).join("") : `<p class="muted">${uiLabel("None")}</p>`}
+    </div>
+  `;
+}
+
+function methodologyOverridesPanel(workspace) {
+  const overrides = [
+    ["wacc", "WACC"],
+    ["terminalGrowth", "Terminal Growth"],
+    ["revenueGrowth", "Revenue Growth"],
+    ["operatingMargin", "Operating Margin"],
+    ["capexToRevenue", "CapEx"],
+    ["taxRate", "Tax Rate"],
+    ["exitMultiple", "Exit Multiple"]
+  ];
+  return `
+    <h3>${uiLabel("Override Methodology Assumption")}</h3>
+    <p class="muted">${uiLabel("Advanced only. Every override is labeled and requires an investor reason.")}</p>
+    <div class="override-grid">
+      ${overrides.map(([key, label]) => {
+        const item = workspace.overrides?.[key] || {};
+        return `
+          <label>${financialTerm(label)}
+            <input data-override-field="${key}" data-override-key="value" value="${escapeHtml(item.value ?? "")}" placeholder="${uiLabel("New value")}">
+            <input data-override-field="${key}" data-override-key="reason" value="${escapeHtml(item.reason ?? "")}" placeholder="${uiLabel("Investor reason")}">
+          </label>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function fixedReportPanel(workspace, state) {
+  const report = workspace.report;
+  const sections = [
+    ["1. Company and Valuation Date", companyDateReport(report)],
+    ["2. Executive Conclusion", executiveConclusionReport(report)],
+    ["3. Data Quality", dataQualityReport(report)],
+    ["4. Company Classification", classificationReport(report)],
+    ["5. Financial Performance Review", objectReport(report.financialPerformanceReview)],
+    ["6. Assumption Rationale", assumptionsReport(report.assumptionRationale)],
+    ["7. Valuation Models", valuationModelsReport(report.valuationModels, report.executiveConclusion.currentPrice)],
+    ["8. Bear Scenario", scenarioFixedReport(report.bearScenario)],
+    ["9. Base Scenario", scenarioFixedReport(report.baseScenario)],
+    ["10. Bull Scenario", scenarioFixedReport(report.bullScenario)],
+    ["11. Risks", listReport(report.risks)],
+    ["12. Catalysts", listReport(report.catalysts)],
+    ["13. What Would Change the Valuation", listReport(report.whatWouldChangeTheValuation)],
+    ["14. Final Investment Decision", finalDecisionReport(report)]
+  ];
+  return `
+    <div class="compare-head">
+      <div>
+        <p class="eyebrow">${uiLabel("Fixed-Format Report")}</p>
+        <h3>${uiLabel("Awaiting investor approval")}</h3>
+      </div>
+      <div class="report-actions">
+        <button class="icon-btn" data-action="edit-workspace-data">${uiLabel("Edit Data and Re-run")}</button>
+        <button class="primary-btn" data-action="approve-and-export" ${workspace.status === WORKFLOW_STATUS.APPROVED ? "disabled" : ""}>${uiLabel("Approve and Export")}</button>
+      </div>
+    </div>
+    <label class="notes-field">${uiLabel("Investor approval note")}<textarea data-investor-notes>${escapeHtml(workspace.investorNotes || "")}</textarea></label>
+    <div class="fixed-report">
+      ${sections.map(([title, body]) => `
+        <section>
+          <h4>${escapeHtml(title)}</h4>
+          ${body}
+        </section>
+      `).join("")}
+    </div>
+  `;
+}
+
+function versionHistoryPanel(workspace) {
+  const [current, previous] = workspace.versions || [];
+  const changes = compareValuationVersions(current, previous);
+  return `
+    <h3>${uiLabel("Valuation Version History")}</h3>
+    <div class="version-list">
+      ${(workspace.versions || []).slice(0, 8).map((version) => `
+        <div>
+          <strong>${escapeHtml(version.versionId)}</strong>
+          <span>${escapeHtml(version.approvalStatus || version.type)}</span>
+          <small>${escapeHtml(version.timestamp || "-")}</small>
+        </div>
+      `).join("")}
+    </div>
+    <h4>${uiLabel("Changes vs previous version")}</h4>
+    ${changes.length ? changes.map((item) => `<p class="muted">${escapeHtml(item.label)}: ${escapeHtml(formatWorkflowValue(item.from))} → ${escapeHtml(formatWorkflowValue(item.to))}</p>`).join("") : `<p class="muted">${uiLabel("None")}</p>`}
+  `;
+}
+
+function companyDateReport(report) {
+  const item = report.companyAndValuationDate;
+  return `<div class="two-col">
+    ${metric("Ticker", item.ticker)}
+    ${metric(uiLabel("Company Name"), item.companyName)}
+    ${metric(uiLabel("Current Price"), money(item.currentPrice, 2))}
+    ${metric(uiLabel("Valuation Date"), item.valuationDate)}
+  </div>`;
+}
+
+function executiveConclusionReport(report) {
+  const item = report.executiveConclusion;
+  return `<div class="decision-grid">
+    ${metric(uiLabel("Recommendation"), decisionLabel(item.recommendation))}
+    ${metricHtml(uiLabel("Confidence"), scoreSignal(item.confidence))}
+    ${metricHtml("Bear", fairValueSignal(item.bearFairValue, item.currentPrice))}
+    ${metricHtml("Base", fairValueSignal(item.baseFairValue, item.currentPrice))}
+    ${metricHtml("Bull", fairValueSignal(item.bullFairValue, item.currentPrice))}
+    ${metricHtml("Morningstar", fairValueSignal(item.morningstarFairValue, item.currentPrice))}
+    ${metricHtml(uiLabel("Range FV"), fairValueSignal(item.rangeFairValue, item.currentPrice))}
+    ${metricHtml(uiLabel("Upside %"), upsideSignal(item.expectedUpside))}
+  </div>
+  <p>${escapeHtml(item.why || "")}</p>`;
+}
+
+function dataQualityReport(report) {
+  const item = report.dataQuality;
+  return `
+    <div class="two-col">
+      ${metric(uiLabel("Completeness"), `${item.completeness}/100`)}
+      ${metric(uiLabel("Missing Data"), String(item.missingData.length))}
+    </div>
+    ${researchList(uiLabel("Confirmed Sources"), item.confirmedSources)}
+    ${researchList(uiLabel("Important Limitations"), item.importantLimitations)}
+  `;
+}
+
+function classificationReport(report) {
+  const item = report.companyClassification;
+  return `
+    ${metric(uiLabel("Classification"), item.classification)}
+    <p>${escapeHtml(item.reason)}</p>
+    ${researchList(uiLabel("Suitable Valuation Models"), item.suitableValuationModels)}
+    ${researchList(uiLabel("Excluded Models"), item.excludedModels.map((model) => `${model.method}: ${model.why}`))}
+  `;
+}
+
+function objectReport(object = {}) {
+  return `<div class="research-columns">${Object.entries(object).map(([key, value]) => metric(outputKeyLabel(key), value)).join("")}</div>`;
+}
+
+function assumptionsReport(assumptions = {}) {
+  return `<div class="assumption-list">${Object.entries(assumptions).map(([key, item]) => `
+    <div>
+      <strong>${financialTerm(outputKeyLabel(key))}</strong>
+      <span>${escapeHtml(formatWorkflowValue(item.value))}</span>
+      <p>${escapeHtml(item.why || "")}</p>
+    </div>
+  `).join("")}</div>`;
+}
+
+function valuationModelsReport(models = [], currentPrice) {
+  return `<div class="method-table">${models.map((modelItem) => `
+    <div class="method-row">
+      <strong>${financialTerm(modelItem.method)}</strong>
+      <span>${modelItem.fairValue ? fairValueSignal(modelItem.fairValue, currentPrice) : "—"}</span>
+      <small>${Math.round((modelItem.weight || 0) * 100)}% ${uiLabel("Weight")} / ${Math.round((modelItem.confidence || 0) * 100)}% ${uiLabel("Confidence")}</small>
+      <p>${escapeHtml(modelItem.explanation || "")}</p>
+    </div>
+  `).join("")}</div>`;
+}
+
+function scenarioFixedReport(scenario = {}) {
+  return `
+    <div class="two-col">
+      ${metric(uiLabel("Probability"), `${Math.round((scenario.probability || 0) * 100)}%`)}
+      ${metricHtml(uiLabel("Fair Value"), fairValueSignal(scenario.fairValue, null))}
+      ${metric("WACC", percent(scenario.wacc))}
+      ${metric("Terminal Growth", percent(scenario.terminalGrowth))}
+      ${metric("CapEx", percent(scenario.capexAssumptions))}
+      ${metric("Operating Margin", percent(scenario.marginAssumptions))}
+    </div>
+    ${researchList(uiLabel("Key Risks"), scenario.keyRisks || [])}
+    ${researchList(uiLabel("Key Catalysts"), scenario.keyCatalysts || [])}
+  `;
+}
+
+function listReport(items = []) {
+  return `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+}
+
+function finalDecisionReport(report) {
+  const item = report.finalInvestmentDecision;
+  return `
+    ${metric(uiLabel("Recommendation"), decisionLabel(item.decision))}
+    <p>${escapeHtml(item.why)}</p>
+    <p class="muted">${escapeHtml(item.whyNot)}</p>
+    ${researchList(uiLabel("Main Positive Factor"), item.mainPositiveDrivers)}
+    ${researchList(uiLabel("Main Negative Factor"), item.mainNegativeDrivers)}
+    ${researchList(uiLabel("Data Limitations"), item.dataLimitations)}
+  `;
+}
+
+function formatWorkflowValue(value) {
+  const parsed = Number(value);
+  if (typeof value === "string" && value.trim() && !Number.isFinite(parsed)) return value;
+  if (!Number.isFinite(parsed)) return "—";
+  if (Math.abs(parsed) < 1 && parsed !== 0) return percent(parsed);
+  return Math.abs(parsed) >= 1000 ? compact(parsed) : String(Number(parsed.toFixed(4)));
 }
 
 function summaryPanel(r) {
@@ -1043,6 +1420,35 @@ function bind(root, store, actions) {
   root.querySelectorAll("[data-manual]").forEach((input) => {
     input.addEventListener("input", () => store.setManualInput(input.dataset.manual, input.value));
   });
+  root.querySelectorAll("[data-workflow-field]").forEach((input) => {
+    input.addEventListener("input", () => store.setWorkspaceField(input.dataset.workflowField, input.value));
+  });
+  root.querySelectorAll("[data-workflow-source]").forEach((input) => {
+    input.addEventListener("input", () => store.setWorkspaceSectionSource(input.dataset.workflowSource, { [input.dataset.sourceField]: input.value }));
+  });
+  root.querySelectorAll("[data-workflow-paste]").forEach((input) => {
+    input.addEventListener("input", () => store.setWorkspacePaste(input.dataset.workflowPaste, input.value));
+  });
+  root.querySelectorAll("[data-action='parse-paste']").forEach((button) => {
+    button.addEventListener("click", () => store.parseWorkspaceSection(button.dataset.section));
+  });
+  root.querySelector("[data-action='apply-paste-preview']")?.addEventListener("click", store.saveParsedWorkspaceValues);
+  root.querySelectorAll("[data-confirm-field]").forEach((button) => {
+    button.addEventListener("click", () => store.confirmWorkspaceValue(button.dataset.confirmField));
+  });
+  root.querySelectorAll("[data-reject-field]").forEach((button) => {
+    button.addEventListener("click", () => store.rejectWorkspaceValue(button.dataset.rejectField));
+  });
+  root.querySelectorAll("[data-na-field]").forEach((button) => {
+    button.addEventListener("click", () => store.markWorkspaceValueNotAvailable(button.dataset.naField));
+  });
+  root.querySelectorAll("[data-override-field]").forEach((input) => {
+    input.addEventListener("input", () => store.setWorkspaceOverride(input.dataset.overrideField, input.dataset.overrideKey, input.value));
+  });
+  root.querySelector("[data-investor-notes]")?.addEventListener("input", (event) => store.setWorkspaceInvestorNotes(event.target.value));
+  root.querySelector("[data-action='run-valuation-analyst']")?.addEventListener("click", store.runWorkspaceValuation);
+  root.querySelector("[data-action='edit-workspace-data']")?.addEventListener("click", store.editWorkspaceData);
+  root.querySelector("[data-action='approve-and-export']")?.addEventListener("click", store.approveAndExportWorkspace);
   root.querySelectorAll("[data-watch-draft]").forEach((input) => {
     input.addEventListener("input", () => store.setWatchDraft(input.dataset.watchDraft, input.value));
   });
@@ -1059,11 +1465,7 @@ function createActions(store) {
   return {
     async search() {
       const clean = store.state.query.trim();
-      const existing = store.state.evaluatedCompanies.find((item) => item.ticker.toLowerCase() === clean.toLowerCase());
-      if (existing) {
-        store.openEvaluatedCompany(existing.ticker);
-        return;
-      }
+      if (!clean) return;
       store.set({ loading: true, notice: store.state.language === "ar" ? "جاري البحث في السوق..." : "Searching market universe..." });
       try {
         const results = await searchCompanies(store.state.query, store.state.apiKeys);
@@ -1073,7 +1475,7 @@ function createActions(store) {
             ? " أضف مفتاح FMP من الإعدادات لتحميل القوائم المالية الحية."
             : " Add an FMP key in Settings for live financial statements.";
         const notice = results.length
-          ? (store.state.language === "ar" ? `اختر شركة لتشغيل التقييم.${noKeyHint}` : `Select a company to run the evaluation.${noKeyHint}`)
+          ? (store.state.language === "ar" ? `اختر شركة لفتح مساحة التقييم.${noKeyHint}` : `Select a company to open the valuation workspace.${noKeyHint}`)
           : (store.state.language === "ar" ? `لم يتم العثور على شركات.${noKeyHint}` : `No companies found.${noKeyHint}`);
         store.set({ searchResults: results, loading: false, notice });
       } catch {
@@ -1081,15 +1483,10 @@ function createActions(store) {
       }
     },
     async loadCompany(ticker) {
-      const existing = store.state.evaluatedCompanies.find((item) => item.ticker === ticker);
-      if (existing) {
-        store.openEvaluatedCompany(ticker);
-        return;
-      }
-      store.set({ loading: true, notice: store.state.language === "ar" ? `جاري تحليل ${ticker}...` : `Analyzing ${ticker}...` });
+      store.set({ loading: true, notice: store.state.language === "ar" ? `جاري فتح مساحة تقييم ${ticker}...` : `Opening valuation workspace for ${ticker}...` });
       try {
         const company = await fetchResearchData(ticker, store.state.apiKeys, store.state.manualInputs, store.state.company);
-        store.setCompany(company);
+        store.openValuationWorkspace(company);
       } catch {
         store.set({ loading: false, notice: analysisText("Could not load live data. Check the market data key in Settings.") });
       }

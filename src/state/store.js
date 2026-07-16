@@ -6,6 +6,20 @@ import { rankEvaluatedCompanies } from "../engines/rankingEngine.js";
 import { runEquityResearch } from "../engines/researchEngine.js";
 import { normalizeLanguage, setLanguageContext } from "../i18n/language.js";
 import { buildInstitutionalResearch } from "../research/institutionalResearch.js";
+import {
+  applyParsedPreview,
+  approveWorkspaceValuation,
+  confirmWorkspaceField,
+  createValuationWorkspace,
+  markWorkspaceFieldNotAvailable,
+  parseWorkspacePaste,
+  rejectWorkspaceField,
+  runFixedMethodologyValuation,
+  setMethodologyOverride,
+  updatePasteDraft,
+  updateSectionSource,
+  updateWorkspaceField
+} from "../valuationWorkflow/workflow.js";
 
 const STORAGE_KEY = "equityResearchV4State";
 
@@ -43,6 +57,7 @@ export function createStore() {
     compareSelectedTickers: saved.compareSelectedTickers || [],
     comparisonOpen: saved.comparisonOpen || false,
     evaluatedCompanies: initialEvaluatedCompanies,
+    valuationWorkspace: saved.valuationWorkspace || null,
     history: saved.history || [],
     watchList: saved.watchList || [],
     watchDraft: saved.watchDraft || { thesis: "", targetPrice: "", reviewDate: "", notes: "" }
@@ -81,6 +96,109 @@ export function createStore() {
       research,
       institutionalResearch: buildInstitutionalResearch(research),
       evaluatedCompanies: upsertEvaluatedCompany(state.evaluatedCompanies, evaluated)
+    });
+  }
+
+  function openValuationWorkspace(company) {
+    const workspace = createValuationWorkspace(company, state.valuationWorkspace?.ticker === company.ticker ? state.valuationWorkspace : null);
+    set({
+      company,
+      valuationWorkspace: workspace,
+      activePanel: "workspace",
+      loading: false,
+      notice: "",
+      searchResults: []
+    });
+  }
+
+  function setWorkspaceField(field, value) {
+    if (!state.valuationWorkspace) return;
+    set({ valuationWorkspace: updateWorkspaceField(state.valuationWorkspace, field, value) });
+  }
+
+  function setWorkspaceSectionSource(sectionId, patch) {
+    if (!state.valuationWorkspace) return;
+    set({ valuationWorkspace: updateSectionSource(state.valuationWorkspace, sectionId, patch) });
+  }
+
+  function setWorkspacePaste(sectionId, text) {
+    if (!state.valuationWorkspace) return;
+    set({ valuationWorkspace: updatePasteDraft(state.valuationWorkspace, sectionId, text) });
+  }
+
+  function parseWorkspaceSection(sectionId) {
+    if (!state.valuationWorkspace) return;
+    set({ valuationWorkspace: parseWorkspacePaste(state.valuationWorkspace, sectionId) });
+  }
+
+  function saveParsedWorkspaceValues() {
+    if (!state.valuationWorkspace) return;
+    set({ valuationWorkspace: applyParsedPreview(state.valuationWorkspace) });
+  }
+
+  function confirmWorkspaceValue(fieldId) {
+    if (!state.valuationWorkspace) return;
+    set({ valuationWorkspace: confirmWorkspaceField(state.valuationWorkspace, fieldId) });
+  }
+
+  function rejectWorkspaceValue(fieldId) {
+    if (!state.valuationWorkspace) return;
+    set({ valuationWorkspace: rejectWorkspaceField(state.valuationWorkspace, fieldId) });
+  }
+
+  function markWorkspaceValueNotAvailable(fieldId) {
+    if (!state.valuationWorkspace) return;
+    set({ valuationWorkspace: markWorkspaceFieldNotAvailable(state.valuationWorkspace, fieldId) });
+  }
+
+  function setWorkspaceOverride(field, key, value) {
+    if (!state.valuationWorkspace) return;
+    set({ valuationWorkspace: setMethodologyOverride(state.valuationWorkspace, field, { [key]: value }) });
+  }
+
+  function setWorkspaceInvestorNotes(value) {
+    if (!state.valuationWorkspace) return;
+    set({ valuationWorkspace: { ...state.valuationWorkspace, investorNotes: value, updatedAt: new Date().toISOString() } });
+  }
+
+  function runWorkspaceValuation() {
+    if (!state.valuationWorkspace) return;
+    const result = runFixedMethodologyValuation(state.valuationWorkspace, state.language);
+    set({
+      valuationWorkspace: result.workspace,
+      notice: result.error || "",
+      activePanel: "workspace"
+    });
+  }
+
+  function editWorkspaceData() {
+    if (!state.valuationWorkspace) return;
+    set({
+      valuationWorkspace: { ...state.valuationWorkspace, status: "Collecting Data", researchStatus: "Collecting Data" },
+      activePanel: "workspace"
+    });
+  }
+
+  function approveAndExportWorkspace() {
+    if (!state.valuationWorkspace) return;
+    const result = approveWorkspaceValuation(state.valuationWorkspace, state.valuationWorkspace.investorNotes || "");
+    if (result.error) {
+      set({ valuationWorkspace: result.workspace, notice: result.error, activePanel: "workspace" });
+      return;
+    }
+    const previous = state.evaluatedCompanies.find((item) => item.ticker === result.evaluatedCompany.ticker);
+    const evaluatedCompany = previous
+      ? {
+        ...result.evaluatedCompany,
+        valuationVersions: [...(result.evaluatedCompany.valuationVersions || []), ...(previous.valuationVersions || [])].slice(0, 40),
+        history: [previous, ...(previous.history || [])].slice(0, 40)
+      }
+      : result.evaluatedCompany;
+    set({
+      valuationWorkspace: result.workspace,
+      evaluatedCompanies: upsertEvaluatedCompany(state.evaluatedCompanies, evaluatedCompany),
+      notice: state.language === "ar" ? "تم اعتماد التقييم وتصديره إلى الصفحة الرئيسية." : "Valuation approved and exported to Home.",
+      activePanel: "home"
     });
   }
 
@@ -141,6 +259,39 @@ export function createStore() {
   function openEvaluatedCompany(ticker) {
     const item = state.evaluatedCompanies.find((entry) => entry.ticker === ticker);
     if (!item) return;
+    if (item.approvedReport) {
+      const workspace = createValuationWorkspace({
+        ticker: item.ticker,
+        name: item.companyName,
+        sector: item.sector,
+        quote: { price: item.currentPrice }
+      }, {
+        id: `approved-${item.valuationVersion || item.ticker}`,
+        ticker: item.ticker,
+        companyName: item.companyName,
+        status: "Approved",
+        researchStatus: "Approved",
+        inputs: item.approvedInputSnapshot || {},
+        sectionSources: item.approvedSourceSnapshot || {},
+        report: item.approvedReport,
+        renderedReport: item.approvedReportText || "",
+        investorNotes: item.investorNotes || "",
+        versions: item.valuationVersions || []
+      });
+      set({
+        valuationWorkspace: {
+          ...workspace,
+          status: "Approved",
+          researchStatus: "Approved",
+          approvedVersionId: item.valuationVersion,
+          approvedAt: item.approvalTimestamp
+        },
+        activePanel: "workspace",
+        notice: "",
+        searchResults: []
+      });
+      return;
+    }
     const manualInputs = item.manualInputsSnapshot || state.manualInputs;
     const company = item.companySnapshot || createCompanyShell(ticker);
     const research = runEquityResearch(company, manualInputs);
@@ -200,6 +351,20 @@ export function createStore() {
     state,
     set,
     setCompany,
+    openValuationWorkspace,
+    setWorkspaceField,
+    setWorkspaceSectionSource,
+    setWorkspacePaste,
+    parseWorkspaceSection,
+    saveParsedWorkspaceValues,
+    confirmWorkspaceValue,
+    rejectWorkspaceValue,
+    markWorkspaceValueNotAvailable,
+    setWorkspaceOverride,
+    setWorkspaceInvestorNotes,
+    runWorkspaceValuation,
+    editWorkspaceData,
+    approveAndExportWorkspace,
     setManualInput,
     setApiKey,
     setLanguage,
@@ -249,6 +414,7 @@ function persist(state) {
     compareSelectedTickers: state.compareSelectedTickers,
     comparisonOpen: state.comparisonOpen,
     evaluatedCompanies: state.evaluatedCompanies,
+    valuationWorkspace: state.valuationWorkspace,
     history: state.history,
     watchList: state.watchList,
     watchDraft: state.watchDraft

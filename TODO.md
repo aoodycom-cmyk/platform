@@ -1,9 +1,11 @@
-# TODO - Version 6 Roadmap
+# TODO - Version 7 Roadmap
 
 ## Immediate
 
-- Expand unit tests for every investment engine formula.
-- Add browser-level tests for Arabic RTL table behavior, sticky columns, filters, and comparison.
+- Add browser-level tests for the full workspace flow on mobile Safari and Chrome.
+- Add import helpers for real Morningstar, Value Line, CFRA, and broker research table formats.
+- Add a richer version comparison view for WACC, FCF bridge, CapEx, and recommendation changes.
+- Add optional PDF export for approved valuation reports.
 - Add a typed schema for company, financial statement, quote, consensus, and qualitative evidence.
 - Add visible source timestamps per loaded data field.
 - Add clearer empty states for missing provider data.
@@ -13,7 +15,7 @@
 ## Phase 1: UX Quality
 
 - Refine mobile density in secondary engine panels.
-- Add an assumptions drawer for valuation inputs.
+- Refine advanced methodology overrides with per-scenario probability controls.
 - Make saved thesis history easier to compare.
 - Add a guided Settings setup state for market data keys.
 - Validate Arabic mobile typography on physical iPhone viewport.
@@ -48,6 +50,18 @@
 - Added 2-5 company comparison.
 - Added semantic color system for upside, fair value, recommendations, risk, and scores.
 - Added tests for Version 6 ranking, color thresholds, language labels, signs, and de-duplication.
+
+## Completed in Version 7
+
+- Added Company Valuation Workspace.
+- Search now opens a draft workspace instead of creating a final Home row.
+- Added structured input sections, paste drafts, parser preview, and source metadata.
+- Added Data Review groups and a minimum completeness gate.
+- Added fixed-methodology WACC, FCF bridge, DCF, scenarios, model selection, and report JSON.
+- Added investor approval and export workflow.
+- Added approved valuation version IDs and preserved version snapshots.
+- Added Home export fields for approved date and valuation version.
+- Added `VALUATION_WORKFLOW.md`, `VALUATION_METHODOLOGY.md`, `VALUATION_POLICY.json`, `VALUATION_OUTPUT_SCHEMA.json`, and `AI_ANALYST_CONTRACT.md`.
 
 ## Not Allowed
 

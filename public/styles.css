@@ -647,7 +647,7 @@ h4 {
 
 .evaluated-table {
   width: 100%;
-  min-width: 1480px;
+  min-width: 1760px;
   border-collapse: separate;
   border-spacing: 0;
   direction: ltr;
@@ -1461,6 +1461,250 @@ html[dir="rtl"] .bar-row {
   width: max-content;
 }
 
+.workflow-shell {
+  display: grid;
+  gap: 12px;
+}
+
+.workflow-header {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(280px, 1.1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.workflow-header h2 {
+  font-size: clamp(28px, 5vw, 52px);
+  line-height: 1;
+}
+
+.workflow-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.workflow-steps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.workflow-steps span {
+  min-height: 62px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.workflow-steps b {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.workflow-steps .done {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--line));
+}
+
+.workflow-steps .done b {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  color: var(--accent);
+}
+
+.workflow-grid {
+  align-items: start;
+}
+
+.workflow-section {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.workflow-section summary {
+  min-height: 54px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  padding: 0 14px;
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.workflow-section summary span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.workflow-source-row,
+.workflow-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+}
+
+.workflow-fields {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.workflow-field {
+  min-width: 0;
+}
+
+.workflow-field span {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.workflow-field b {
+  color: var(--red);
+}
+
+.workflow-field small {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-field.ready input {
+  border-color: color-mix(in srgb, var(--green) 44%, var(--line));
+}
+
+.workflow-field.limited input {
+  border-color: color-mix(in srgb, var(--amber) 44%, var(--line));
+}
+
+.paste-box {
+  width: calc(100% - 24px);
+  min-height: 110px;
+  margin: 0 12px 10px;
+  resize: vertical;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 12px;
+  outline: 0;
+}
+
+.workflow-section > .icon-btn {
+  margin: 0 12px 12px;
+}
+
+.paste-preview {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+}
+
+.review-table,
+.review-group,
+.assumption-list,
+.version-list {
+  display: grid;
+  gap: 8px;
+}
+
+.review-table > div,
+.review-item,
+.assumption-list > div,
+.version-list > div {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.8fr) minmax(120px, 1fr) minmax(120px, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.review-table .uncertain,
+.review-item:has(button) {
+  border-color: color-mix(in srgb, var(--amber) 34%, var(--line));
+}
+
+.review-item div {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.review-item button {
+  min-height: 30px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.full-action {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.override-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.override-grid label {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.override-grid input + input {
+  margin-top: 7px;
+}
+
+.report-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.fixed-report {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.fixed-report section {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.fixed-report h4 {
+  color: var(--ink);
+  margin-top: 0;
+}
+
 .mobile-nav {
   display: none;
 }
@@ -1578,6 +1822,45 @@ html[dir="rtl"] .bar-row {
     width: 100%;
   }
 
+  .workflow-header,
+  .workflow-metrics,
+  .workflow-source-row,
+  .workflow-fields,
+  .review-table > div,
+  .review-item,
+  .assumption-list > div,
+  .version-list > div {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-steps span {
+    min-height: 48px;
+  }
+
+  .workflow-section summary {
+    min-height: 48px;
+    padding: 0 11px;
+  }
+
+  .workflow-source-row,
+  .workflow-fields {
+    padding: 10px;
+  }
+
+  .paste-box {
+    width: calc(100% - 20px);
+    margin: 0 10px 10px;
+  }
+
+  .report-actions {
+    display: grid;
+    justify-content: stretch;
+  }
+
   .home-search {
     padding: 12px;
   }
@@ -1651,7 +1934,7 @@ html[dir="rtl"] .bar-row {
   }
 
   .evaluated-table {
-    min-width: 1320px;
+    min-width: 1760px;
   }
 
   .evaluated-table th:nth-child(1),

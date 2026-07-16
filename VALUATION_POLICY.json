@@ -1,0 +1,47 @@
+{
+  "version": "fixed-methodology-2026.07",
+  "minimumCompleteness": 68,
+  "criticalFields": [
+    "ticker",
+    "companyName",
+    "currentPrice",
+    "revenue",
+    "operatingIncome",
+    "freeCashFlow",
+    "dilutedShares"
+  ],
+  "wacc": {
+    "riskFreeRate": 0.045,
+    "equityRiskPremium": 0.055,
+    "defaultBeta": 1.05,
+    "defaultPreTaxCostOfDebt": 0.055,
+    "defaultTaxRate": 0.21,
+    "defaultDebtWeight": 0.08,
+    "defaultEquityWeight": 0.92
+  },
+  "scenarioProbabilities": {
+    "Bear": 0.25,
+    "Base": 0.5,
+    "Bull": 0.25
+  },
+  "modelWeights": {
+    "DCF": 0.34,
+    "Reverse DCF": 0,
+    "P/E": 0.12,
+    "PEG": 0.08,
+    "EV/EBITDA": 0.14,
+    "EV/Sales": 0.08,
+    "Price/FCF": 0.1,
+    "Morningstar Fair Value": 0.08,
+    "Analyst Consensus": 0.06
+  },
+  "rules": [
+    "No draft valuation appears in the Home dashboard.",
+    "Only investor-approved valuations are exported.",
+    "Missing values remain missing and reduce confidence.",
+    "Methodology defaults must be labeled as assumptions.",
+    "Investor overrides must include value, reason, and timestamp.",
+    "Scenario probabilities must total 100 percent.",
+    "AI may explain and structure the report but deterministic code owns arithmetic."
+  ]
+}
