@@ -1,12 +1,16 @@
-# Project Review - Version 7
+# Project Review - Version 8
 
 ## Executive Assessment
 
-Version 7 keeps the existing deterministic engines and research platform, then adds a fixed-methodology valuation workflow that better matches a professional investor's process.
+Version 8 keeps the deterministic engines, data platform, workflow, valuation methodology, ranking, comparison, and approval system stable. It improves the product experience by making the generated Investment Report the center of the application.
 
-The most important product change:
+The most important Version 7 product change:
 
 > A ticker search no longer creates a final valuation or Home row. It opens a Company Valuation Workspace. Only approved valuations export to the dashboard.
+
+The most important Version 8 product change:
+
+> Once a valuation is generated, the investor sees the Investment Report first. Forms, assumptions, DCF, WACC, sources, and methodology are collapsed below it.
 
 The application is still decision-first, but every important financial field now carries provenance:
 
@@ -45,6 +49,10 @@ Version 6 refines that into:
 Version 7 adds:
 
 > Has the investor supplied, reviewed, and approved enough evidence for this valuation to become an official dashboard record?
+
+Version 8 adds:
+
+> Can the investor understand the opportunity, upside, risk, and recommendation within 30 seconds?
 
 ## Technology Stack
 

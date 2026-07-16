@@ -1,4 +1,4 @@
-# TODO - Version 7 Roadmap
+# TODO - Version 8 Roadmap
 
 ## Immediate
 
@@ -62,6 +62,14 @@
 - Added approved valuation version IDs and preserved version snapshots.
 - Added Home export fields for approved date and valuation version.
 - Added `VALUATION_WORKFLOW.md`, `VALUATION_METHODOLOGY.md`, `VALUATION_POLICY.json`, `VALUATION_OUTPUT_SCHEMA.json`, and `AI_ANALYST_CONTRACT.md`.
+
+## Completed in Version 8
+
+- Added report-first Investment Report experience.
+- Added Quick Summary Card.
+- Added professional Executive Summary, Investment Thesis, Valuation Summary, Decision, and What Could Change sections.
+- Collapsed assumptions, DCF, WACC, forecasts, valuation models, statements, estimates, Morningstar, risks, catalysts, charts, and sources by default.
+- Kept calculations, methodology, workflow, ranking, comparison, and approval logic unchanged.
 
 ## Not Allowed
 

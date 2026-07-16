@@ -1,8 +1,8 @@
-# Architecture - Version 7
+# Architecture - Version 8
 
 ## Product Definition
 
-AI Equity Research Platform V7 keeps the investment engine, data platform, ranking engine, comparison module, language system, semantic color system, evaluated-company dashboard, and institutional research layer stable. It adds a fixed-methodology valuation workflow above them.
+AI Equity Research Platform V8 keeps the investment engine, data platform, ranking engine, comparison module, language system, semantic color system, evaluated-company dashboard, institutional research layer, workflow, and valuation methodology stable. It changes the presentation layer so the generated Investment Report becomes the primary experience.
 
 The product still answers:
 
@@ -11,6 +11,10 @@ The product still answers:
 Version 7 changes the path to that answer:
 
 > Search does not create a final recommendation. The investor must open a workspace, supply and confirm data, run the fixed analyst, review the report, and approve export.
+
+Version 8 changes the reading experience:
+
+> Once the report exists, the user sees the Investment Report first. Technical forms and methodology details are collapsed below it.
 
 ## Runtime Flow
 

@@ -1,5 +1,27 @@
 # Changelog
 
+## Version 8.0 - Investment Report Experience
+
+### Added
+
+- Added report-first Investment Report experience after valuation generation.
+- Added Quick Summary Card with recommendation, confidence, Investment Score, Fair Value, current price, upside, and maximum upside.
+- Added institutional report sections for Executive Summary, Investment Thesis, Valuation Summary, Decision, and What Could Change This Decision.
+- Added collapsed report details for assumptions, DCF, WACC, Revenue Forecast, FCF Forecast, CapEx, margins, Terminal Growth, valuation models, financial statements, analyst estimates, Morningstar, risks, catalysts, historical charts, and sources.
+- Added `INVESTMENT_REPORT_EXPERIENCE.md`.
+
+### Changed
+
+- Generated valuations now display the final Investment Report before forms or technical panels.
+- Data entry, data review, methodology overrides, and version history move below the report as collapsed details after a report exists.
+- Visual hierarchy now emphasizes recommendation, confidence, Investment Score, Fair Value, current price, and upside.
+
+### Rules Enforced
+
+- No investment calculation changed.
+- No Data Platform, Workflow, Valuation Methodology, Ranking, Comparison, or Approval logic changed.
+- Technical detail remains available but is no longer the primary reading experience.
+
 ## Version 7.0 - Fixed-Methodology AI Valuation Workflow
 
 ### Added

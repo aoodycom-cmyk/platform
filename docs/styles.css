@@ -1705,6 +1705,209 @@ html[dir="rtl"] .bar-row {
   margin-top: 0;
 }
 
+.investment-report-shell {
+  display: grid;
+  gap: 12px;
+}
+
+.investment-report {
+  display: grid;
+  gap: 14px;
+}
+
+.report-cover {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.report-cover h1 {
+  font-size: clamp(34px, 6vw, 72px);
+  line-height: 0.96;
+  max-width: 980px;
+}
+
+.quick-summary-card {
+  display: grid;
+  grid-template-columns: 1.15fr repeat(6, minmax(120px, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--line);
+}
+
+.quick-summary-card > div {
+  min-height: 112px;
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  padding: 16px;
+  background: var(--surface);
+}
+
+.quick-summary-card span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.quick-summary-card strong {
+  font-size: clamp(22px, 3vw, 36px);
+  line-height: 1;
+  color: var(--ink);
+}
+
+.quick-decision.buy strong {
+  color: var(--strong-green);
+}
+
+.quick-decision.hold strong {
+  color: var(--amber);
+}
+
+.quick-decision.sell strong {
+  color: var(--red);
+}
+
+.report-main-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.report-section {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.report-section.full {
+  grid-column: 1 / -1;
+}
+
+.report-section.executive {
+  min-height: 280px;
+}
+
+.report-section h2 {
+  font-size: clamp(30px, 4vw, 50px);
+  line-height: 1;
+  max-width: 900px;
+}
+
+.report-section p {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.75;
+}
+
+.report-decision {
+  font-size: clamp(58px, 10vw, 116px);
+  line-height: 0.9;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.report-decision.buy {
+  color: var(--strong-green);
+}
+
+.report-decision.hold {
+  color: var(--amber);
+}
+
+.report-decision.sell {
+  color: var(--red);
+}
+
+.thesis-grid,
+.valuation-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.valuation-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.thesis-grid > div {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.thesis-grid h4 {
+  color: var(--ink);
+  margin-top: 0;
+}
+
+.report-note {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.report-details {
+  display: grid;
+  gap: 8px;
+}
+
+.report-detail {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.report-detail summary {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px;
+  cursor: pointer;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.report-detail summary::after {
+  content: "+";
+  color: var(--accent);
+  font-size: 22px;
+}
+
+.report-detail[open] summary::after {
+  content: "-";
+}
+
+.report-detail > div {
+  padding: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.embedded-panel {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.source-table {
+  margin-top: 8px;
+}
+
 .mobile-nav {
   display: none;
 }
@@ -1859,6 +2062,48 @@ html[dir="rtl"] .bar-row {
   .report-actions {
     display: grid;
     justify-content: stretch;
+  }
+
+  .report-cover,
+  .quick-summary-card,
+  .report-main-grid,
+  .thesis-grid,
+  .valuation-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-cover {
+    padding: 16px;
+  }
+
+  .report-cover h1 {
+    font-size: 36px;
+  }
+
+  .quick-summary-card > div {
+    min-height: 82px;
+    padding: 13px;
+  }
+
+  .quick-summary-card strong {
+    font-size: 28px;
+  }
+
+  .report-section {
+    padding: 16px;
+  }
+
+  .report-section.executive {
+    min-height: 0;
+  }
+
+  .report-section p {
+    font-size: 14px;
+  }
+
+  .report-detail summary {
+    min-height: 52px;
+    padding: 0 12px;
   }
 
   .home-search {

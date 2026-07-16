@@ -107,7 +107,7 @@ function homeDashboard(state) {
     <main class="home-workspace">
       <header class="home-topbar">
         <div>
-          <p class="eyebrow">${uiLabel("Version 7")}</p>
+          <p class="eyebrow">${uiLabel("Version 8")}</p>
           <h1>${uiLabel("AI Equity Research Platform")}</h1>
         </div>
         <div class="home-actions">
@@ -191,7 +191,7 @@ function topBar(state) {
   return `
     <header class="topbar compact">
       <div>
-        <p class="eyebrow">${uiLabel("Version 7")}</p>
+        <p class="eyebrow">${uiLabel("Version 8")}</p>
         <h2>${escapeHtml(state.company.name)}</h2>
       </div>
       <div class="top-actions">
@@ -646,6 +646,14 @@ function valuationWorkspacePanel(state) {
   }
   const review = workspace.dataReview || {};
   const report = workspace.report;
+  if (report) {
+    return `
+      <section class="investment-report-shell">
+        ${investmentReportExperience(workspace, state)}
+        ${workspace.pastePreview ? pastePreviewCard(workspace) : ""}
+      </section>
+    `;
+  }
   return `
     <section class="workflow-shell">
       <article class="panel workflow-header">
@@ -667,7 +675,7 @@ function valuationWorkspacePanel(state) {
         <article class="panel full">
           <h3>${uiLabel("Input Data")}</h3>
           <p class="muted">${uiLabel("Paste tables or enter values manually. Every value keeps source, date, confidence, and confirmation status.")}</p>
-          ${VALUATION_SECTIONS.map(([sectionId, label]) => workflowSection(workspace, sectionId, label)).join("")}
+          ${VALUATION_SECTIONS.map(([sectionId, label]) => workflowSection(workspace, sectionId, label, true)).join("")}
         </article>
         <article class="panel">${dataReviewPanel(workspace, state)}</article>
         <article class="panel">${methodologyOverridesPanel(workspace)}</article>
@@ -695,11 +703,11 @@ function workflowSteps(workspace, state) {
   `;
 }
 
-function workflowSection(workspace, sectionId, label) {
+function workflowSection(workspace, sectionId, label, openBasics = true) {
   const fields = FIELD_DEFINITIONS.filter((field) => field.sectionId === sectionId);
   const source = workspace.sectionSources?.[sectionId] || {};
   return `
-    <details class="workflow-section" ${sectionId === "basics" ? "open" : ""}>
+    <details class="workflow-section" ${openBasics && sectionId === "basics" ? "open" : ""}>
       <summary>
         <strong>${uiLabel(label)}</strong>
         <span>${fields.filter((field) => workspace.inputs?.[field.id]?.userConfirmed).length}/${fields.length}</span>
@@ -728,6 +736,306 @@ function workflowField(workspace, field) {
       <input data-workflow-field="${field.id}" type="${inputType}" value="${escapeHtml(item.value ?? "")}" placeholder="${field.type === "number" ? "0" : ""}">
       <small>${escapeHtml(status)} / ${escapeHtml(item.source || uiLabel("No source"))}</small>
     </label>
+  `;
+}
+
+function investmentReportExperience(workspace, state) {
+  const report = workspace.report;
+  return `
+    <article class="investment-report">
+      <header class="report-cover">
+        <div>
+          <p class="eyebrow">${uiLabel("Investment Report")}</p>
+          <h1>${escapeHtml(report.companyAndValuationDate.companyName)}</h1>
+          <p class="muted">${escapeHtml(report.companyAndValuationDate.ticker)} / ${uiLabel("Valuation Date")}: ${escapeHtml(report.companyAndValuationDate.valuationDate)} / ${uiLabel("Methodology")}: ${escapeHtml(report.methodologyVersion)}</p>
+        </div>
+        <div class="report-actions">
+          <button class="icon-btn" data-action="edit-workspace-data">${uiLabel("Edit Data and Re-run")}</button>
+          <button class="primary-btn" data-action="approve-and-export" ${workspace.status === WORKFLOW_STATUS.APPROVED ? "disabled" : ""}>${uiLabel("Approve and Export")}</button>
+        </div>
+      </header>
+      ${quickSummaryCard(report)}
+      <section class="report-main-grid">
+        <article class="report-section executive">
+          <p class="eyebrow">${uiLabel("Executive Summary")}</p>
+          <h2>${escapeHtml(reportHeadline(report, state.language))}</h2>
+          <p>${escapeHtml(executiveReportSummary(report, state.language))}</p>
+        </article>
+        <article class="report-section">
+          <p class="eyebrow">${uiLabel("Investment Thesis")}</p>
+          ${investmentThesisBlock(report, state.language)}
+        </article>
+        <article class="report-section full">
+          <p class="eyebrow">${uiLabel("Valuation Summary")}</p>
+          ${valuationSummaryBlock(report)}
+        </article>
+        <article class="report-section">
+          <p class="eyebrow">${uiLabel("Decision")}</p>
+          <div class="report-decision ${String(report.executiveConclusion.recommendation).toLowerCase()}">${escapeHtml(decisionLabel(report.executiveConclusion.recommendation))}</div>
+          <p>${escapeHtml(report.finalInvestmentDecision.why)}</p>
+          <p class="muted">${escapeHtml(report.finalInvestmentDecision.whyNot)}</p>
+        </article>
+        <article class="report-section">
+          <p class="eyebrow">${uiLabel("What Could Change This Decision")}</p>
+          ${listReport(report.whatWouldChangeTheValuation)}
+        </article>
+      </section>
+      <label class="notes-field report-note">${uiLabel("Investor approval note")}<textarea data-investor-notes>${escapeHtml(workspace.investorNotes || "")}</textarea></label>
+      ${collapsibleReportDetails(workspace, report)}
+    </article>
+  `;
+}
+
+function quickSummaryCard(report) {
+  const item = report.executiveConclusion;
+  return `
+    <section class="quick-summary-card">
+      <div class="quick-decision ${String(item.recommendation).toLowerCase()}">
+        <span>${uiLabel("Recommendation")}</span>
+        <strong>${escapeHtml(decisionLabel(item.recommendation))}</strong>
+      </div>
+      ${quickMetric(uiLabel("Confidence"), `${Math.round(item.confidence)}%`)}
+      ${quickMetric(uiLabel("Investment Score"), Math.round(item.investmentScore))}
+      ${quickMetric(uiLabel("Fair Value"), money(item.rangeFairValue, 0))}
+      ${quickMetric(uiLabel("Current Price"), money(item.currentPrice, 2))}
+      ${quickMetric(uiLabel("Upside %"), formatSignedPercent(item.expectedUpside))}
+      ${quickMetric(uiLabel("Maximum Upside"), formatSignedPercent(item.maximumUpside))}
+    </section>
+  `;
+}
+
+function quickMetric(label, value) {
+  return `
+    <div>
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(String(value))}</strong>
+    </div>
+  `;
+}
+
+function reportHeadline(report, language) {
+  const ticker = report.companyAndValuationDate.ticker;
+  const decision = decisionLabel(report.executiveConclusion.recommendation);
+  const upside = formatSignedPercent(report.executiveConclusion.expectedUpside);
+  return language === "ar"
+    ? `${decision} على ${ticker} مع عائد متوقع ${upside}`
+    : `${decision} on ${ticker} with ${upside} expected upside`;
+}
+
+function executiveReportSummary(report, language) {
+  const c = report.executiveConclusion;
+  const classification = report.companyClassification.classification;
+  const wacc = report.assumptionRationale.wacc;
+  const capex = report.assumptionRationale.capex;
+  if (language === "ar") {
+    return capWords([
+      `يعرض التقرير توصية ${decisionLabel(c.recommendation)} بدرجة ثقة ${Math.round(c.confidence)}% وInvestment Score ${Math.round(c.investmentScore)}.`,
+      `يعتمد التقييم على تصنيف ${classification}، وRange Fair Value عند ${money(c.rangeFairValue, 0)} مقابل سعر حالي ${money(c.currentPrice, 2)}.`,
+      `الفرصة الأساسية هي ${formatSignedPercent(c.expectedUpside)} عائد متوقع، بينما أعلى عائد محتمل يصل إلى ${formatSignedPercent(c.maximumUpside)} إذا تحقق السيناريو الأقوى.`,
+      `${wacc?.why || ""} ${capex?.why || ""}`,
+      `أهم ما يجب مراقبته هو تحقق Revenue Growth، استقرار Operating Margin، وانضباط CapEx لأن هذه الافتراضات تقود معظم قيمة DCF.`
+    ].join(" "), 250);
+  }
+  return capWords([
+    `The report assigns a ${decisionLabel(c.recommendation)} recommendation with ${Math.round(c.confidence)}% confidence and an Investment Score of ${Math.round(c.investmentScore)}.`,
+    `The valuation is anchored on a ${classification} classification, with Range Fair Value of ${money(c.rangeFairValue, 0)} versus a current price of ${money(c.currentPrice, 2)}.`,
+    `The core opportunity is ${formatSignedPercent(c.expectedUpside)} expected upside, while maximum upside reaches ${formatSignedPercent(c.maximumUpside)} if the strongest case materializes.`,
+    `${wacc?.why || ""} ${capex?.why || ""}`,
+    `The assumptions that matter most are Revenue Growth, Operating Margin stability, WACC, and CapEx discipline because they drive most of the DCF value.`
+  ].join(" "), 250);
+}
+
+function capWords(text, limit) {
+  const words = String(text || "").trim().split(/\s+/).filter(Boolean);
+  return words.length > limit ? `${words.slice(0, limit).join(" ")}...` : words.join(" ");
+}
+
+function investmentThesisBlock(report, language) {
+  const decision = report.finalInvestmentDecision;
+  const opportunities = report.catalysts || [];
+  const risks = report.risks || [];
+  return `
+    <div class="thesis-grid">
+      <div>
+        <h4>${uiLabel("Why Invest")}</h4>
+        ${listReport(decision.mainPositiveDrivers?.length ? decision.mainPositiveDrivers : opportunities.slice(0, 3))}
+      </div>
+      <div>
+        <h4>${uiLabel("Why Avoid")}</h4>
+        ${listReport(decision.mainNegativeDrivers?.length ? decision.mainNegativeDrivers : risks.slice(0, 3))}
+      </div>
+      <div>
+        <h4>${uiLabel("Key Opportunities")}</h4>
+        ${listReport(opportunities)}
+      </div>
+      <div>
+        <h4>${uiLabel("Key Risks")}</h4>
+        ${listReport(risks)}
+      </div>
+    </div>
+  `;
+}
+
+function valuationSummaryBlock(report) {
+  const item = report.executiveConclusion;
+  return `
+    <div class="valuation-summary-grid">
+      ${metric(uiLabel("Current Price"), money(item.currentPrice, 2))}
+      ${metricHtml("Bear", fairValueSignal(item.bearFairValue, item.currentPrice))}
+      ${metricHtml("Base", fairValueSignal(item.baseFairValue, item.currentPrice))}
+      ${metricHtml("Bull", fairValueSignal(item.bullFairValue, item.currentPrice))}
+      ${metricHtml("Morningstar", fairValueSignal(item.morningstarFairValue, item.currentPrice))}
+      ${metricHtml(uiLabel("Range FV"), fairValueSignal(item.rangeFairValue, item.currentPrice))}
+      ${metricHtml(uiLabel("Expected Upside"), upsideSignal(item.expectedUpside))}
+      ${metricHtml(uiLabel("Maximum Upside"), upsideSignal(item.maximumUpside))}
+    </div>
+  `;
+}
+
+function collapsibleReportDetails(workspace, report) {
+  const details = [
+    [uiLabel("Assumptions"), assumptionsReport(report.assumptionRationale)],
+    ["DCF", dcfDetail(report)],
+    ["WACC", waccDetail(report)],
+    [uiLabel("Revenue Forecast"), forecastDetail(report.baseScenario, "revenue")],
+    [uiLabel("Free Cash Flow Forecast"), forecastDetail(report.baseScenario, "freeCashFlow")],
+    [uiLabel("CapEx Forecast"), capexDetail(report)],
+    [uiLabel("Margins"), marginsDetail(report)],
+    ["Terminal Growth", terminalGrowthDetail(report)],
+    [uiLabel("Valuation Models"), valuationModelsReport(report.valuationModels, report.executiveConclusion.currentPrice)],
+    [uiLabel("Financial Statements"), workspaceFieldsReport(workspace, ["revenue", "grossProfit", "operatingIncome", "ebitda", "netIncome", "eps", "cash", "totalDebt", "equity", "dilutedShares", "operatingCashFlow", "capex", "freeCashFlow"])],
+    [uiLabel("Analyst Estimates"), workspaceFieldsReport(workspace, ["revenueEstimates", "epsEstimates", "ebitdaEstimates", "fcfEstimates", "analystTargetLow", "analystTargetAverage", "analystTargetHigh", "numberOfAnalysts"])],
+    ["Morningstar", workspaceFieldsReport(workspace, ["morningstarFairValue", "morningstarMoat", "capitalAllocation", "uncertaintyRating", "starRating", "morningstarBullCase", "morningstarBaseCase", "morningstarBearCase", "morningstarKeyRisks", "analystResearchSummary", "researchDate"])],
+    [uiLabel("Risks"), listReport(report.risks)],
+    [uiLabel("Catalysts"), listReport(report.catalysts)],
+    [uiLabel("Historical Charts"), historicalChartsDetail(workspace)],
+    [uiLabel("Sources"), sourcesDetail(workspace)]
+  ];
+  return `
+    <section class="report-details">
+      ${details.map(([title, body]) => `
+        <details class="report-detail">
+          <summary>${escapeHtml(title)}</summary>
+          <div>${body}</div>
+        </details>
+      `).join("")}
+      <details class="report-detail">
+        <summary>${uiLabel("Input Data")}</summary>
+        <article class="panel embedded-panel">
+          ${VALUATION_SECTIONS.map(([sectionId, label]) => workflowSection(workspace, sectionId, label, false)).join("")}
+        </article>
+      </details>
+      <details class="report-detail">
+        <summary>${uiLabel("Data Review")}</summary>
+        <article class="panel embedded-panel">${dataReviewPanel(workspace)}</article>
+      </details>
+      <details class="report-detail">
+        <summary>${uiLabel("Override Methodology Assumption")}</summary>
+        <article class="panel embedded-panel">${methodologyOverridesPanel(workspace)}</article>
+      </details>
+      ${workspace.versions?.length ? `<details class="report-detail"><summary>${uiLabel("Valuation Version History")}</summary><article class="panel embedded-panel">${versionHistoryPanel(workspace)}</article></details>` : ""}
+    </section>
+  `;
+}
+
+function dcfDetail(report) {
+  const model = report.valuationModels.find((item) => item.method === "DCF");
+  return model ? valuationModelsReport([model], report.executiveConclusion.currentPrice) : `<p class="muted">${uiLabel("None")}</p>`;
+}
+
+function waccDetail(report) {
+  const item = report.assumptionRationale.wacc;
+  return `
+    <div class="two-col">
+      ${metric("WACC", percent(item.value))}
+      ${metric(uiLabel("Confidence"), `${Math.round(report.executiveConclusion.confidence)}%`)}
+    </div>
+    <p>${escapeHtml(item.why || "")}</p>
+    ${item.source ? objectReport(item.source) : ""}
+  `;
+}
+
+function forecastDetail(scenario = {}, key) {
+  const rows = scenario.forecast || [];
+  return `
+    <div class="research-table compact-table">
+      <div class="research-row head"><span>${uiLabel("Year")}</span><span>${key === "revenue" ? financialTerm("Revenue") : financialTerm("FCF")}</span><span>${uiLabel("Growth")}</span></div>
+      ${rows.map((row) => `
+        <div class="research-row">
+          <span>${row.year}</span>
+          <span>${key === "revenue" ? compact(row.revenue) : compact(row.freeCashFlow)}</span>
+          <span>${percent(key === "revenue" ? row.revenueGrowth : row.fcfGrowth)}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function capexDetail(report) {
+  const item = report.assumptionRationale.capex;
+  return `
+    <div class="two-col">
+      ${metric("CapEx / Revenue", percent(item.value))}
+      ${metric(uiLabel("Source"), item.source || "-")}
+    </div>
+    <p>${escapeHtml(item.why || "")}</p>
+  `;
+}
+
+function marginsDetail(report) {
+  const item = report.assumptionRationale.marginForecast;
+  return `
+    <div class="two-col">${metric("Operating Margin", percent(item.value))}</div>
+    <p>${escapeHtml(item.why || "")}</p>
+  `;
+}
+
+function terminalGrowthDetail(report) {
+  const item = report.assumptionRationale.terminalGrowth;
+  return `
+    <div class="two-col">${metric("Terminal Growth", percent(item.value))}</div>
+    <p>${escapeHtml(item.why || "")}</p>
+  `;
+}
+
+function workspaceFieldsReport(workspace, fieldIds = []) {
+  const fields = fieldIds.map((fieldId) => {
+    const definition = FIELD_DEFINITIONS.find((field) => field.id === fieldId);
+    const item = workspace.inputs?.[fieldId];
+    return { definition, item };
+  }).filter(({ definition }) => definition);
+  return `
+    <div class="review-table source-table">
+      ${fields.map(({ definition, item }) => `
+        <div>
+          <strong>${uiLabel(definition.label)}</strong>
+          <span>${escapeHtml(formatWorkflowValue(item?.value))}</span>
+          <small>${escapeHtml(item?.source || "-")} / ${escapeHtml(item?.sourceDate || "-")}</small>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function historicalChartsDetail(workspace) {
+  const annual = workspace.inputs?.annualPeriods?.value;
+  const quarterly = workspace.inputs?.quarterlyPeriods?.value;
+  if (!annual && !quarterly) return `<p class="muted">${uiLabel("Historical charts appear when confirmed historical periods are available.")}</p>`;
+  return listReport([annual, quarterly].filter(Boolean));
+}
+
+function sourcesDetail(workspace) {
+  const confirmed = workspace.dataReview?.confirmed || [];
+  return `
+    <div class="review-table source-table">
+      ${confirmed.map((item) => `
+        <div>
+          <strong>${escapeHtml(item.label)}</strong>
+          <span>${escapeHtml(item.source || "-")}</span>
+          <small>${escapeHtml(item.sourceDate || "-")} / ${Math.round((item.confidence || 0) * 100)}%</small>
+        </div>
+      `).join("") || `<p class="muted">${uiLabel("None")}</p>`}
+    </div>
   `;
 }
 
@@ -831,9 +1139,9 @@ function fixedReportPanel(workspace, state) {
     ["5. Financial Performance Review", objectReport(report.financialPerformanceReview)],
     ["6. Assumption Rationale", assumptionsReport(report.assumptionRationale)],
     ["7. Valuation Models", valuationModelsReport(report.valuationModels, report.executiveConclusion.currentPrice)],
-    ["8. Bear Scenario", scenarioFixedReport(report.bearScenario)],
-    ["9. Base Scenario", scenarioFixedReport(report.baseScenario)],
-    ["10. Bull Scenario", scenarioFixedReport(report.bullScenario)],
+    ["8. Bear Scenario", scenarioFixedReport(report.bearScenario, report.executiveConclusion.currentPrice)],
+    ["9. Base Scenario", scenarioFixedReport(report.baseScenario, report.executiveConclusion.currentPrice)],
+    ["10. Bull Scenario", scenarioFixedReport(report.bullScenario, report.executiveConclusion.currentPrice)],
     ["11. Risks", listReport(report.risks)],
     ["12. Catalysts", listReport(report.catalysts)],
     ["13. What Would Change the Valuation", listReport(report.whatWouldChangeTheValuation)],
@@ -953,11 +1261,11 @@ function valuationModelsReport(models = [], currentPrice) {
   `).join("")}</div>`;
 }
 
-function scenarioFixedReport(scenario = {}) {
+function scenarioFixedReport(scenario = {}, currentPrice = null) {
   return `
     <div class="two-col">
       ${metric(uiLabel("Probability"), `${Math.round((scenario.probability || 0) * 100)}%`)}
-      ${metricHtml(uiLabel("Fair Value"), fairValueSignal(scenario.fairValue, null))}
+      ${metricHtml(uiLabel("Fair Value"), fairValueSignal(scenario.fairValue, currentPrice))}
       ${metric("WACC", percent(scenario.wacc))}
       ${metric("Terminal Growth", percent(scenario.terminalGrowth))}
       ${metric("CapEx", percent(scenario.capexAssumptions))}

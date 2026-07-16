@@ -1,12 +1,12 @@
-# AI Equity Research Platform V7
+# AI Equity Research Platform V8
 
-Version 7 adds a fixed-methodology valuation workflow above the existing deterministic investment engine, unified financial data platform, institutional research layer, bilingual Arabic/English output, daily Home workspace, and ranking/comparison layer.
+Version 8 keeps the deterministic investment engine, data platform, workflow, valuation methodology, ranking, comparison, and approval system stable, then makes the approved valuation report the center of the user experience.
 
 The app answers one question:
 
 > Should I buy this stock today?
 
-It is not a stock dashboard. A ticker search now opens a Company Valuation Workspace. The investor pastes or enters data, reviews and confirms it, runs a fixed-methodology valuation analyst, reviews the report, and only then approves and exports the valuation to Home.
+It is not a stock dashboard. A ticker search opens a Company Valuation Workspace. The investor pastes or enters data, reviews and confirms it, runs the fixed-methodology analyst, and immediately sees an institutional Investment Report. Forms, assumptions, sources, DCF, WACC, and statements are available as collapsed sections.
 
 Drafts and unapproved valuations do not appear in the final Evaluated Companies dashboard.
 
@@ -61,6 +61,7 @@ Local development uses `server.mjs` as an API proxy. On GitHub Pages, the app fa
 - `LANGUAGE_SYSTEM.md`: Arabic/English behavior, RTL/LTR rules, and financial terminology policy
 - `RANKING_ENGINE.md`: Version 6 ranking formula, comparison behavior, and color system
 - `VALUATION_WORKFLOW.md`: Version 7 workspace, data review, approval, and export workflow
+- `INVESTMENT_REPORT_EXPERIENCE.md`: Version 8 report-first user experience
 - `VALUATION_METHODOLOGY.md`: fixed valuation methodology
 - `VALUATION_POLICY.json`: versioned assumptions and policy defaults
 - `VALUATION_OUTPUT_SCHEMA.json`: fixed JSON report schema
