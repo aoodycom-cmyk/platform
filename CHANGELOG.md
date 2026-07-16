@@ -1,5 +1,43 @@
 # Changelog
 
+## Version 9.0 - Investment Analyst Brain Workflow
+
+### Added
+
+- Added `Investment Analyst Brain v1` methodology files under `docs/investment_analyst_brain_v1/` and `public/investment_analyst_brain_v1/`.
+- Added `public/src/analystBrain/methodology.js` to load the fixed methodology and output schema.
+- Added `public/src/analystBrain/schemaValidator.js` to validate required JSON output sections.
+- Added one-block investment analyst paste workflow.
+- Added optional OpenAI parser endpoint at `/api/parse-investment-analyst`.
+- Added local parser fallback for explicit key-value data in the pasted block.
+- Added deterministic report mapping to the supplied sections: Company, Executive Decision, Executive Summary, Investment Thesis, Classification, Business Quality, Model Selection, Forecast Assumptions, Valuation Results, Scenario Cards, Catalysts, Risks, What Changes My Mind, Final Decision, Monitoring Checklist, and Dashboard Export.
+- Added Conservative / Base / Optimistic / Exceptional scenario structure above the existing deterministic scenario calculations.
+- Added approval-only dashboard export metadata.
+- Added automated integration test in `tests/investmentAnalystBrain.test.mjs`.
+
+### Changed
+
+- Workspace data entry now prioritizes one main paste box instead of exposing long technical forms first.
+- AI is used for parsing explicit pasted data only; deterministic code still calculates valuation, WACC, scenarios, fair value, recommendation, and dashboard export.
+- Draft generated reports remain private until the investor clicks `Approve and Export`.
+- Search input no longer re-renders on every character, fixing the mobile keyboard-close bug.
+
+### Rules Enforced
+
+- Do not rewrite or simplify the supplied methodology files.
+- Do not invent missing financial values.
+- Do not let AI calculate investment numbers.
+- Validate structured report output before approval.
+- Export only investor-approved reports to the Evaluated Companies dashboard.
+
+### Verification
+
+- Version 6 ranking and color tests passed.
+- Version 7 valuation workflow tests passed.
+- Version 8 investment report experience tests passed.
+- Investment Analyst Brain v1 integration test passed.
+- Local server served the app and methodology schema successfully on `localhost:4321`.
+
 ## Version 8.0 - Investment Report Experience
 
 ### Added

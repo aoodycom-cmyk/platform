@@ -1,8 +1,8 @@
-# Architecture - Version 8
+# Architecture - Version 9
 
 ## Product Definition
 
-AI Equity Research Platform V8 keeps the investment engine, data platform, ranking engine, comparison module, language system, semantic color system, evaluated-company dashboard, institutional research layer, workflow, and valuation methodology stable. It changes the presentation layer so the generated Investment Report becomes the primary experience.
+AI Equity Research Platform V9 keeps the investment engine, data platform, ranking engine, comparison module, language system, semantic color system, evaluated-company dashboard, institutional research layer, workflow, and report-first experience stable. It adds `Investment Analyst Brain v1` as a fixed methodology layer above the existing deterministic valuation workflow.
 
 The product still answers:
 
@@ -15,6 +15,10 @@ Version 7 changes the path to that answer:
 Version 8 changes the reading experience:
 
 > Once the report exists, the user sees the Investment Report first. Technical forms and methodology details are collapsed below it.
+
+Version 9 changes the data-entry and methodology path:
+
+> The user pastes one unstructured company data block. AI may parse explicit data, deterministic code calculates the valuation, output is validated against `11_OUTPUT_SCHEMA.json`, and only approved reports export to Home.
 
 ## Runtime Flow
 
@@ -29,13 +33,19 @@ Unified Data Layer
   ↓
 Valuation Workspace Draft
   ↓
-Paste / Manual Input Parser
+One Paste Box
+  ↓
+AI Parser for Explicit Data Only
+  ↓
+Local Parser Fallback
   ↓
 Data Review + Completeness Gate
   ↓
-Fixed Methodology Analyst
+Investment Analyst Brain v1 Policy Layer
   ↓
-Structured Valuation Report JSON
+Deterministic Valuation Code
+  ↓
+Validated Structured Report JSON
   ↓
 Investor Approval
   ↓
@@ -62,6 +72,9 @@ Home Table + Comparison + Report UI
 
 ```text
 public/src/
+├── analystBrain/
+│   ├── methodology.js
+│   └── schemaValidator.js
 ├── data/
 │   └── sampleData.js
 ├── dataPlatform/
@@ -94,6 +107,26 @@ public/src/
 └── ui/
     └── components.js
 ```
+
+## Version 9 Analyst Brain Layer
+
+Locations:
+
+```text
+docs/investment_analyst_brain_v1/
+public/investment_analyst_brain_v1/
+public/src/analystBrain/
+```
+
+Responsibilities:
+
+- Treat the supplied methodology files as source of truth
+- Load the fixed methodology and JSON schema for the app and AI parser
+- Validate structured output against required report sections
+- Keep AI limited to parsing and explanation
+- Keep classification, WACC, scenarios, fair value, recommendation, and dashboard export controlled by deterministic code
+- Preserve one main paste box for iPhone-first use
+- Prevent drafts from entering the Home dashboard
 
 ## Version 7 Workflow Layer
 
@@ -148,12 +181,17 @@ Responsibilities:
 
 - Search through enabled providers
 - Load company data through provider interfaces
+- Parse one pasted company data block through `/api/parse-investment-analyst` when an OpenAI key is available
 - Fall back to manual/missing data when a provider is unavailable
 - Avoid storing API keys inside company data
 
 Current live provider:
 
 - Financial Modeling Prep
+
+Current AI utility:
+
+- OpenAI parser for extracting explicitly supplied fields from pasted text
 
 Future provider slot:
 

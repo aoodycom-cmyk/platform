@@ -1,8 +1,8 @@
-# Project Review - Version 8
+# Project Review - Version 9
 
 ## Executive Assessment
 
-Version 8 keeps the deterministic engines, data platform, workflow, valuation methodology, ranking, comparison, and approval system stable. It improves the product experience by making the generated Investment Report the center of the application.
+Version 9 keeps the deterministic engines, data platform, workflow, ranking, comparison, report-first experience, and approval system stable. It integrates `Investment Analyst Brain v1` as the source of truth for company classification, business quality, model selection, forecasts, WACC, scenarios, fair value, recommendation, monitoring, report structure, and JSON output.
 
 The most important Version 7 product change:
 
@@ -11,6 +11,10 @@ The most important Version 7 product change:
 The most important Version 8 product change:
 
 > Once a valuation is generated, the investor sees the Investment Report first. Forms, assumptions, DCF, WACC, sources, and methodology are collapsed below it.
+
+The most important Version 9 product change:
+
+> The investor now pastes one unstructured company data block. AI may parse explicit data, deterministic code calculates the valuation, the output validates against the fixed JSON schema, and only investor-approved reports export to the dashboard.
 
 The application is still decision-first, but every important financial field now carries provenance:
 
@@ -54,6 +58,10 @@ Version 8 adds:
 
 > Can the investor understand the opportunity, upside, risk, and recommendation within 30 seconds?
 
+Version 9 adds:
+
+> Can a fixed investment analyst methodology turn one pasted research block into an approved institutional report without inventing financial data?
+
 ## Technology Stack
 
 - Frontend: vanilla JavaScript modules, HTML, CSS
@@ -63,11 +71,14 @@ Version 8 adds:
 - Ranking engine: deterministic opportunity ranking in `public/src/engines/rankingEngine.js`
 - Market color system: semantic signal colors in `public/src/domain/marketColorSystem.js`
 - Valuation workflow: fixed-methodology workspace in `public/src/valuationWorkflow/workflow.js`
+- Analyst Brain: methodology loader and schema validator in `public/src/analystBrain/`
+- Methodology source files: `docs/investment_analyst_brain_v1/` and `public/investment_analyst_brain_v1/`
 - Storage:
   - `localStorage` for app state, saved theses, and local financial timeline
   - `sessionStorage` for API keys
 - APIs:
   - Financial Modeling Prep live provider
+  - OpenAI parser endpoint for extracting explicit pasted data only
   - Morningstar future provider placeholder
   - Manual Input fallback
   - Missing fallback
@@ -90,8 +101,12 @@ equity-research-v2/
 ├── VALUATION_OUTPUT_SCHEMA.json
 ├── AI_ANALYST_CONTRACT.md
 ├── TODO.md
+├── docs/investment_analyst_brain_v1/
 ├── server.mjs
 └── public/src/
+    ├── analystBrain/
+    │   ├── methodology.js
+    │   └── schemaValidator.js
     ├── dataPlatform/
     │   ├── dataPlatform.js
     │   ├── fields.js
@@ -144,9 +159,19 @@ equity-research-v2/
 - Settings
 - Saved thesis history
 - Financial timeline storage
+- One-block Investment Analyst paste workflow
+- AI-assisted data parsing with deterministic calculation boundary
+- Investment Analyst Brain v1 JSON validation
+- Conservative / Base / Optimistic / Exceptional report structure
+- Monitoring checklist in approved reports
 
 ## What Works Well
 
+- The user can start from one paste box instead of many technical forms.
+- `Investment Analyst Brain v1` files are loaded as methodology source material rather than rewritten in code comments.
+- AI parsing is separated from financial calculations.
+- JSON output is validated before approval/export.
+- Draft reports remain private and do not enter Evaluated Companies.
 - Engines remain deterministic.
 - Engines do not fetch data directly.
 - Data provider logic is separated from calculations.
@@ -170,6 +195,8 @@ equity-research-v2/
 
 - Still no server-side database.
 - Only one live data provider is implemented.
+- AI parsing requires an OpenAI key and falls back to local parsing when unavailable.
+- The JSON schema is intentionally permissive because the supplied `11_OUTPUT_SCHEMA.json` defines section presence more than field-level numeric constraints.
 - Provider conflicts are structurally supported, but need a second live provider to become meaningful.
 - Automated tests now cover Version 6 ranking/color behavior, but broader engine coverage is still needed.
 - No TypeScript schema enforcement yet.
@@ -218,6 +245,8 @@ Every evaluated company stores:
 - Data Quality
 - Evaluation Date
 - Last Updated
+- Approved Investment Analyst Brain report when generated through Version 9
+- Dashboard export metadata showing approval-only export status
 
 `Range FV` uses only Bear/Base/Bull probabilities. Morningstar remains a separate reference.
 
