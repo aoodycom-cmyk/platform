@@ -13,7 +13,9 @@ const mime = {
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
-  ".svg": "image/svg+xml"
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".webmanifest": "application/manifest+json; charset=utf-8"
 };
 
 const server = http.createServer(async (request, response) => {
@@ -25,6 +27,10 @@ const server = http.createServer(async (request, response) => {
     }
     if (request.method === "POST" && url.pathname === "/api/research-data") {
       await handleResearchData(request, response);
+      return;
+    }
+    if (request.method === "POST" && url.pathname === "/api/parse-investment-analyst") {
+      await handleInvestmentAnalystParse(request, response);
       return;
     }
     const safePath = url.pathname === "/" ? "/index.html" : url.pathname;
@@ -52,6 +58,78 @@ async function handleSearch(request, response) {
     currency: item.currency || "USD"
   })).filter((item) => item.ticker);
   sendJson(response, 200, { results });
+}
+
+async function handleInvestmentAnalystParse(request, response) {
+  const body = await readJson(request);
+  const apiKey = body.apiKey || process.env.OPENAI_API_KEY;
+  const text = String(body.text || "").trim();
+  if (!apiKey || !text) return sendJson(response, 400, { error: "Missing pasted text or OpenAI API key" });
+
+  const openAiResponse = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`
+    },
+    body: JSON.stringify(openAiParserRequest(body))
+  });
+  const data = await openAiResponse.json();
+  if (!openAiResponse.ok) return sendJson(response, openAiResponse.status, { error: data?.error?.message || "OpenAI parser failed" });
+  const raw = data.output_text
+    || (Array.isArray(data.output) ? data.output.flatMap((item) => item.content || []).map((item) => item.text || "").join("\n") : "");
+  try {
+    const parsed = JSON.parse(raw || "{}");
+    sendJson(response, 200, {
+      source: parsed.source || "OpenAI",
+      parsedFields: Array.isArray(parsed.parsedFields) ? parsed.parsedFields : [],
+      explanations: Array.isArray(parsed.explanations) ? parsed.explanations : []
+    });
+  } catch {
+    sendJson(response, 502, { error: "OpenAI parser returned invalid JSON" });
+  }
+}
+
+function openAiParserRequest(body) {
+  return {
+    model: process.env.OPENAI_MODEL || body.model || "gpt-4.1-mini",
+    input: [
+      {
+        role: "system",
+        content: [
+          "You parse unstructured equity research data for a deterministic valuation engine.",
+          "Use the supplied methodology as policy context, but do not calculate final fair value, recommendation, or investment score.",
+          "Never invent missing financial values. Preserve standard financial terms in English.",
+          "Return JSON only."
+        ].join("\n")
+      },
+      {
+        role: "user",
+        content: JSON.stringify({
+          language: body.language || "ar",
+          task: "Extract company data fields from the pasted block. Return parsedFields only for values explicitly present or clearly stated.",
+          methodologyText: body.methodologyText || "",
+          outputSchema: body.outputSchema || null,
+          expectedJsonShape: {
+            source: "OpenAI",
+            parsedFields: [
+              {
+                fieldId: "ticker",
+                value: "AAPL",
+                source: "User Paste",
+                sourceDate: "YYYY-MM-DD or blank",
+                confidence: 0.9,
+                originalTextReference: "short supporting excerpt"
+              }
+            ],
+            explanations: ["short Arabic notes about parsing limitations"]
+          },
+          pastedBlock: body.text
+        })
+      }
+    ],
+    text: { format: { type: "json_object" } }
+  };
 }
 
 async function handleResearchData(request, response) {

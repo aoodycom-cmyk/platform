@@ -1607,6 +1607,53 @@ html[dir="rtl"] .bar-row {
   outline: 0;
 }
 
+.analyst-paste-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.brain-paste-box {
+  min-height: 320px;
+  margin: 0;
+  width: 100%;
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.brain-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.brain-actions span,
+.parse-notes span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.parse-notes {
+  display: grid;
+  gap: 6px;
+}
+
+.method-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.method-tags span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  padding: 7px 10px;
+  font-size: 12px;
+}
+
 .workflow-section > .icon-btn {
   margin: 0 12px 12px;
 }
@@ -2057,6 +2104,16 @@ html[dir="rtl"] .bar-row {
   .paste-box {
     width: calc(100% - 20px);
     margin: 0 10px 10px;
+  }
+
+  .brain-paste-box {
+    width: 100%;
+    min-height: 360px;
+    margin: 0;
+  }
+
+  .brain-actions .primary-btn {
+    width: 100%;
   }
 
   .report-actions {

@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Investment Analyst Brain v1 Output",
+  "type": "object",
+  "required": [
+    "methodologyVersion",
+    "company",
+    "executiveDecision",
+    "classification",
+    "businessQuality",
+    "modelSelection",
+    "forecastAssumptions",
+    "valuationResults",
+    "scenarios",
+    "catalysts",
+    "risks",
+    "whatChangesMyMind",
+    "finalDecision",
+    "monitoringChecklist",
+    "dashboardExport"
+  ],
+  "properties": {
+    "methodologyVersion": {
+      "type": "string"
+    },
+    "language": {
+      "enum": [
+        "ar",
+        "en"
+      ]
+    },
+    "company": {
+      "type": "object"
+    },
+    "executiveDecision": {
+      "type": "object"
+    },
+    "classification": {
+      "type": "object"
+    },
+    "businessQuality": {
+      "type": "object"
+    },
+    "modelSelection": {
+      "type": "object"
+    },
+    "forecastAssumptions": {
+      "type": "object"
+    },
+    "valuationResults": {
+      "type": "array"
+    },
+    "scenarios": {
+      "type": "object"
+    },
+    "catalysts": {
+      "type": "array"
+    },
+    "risks": {
+      "type": "array"
+    },
+    "whatChangesMyMind": {
+      "type": "object"
+    },
+    "finalDecision": {
+      "type": "object"
+    },
+    "monitoringChecklist": {
+      "type": "array"
+    },
+    "dashboardExport": {
+      "type": "object"
+    }
+  }
+}

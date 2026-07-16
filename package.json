@@ -5,6 +5,6 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --experimental-vm-modules tests/version6.test.mjs && node --experimental-vm-modules tests/version7.test.mjs && node --experimental-vm-modules tests/version8.test.mjs"
+    "test": "node --experimental-vm-modules tests/version6.test.mjs && node --experimental-vm-modules tests/version7.test.mjs && node --experimental-vm-modules tests/version8.test.mjs && node --experimental-vm-modules tests/investmentAnalystBrain.test.mjs"
   }
 }

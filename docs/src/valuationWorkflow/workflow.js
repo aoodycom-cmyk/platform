@@ -1,9 +1,12 @@
 import { scoreEvaluatedCompany } from "../engines/rankingEngine.js";
+import { ANALYST_BRAIN_VERSION } from "../analystBrain/methodology.js";
+import { validateAnalystBrainOutput } from "../analystBrain/schemaValidator.js";
 import { calculateRangeFairValue, calculateUpside, highestValue } from "../domain/evaluatedCompanies.js";
 import { clamp, safeDiv, toNumber, weightedAverage } from "../domain/financialMetrics.js";
 
 export const VALUATION_WORKFLOW_VERSION = "7.0.0";
 export const VALUATION_METHODOLOGY_VERSION = "fixed-methodology-2026.07";
+export const ANALYST_BRAIN_METHODOLOGY_VERSION = "investment-analyst-brain-v1";
 
 export const WORKFLOW_STATUS = {
   DRAFT: "Draft",
@@ -39,6 +42,16 @@ export const VALUATION_POLICY = {
     defaultEquityWeight: 0.92
   },
   defaultForecasts: {
+    "High Growth — Profitable": { revenueGrowth: 0.12, operatingMargin: 0.24, capexToRevenue: 0.055, terminalGrowth: 0.03, exitEbitda: 18 },
+    "High Growth — Transition to Profitability": { revenueGrowth: 0.14, operatingMargin: 0.06, capexToRevenue: 0.055, terminalGrowth: 0.025, exitEbitda: 0 },
+    "Mature Cash Generator": { revenueGrowth: 0.04, operatingMargin: 0.18, capexToRevenue: 0.045, terminalGrowth: 0.025, exitEbitda: 11 },
+    Cyclical: { revenueGrowth: 0.035, operatingMargin: 0.12, capexToRevenue: 0.065, terminalGrowth: 0.02, exitEbitda: 8 },
+    "Capital Intensive": { revenueGrowth: 0.045, operatingMargin: 0.13, capexToRevenue: 0.12, terminalGrowth: 0.02, exitEbitda: 8 },
+    "Financial Institution": { revenueGrowth: 0.035, operatingMargin: 0.18, capexToRevenue: 0.02, terminalGrowth: 0.02, exitEbitda: 0 },
+    REIT: { revenueGrowth: 0.03, operatingMargin: 0.2, capexToRevenue: 0.08, terminalGrowth: 0.02, exitEbitda: 0 },
+    "Early Stage / Pre-Profit": { revenueGrowth: 0.16, operatingMargin: 0.04, capexToRevenue: 0.05, terminalGrowth: 0.02, exitEbitda: 0 },
+    Commodity: { revenueGrowth: 0.025, operatingMargin: 0.11, capexToRevenue: 0.09, terminalGrowth: 0.015, exitEbitda: 6 },
+    "Holding Company": { revenueGrowth: 0.035, operatingMargin: 0.12, capexToRevenue: 0.055, terminalGrowth: 0.02, exitEbitda: 8 },
     "Mature Cash Generator": { revenueGrowth: 0.04, operatingMargin: 0.18, capexToRevenue: 0.045, terminalGrowth: 0.025, exitEbitda: 11 },
     "High-Growth Profitable Company": { revenueGrowth: 0.12, operatingMargin: 0.24, capexToRevenue: 0.055, terminalGrowth: 0.03, exitEbitda: 18 },
     "Cyclical Company": { revenueGrowth: 0.035, operatingMargin: 0.12, capexToRevenue: 0.065, terminalGrowth: 0.02, exitEbitda: 8 },
@@ -153,7 +166,7 @@ export const FIELD_DEFINITIONS = [
 ];
 
 const FIELD_BY_ID = Object.fromEntries(FIELD_DEFINITIONS.map((item) => [item.id, item]));
-const MODEL_UNIVERSE = ["DCF", "Reverse DCF", "P/E", "PEG", "EV/EBITDA", "EV/Sales", "Price/FCF", "Dividend Discount Model", "Residual Income", "Sum of the Parts", "Historical Multiples", "Peer Multiples", "Morningstar Fair Value", "Analyst Consensus"];
+const MODEL_UNIVERSE = ["DCF", "Reverse DCF", "P/E", "PEG", "EV/EBITDA", "EV/Sales", "Forward EV/Sales", "Price/FCF", "P/B", "ROE", "Residual Income", "DDM", "AFFO", "NAV", "Dividend Yield", "Cap Rate", "Sum of the Parts", "Historical Multiples", "Peer Multiples", "Morningstar Fair Value", "Analyst Consensus"];
 
 export function statusLabel(status, language = "en") {
   return language === "ar" ? WORKFLOW_STATUS_AR[status] || status : status;
@@ -174,10 +187,12 @@ export function createValuationWorkspace(company = {}, previous = null) {
     createdAt: previous?.createdAt || now,
     updatedAt: now,
     lastSavedAt: now,
-    methodologyVersion: VALUATION_METHODOLOGY_VERSION,
+    methodologyVersion: previous?.methodologyVersion || VALUATION_METHODOLOGY_VERSION,
     inputs,
     sectionSources: previous?.sectionSources || defaultSectionSources(now),
     pasteDrafts: previous?.pasteDrafts || {},
+    analystBrainPaste: previous?.analystBrainPaste || "",
+    aiParseNotes: previous?.aiParseNotes || [],
     pastePreview: null,
     dataReview: null,
     report: previous?.report || null,
@@ -226,6 +241,76 @@ export function updatePasteDraft(workspace, sectionId, text) {
   next.pasteDrafts[sectionId] = text;
   next.updatedAt = new Date().toISOString();
   return next;
+}
+
+export function updateAnalystBrainPaste(workspace, text) {
+  const next = clone(workspace);
+  next.analystBrainPaste = text;
+  next.updatedAt = new Date().toISOString();
+  next.lastSavedAt = next.updatedAt;
+  return next;
+}
+
+export function runInvestmentAnalystBrainValuation(workspace, options = {}) {
+  const pasteText = String(options.text ?? workspace.analystBrainPaste ?? "").trim();
+  if (!pasteText) {
+    return {
+      workspace,
+      error: options.language === "ar" ? "ألصق بيانات الشركة أولًا في الصندوق الرئيسي." : "Paste the company data into the main box first."
+    };
+  }
+
+  const parsedFields = normalizeParsedFields([
+    ...parseOneBlockFields(pasteText),
+    ...(Array.isArray(options.parsedFields) ? options.parsedFields : [])
+  ]);
+  let next = updateAnalystBrainPaste(workspace, pasteText);
+  next = applyParsedFields(next, parsedFields, options.aiSource || "One Paste Parser");
+  next.aiParseNotes = Array.isArray(options.explanations) ? options.explanations.slice(0, 8) : [];
+
+  const valuation = runFixedMethodologyValuation(next, options.language || "ar");
+  if (valuation.error) {
+    return {
+      workspace: {
+        ...valuation.workspace,
+        analystBrainPaste: pasteText,
+        aiParseNotes: next.aiParseNotes
+      },
+      error: valuation.error
+    };
+  }
+
+  const report = buildAnalystBrainReport(valuation.report, valuation.workspace, options.language || "ar");
+  const validation = validateAnalystBrainOutput(report, options.schema || null);
+  if (!validation.valid) {
+    return {
+      workspace: valuation.workspace,
+      error: validation.errors.join(" / ")
+    };
+  }
+
+  const now = new Date().toISOString();
+  const version = createVersion({
+    status: WORKFLOW_STATUS.GENERATED,
+    workspace: valuation.workspace,
+    report,
+    assumptions: report.forecastAssumptions,
+    approvalStatus: "Generated",
+    timestamp: now
+  });
+  const completed = {
+    ...valuation.workspace,
+    status: WORKFLOW_STATUS.AWAITING_APPROVAL,
+    researchStatus: WORKFLOW_STATUS.AWAITING_APPROVAL,
+    report,
+    renderedReport: renderReportText(report),
+    versions: [version, ...(valuation.workspace.versions || [])],
+    analystBrainPaste: pasteText,
+    aiParseNotes: next.aiParseNotes,
+    updatedAt: now,
+    lastSavedAt: now
+  };
+  return { workspace: completed, report };
 }
 
 export function parseWorkspacePaste(workspace, sectionId) {
@@ -457,13 +542,25 @@ export function approveWorkspaceValuation(workspace, investorNotes = "") {
   if (!validation.valid) {
     return { workspace, error: validation.errors.join(" / ") };
   }
+  if (workspace.report.analystBrainVersion) {
+    const analystValidation = validateAnalystBrainOutput(workspace.report);
+    if (!analystValidation.valid) {
+      return { workspace, error: analystValidation.errors.join(" / ") };
+    }
+  }
   const now = new Date().toISOString();
   const versionId = approvedVersionId(workspace.ticker, now);
+  const report = {
+    ...workspace.report,
+    dashboardExport: workspace.report.dashboardExport
+      ? { ...workspace.report.dashboardExport, exported: true, approvedAt: now, approvalVersion: versionId }
+      : workspace.report.dashboardExport
+  };
   const approvedVersion = createVersion({
     status: WORKFLOW_STATUS.APPROVED,
     workspace,
-    report: workspace.report,
-    assumptions: workspace.report.assumptionRationale,
+    report,
+    assumptions: report.forecastAssumptions || report.assumptionRationale,
     approvalStatus: "Approved",
     approvalTimestamp: now,
     investorNotes,
@@ -474,6 +571,8 @@ export function approveWorkspaceValuation(workspace, investorNotes = "") {
     ...workspace,
     status: WORKFLOW_STATUS.APPROVED,
     researchStatus: WORKFLOW_STATUS.APPROVED,
+    report,
+    renderedReport: renderReportText(report),
     investorNotes,
     approvedVersionId: versionId,
     approvedAt: now,
@@ -523,6 +622,172 @@ export function validateValuationReport(report) {
     if (!Number.isFinite(toNumber(scenario?.fairValue))) errors.push(`${scenarioKey} fair value is required.`);
   }
   return { valid: errors.length === 0, errors };
+}
+
+function parseOneBlockFields(text) {
+  const rows = parseRows(text);
+  const usedFields = new Set();
+  const candidates = [];
+  for (const row of rows) {
+    const match = matchAnyField(row.label, usedFields);
+    if (!match) continue;
+    usedFields.add(match.field.id);
+    const parsed = parseValue(row.value, match.field, row.raw || text);
+    candidates.push({
+      fieldId: match.field.id,
+      label: match.field.label,
+      sectionId: match.field.sectionId,
+      value: parsed.value,
+      rawValue: row.value,
+      source: "User Paste",
+      sourceDate: today(),
+      mode: "Automatic",
+      confidence: Math.min(match.confidence, parsed.confidence),
+      userConfirmed: Math.min(match.confidence, parsed.confidence) >= 0.72,
+      originalTextReference: row.raw || text.slice(0, 240),
+      reason: match.reason
+    });
+  }
+  return candidates;
+}
+
+function normalizeParsedFields(fields = []) {
+  const byField = new Map();
+  for (const item of fields) {
+    const definition = FIELD_BY_ID[item.fieldId];
+    if (!definition || item.value === undefined || item.value === null || item.value === "") continue;
+    const parsed = definition.type === "number"
+      ? parseValue(item.value, definition, item.originalTextReference || String(item.value))
+      : { value: String(item.value).trim(), confidence: 0.86 };
+    const confidence = clamp(toNumber(item.confidence) ?? parsed.confidence ?? 0.72, 0, 1);
+    const normalized = {
+      fieldId: definition.id,
+      label: definition.label,
+      sectionId: definition.sectionId,
+      value: definition.type === "number" ? parsed.value : parsed.value,
+      source: item.source || "AI Parsed Paste",
+      sourceDate: item.sourceDate || today(),
+      mode: "Automatic",
+      confidence,
+      userConfirmed: confidence >= 0.72,
+      originalTextReference: item.originalTextReference || ""
+    };
+    if (!byField.has(definition.id) || confidence > byField.get(definition.id).confidence) {
+      byField.set(definition.id, normalized);
+    }
+  }
+  return [...byField.values()];
+}
+
+function applyParsedFields(workspace, fields, source) {
+  const next = clone(workspace);
+  for (const fieldValue of fields) {
+    next.inputs[fieldValue.fieldId] = normalizeFieldValue({
+      ...fieldValue,
+      source: fieldValue.source || source,
+      userConfirmed: fieldValue.userConfirmed
+    });
+  }
+  next.status = WORKFLOW_STATUS.COLLECTING;
+  next.researchStatus = WORKFLOW_STATUS.COLLECTING;
+  next.updatedAt = new Date().toISOString();
+  next.lastSavedAt = next.updatedAt;
+  return updateWorkspaceReview(next);
+}
+
+function buildAnalystBrainReport(legacyReport, workspace, language) {
+  const quality = scoreBusinessQuality(workspace);
+  const legacyConclusion = legacyReport.executiveConclusion;
+  const scenarios = {
+    Conservative: analystScenario("Conservative", legacyReport.bearScenario, language),
+    Base: analystScenario("Base", legacyReport.baseScenario, language),
+    Optimistic: analystScenario("Optimistic", legacyReport.bullScenario, language),
+    Exceptional: exceptionalScenario(legacyReport, language)
+  };
+  const valuationResults = legacyReport.valuationModels.map((model) => ({
+    method: model.method,
+    value: model.fairValue,
+    weight: model.weight,
+    confidence: model.confidence,
+    explanation: model.explanation
+  }));
+  const report = {
+    ...legacyReport,
+    methodologyVersion: ANALYST_BRAIN_METHODOLOGY_VERSION,
+    analystBrainVersion: ANALYST_BRAIN_VERSION,
+    company: {
+      ticker: legacyReport.companyAndValuationDate.ticker,
+      name: legacyReport.companyAndValuationDate.companyName,
+      valuationDate: legacyReport.companyAndValuationDate.valuationDate,
+      currentPrice: legacyReport.companyAndValuationDate.currentPrice,
+      currency: legacyReport.companyAndValuationDate.currency,
+      sector: workspace.inputs?.sector?.value || "",
+      industry: workspace.inputs?.industry?.value || ""
+    },
+    executiveDecision: {
+      recommendation: legacyConclusion.recommendation,
+      confidence: legacyConclusion.confidence,
+      investmentScore: legacyConclusion.investmentScore,
+      currentPrice: legacyConclusion.currentPrice,
+      fairValue: legacyConclusion.rangeFairValue,
+      upsideDownside: legacyConclusion.expectedUpside,
+      why: legacyConclusion.why
+    },
+    classification: {
+      classification: legacyReport.companyClassification.classification,
+      evidence: legacyReport.companyClassification.reason,
+      suitableModels: legacyReport.companyClassification.suitableValuationModels,
+      excludedModels: legacyReport.companyClassification.excludedModels,
+      confidence: classificationConfidence(workspace)
+    },
+    businessQuality: quality,
+    modelSelection: {
+      policy: "Use at least two suitable models when possible; no valid model exceeds 45%; external references remain separate.",
+      selectedModels: valuationResults,
+      excludedModels: legacyReport.companyClassification.excludedModels
+    },
+    forecastAssumptions: {
+      sourcePriority: ["Company guidance", "Analyst estimates", "Historical trends", "Backlog/contracts/unit economics", "Sector assumptions", "Methodology defaults"],
+      wacc: legacyReport.assumptionRationale.wacc,
+      revenueGrowth: legacyReport.assumptionRationale.revenueGrowth,
+      fcfGrowth: legacyReport.assumptionRationale.fcfGrowth,
+      marginForecast: legacyReport.assumptionRationale.marginForecast,
+      capex: legacyReport.assumptionRationale.capex,
+      workingCapital: legacyReport.assumptionRationale.workingCapital,
+      taxRate: legacyReport.assumptionRationale.taxRate,
+      terminalGrowth: legacyReport.assumptionRationale.terminalGrowth,
+      exitMultiple: legacyReport.assumptionRationale.exitMultiple,
+      dilution: legacyReport.assumptionRationale.dilution
+    },
+    valuationResults,
+    scenarios,
+    whatChangesMyMind: {
+      items: legacyReport.whatWouldChangeTheValuation,
+      biggestAssumption: biggestAssumption(legacyReport, language),
+      upgradeTrigger: triggerText("upgrade", legacyConclusion, language),
+      downgradeTrigger: triggerText("downgrade", legacyConclusion, language),
+      thesisBreak: triggerText("break", legacyConclusion, language),
+      revaluationRequired: triggerText("revalue", legacyConclusion, language)
+    },
+    finalDecision: {
+      ...legacyReport.finalInvestmentDecision,
+      biggestAssumption: biggestAssumption(legacyReport, language),
+      whatChangesTheDecision: legacyReport.whatWouldChangeTheValuation
+    },
+    monitoringChecklist: monitoringChecklist(workspace, language),
+    dashboardExport: {
+      approvedOnly: true,
+      exported: false,
+      ticker: legacyReport.companyAndValuationDate.ticker,
+      recommendation: legacyConclusion.recommendation,
+      currentPrice: legacyConclusion.currentPrice,
+      fairValue: legacyConclusion.rangeFairValue,
+      upsideDownside: legacyConclusion.expectedUpside,
+      investmentScore: legacyConclusion.investmentScore,
+      confidence: legacyConclusion.confidence
+    }
+  };
+  return report;
 }
 
 function field(id, sectionId, label, type, required, aliases = [], options = {}) {
@@ -647,6 +912,169 @@ function matchField(label, sectionId, usedFields) {
   return best;
 }
 
+function matchAnyField(label, usedFields) {
+  const normalized = normalizeKey(label);
+  let best = null;
+  for (const fieldDef of FIELD_DEFINITIONS) {
+    if (usedFields.has(fieldDef.id)) continue;
+    for (const alias of fieldDef.aliases) {
+      if (normalized === alias) {
+        return { field: fieldDef, confidence: 0.95, reason: "Exact label match" };
+      }
+      if (normalized.includes(alias) || alias.includes(normalized)) {
+        const confidence = Math.min(0.86, Math.max(0.62, alias.length / Math.max(normalized.length, 1)));
+        if (!best || confidence > best.confidence) best = { field: fieldDef, confidence, reason: "Partial label match" };
+      }
+    }
+  }
+  return best;
+}
+
+function scoreBusinessQuality(workspace) {
+  const inputs = normalizeInputs(workspace);
+  const revenue = inputs.revenue;
+  const operatingMargin = safeDiv(inputs.operatingIncome, revenue);
+  const fcfMargin = safeDiv(inputs.freeCashFlow, revenue);
+  const netCash = (inputs.cash || 0) - (inputs.totalDebt || 0);
+  const components = [
+    qualityComponent("Business model", 10, textScore(inputs.businessModel, 7, 4)),
+    qualityComponent("Revenue quality", 10, positive(revenue) ? 7 : 3),
+    qualityComponent("Moat", 15, moatTextScore(inputs.morningstarMoat, inputs.competitiveAdvantages)),
+    qualityComponent("Growth visibility", 10, inputs.revenueGuidance || inputs.revenueEstimates ? 7 : 4),
+    qualityComponent("Profitability", 10, Number.isFinite(operatingMargin) ? clamp(operatingMargin * 35 + 4, 1, 10) : 3),
+    qualityComponent("Cash generation", 15, Number.isFinite(fcfMargin) ? clamp(fcfMargin * 45 + 3, 1, 10) : 3),
+    qualityComponent("Balance sheet", 10, netCash >= 0 ? 8 : positive(inputs.totalDebt) ? 5 : 4),
+    qualityComponent("Management", 8, textScore(inputs.managementNotes, 7, 5)),
+    qualityComponent("Capital allocation", 7, inputs.capitalAllocation || positive(inputs.shareBuybacks) ? 7 : 4),
+    qualityComponent("Risk resilience", 5, inputs.regulatoryRisks || inputs.customerConcentration ? 4 : 6)
+  ];
+  const score = Math.round(components.reduce((sum, item) => sum + item.points, 0));
+  return {
+    score,
+    rating: qualityRating(score),
+    components,
+    confidence: Math.round(clamp((workspace.dataReview?.completeness || 0) * 0.8 + components.filter((item) => item.evidence).length * 2, 20, 94)),
+    explanation: "Business Quality تقيس الشركة نفسها، وليس سعر السهم، مع خفض الثقة عند نقص الأدلة."
+  };
+}
+
+function qualityComponent(name, weight, rawScore) {
+  const normalized = clamp(toNumber(rawScore) ?? 0, 0, 10);
+  return {
+    name,
+    weight,
+    score: Math.round(normalized * 10),
+    points: normalized / 10 * weight,
+    evidence: normalized > 4
+  };
+}
+
+function textScore(value, presentScore, missingScore) {
+  return String(value || "").trim() ? presentScore : missingScore;
+}
+
+function moatTextScore(moat, advantages) {
+  const textValue = `${moat || ""} ${advantages || ""}`.toLowerCase();
+  if (/wide|strong|network|switching|brand|scale/.test(textValue)) return 8;
+  if (/narrow|advantage|patent|cost/.test(textValue)) return 6;
+  return 4;
+}
+
+function qualityRating(score) {
+  if (score >= 85) return "Exceptional";
+  if (score >= 70) return "Strong";
+  if (score >= 55) return "Acceptable";
+  if (score >= 40) return "Weak";
+  return "Poor";
+}
+
+function analystScenario(name, scenario, language) {
+  return {
+    name,
+    probability: scenario.probability,
+    fairValue: scenario.fairValue,
+    revenuePath: scenario.revenueAssumptions,
+    margins: scenario.marginAssumptions,
+    fcf: scenario.fcfAssumptions,
+    capex: scenario.capexAssumptions,
+    wacc: scenario.wacc,
+    terminalGrowth: scenario.terminalGrowth,
+    requiredConditions: scenarioConditions(name, scenario, language),
+    mainRisk: Array.isArray(scenario.keyRisks) ? scenario.keyRisks[0] || "" : "",
+    keyCatalysts: scenario.keyCatalysts
+  };
+}
+
+function exceptionalScenario(report, language) {
+  const bull = report.bullScenario;
+  if (!positive(bull?.fairValue)) {
+    return {
+      included: false,
+      fairValue: null,
+      reason: text(language, "لا يوجد Exceptional scenario لأن البيانات لا تبرر حالة استثنائية منفصلة.", "No Exceptional scenario is included because the data does not justify a separate exceptional case.")
+    };
+  }
+  return {
+    included: false,
+    fairValue: bull.fairValue * 1.15,
+    reason: text(language, "Exceptional يبقى مرجعًا منفصلًا ولا يدخل في Composite Fair Value إلا بموافقة صريحة.", "Exceptional remains separate and is not included in Composite Fair Value without explicit approval."),
+    requiredConditions: text(language, "يتطلب نموًا وهوامش أعلى من Optimistic مع بقاء WACC منضبطًا.", "Requires growth and margins above Optimistic while WACC remains controlled.")
+  };
+}
+
+function scenarioConditions(name, scenario, language) {
+  const value = formatNumber(scenario.fairValue);
+  if (name === "Conservative") return text(language, `لتبرير ${value} يجب أن تصمد Revenue وFCF رغم ضغط الهوامش وارتفاع WACC.`, `To justify ${value}, Revenue and FCF must hold despite margin pressure and higher WACC.`);
+  if (name === "Optimistic") return text(language, `لتبرير ${value} يجب أن يتحسن Growth وOperating Margin مع انضباط CapEx.`, `To justify ${value}, Growth and Operating Margin must improve with disciplined CapEx.`);
+  return text(language, `لتبرير ${value} يجب أن تتحقق افتراضات Base في Revenue وFCF وWACC.`, `To justify ${value}, Base assumptions for Revenue, FCF, and WACC must be delivered.`);
+}
+
+function classificationConfidence(workspace) {
+  const confirmed = workspace.dataReview?.confirmed?.length || 0;
+  return Math.round(clamp(45 + confirmed * 3, 35, 92));
+}
+
+function biggestAssumption(report, language) {
+  const wacc = report.assumptionRationale?.wacc?.value;
+  return text(language,
+    `أكبر افتراض مؤثر هو WACC وFCF Growth؛ أي تغير واضح فيهما يعيد تسعير Fair Value.`,
+    `The largest assumption is WACC and FCF Growth; a clear change in either reprices Fair Value.`);
+}
+
+function triggerText(type, conclusion, language) {
+  const upside = formatPercent(conclusion.expectedUpside);
+  const map = {
+    upgrade: text(language, `يرتفع القرار إذا تحسن هامش الأمان فوق المستوى الحالي (${upside}) مع ثبات جودة البيانات.`, `Upgrade if margin of safety improves above the current level (${upside}) while data quality holds.`),
+    downgrade: text(language, "ينخفض القرار إذا تدهورت الهوامش أو ارتفع WACC أو انخفضت Guidance.", "Downgrade if margins deteriorate, WACC rises, or Guidance falls."),
+    break: text(language, "تنكسر الفرضية عند تدهور FCF، ضغط دائم في Operating Margin، أو Dilution جوهري.", "Thesis breaks on FCF deterioration, persistent Operating Margin pressure, or material Dilution."),
+    revalue: text(language, "أعد التقييم عند صدور نتائج ربع سنوية، Guidance جديدة، أو تغير كبير في السعر.", "Revalue after quarterly results, new Guidance, or a major price move.")
+  };
+  return map[type];
+}
+
+function monitoringChecklist(workspace, language) {
+  const inputs = normalizeInputs(workspace);
+  const items = [
+    ["Revenue", inputs.revenue, "Revenue trend versus guidance and estimates"],
+    ["Gross Margin", inputs.grossProfit && inputs.revenue ? safeDiv(inputs.grossProfit, inputs.revenue) : null, "Gross Margin stability"],
+    ["Operating Margin", inputs.operatingIncome && inputs.revenue ? safeDiv(inputs.operatingIncome, inputs.revenue) : null, "Operating Margin versus Base case"],
+    ["FCF", inputs.freeCashFlow, "Free Cash Flow conversion"],
+    ["CapEx", inputs.capex, "CapEx discipline versus Revenue"],
+    ["Cash / Debt", (inputs.cash || 0) - (inputs.totalDebt || 0), "Cash/debt movement"],
+    ["Diluted Shares", inputs.dilutedShares, "Dilution or buyback trend"],
+    ["Guidance", inputs.revenueGuidance || inputs.epsGuidance || inputs.marginGuidance, "Guidance revisions"]
+  ];
+  return items.map(([metric, currentValue, focus]) => ({
+    metric,
+    currentValue: Number.isFinite(toNumber(currentValue)) ? currentValue : null,
+    focus: text(language, `${metric}: راقب ${focus}.`, `${metric}: monitor ${focus}.`),
+    upgradeTrigger: text(language, "تحسن مستمر فوق Base case.", "Sustained improvement above Base case."),
+    downgradeTrigger: text(language, "تدهور واضح عن Base case.", "Clear deterioration versus Base case."),
+    thesisBreak: text(language, "تغير دائم يضرب فرضية الاستثمار.", "A durable change that breaks the investment thesis."),
+    revaluationRequired: true
+  })).slice(0, 8);
+}
+
 function parseValue(raw, definition, fullText) {
   if (definition.type === "text" || definition.type === "date") {
     return { value: String(raw || "").trim(), confidence: raw ? 0.9 : 0.2 };
@@ -701,15 +1129,24 @@ function classifyCompany(inputs, language) {
   } else if (/reit/.test(industry)) {
     classification = "REIT";
     reasons.push(text(language, "طبيعة REIT تتطلب تركيزًا على التوزيعات والقيمة العقارية.", "REIT economics require emphasis on distributions and asset value."));
+  } else if (/commodity|oil|gas|mining|metals|energy/.test(sector) || /commodity|oil|gas|mining|metals/.test(industry)) {
+    classification = "Commodity";
+    reasons.push(text(language, "طبيعة الشركة تعتمد على أسعار السلع والدورة، لذلك تستخدم أرباحًا وEBITDA منتصف الدورة.", "The company depends on commodity prices and cycles, so mid-cycle earnings and EBITDA matter."));
+  } else if (/holding|conglomerate/.test(industry)) {
+    classification = "Holding Company";
+    reasons.push(text(language, "هيكل Holding Company يجعل Sum of the Parts أكثر ملاءمة من الاعتماد على نموذج واحد.", "The holding-company structure makes Sum of the Parts more suitable than relying on one model."));
   } else if (!profitable && revenue > 0) {
-    classification = "Unprofitable Growth Company";
+    classification = "High Growth — Transition to Profitability";
     reasons.push(text(language, "الشركة لم تثبت ربحية مستدامة بعد.", "The company has not yet demonstrated sustainable profitability."));
   } else if (capexRatio > 0.12) {
-    classification = "Capital-Intensive Company";
+    classification = "Capital Intensive";
     reasons.push(text(language, "CapEx مرتفع كنسبة من Revenue، لذلك يجب اختباره منفصلًا.", "CapEx is high as a percentage of Revenue, so it must be tested separately."));
   } else if (fcfMargin > 0.12 && operatingMargin > 0.18) {
-    classification = "High-Growth Profitable Company";
+    classification = "High Growth — Profitable";
     reasons.push(text(language, "الهوامش وFCF يدعمان تصنيف شركة رابحة عالية الجودة.", "Margins and FCF support a profitable high-quality growth profile."));
+  } else if (/cyclical|auto|airline|industrial|semiconductor/.test(industry)) {
+    classification = "Cyclical";
+    reasons.push(text(language, "الأداء يبدو حساسًا للدورة، لذلك يجب استخدام أرباح وهوامش normalized.", "Performance appears cycle-sensitive, so normalized earnings and margins matter."));
   } else {
     reasons.push(text(language, "البيانات المتاحة تشير إلى شركة ناضجة أكثر من شركة دورية أو غير رابحة.", "Available data points to a mature company rather than a cyclical or unprofitable profile."));
   }
@@ -731,11 +1168,14 @@ function classifyCompany(inputs, language) {
 
 function suitableModelsFor(classification, inputs) {
   const models = [];
-  if (!["Financial Institution", "REIT", "Holding Company / Conglomerate"].includes(classification) && positive(inputs.freeCashFlow) && positive(inputs.dilutedShares)) models.push("DCF", "Reverse DCF", "Price/FCF");
+  if (!["Financial Institution", "REIT", "Holding Company"].includes(classification) && positive(inputs.freeCashFlow) && positive(inputs.dilutedShares)) models.push("DCF", "Reverse DCF", "Price/FCF");
   if (positive(inputs.eps)) models.push("P/E");
   if (positive(inputs.eps) && classification.includes("Growth")) models.push("PEG");
   if (positive(inputs.ebitda) && !["Financial Institution", "REIT"].includes(classification)) models.push("EV/EBITDA");
-  if (positive(inputs.revenue)) models.push("EV/Sales");
+  if (positive(inputs.revenue)) models.push(classification === "High Growth — Transition to Profitability" ? "Forward EV/Sales" : "EV/Sales");
+  if (classification === "Financial Institution") models.push("P/B", "Residual Income", "DDM");
+  if (classification === "REIT") models.push("AFFO", "NAV", "Dividend Yield");
+  if (classification === "Holding Company") models.push("Sum of the Parts");
   if (positive(inputs.morningstarFairValue)) models.push("Morningstar Fair Value");
   if (positive(inputs.analystTargetAverage)) models.push("Analyst Consensus");
   return [...new Set(models)];
@@ -752,7 +1192,7 @@ function buildWacc(inputs, classification, overrides, language) {
   const debtWeight = capital ? debt / capital : policy.defaultDebtWeight;
   const equityWeight = capital ? marketCap / capital : policy.defaultEquityWeight;
   const costOfEquity = policy.riskFreeRate + beta * policy.equityRiskPremium;
-  const preTaxCostOfDebt = policy.defaultPreTaxCostOfDebt + (classification.classification === "Unprofitable Growth Company" ? 0.02 : 0);
+  const preTaxCostOfDebt = policy.defaultPreTaxCostOfDebt + (["High Growth — Transition to Profitability", "Early Stage / Pre-Profit"].includes(classification.classification) ? 0.02 : 0);
   const baseWacc = equityWeight * costOfEquity + debtWeight * preTaxCostOfDebt * (1 - taxRate);
   const finalWacc = overrideValue(overrides, "wacc") ?? baseWacc;
   const confidence = clamp(82 - (!marketCap ? 10 : 0) - (!debt ? 6 : 0) - (overrideValue(overrides, "wacc") ? 8 : 0), 35, 92);
@@ -868,6 +1308,7 @@ function selectValuationModels(inputs, classification, assumptions, scenarios, l
   if (suitable.has("PEG")) selected.push(model("PEG", inputs.eps * clamp(Math.max(assumptions.revenueGrowth, 0.04) * 115, 14, 36), "Uses EPS against growth durability.", assumptions, language));
   if (suitable.has("EV/EBITDA")) selected.push(model("EV/EBITDA", equityValueFromEv(inputs.ebitda * clamp(9 + assumptions.revenueGrowth * 55, 7, 24), inputs), "Uses EBITDA and an enterprise-value multiple.", assumptions, language));
   if (suitable.has("EV/Sales")) selected.push(model("EV/Sales", equityValueFromEv(inputs.revenue * clamp(2 + assumptions.operatingMargin * 10 + assumptions.revenueGrowth * 18, 1, 14), inputs), "Uses Revenue multiple when earnings or FCF are less complete.", assumptions, language));
+  if (suitable.has("Forward EV/Sales")) selected.push(model("Forward EV/Sales", equityValueFromEv((inputs.revenueEstimates || inputs.revenue * (1 + assumptions.revenueGrowth)) * clamp(2 + assumptions.revenueGrowth * 16, 1, 12), inputs), "Uses forward Revenue for a transition-to-profitability company.", assumptions, language));
   if (suitable.has("Price/FCF")) selected.push(model("Price/FCF", inputs.freeCashFlow * clamp(18 + assumptions.revenueGrowth * 70, 10, 35) / inputs.dilutedShares, "Uses current FCF yield normalized for growth.", assumptions, language));
   if (suitable.has("Morningstar Fair Value")) selected.push(model("Morningstar Fair Value", inputs.morningstarFairValue, "External fair value entered by investor.", assumptions, language));
   if (suitable.has("Analyst Consensus")) selected.push(model("Analyst Consensus", inputs.analystTargetAverage, "External analyst target consensus.", assumptions, language));
@@ -1006,12 +1447,12 @@ function exportApprovedValuation(workspace, approvedVersion) {
     decisionStatus: "ACTIONABLE",
     confidence: conclusion.confidence,
     investmentScore: conclusion.investmentScore,
-    qualityScore: null,
+    qualityScore: report.businessQuality?.score ?? null,
     growthScore: null,
     managementScore: null,
     moatScore: null,
     riskScore: null,
-    dataQuality: report.dataQuality.completeness,
+    dataQuality: report.dataQuality?.completeness ?? report.dashboardExport?.dataQuality ?? null,
     evaluationDate: report.companyAndValuationDate.valuationDate,
     approvedDate: now.slice(0, 10),
     valuationVersion: approvedVersion.versionId,
@@ -1176,7 +1617,7 @@ function createVersion({ status, workspace, report, assumptions, approvalStatus,
   return {
     versionId: versionId || `draft-${workspace.ticker || "TICKER"}-${timestamp.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
     type: status,
-    methodologyVersion: VALUATION_METHODOLOGY_VERSION,
+    methodologyVersion: report?.methodologyVersion || VALUATION_METHODOLOGY_VERSION,
     inputDataSnapshot: workspace.inputs,
     sourceSnapshot: workspace.sectionSources,
     assumptions,
@@ -1190,6 +1631,27 @@ function createVersion({ status, workspace, report, assumptions, approvalStatus,
 }
 
 function renderReportText(report) {
+  if (report?.analystBrainVersion) {
+    const sections = [
+      ["1. Company", `${report.company.name} (${report.company.ticker}) - ${report.company.valuationDate}`],
+      ["2. Executive Decision", `${report.executiveDecision.recommendation} / ${report.executiveDecision.confidence}% / Fair Value ${report.executiveDecision.fairValue}`],
+      ["3. Executive Summary", report.executiveConclusion?.why || report.finalDecision?.why || ""],
+      ["4. Investment Thesis", `${(report.finalDecision?.mainPositiveDrivers || []).join(" ")} ${(report.finalDecision?.mainNegativeDrivers || []).join(" ")}`],
+      ["5. Company Classification", `${report.classification.classification}: ${report.classification.evidence}`],
+      ["6. Business Quality", `${report.businessQuality.score}/100 ${report.businessQuality.rating}`],
+      ["7. Model Selection", report.modelSelection.selectedModels.map((item) => `${item.method}: ${item.value}`).join(" / ")],
+      ["8. Forecast Assumptions", Object.values(report.forecastAssumptions).map((item) => item?.why || item?.value || "").join(" ")],
+      ["9. Valuation Results", report.valuationResults.map((item) => `${item.method}: ${item.value}`).join(" / ")],
+      ["10. Scenario Cards", Object.values(report.scenarios).map((item) => `${item.name || "Exceptional"}: ${item.fairValue ?? "-"}`).join(" / ")],
+      ["11. Catalysts", report.catalysts.join(" ")],
+      ["12. Risks", report.risks.join(" ")],
+      ["13. What Changes My Mind", (report.whatChangesMyMind.items || []).join(" ")],
+      ["14. Final Decision", `${report.finalDecision.decision}: ${report.finalDecision.why}`],
+      ["15. Monitoring Checklist", report.monitoringChecklist.map((item) => item.metric).join(" / ")],
+      ["16. Dashboard Export", report.dashboardExport.approvedOnly ? "Approved reports only." : "Draft only."]
+    ];
+    return sections.map(([heading, body]) => `${heading}\n${body}`).join("\n\n");
+  }
   const sections = [
     ["1. Company and Valuation Date", `${report.companyAndValuationDate.companyName} (${report.companyAndValuationDate.ticker}) - ${report.companyAndValuationDate.valuationDate}`],
     ["2. Executive Conclusion", `${report.executiveConclusion.recommendation} / confidence ${report.executiveConclusion.confidence}% / Range FV ${report.executiveConclusion.rangeFairValue}`],
@@ -1354,7 +1816,14 @@ function decisionWhyNot(recommendation, workspace, language) {
 
 function betaFor(classification) {
   const map = {
+    "High Growth — Profitable": 1.15,
+    "High Growth — Transition to Profitability": 1.45,
     "Mature Cash Generator": 0.95,
+    Cyclical: 1.25,
+    "Capital Intensive": 1.2,
+    "Early Stage / Pre-Profit": 1.35,
+    Commodity: 1.3,
+    "Holding Company": 1,
     "High-Growth Profitable Company": 1.15,
     "Cyclical Company": 1.25,
     "Capital-Intensive Company": 1.2,

@@ -672,17 +672,46 @@ function valuationWorkspacePanel(state) {
       ${workflowSteps(workspace, state)}
       ${workspace.pastePreview ? pastePreviewCard(workspace) : ""}
       <section class="content-grid workflow-grid">
-        <article class="panel full">
-          <h3>${uiLabel("Input Data")}</h3>
-          <p class="muted">${uiLabel("Paste tables or enter values manually. Every value keeps source, date, confidence, and confirmation status.")}</p>
-          ${VALUATION_SECTIONS.map(([sectionId, label]) => workflowSection(workspace, sectionId, label, true)).join("")}
-        </article>
+        <article class="panel full">${analystBrainPastePanel(workspace, state)}</article>
         <article class="panel">${dataReviewPanel(workspace, state)}</article>
-        <article class="panel">${methodologyOverridesPanel(workspace)}</article>
+        <article class="panel">${analystBrainMethodologyPanel(workspace)}</article>
         ${report ? `<article class="panel full">${fixedReportPanel(workspace, state)}</article>` : ""}
         ${workspace.versions?.length ? `<article class="panel full">${versionHistoryPanel(workspace)}</article>` : ""}
       </section>
     </section>
+  `;
+}
+
+function analystBrainPastePanel(workspace, state) {
+  return `
+    <div class="analyst-paste-panel">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Investment Analyst Brain v1</p>
+          <h3>${uiLabel("Paste one company data block")}</h3>
+          <p class="muted">${uiLabel("Paste the company data, financials, estimates, Morningstar notes, and your notes in one block. The system parses data first, then deterministic code calculates the report.")}</p>
+        </div>
+      </div>
+      <textarea class="paste-box brain-paste-box" data-brain-paste placeholder="${uiLabel("Paste one unstructured company data block here.")}">${escapeHtml(workspace.analystBrainPaste || "")}</textarea>
+      ${workspace.aiParseNotes?.length ? `<div class="parse-notes">${workspace.aiParseNotes.map((note) => `<span>${escapeHtml(note)}</span>`).join("")}</div>` : ""}
+      <div class="brain-actions">
+        <button class="primary-btn" data-action="analyze-brain" ${state.loading ? "disabled" : ""}>${state.loading ? uiLabel("Analyzing") : uiLabel("Generate Investment Report")}</button>
+        <span>${uiLabel("Drafts stay private until approval.")}</span>
+      </div>
+    </div>
+  `;
+}
+
+function analystBrainMethodologyPanel() {
+  return `
+    <div class="methodology-card">
+      <p class="eyebrow">${uiLabel("Methodology")}</p>
+      <h3>Investment Analyst Brain v1</h3>
+      <p class="muted">${uiLabel("The fixed methodology controls classification, model selection, forecasts, WACC, scenarios, fair value, recommendation, monitoring, and JSON output.")}</p>
+      <div class="method-tags">
+        ${["Classification", "Quality", "Forecasts", "WACC", "Scenarios", "Fair Value", "Recommendation", "JSON"].map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+      </div>
+    </div>
   `;
 }
 
@@ -881,9 +910,9 @@ function valuationSummaryBlock(report) {
   return `
     <div class="valuation-summary-grid">
       ${metric(uiLabel("Current Price"), money(item.currentPrice, 2))}
-      ${metricHtml("Bear", fairValueSignal(item.bearFairValue, item.currentPrice))}
+      ${metricHtml("Conservative", fairValueSignal(item.bearFairValue, item.currentPrice))}
       ${metricHtml("Base", fairValueSignal(item.baseFairValue, item.currentPrice))}
-      ${metricHtml("Bull", fairValueSignal(item.bullFairValue, item.currentPrice))}
+      ${metricHtml("Optimistic", fairValueSignal(item.bullFairValue, item.currentPrice))}
       ${metricHtml("Morningstar", fairValueSignal(item.morningstarFairValue, item.currentPrice))}
       ${metricHtml(uiLabel("Range FV"), fairValueSignal(item.rangeFairValue, item.currentPrice))}
       ${metricHtml(uiLabel("Expected Upside"), upsideSignal(item.expectedUpside))}
@@ -903,11 +932,13 @@ function collapsibleReportDetails(workspace, report) {
     [uiLabel("Margins"), marginsDetail(report)],
     ["Terminal Growth", terminalGrowthDetail(report)],
     [uiLabel("Valuation Models"), valuationModelsReport(report.valuationModels, report.executiveConclusion.currentPrice)],
+    ["Business Quality", businessQualityDetail(report)],
     [uiLabel("Financial Statements"), workspaceFieldsReport(workspace, ["revenue", "grossProfit", "operatingIncome", "ebitda", "netIncome", "eps", "cash", "totalDebt", "equity", "dilutedShares", "operatingCashFlow", "capex", "freeCashFlow"])],
     [uiLabel("Analyst Estimates"), workspaceFieldsReport(workspace, ["revenueEstimates", "epsEstimates", "ebitdaEstimates", "fcfEstimates", "analystTargetLow", "analystTargetAverage", "analystTargetHigh", "numberOfAnalysts"])],
     ["Morningstar", workspaceFieldsReport(workspace, ["morningstarFairValue", "morningstarMoat", "capitalAllocation", "uncertaintyRating", "starRating", "morningstarBullCase", "morningstarBaseCase", "morningstarBearCase", "morningstarKeyRisks", "analystResearchSummary", "researchDate"])],
     [uiLabel("Risks"), listReport(report.risks)],
     [uiLabel("Catalysts"), listReport(report.catalysts)],
+    ["Monitoring Checklist", monitoringChecklistDetail(report)],
     [uiLabel("Historical Charts"), historicalChartsDetail(workspace)],
     [uiLabel("Sources"), sourcesDetail(workspace)]
   ];
@@ -941,6 +972,45 @@ function collapsibleReportDetails(workspace, report) {
 function dcfDetail(report) {
   const model = report.valuationModels.find((item) => item.method === "DCF");
   return model ? valuationModelsReport([model], report.executiveConclusion.currentPrice) : `<p class="muted">${uiLabel("None")}</p>`;
+}
+
+function businessQualityDetail(report) {
+  const quality = report.businessQuality;
+  if (!quality) return `<p class="muted">${uiLabel("None")}</p>`;
+  return `
+    <div class="two-col">
+      ${metric("Business Quality", `${Math.round(quality.score)}/100`)}
+      ${metric(uiLabel("Confidence"), `${Math.round(quality.confidence || 0)}%`)}
+    </div>
+    <p>${escapeHtml(quality.explanation || "")}</p>
+    <div class="research-table compact-table">
+      <div class="research-row head"><span>${uiLabel("Metric")}</span><span>${uiLabel("Score")}</span><span>${uiLabel("Weight")}</span></div>
+      ${(quality.components || []).map((item) => `
+        <div class="research-row">
+          <span>${escapeHtml(item.name)}</span>
+          <span>${Math.round(item.score)}/100</span>
+          <span>${escapeHtml(String(item.weight))}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function monitoringChecklistDetail(report) {
+  const rows = report.monitoringChecklist || [];
+  if (!rows.length) return `<p class="muted">${uiLabel("None")}</p>`;
+  return `
+    <div class="research-table compact-table">
+      <div class="research-row head"><span>${uiLabel("Metric")}</span><span>${uiLabel("Current")}</span><span>${uiLabel("Focus")}</span></div>
+      ${rows.map((item) => `
+        <div class="research-row">
+          <span>${escapeHtml(item.metric)}</span>
+          <span>${item.currentValue === null || item.currentValue === undefined ? "—" : escapeHtml(String(item.currentValue))}</span>
+          <span>${escapeHtml(item.focus || "")}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
 }
 
 function waccDetail(report) {
@@ -1712,7 +1782,9 @@ function bind(root, store, actions) {
   });
   root.querySelector("[data-action='save-run']")?.addEventListener("click", store.saveRun);
   root.querySelector("[data-action='search']")?.addEventListener("click", actions.search);
-  root.querySelector("#searchInput")?.addEventListener("input", (event) => store.set({ query: event.target.value }));
+  root.querySelector("#searchInput")?.addEventListener("input", (event) => {
+    store.state.query = event.target.value;
+  });
   root.querySelector("#searchInput")?.addEventListener("keydown", (event) => {
     if (event.key === "Enter") actions.search();
   });
@@ -1736,6 +1808,13 @@ function bind(root, store, actions) {
   });
   root.querySelectorAll("[data-workflow-paste]").forEach((input) => {
     input.addEventListener("input", () => store.setWorkspacePaste(input.dataset.workflowPaste, input.value));
+  });
+  root.querySelector("[data-brain-paste]")?.addEventListener("input", (event) => {
+    if (store.state.valuationWorkspace) store.state.valuationWorkspace.analystBrainPaste = event.target.value;
+  });
+  root.querySelector("[data-action='analyze-brain']")?.addEventListener("click", () => {
+    const text = root.querySelector("[data-brain-paste]")?.value || "";
+    store.runAnalystBrainValuation(text);
   });
   root.querySelectorAll("[data-action='parse-paste']").forEach((button) => {
     button.addEventListener("click", () => store.parseWorkspaceSection(button.dataset.section));

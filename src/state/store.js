@@ -4,8 +4,10 @@ import { buildEvaluatedCompany, upsertEvaluatedCompany } from "../domain/evaluat
 import { toNumber } from "../domain/financialMetrics.js";
 import { rankEvaluatedCompanies } from "../engines/rankingEngine.js";
 import { runEquityResearch } from "../engines/researchEngine.js";
+import { loadAnalystBrainMethodology } from "../analystBrain/methodology.js";
 import { normalizeLanguage, setLanguageContext } from "../i18n/language.js";
 import { buildInstitutionalResearch } from "../research/institutionalResearch.js";
+import { parseInvestmentAnalystBlock } from "../providers/apiClient.js";
 import {
   applyParsedPreview,
   approveWorkspaceValuation,
@@ -15,7 +17,9 @@ import {
   parseWorkspacePaste,
   rejectWorkspaceField,
   runFixedMethodologyValuation,
+  runInvestmentAnalystBrainValuation,
   setMethodologyOverride,
+  updateAnalystBrainPaste,
   updatePasteDraft,
   updateSectionSource,
   updateWorkspaceField
@@ -167,6 +171,42 @@ export function createStore() {
     set({
       valuationWorkspace: result.workspace,
       notice: result.error || "",
+      activePanel: "workspace"
+    });
+  }
+
+  async function runAnalystBrainValuation(pasteText) {
+    if (!state.valuationWorkspace) return;
+    const text = String(pasteText || state.valuationWorkspace.analystBrainPaste || "").trim();
+    if (!text) {
+      set({ notice: state.language === "ar" ? "ألصق بيانات الشركة أولًا." : "Paste company data first." });
+      return;
+    }
+    const draftWorkspace = updateAnalystBrainPaste(state.valuationWorkspace, text);
+    set({
+      valuationWorkspace: draftWorkspace,
+      loading: true,
+      notice: state.language === "ar" ? "جاري قراءة البيانات وتشغيل المنهجية..." : "Parsing data and running the methodology..."
+    });
+    const methodology = await loadAnalystBrainMethodology();
+    const aiParsed = await parseInvestmentAnalystBlock({
+      text,
+      apiKeys: state.apiKeys,
+      methodology,
+      language: state.language
+    });
+    const result = runInvestmentAnalystBrainValuation(draftWorkspace, {
+      text,
+      language: state.language,
+      schema: methodology.outputSchema,
+      parsedFields: aiParsed.parsedFields,
+      explanations: aiParsed.explanations,
+      aiSource: aiParsed.source
+    });
+    set({
+      valuationWorkspace: result.workspace,
+      loading: false,
+      notice: result.error || (state.language === "ar" ? "تم إنشاء التقرير. راجعه ثم اعتمده للتصدير." : "Report generated. Review and approve it before export."),
       activePanel: "workspace"
     });
   }
@@ -363,6 +403,7 @@ export function createStore() {
     setWorkspaceOverride,
     setWorkspaceInvestorNotes,
     runWorkspaceValuation,
+    runAnalystBrainValuation,
     editWorkspaceData,
     approveAndExportWorkspace,
     setManualInput,
