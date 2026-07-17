@@ -1,6 +1,8 @@
-# Valuation Workflow V7
+# Valuation Workflow V7-V9.1
 
 Version 7 changes the product from instant ticker scoring to an approved valuation workflow.
+
+Version 9.1 keeps that workflow but replaces the Analyst Brain implementation with a canonical deterministic engine.
 
 ## Flow
 
@@ -8,18 +10,21 @@ Version 7 changes the product from instant ticker scoring to an approved valuati
 2. Search company
 3. Open Company Valuation Workspace
 4. Paste or enter company data
-5. Review and confirm data
-6. Run Valuation Analyst
-7. Read fixed-format report
-8. Edit data and re-run, or approve and export
-9. Approved company appears in Home
+5. Run Analyst Brain from the one-block paste
+6. Review the generated report and data review
+7. Edit data and re-run, or approve and export
+8. Approved company appears in Home
 
 ## Key Rules
 
 - Search does not create a final valuation.
 - Drafts do not appear in the Home dashboard.
 - Automatically parsed values are stored with source, source date, confidence, confirmation status, and original text reference.
-- Required fields must meet the minimum completeness threshold before valuation.
+- Missing fields remain missing and can produce `INSUFFICIENT_DATA`.
+- Analyst Brain recommendations require at least one internal valuation model.
+- Morningstar Fair Value and Analyst Consensus are capped external references, not standalone decision engines.
+- Unsupported models remain excluded until they have deterministic implementations.
+- Required fields still affect data quality, confidence, and export readiness.
 - The report is generated as structured JSON and rendered into a fixed written report.
 - Only approved reports are exported to Evaluated Companies.
 - Previous approved versions are preserved.

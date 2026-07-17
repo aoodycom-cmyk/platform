@@ -897,6 +897,7 @@ export function decisionLabel(label) {
     BUY: "شراء",
     HOLD: "احتفاظ",
     SELL: "بيع",
+    INSUFFICIENT_DATA: "بيانات غير كافية",
     Buy: "شراء",
     Hold: "احتفاظ",
     Sell: "بيع",

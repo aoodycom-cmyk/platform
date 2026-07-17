@@ -1,5 +1,35 @@
 # Changelog
 
+## Version 9.1 - Canonical Analyst Brain Correction
+
+### Changed
+
+- Replaced the legacy Analyst Brain wrapper with a direct deterministic pipeline in `src/analystBrain/engine.js`.
+- Promoted `investment-analyst-brain-v1.1-canonical` as the canonical methodology contract.
+- Added `00_METHODOLOGY_CONTRACT.md` and `00_METHODOLOGY_CONTRACT.json` ahead of the detailed methodology files.
+- Analyst Brain now runs: parse -> evidence normalization -> classification -> business quality -> yearly forecast -> model selection -> valuation -> recommendation -> monitoring -> report.
+- Year 1-5 forecasts are now explicit arrays with source and confidence metadata.
+- Recommendation logic now considers margin of safety, internal valuation availability, Business Quality, Forecast Confidence, Data Quality, Risk, dilution, balance sheet, and scenario asymmetry.
+- External references such as Morningstar Fair Value and Analyst Consensus are capped at 25% combined model weight.
+- Individual valuation models are capped at 45% unless a future approved override is added.
+- Unsupported models remain excluded until deterministic implementations exist, including P/B, Residual Income, DDM, AFFO, NAV, Dividend Yield, Cap Rate, and Sum of the Parts.
+- Peer and historical multiples can be supplied in the same one-block paste; otherwise multiples are clearly labeled as methodology defaults.
+- Exceptional scenario no longer creates an automatic fair value from Optimistic/Bull. It stays unvalued unless explicit quantitative assumptions are supplied and approved.
+- Analyst Brain approval now validates against the canonical Analyst Brain schema instead of the legacy valuation report gate.
+
+### Added
+
+- Added nested Analyst Brain validation for methodology version, scenario probabilities, model support, model weights, external reference weights, five-year forecast rows, monitoring checklist length, and recommendation values.
+- Added `VERSION_9_IMPLEMENTATION_REPORT.md`.
+- Expanded `tests/investmentAnalystBrain.test.mjs` to cover profitable growth, transition-to-profitability, cyclical, financial institution, REIT, holding company, external-only data, and negative validation cases.
+
+### Verification
+
+- Version 6 ranking and color tests passed.
+- Version 7 valuation workflow tests passed.
+- Version 8 investment report experience tests passed.
+- Investment Analyst Brain v1.1 canonical tests passed.
+
 ## Version 9.0 - Investment Analyst Brain Workflow
 
 ### Added

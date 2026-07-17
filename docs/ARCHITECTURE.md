@@ -1,8 +1,8 @@
-# Architecture - Version 8
+# Architecture - Version 9
 
 ## Product Definition
 
-AI Equity Research Platform V8 keeps the investment engine, data platform, ranking engine, comparison module, language system, semantic color system, evaluated-company dashboard, institutional research layer, workflow, and valuation methodology stable. It changes the presentation layer so the generated Investment Report becomes the primary experience.
+AI Equity Research Platform V9 keeps the investment engine, data platform, ranking engine, comparison module, language system, semantic color system, evaluated-company dashboard, institutional research layer, workflow, and report-first experience stable. Version 9.1 corrects the Analyst Brain path so `investment-analyst-brain-v1.1-canonical` is implemented as a deterministic methodology engine, not as a wrapper around the legacy valuation report.
 
 The product still answers:
 
@@ -15,6 +15,14 @@ Version 7 changes the path to that answer:
 Version 8 changes the reading experience:
 
 > Once the report exists, the user sees the Investment Report first. Technical forms and methodology details are collapsed below it.
+
+Version 9 changes the data-entry and methodology path:
+
+> The user pastes one unstructured company data block. AI may parse explicit data, deterministic code calculates the valuation, output is validated against `11_OUTPUT_SCHEMA.json`, and only approved reports export to Home.
+
+Version 9.1 changes the internal path:
+
+> Analyst Brain runs parse -> evidence normalization -> classification -> business quality -> yearly forecast -> model selection -> valuation -> recommendation -> monitoring -> report. Unsupported models stay excluded, model weights are capped, and `INSUFFICIENT_DATA` is returned when the evidence cannot support an actionable decision.
 
 ## Runtime Flow
 
@@ -29,13 +37,27 @@ Unified Data Layer
   ↓
 Valuation Workspace Draft
   ↓
-Paste / Manual Input Parser
+One Paste Box
   ↓
-Data Review + Completeness Gate
+AI Parser for Explicit Data Only
   ↓
-Fixed Methodology Analyst
+Local Parser Fallback
   ↓
-Structured Valuation Report JSON
+Evidence Normalization
+  ↓
+Investment Analyst Brain v1.1 Canonical Contract
+  ↓
+Classification + Business Quality
+  ↓
+Year 1-5 Forecast + WACC
+  ↓
+Model Selection + Weight Caps
+  ↓
+Scenario + Fair Value Calculations
+  ↓
+Recommendation + Monitoring
+  ↓
+Validated Structured Report JSON
   ↓
 Investor Approval
   ↓
@@ -62,6 +84,10 @@ Home Table + Comparison + Report UI
 
 ```text
 public/src/
+├── analystBrain/
+│   ├── engine.js
+│   ├── methodology.js
+│   └── schemaValidator.js
 ├── data/
 │   └── sampleData.js
 ├── dataPlatform/
@@ -94,6 +120,36 @@ public/src/
 └── ui/
     └── components.js
 ```
+
+## Version 9.1 Analyst Brain Layer
+
+Locations:
+
+```text
+docs/investment_analyst_brain_v1/
+public/investment_analyst_brain_v1/
+public/src/analystBrain/engine.js
+public/src/analystBrain/methodology.js
+public/src/analystBrain/schemaValidator.js
+```
+
+Responsibilities:
+
+- Treat the supplied methodology files and `00_METHODOLOGY_CONTRACT.*` as source of truth
+- Normalize pasted evidence into confirmed financial and qualitative inputs
+- Classify the company deterministically
+- Build Business Quality and data-quality outputs
+- Create explicit Year 1-5 forecast rows with source and confidence
+- Select only fully implemented valuation models
+- Exclude unsupported models such as P/B, Residual Income, DDM, AFFO, NAV, Dividend Yield, Cap Rate, and Sum of the Parts
+- Cap each selected model at 45%
+- Cap external references at 25% combined
+- Return `INSUFFICIENT_DATA` when internal valuation evidence is missing
+- Validate structured output against nested report rules
+- Keep AI limited to parsing and explanation
+- Keep classification, WACC, scenarios, fair value, recommendation, and dashboard export controlled by deterministic code
+- Preserve one main paste box for iPhone-first use
+- Prevent drafts from entering the Home dashboard
 
 ## Version 7 Workflow Layer
 
@@ -148,12 +204,17 @@ Responsibilities:
 
 - Search through enabled providers
 - Load company data through provider interfaces
+- Parse one pasted company data block through `/api/parse-investment-analyst` when an OpenAI key is available
 - Fall back to manual/missing data when a provider is unavailable
 - Avoid storing API keys inside company data
 
 Current live provider:
 
 - Financial Modeling Prep
+
+Current AI utility:
+
+- OpenAI parser for extracting explicitly supplied fields from pasted text
 
 Future provider slot:
 

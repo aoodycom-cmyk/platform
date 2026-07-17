@@ -1,14 +1,20 @@
-# AI Equity Research Platform V8
+# AI Equity Research Platform V9.1
 
-Version 8 keeps the deterministic investment engine, data platform, workflow, valuation methodology, ranking, comparison, and approval system stable, then makes the approved valuation report the center of the user experience.
+Version 9.1 keeps the deterministic investment engine, data platform, workflow, valuation methodology, ranking, comparison, approval system, and report-first experience stable. It corrects the Investment Analyst Brain so the platform uses a canonical deterministic methodology engine rather than wrapping the legacy valuation report.
 
 The app answers one question:
 
 > Should I buy this stock today?
 
-It is not a stock dashboard. A ticker search opens a Company Valuation Workspace. The investor pastes or enters data, reviews and confirms it, runs the fixed-methodology analyst, and immediately sees an institutional Investment Report. Forms, assumptions, sources, DCF, WACC, and statements are available as collapsed sections.
+It is not a stock dashboard. A ticker search opens a Company Valuation Workspace. The investor pastes one company-data block, the app normalizes the evidence, runs the canonical Analyst Brain, and immediately shows an institutional Investment Report. Forms, assumptions, sources, DCF, WACC, and statements are available as collapsed sections.
 
 Drafts and unapproved valuations do not appear in the final Evaluated Companies dashboard.
+
+Analyst Brain V9.1 runs:
+
+```text
+parse -> evidence normalization -> classification -> business quality -> yearly forecast -> model selection -> valuation -> recommendation -> monitoring -> report
+```
 
 The Home workspace shows previously evaluated companies with:
 
@@ -62,6 +68,7 @@ Local development uses `server.mjs` as an API proxy. On GitHub Pages, the app fa
 - `RANKING_ENGINE.md`: Version 6 ranking formula, comparison behavior, and color system
 - `VALUATION_WORKFLOW.md`: Version 7 workspace, data review, approval, and export workflow
 - `INVESTMENT_REPORT_EXPERIENCE.md`: Version 8 report-first user experience
+- `VERSION_9_IMPLEMENTATION_REPORT.md`: Version 9.1 analytical correction report
 - `VALUATION_METHODOLOGY.md`: fixed valuation methodology
 - `VALUATION_POLICY.json`: versioned assumptions and policy defaults
 - `VALUATION_OUTPUT_SCHEMA.json`: fixed JSON report schema
@@ -79,6 +86,7 @@ Local development uses `server.mjs` as an API proxy. On GitHub Pages, the app fa
 - `public/src/research`: institutional research layer
 - `public/src/state`: local app state and persistence
 - `public/src/ui`: rendering and interaction components
+- `public/src/analystBrain`: canonical Analyst Brain engine, methodology loader, and schema validator
 - `public/src/valuationWorkflow`: fixed-methodology valuation workspace, parser, validation, report, approval, and export logic
 - `server.mjs`: local static server and FMP API proxy
 
@@ -91,6 +99,11 @@ Local development uses `server.mjs` as an API proxy. On GitHub Pages, the app fa
 - Engines read from the unified data layer and never fetch directly.
 - Research modules summarize verified information only.
 - Valuation methods are skipped when required inputs are unavailable.
+- Unsupported methods are excluded until deterministic implementations exist.
+- Morningstar Fair Value and Analyst Consensus are capped external references, not standalone decision engines.
+- No single selected model can exceed 45% weight.
+- External references cannot exceed 25% combined weight.
+- External-only evidence returns `INSUFFICIENT_DATA`.
 - A ticker search opens a draft valuation workspace, not a final recommendation.
 - Only approved valuation reports export to Home.
 - Buy / Hold / Sell decisions are deterministic and reproducible.

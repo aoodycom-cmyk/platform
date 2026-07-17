@@ -1,0 +1,35 @@
+{
+  "canonicalVersion": "investment-analyst-brain-v1.1-canonical",
+  "precedence": [
+    "00_METHODOLOGY_CONTRACT",
+    "Investment Analyst Brain policy files 01-12",
+    "Version 9 gap-analysis / Master Brain v1.1 brief",
+    "Legacy valuation workflow for backward compatibility only"
+  ],
+  "pipeline": [
+    "parse",
+    "evidence_normalization",
+    "classification",
+    "business_quality",
+    "yearly_forecast",
+    "model_selection",
+    "valuation",
+    "recommendation",
+    "monitoring",
+    "report"
+  ],
+  "aiBoundary": {
+    "allowed": ["parse_explicit_data", "explain", "summarize", "challenge_assumptions"],
+    "forbidden": ["calculate_fair_value", "calculate_wacc", "calculate_model_weights", "calculate_recommendation", "invent_financial_data"]
+  },
+  "supportedModels": ["DCF", "P/E", "PEG", "EV/EBITDA", "EV/Sales", "Forward EV/Sales", "Price/FCF", "Morningstar Fair Value", "Analyst Consensus"],
+  "unsupportedModels": ["P/B", "Residual Income", "DDM", "AFFO", "NAV", "Dividend Yield", "Cap Rate", "Sum of the Parts"],
+  "rules": {
+    "maxModelWeight": 0.45,
+    "maxExternalReferenceWeight": 0.25,
+    "scenarioProbabilityTotal": 1,
+    "forecastYears": 5,
+    "exceptionalRequiresEvidence": true,
+    "approvalBeforeDashboardExport": true
+  }
+}

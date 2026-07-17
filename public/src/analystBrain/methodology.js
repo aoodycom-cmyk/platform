@@ -1,6 +1,8 @@
-export const ANALYST_BRAIN_VERSION = "Investment Analyst Brain v1.0";
+export const ANALYST_BRAIN_VERSION = "Investment Analyst Brain v1.1 Canonical";
 
 export const ANALYST_BRAIN_FILES = [
+  "00_METHODOLOGY_CONTRACT.md",
+  "00_METHODOLOGY_CONTRACT.json",
   "README.md",
   "01_COMPANY_CLASSIFICATION.md",
   "02_BUSINESS_QUALITY.md",

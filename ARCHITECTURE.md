@@ -2,7 +2,7 @@
 
 ## Product Definition
 
-AI Equity Research Platform V9 keeps the investment engine, data platform, ranking engine, comparison module, language system, semantic color system, evaluated-company dashboard, institutional research layer, workflow, and report-first experience stable. It adds `Investment Analyst Brain v1` as a fixed methodology layer above the existing deterministic valuation workflow.
+AI Equity Research Platform V9 keeps the investment engine, data platform, ranking engine, comparison module, language system, semantic color system, evaluated-company dashboard, institutional research layer, workflow, and report-first experience stable. Version 9.1 corrects the Analyst Brain path so `investment-analyst-brain-v1.1-canonical` is implemented as a deterministic methodology engine, not as a wrapper around the legacy valuation report.
 
 The product still answers:
 
@@ -19,6 +19,10 @@ Version 8 changes the reading experience:
 Version 9 changes the data-entry and methodology path:
 
 > The user pastes one unstructured company data block. AI may parse explicit data, deterministic code calculates the valuation, output is validated against `11_OUTPUT_SCHEMA.json`, and only approved reports export to Home.
+
+Version 9.1 changes the internal path:
+
+> Analyst Brain runs parse -> evidence normalization -> classification -> business quality -> yearly forecast -> model selection -> valuation -> recommendation -> monitoring -> report. Unsupported models stay excluded, model weights are capped, and `INSUFFICIENT_DATA` is returned when the evidence cannot support an actionable decision.
 
 ## Runtime Flow
 
@@ -39,11 +43,19 @@ AI Parser for Explicit Data Only
   ↓
 Local Parser Fallback
   ↓
-Data Review + Completeness Gate
+Evidence Normalization
   ↓
-Investment Analyst Brain v1 Policy Layer
+Investment Analyst Brain v1.1 Canonical Contract
   ↓
-Deterministic Valuation Code
+Classification + Business Quality
+  ↓
+Year 1-5 Forecast + WACC
+  ↓
+Model Selection + Weight Caps
+  ↓
+Scenario + Fair Value Calculations
+  ↓
+Recommendation + Monitoring
   ↓
 Validated Structured Report JSON
   ↓
@@ -73,6 +85,7 @@ Home Table + Comparison + Report UI
 ```text
 public/src/
 ├── analystBrain/
+│   ├── engine.js
 │   ├── methodology.js
 │   └── schemaValidator.js
 ├── data/
@@ -108,21 +121,31 @@ public/src/
     └── components.js
 ```
 
-## Version 9 Analyst Brain Layer
+## Version 9.1 Analyst Brain Layer
 
 Locations:
 
 ```text
 docs/investment_analyst_brain_v1/
 public/investment_analyst_brain_v1/
-public/src/analystBrain/
+public/src/analystBrain/engine.js
+public/src/analystBrain/methodology.js
+public/src/analystBrain/schemaValidator.js
 ```
 
 Responsibilities:
 
-- Treat the supplied methodology files as source of truth
-- Load the fixed methodology and JSON schema for the app and AI parser
-- Validate structured output against required report sections
+- Treat the supplied methodology files and `00_METHODOLOGY_CONTRACT.*` as source of truth
+- Normalize pasted evidence into confirmed financial and qualitative inputs
+- Classify the company deterministically
+- Build Business Quality and data-quality outputs
+- Create explicit Year 1-5 forecast rows with source and confidence
+- Select only fully implemented valuation models
+- Exclude unsupported models such as P/B, Residual Income, DDM, AFFO, NAV, Dividend Yield, Cap Rate, and Sum of the Parts
+- Cap each selected model at 45%
+- Cap external references at 25% combined
+- Return `INSUFFICIENT_DATA` when internal valuation evidence is missing
+- Validate structured output against nested report rules
 - Keep AI limited to parsing and explanation
 - Keep classification, WACC, scenarios, fair value, recommendation, and dashboard export controlled by deterministic code
 - Preserve one main paste box for iPhone-first use

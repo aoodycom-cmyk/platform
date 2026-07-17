@@ -1,9 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Investment Analyst Brain v1 Output",
+  "title": "Investment Analyst Brain v1.1 Canonical Output",
   "type": "object",
   "required": [
     "methodologyVersion",
+    "language",
     "company",
     "executiveDecision",
     "classification",
@@ -20,56 +21,65 @@
     "dashboardExport"
   ],
   "properties": {
-    "methodologyVersion": {
-      "type": "string"
-    },
-    "language": {
-      "enum": [
-        "ar",
-        "en"
-      ]
-    },
+    "methodologyVersion": { "const": "investment-analyst-brain-v1.1-canonical" },
+    "language": { "enum": ["ar", "en"] },
     "company": {
-      "type": "object"
+      "type": "object",
+      "required": ["ticker", "name", "valuationDate", "currentPrice", "currency"]
     },
     "executiveDecision": {
-      "type": "object"
+      "type": "object",
+      "required": ["recommendation", "confidence", "investmentScore", "currentPrice", "fairValue", "upsideDownside", "why"]
     },
     "classification": {
-      "type": "object"
+      "type": "object",
+      "required": ["classification", "evidence", "suitableModels", "excludedModels", "unsupportedModels", "confidence"]
     },
     "businessQuality": {
-      "type": "object"
+      "type": "object",
+      "required": ["score", "rating", "confidence", "components", "explanation"]
     },
     "modelSelection": {
-      "type": "object"
+      "type": "object",
+      "required": ["selectedModels", "excludedModels", "unsupportedModels", "weightChecks", "externalReferenceWeight"]
     },
     "forecastAssumptions": {
-      "type": "object"
+      "type": "object",
+      "required": ["sourcePriority", "yearlyForecast", "wacc", "sensitivity", "confidence"]
     },
     "valuationResults": {
-      "type": "array"
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["method", "role", "value", "weight", "confidence", "source", "assumptions", "fairValue", "explanation"]
+      }
     },
     "scenarios": {
-      "type": "object"
+      "type": "object",
+      "required": ["Conservative", "Base", "Optimistic", "Exceptional"]
     },
-    "catalysts": {
-      "type": "array"
-    },
-    "risks": {
-      "type": "array"
-    },
+    "catalysts": { "type": "array" },
+    "risks": { "type": "array" },
     "whatChangesMyMind": {
-      "type": "object"
+      "type": "object",
+      "required": ["items", "biggestAssumption", "upgradeTrigger", "downgradeTrigger", "thesisBreak", "revaluationRequired"]
     },
     "finalDecision": {
-      "type": "object"
+      "type": "object",
+      "required": ["decision", "why", "whyNot", "biggestAssumption", "whatChangesTheDecision", "policyGates"]
     },
     "monitoringChecklist": {
-      "type": "array"
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "required": ["metric", "currentValue", "expectedRange", "upgradeTrigger", "downgradeTrigger", "thesisBreak", "revaluationEvent"]
+      }
     },
     "dashboardExport": {
-      "type": "object"
+      "type": "object",
+      "required": ["approvedOnly", "exported", "ticker", "recommendation", "currentPrice", "fairValue", "upsideDownside", "investmentScore", "confidence"]
     }
   }
 }

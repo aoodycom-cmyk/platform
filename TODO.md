@@ -1,4 +1,4 @@
-# TODO - Version 8 Roadmap
+# TODO - Version 9 Roadmap
 
 ## Immediate
 
@@ -6,7 +6,7 @@
 - Add import helpers for real Morningstar, Value Line, CFRA, and broker research table formats.
 - Add a richer version comparison view for WACC, FCF bridge, CapEx, and recommendation changes.
 - Add optional PDF export for approved valuation reports.
-- Add a typed schema for company, financial statement, quote, consensus, and qualitative evidence.
+- Add a typed schema for company, financial statement, quote, consensus, qualitative evidence, and Analyst Brain report output.
 - Add visible source timestamps per loaded data field.
 - Add clearer empty states for missing provider data.
 - Add research-grade Arabic summarization for verified long-form provider narratives.
@@ -40,6 +40,18 @@
 - Add management, moat, and risk evidence from filings and transcripts.
 - Add deterministic AI explanation prompts that cannot modify numbers.
 - Add Arabic explanation prompts that can summarize verified facts without changing financial outputs.
+
+## Completed in Version 9.1
+
+- Added canonical methodology contract files for Analyst Brain v1.1.
+- Replaced legacy Analyst Brain report wrapping with a deterministic engine.
+- Added explicit pipeline: parse, evidence normalization, classification, business quality, yearly forecast, model selection, valuation, recommendation, monitoring, and report.
+- Added Year 1-5 forecast arrays with source and confidence.
+- Enforced selected-model support, 45% single-model cap, and 25% external-reference cap.
+- Kept unsupported models excluded until deterministic implementations exist.
+- Stopped automatic Exceptional fair value generation.
+- Added `INSUFFICIENT_DATA` when external references exist without internal valuation support.
+- Expanded Analyst Brain tests across company classifications and negative validation cases.
 
 ## Completed in Version 6
 

@@ -1,12 +1,13 @@
 import { scoreEvaluatedCompany } from "../engines/rankingEngine.js";
 import { ANALYST_BRAIN_VERSION } from "../analystBrain/methodology.js";
+import { CANONICAL_METHODOLOGY_VERSION, runAnalystBrainEngine } from "../analystBrain/engine.js";
 import { validateAnalystBrainOutput } from "../analystBrain/schemaValidator.js";
 import { calculateRangeFairValue, calculateUpside, highestValue } from "../domain/evaluatedCompanies.js";
 import { clamp, safeDiv, toNumber, weightedAverage } from "../domain/financialMetrics.js";
 
 export const VALUATION_WORKFLOW_VERSION = "7.0.0";
 export const VALUATION_METHODOLOGY_VERSION = "fixed-methodology-2026.07";
-export const ANALYST_BRAIN_METHODOLOGY_VERSION = "investment-analyst-brain-v1";
+export const ANALYST_BRAIN_METHODOLOGY_VERSION = CANONICAL_METHODOLOGY_VERSION;
 
 export const WORKFLOW_STATUS = {
   DRAFT: "Draft",
@@ -142,6 +143,12 @@ export const FIELD_DEFINITIONS = [
   field("analystTargetLow", "analystEstimates", "Analyst Target Low", "number", false, ["target low", "analyst target low"], { perShare: true }),
   field("analystTargetAverage", "analystEstimates", "Analyst Target Average", "number", false, ["target average", "analyst target average", "average target"], { perShare: true }),
   field("analystTargetHigh", "analystEstimates", "Analyst Target High", "number", false, ["target high", "analyst target high"], { perShare: true }),
+  field("peerPeMultiple", "analystEstimates", "Peer / Historical P/E Multiple", "number", false, ["peer p/e", "historical p/e", "p/e multiple", "pe multiple", "peer pe multiple", "historical pe multiple"]),
+  field("peerPegMultiple", "analystEstimates", "Peer / Historical PEG Multiple", "number", false, ["peer peg", "historical peg", "peg multiple", "peer peg multiple", "historical peg multiple"]),
+  field("peerEvEbitdaMultiple", "analystEstimates", "Peer / Historical EV/EBITDA Multiple", "number", false, ["peer ev/ebitda", "historical ev/ebitda", "ev/ebitda multiple", "ev ebitda multiple", "peer ev ebitda multiple"]),
+  field("peerEvSalesMultiple", "analystEstimates", "Peer / Historical EV/Sales Multiple", "number", false, ["peer ev/sales", "historical ev/sales", "ev/sales multiple", "ev sales multiple", "peer ev sales multiple"]),
+  field("peerForwardEvSalesMultiple", "analystEstimates", "Peer / Historical Forward EV/Sales Multiple", "number", false, ["forward ev/sales", "peer forward ev/sales", "historical forward ev/sales", "forward ev sales multiple"]),
+  field("peerPriceFcfMultiple", "analystEstimates", "Peer / Historical Price/FCF Multiple", "number", false, ["peer price/fcf", "historical price/fcf", "price/fcf multiple", "price fcf multiple", "peer p/fcf"]),
 
   field("morningstarFairValue", "morningstar", "Fair Value", "number", false, ["morningstar fair value", "fair value"], { perShare: true }),
   field("morningstarMoat", "morningstar", "Economic Moat", "text", false, ["economic moat", "moat"]),
@@ -268,23 +275,13 @@ export function runInvestmentAnalystBrainValuation(workspace, options = {}) {
   next = applyParsedFields(next, parsedFields, options.aiSource || "One Paste Parser");
   next.aiParseNotes = Array.isArray(options.explanations) ? options.explanations.slice(0, 8) : [];
 
-  const valuation = runFixedMethodologyValuation(next, options.language || "ar");
-  if (valuation.error) {
-    return {
-      workspace: {
-        ...valuation.workspace,
-        analystBrainPaste: pasteText,
-        aiParseNotes: next.aiParseNotes
-      },
-      error: valuation.error
-    };
-  }
-
-  const report = buildAnalystBrainReport(valuation.report, valuation.workspace, options.language || "ar");
+  const reviewed = updateWorkspaceReview(next);
+  const engine = runAnalystBrainEngine(reviewed, { language: options.language || "ar" });
+  const report = engine.report;
   const validation = validateAnalystBrainOutput(report, options.schema || null);
   if (!validation.valid) {
     return {
-      workspace: valuation.workspace,
+      workspace: reviewed,
       error: validation.errors.join(" / ")
     };
   }
@@ -292,19 +289,19 @@ export function runInvestmentAnalystBrainValuation(workspace, options = {}) {
   const now = new Date().toISOString();
   const version = createVersion({
     status: WORKFLOW_STATUS.GENERATED,
-    workspace: valuation.workspace,
+    workspace: reviewed,
     report,
     assumptions: report.forecastAssumptions,
     approvalStatus: "Generated",
     timestamp: now
   });
   const completed = {
-    ...valuation.workspace,
+    ...reviewed,
     status: WORKFLOW_STATUS.AWAITING_APPROVAL,
     researchStatus: WORKFLOW_STATUS.AWAITING_APPROVAL,
     report,
     renderedReport: renderReportText(report),
-    versions: [version, ...(valuation.workspace.versions || [])],
+    versions: [version, ...(reviewed.versions || [])],
     analystBrainPaste: pasteText,
     aiParseNotes: next.aiParseNotes,
     updatedAt: now,
@@ -538,14 +535,15 @@ export function approveWorkspaceValuation(workspace, investorNotes = "") {
   if (!workspace.report) {
     return { workspace, error: "No generated valuation report is available for approval." };
   }
-  const validation = validateValuationReport(workspace.report);
-  if (!validation.valid) {
-    return { workspace, error: validation.errors.join(" / ") };
-  }
   if (workspace.report.analystBrainVersion) {
     const analystValidation = validateAnalystBrainOutput(workspace.report);
     if (!analystValidation.valid) {
       return { workspace, error: analystValidation.errors.join(" / ") };
+    }
+  } else {
+    const validation = validateValuationReport(workspace.report);
+    if (!validation.valid) {
+      return { workspace, error: validation.errors.join(" / ") };
     }
   }
   const now = new Date().toISOString();
@@ -1426,6 +1424,9 @@ function exportApprovedValuation(workspace, approvedVersion) {
   const conclusion = report.executiveConclusion;
   const ticker = report.companyAndValuationDate.ticker;
   const now = new Date().toISOString();
+  const decisionStatus = report.finalInvestmentDecision?.decision === "INSUFFICIENT_DATA" || report.finalDecision?.decision === "INSUFFICIENT_DATA"
+    ? "INSUFFICIENT_DATA"
+    : "ACTIONABLE";
   const base = {
     id: ticker,
     ticker,
@@ -1444,7 +1445,7 @@ function exportApprovedValuation(workspace, approvedVersion) {
     highestFairValue: highestValue([conclusion.bearFairValue, conclusion.baseFairValue, conclusion.bullFairValue, conclusion.morningstarFairValue]),
     maxFairValueUpside: conclusion.maximumUpside,
     recommendation: conclusion.recommendation,
-    decisionStatus: "ACTIONABLE",
+    decisionStatus,
     confidence: conclusion.confidence,
     investmentScore: conclusion.investmentScore,
     qualityScore: report.businessQuality?.score ?? null,
@@ -1622,7 +1623,7 @@ function createVersion({ status, workspace, report, assumptions, approvalStatus,
     sourceSnapshot: workspace.sectionSources,
     assumptions,
     report,
-    decision: report?.finalInvestmentDecision?.decision || null,
+    decision: report?.finalInvestmentDecision?.decision || report?.finalDecision?.decision || null,
     approvalStatus,
     approvalTimestamp,
     investorNotes,

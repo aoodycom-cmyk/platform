@@ -1,14 +1,13 @@
 # AI Analyst Contract
 
-The AI analyst is a controlled explanation layer. It is not the calculation engine.
+The AI analyst is a controlled parsing and explanation layer. It is not the calculation engine.
 
 ## Allowed AI Responsibilities
 
-- Classify the company using supplied evidence.
-- Select methodology according to fixed policy.
+- Extract explicit fields from one pasted company-data block.
 - Explain assumptions.
 - Summarize risks and catalysts from supplied data.
-- Produce a structured written report that conforms to `VALUATION_OUTPUT_SCHEMA.json`.
+- Produce Arabic narrative explanations after deterministic calculations are complete.
 
 ## Deterministic Code Responsibilities
 
@@ -20,21 +19,30 @@ The AI analyst is a controlled explanation layer. It is not the calculation engi
 - Fair value aggregation
 - Upside calculations
 - Investment scores
+- Company classification
+- Business Quality score
+- Model selection
 - Ranking
 - Data completeness
+- Recommendation
+- Monitoring checklist
 - Approval and export workflow
 
 ## JSON Rules
 
-AI output must be JSON first.
+Analyst Brain output must be JSON first and must conform to the canonical methodology contract.
 
 The platform validates:
 
 - Required fields
-- Number ranges
+- Canonical methodology version
 - Scenario probabilities total 100%
+- Five Year 1-5 forecast rows
+- Selected models are supported
+- Single-model weight does not exceed 45%
+- External references do not exceed 25% combined weight
 - WACC, growth, CapEx, margin, terminal value, and dilution rationale exists
-- No unsupported numeric assumptions
+- No unsupported models are selected
 - No invented source citations
 
 Invalid output is rejected.
@@ -59,3 +67,19 @@ The AI cannot create company data. Every numeric company value must come from:
 - Verified provider data
 - Clearly labeled methodology default
 - Clearly labeled investor override
+
+## Canonical Methodology Contract
+
+Version 9.1 uses:
+
+```text
+investment-analyst-brain-v1.1-canonical
+```
+
+The deterministic pipeline is:
+
+```text
+parse -> evidence normalization -> classification -> business quality -> yearly forecast -> model selection -> valuation -> recommendation -> monitoring -> report
+```
+
+External references such as Morningstar Fair Value and Analyst Consensus are references, not standalone valuation engines. If no internal valuation model is available, the recommendation must be `INSUFFICIENT_DATA`.
