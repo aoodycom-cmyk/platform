@@ -107,7 +107,7 @@ function homeDashboard(state) {
     <main class="home-workspace">
       <header class="home-topbar">
         <div>
-          <p class="eyebrow">${uiLabel("Version 8")}</p>
+          <p class="eyebrow">${uiLabel("Version 9.1")}</p>
           <h1>${uiLabel("AI Equity Research Platform")}</h1>
         </div>
         <div class="home-actions">
@@ -191,7 +191,7 @@ function topBar(state) {
   return `
     <header class="topbar compact">
       <div>
-        <p class="eyebrow">${uiLabel("Version 8")}</p>
+        <p class="eyebrow">${uiLabel("Version 9.1")}</p>
         <h2>${escapeHtml(state.company.name)}</h2>
       </div>
       <div class="top-actions">
