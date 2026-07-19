@@ -1052,7 +1052,7 @@ const TEXT_TRANSLATIONS = new Map([
   ["Share count is increasing.", "عدد الأسهم يرتفع."],
   ["Dilution factor requires current and prior diluted share count.", "عامل التخفيف يتطلب عدد الأسهم المخففة للفترة الحالية والسابقة."],
   ["Historical valuation percentiles require verified historical market price or enterprise value data.", "النسب المئوية التاريخية للتقييم تتطلب أسعار سوقية أو Enterprise Value تاريخية موثقة."],
-  ["API keys stay in this browser session. Financial calculations are deterministic; AI is reserved for explanation and challenge only.", "مفاتيح API تبقى في جلسة المتصفح. الحسابات المالية deterministic، واستخدام AI مخصص للشرح وتحدي الفرضيات فقط."],
+  ["API keys stay on the secure backend. Financial calculations are deterministic; AI is reserved for explanation and challenge only.", "مفاتيح API تبقى على الخادم الآمن. الحسابات المالية deterministic، واستخدام AI مخصص للشرح وتحدي الفرضيات فقط."],
   ["Verified provider data", "بيانات مزود موثوقة"]
 ]);
 

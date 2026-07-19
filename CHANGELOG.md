@@ -1,5 +1,15 @@
 # Changelog
 
+## Version 10.2 - Secure API Backend Split
+
+- Added a separate `backend/` Node.js service for secure FMP and OpenAI access while keeping the frontend on GitHub Pages.
+- Added `GET /api/health`, `GET /api/search?q=...`, `GET /api/company/:symbol`, and `POST /api/parse-investment-analyst`.
+- Added CORS restriction for `https://aoodycom-cmyk.github.io`, request body limits, basic rate limiting, provider timeouts, and sanitized API errors.
+- Added frontend backend URL configuration through `backend-config.js`; no API keys are stored in frontend JavaScript, HTML, URLs, `localStorage`, or `sessionStorage`.
+- Added Render blueprint and environment variable example inside `backend/`.
+- Added `tests/backendApi.test.mjs` for backend CORS, health, provider normalization, OpenAI parsing, rate limiting, and secret-leak checks.
+- Preserved UI identity, investment engine, valuation, recommendation, forecasts, methodology, and report workflow.
+
 ## Version 10.1 - Institutional Steel Brand Refresh
 
 - Replaced the previous warm visual palette with the logo-driven institutional palette: Deep Navy, Steel Blue, Graphite, Soft Slate, Silver White, Cool Gray, Muted Emerald, Muted Crimson, and Soft Orange.

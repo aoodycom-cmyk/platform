@@ -1,8 +1,9 @@
-const CACHE_NAME = "franklin-research-v10-1-mobile-research";
+const CACHE_NAME = "franklin-research-v10-secure-backend";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
   "./offline.html",
+  "./backend-config.js",
   "./styles.css",
   "./manifest.webmanifest",
   "./src/main.js",

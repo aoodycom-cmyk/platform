@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: franklin-research-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: FRONTEND_ORIGIN
+        value: https://aoodycom-cmyk.github.io
+      - key: OPENAI_MODEL
+        value: gpt-4.1-mini
+      - key: FMP_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false

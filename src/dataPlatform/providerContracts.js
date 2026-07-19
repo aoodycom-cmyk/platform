@@ -1,4 +1,5 @@
 import { SOURCES } from "./fields.js";
+import { apiUrl } from "../providers/backendEndpoint.js";
 
 export const PROVIDER_TYPES = {
   QUOTE: "QuoteProvider",
@@ -47,12 +48,7 @@ export function createFmpProvider() {
       [PROVIDER_TYPES.ANALYST]: 82
     },
     async search(query) {
-      const response = await fetch("/api/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({ query })
-      });
+      const response = await fetch(apiUrl(`/api/search?q=${encodeURIComponent(query)}`), { method: "GET" });
       if (!response.ok) throw await safeApiError(response, "Search failed.");
       const data = await response.json();
       return data.results;
@@ -117,12 +113,7 @@ export function publicProviderMetadata(registry = []) {
 }
 
 async function loadFmpPayload(ticker) {
-  const response = await fetch("/api/research-data", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "same-origin",
-    body: JSON.stringify({ ticker })
-  });
+  const response = await fetch(apiUrl(`/api/company/${encodeURIComponent(ticker)}`), { method: "GET" });
   if (!response.ok) throw await safeApiError(response, "Could not load research data.");
   return response.json();
 }

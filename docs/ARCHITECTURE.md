@@ -315,7 +315,7 @@ public/src/state/store.js
 Storage:
 
 - `localStorage` key: `equityResearchV4State`
-- `sessionStorage` for API keys
+- API keys are not stored in browser storage; FMP and OpenAI keys live only in the secure backend environment.
 
 State preserves:
 
@@ -440,11 +440,13 @@ Responsibilities:
 ## Backend Routes
 
 ```text
-POST /api/search
-POST /api/research-data
+GET /api/health
+GET /api/search?q=AAPL
+GET /api/company/:symbol
+POST /api/parse-investment-analyst
 ```
 
-`/api/research-data` now returns provider metadata plus annual and quarterly statement timelines.
+`/api/company/:symbol` returns provider metadata plus normalized annual and quarterly statement timelines.
 
 ## Invariants
 

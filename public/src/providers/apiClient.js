@@ -2,6 +2,7 @@ import { createCompanyShell, starterUniverse } from "../data/sampleData.js";
 import { buildUnifiedDataCompany } from "../dataPlatform/dataPlatform.js";
 import { createProviderRegistry, enabledProviders, publicProviderMetadata } from "../dataPlatform/providerContracts.js";
 import { SOURCES } from "../dataPlatform/fields.js";
+import { apiUrl } from "./backendEndpoint.js";
 
 export async function searchCompanies(query) {
   const clean = query.trim();
@@ -48,7 +49,7 @@ export async function parseInvestmentAnalystBlock({ text, methodology = null, la
     outputSchema: methodology?.outputSchema || null
   };
   try {
-    const response = await fetch("./api/parse-investment-analyst", {
+    const response = await fetch(apiUrl("/api/parse-investment-analyst"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
