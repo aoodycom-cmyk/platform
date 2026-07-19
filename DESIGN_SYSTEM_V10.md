@@ -27,10 +27,10 @@ Franklin Research V10 is designed as a premium investment research product, not 
 | `--ink-soft` | Secondary text |
 | `--muted` | Labels and supporting copy |
 | `--line` | Structural borders |
-| `--accent` | Product teal accent |
-| `--gold` | Premium report emphasis |
+| `--accent` | Steel Blue product accent |
+| `--highlight` | Steel report emphasis |
 | `--green` / `--strong-green` | Positive investment signal |
-| `--amber` / `--orange` | Hold, watch, or caution signal |
+| `--warning` / `--orange` | Hold, watch, or caution signal |
 | `--red` | Sell, risk, and downside signal |
 
 ## Typography
@@ -77,4 +77,3 @@ The design system must not alter:
 - JSON schema validation
 - API provider contracts
 - Methodology files
-

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Franklin Research - Private Access</title>
-  <meta name="theme-color" content="#0b1110">
+  <meta name="theme-color" content="#08131F">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Franklin Research">
@@ -14,13 +14,13 @@
   <style>
     :root {
       color-scheme: dark;
-      --bg: #0b1110;
-      --panel: rgba(24, 28, 25, 0.78);
-      --line: rgba(211, 174, 95, 0.28);
-      --gold: #d8ae5f;
-      --text: #f4efe7;
-      --muted: #b8b3a9;
-      --danger: #df8079;
+      --bg: #08131F;
+      --panel: rgba(26, 35, 46, 0.84);
+      --line: rgba(48, 58, 70, 0.92);
+      --highlight: #5E88B8;
+      --text: #E8ECEF;
+      --muted: #AAB5C2;
+      --danger: #C95757;
     }
     * { box-sizing: border-box; }
     body {
@@ -30,9 +30,8 @@
       place-items: center;
       padding: max(22px, env(safe-area-inset-top)) 22px max(22px, env(safe-area-inset-bottom));
       background:
-        radial-gradient(circle at 20% 12%, rgba(216, 128, 50, 0.26), transparent 34%),
-        radial-gradient(circle at 92% 86%, rgba(68, 91, 60, 0.38), transparent 38%),
-        linear-gradient(145deg, #081110, #0d1823 54%, #11140f);
+        repeating-linear-gradient(90deg, rgba(232, 236, 239, 0.025) 0 1px, transparent 1px 7px),
+        linear-gradient(145deg, #08131F, #102030 56%, #08131F);
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
     }
@@ -59,7 +58,7 @@
     }
     .eyebrow {
       margin: 0 0 8px;
-      color: var(--gold);
+      color: var(--highlight);
       font-size: 12px;
       font-weight: 800;
       letter-spacing: 0;
@@ -97,8 +96,8 @@
     }
     button {
       border: 0;
-      background: #f4efe7;
-      color: #101411;
+      background: #5E88B8;
+      color: #E8ECEF;
       font-weight: 850;
       cursor: pointer;
     }

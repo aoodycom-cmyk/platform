@@ -1,20 +1,20 @@
 :root {
   color-scheme: dark;
-  --bg: #101312;
-  --surface: #171c19;
-  --surface-2: #202721;
-  --ink: #f2f5f1;
-  --muted: #9ea9a2;
-  --line: #2b342f;
-  --accent: #52c0b4;
-  --blue: #82a9cf;
-  --gold: #d2a14c;
-  --green: #60bd82;
-  --strong-green: #35d58b;
-  --amber: #d6b15b;
-  --orange: #dc8a4a;
+  --bg: #08131F;
+  --surface: #1A232E;
+  --surface-2: #102030;
+  --ink: #E8ECEF;
+  --muted: #AAB5C2;
+  --line: #303A46;
+  --accent: #5E88B8;
+  --blue: #5E88B8;
+  --highlight: #5E88B8;
+  --green: #3FBF7F;
+  --strong-green: #3FBF7F;
+  --warning: #D58A3B;
+  --orange: #D58A3B;
   --neutral-signal: #aab4ad;
-  --red: #e27a72;
+  --red: #C95757;
   --shadow: 0 22px 55px rgba(0, 0, 0, 0.28);
   --radius: 8px;
   font-family: Inter, "SF Pro Arabic", "Noto Sans Arabic", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -22,21 +22,21 @@
 
 [data-theme="light"] {
   color-scheme: light;
-  --bg: #f5f6f2;
-  --surface: #ffffff;
-  --surface-2: #eef2ed;
-  --ink: #121713;
-  --muted: #66706a;
-  --line: #dce3dc;
-  --accent: #007c78;
-  --blue: #286c8c;
-  --gold: #a56b20;
-  --green: #287a53;
-  --strong-green: #087842;
-  --amber: #946515;
-  --orange: #a55324;
-  --neutral-signal: #5f6963;
-  --red: #b54e45;
+  --bg: #F4F7FA;
+  --surface: #FFFFFF;
+  --surface-2: #E6EDF3;
+  --ink: #08131F;
+  --muted: #52606E;
+  --line: #CBD5E1;
+  --accent: #5E88B8;
+  --blue: #4C739F;
+  --highlight: #5E88B8;
+  --green: #2F9366;
+  --strong-green: #2F9366;
+  --warning: #D58A3B;
+  --orange: #D58A3B;
+  --neutral-signal: #52606E;
+  --red: #B84E4E;
   --shadow: 0 20px 45px rgba(25, 31, 28, 0.08);
 }
 
@@ -411,7 +411,7 @@ h4 {
 }
 
 .start-footer span.limited {
-  color: var(--amber);
+  color: var(--warning);
 }
 
 .home-search {
@@ -837,11 +837,11 @@ h4 {
   color: var(--green);
 }
 
-.signal-amber,
-.badge-amber,
-.score-card-amber,
-.score-card-amber strong {
-  color: var(--amber);
+.signal-warning,
+.badge-warning,
+.score-card-warning,
+.score-card-warning strong {
+  color: var(--warning);
 }
 
 .signal-neutral,
@@ -878,7 +878,7 @@ h4 {
 
 .score-card-strong-positive,
 .score-card-positive,
-.score-card-amber,
+.score-card-warning,
 .score-card-neutral,
 .score-card-warning,
 .score-card-negative,
@@ -1044,7 +1044,7 @@ html[dir="rtl"] .result {
 }
 
 .decision.hold {
-  color: var(--gold);
+  color: var(--highlight);
 }
 
 .decision.sell {
@@ -1109,8 +1109,8 @@ html[dir="ltr"] .factor small {
 }
 
 .status-chip.limited {
-  color: var(--gold);
-  background: color-mix(in srgb, var(--gold) 14%, var(--surface-2));
+  color: var(--highlight);
+  background: color-mix(in srgb, var(--highlight) 14%, var(--surface-2));
 }
 
 .decision-grid,
@@ -1591,7 +1591,7 @@ html[dir="rtl"] .bar-row {
 }
 
 .workflow-field.limited input {
-  border-color: color-mix(in srgb, var(--amber) 44%, var(--line));
+  border-color: color-mix(in srgb, var(--warning) 44%, var(--line));
 }
 
 .paste-box {
@@ -1686,7 +1686,7 @@ html[dir="rtl"] .bar-row {
 
 .review-table .uncertain,
 .review-item:has(button) {
-  border-color: color-mix(in srgb, var(--amber) 34%, var(--line));
+  border-color: color-mix(in srgb, var(--warning) 34%, var(--line));
 }
 
 .review-item div {
@@ -1816,7 +1816,7 @@ html[dir="rtl"] .bar-row {
 }
 
 .quick-decision.hold strong {
-  color: var(--amber);
+  color: var(--warning);
 }
 
 .quick-decision.sell strong {
@@ -1869,7 +1869,7 @@ html[dir="rtl"] .bar-row {
 }
 
 .report-decision.hold {
-  color: var(--amber);
+  color: var(--warning);
 }
 
 .report-decision.sell {
@@ -2699,8 +2699,8 @@ html[dir="rtl"] .analysis-empty {
 }
 
 .review-status.limited {
-  color: var(--amber);
-  background: color-mix(in srgb, var(--amber) 13%, var(--surface-2));
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 13%, var(--surface-2));
 }
 
 .review-score-card {
@@ -2725,7 +2725,7 @@ html[dir="rtl"] .analysis-empty {
 
 .review-group.needs-review .review-item,
 .review-group.conflict .review-item {
-  border-color: color-mix(in srgb, var(--amber) 34%, var(--line));
+  border-color: color-mix(in srgb, var(--warning) 34%, var(--line));
 }
 
 .review-group.missing .review-item {
@@ -2848,7 +2848,7 @@ html[dir="rtl"] .analysis-empty {
 }
 
 .report-hero-decision.hold strong {
-  color: var(--amber);
+  color: var(--warning);
 }
 
 .report-hero-decision.sell strong {
@@ -3036,7 +3036,7 @@ html[dir="rtl"] .analysis-empty {
 }
 
 .value-marker.current::after {
-  background: var(--gold);
+  background: var(--highlight);
 }
 
 .value-marker b,
@@ -3101,7 +3101,7 @@ html[dir="rtl"] .analysis-empty {
 
 .shariah-card {
   margin-top: 12px;
-  border-color: color-mix(in srgb, var(--amber) 24%, var(--line));
+  border-color: color-mix(in srgb, var(--warning) 24%, var(--line));
 }
 
 .forecast-bars {
@@ -3125,7 +3125,7 @@ html[dir="rtl"] .analysis-empty {
 }
 
 .forecast-bars i.fcf {
-  background: var(--gold);
+  background: var(--highlight);
 }
 
 .forecast-bars span,
@@ -3307,25 +3307,25 @@ html[dir="rtl"] .analysis-empty {
 
 /* Version 10 Product Design System */
 :root {
-  --bg: #151410;
-  --bg-soft: #1b1914;
-  --surface: #1f1d18;
-  --surface-2: #28251f;
-  --surface-3: #312d25;
-  --ink: #f7f2e9;
-  --ink-soft: #e7ded0;
-  --muted: #aaa296;
-  --line: #3b352b;
-  --line-soft: #2d2922;
-  --accent: #a4b7ad;
-  --blue: #8aa7b5;
-  --gold: #c9aa72;
-  --green: #86ad82;
-  --strong-green: #a7d199;
-  --amber: #c7a15d;
-  --orange: #b68055;
-  --neutral-signal: #b8b0a4;
-  --red: #c97770;
+  --bg: #08131F;
+  --bg-soft: #102030;
+  --surface: #1A232E;
+  --surface-2: #102030;
+  --surface-3: #25303C;
+  --ink: #E8ECEF;
+  --ink-soft: #D7DEE6;
+  --muted: #AAB5C2;
+  --line: #303A46;
+  --line-soft: #25303C;
+  --accent: #5E88B8;
+  --blue: #5E88B8;
+  --highlight: #5E88B8;
+  --green: #3FBF7F;
+  --strong-green: #3FBF7F;
+  --warning: #D58A3B;
+  --orange: #D58A3B;
+  --neutral-signal: #AAB5C2;
+  --red: #C95757;
   --shadow: 0 24px 72px rgba(0, 0, 0, 0.34);
   --shadow-soft: 0 10px 36px rgba(0, 0, 0, 0.22);
   --radius: 8px;
@@ -3339,25 +3339,25 @@ html[dir="rtl"] .analysis-empty {
 }
 
 [data-theme="light"] {
-  --bg: #f4f0e8;
-  --bg-soft: #ebe5d9;
-  --surface: #fffdf8;
-  --surface-2: #eee7da;
-  --surface-3: #e3dacb;
-  --ink: #171510;
-  --ink-soft: #2a251d;
-  --muted: #6d665b;
-  --line: #d7cdbd;
-  --line-soft: #e8dfd1;
-  --accent: #647f78;
-  --blue: #587d8e;
-  --gold: #96713e;
-  --green: #587d54;
-  --strong-green: #376c3a;
-  --amber: #8a6d3e;
-  --orange: #945f45;
-  --neutral-signal: #716a60;
-  --red: #a75651;
+  --bg: #E8ECEF;
+  --bg-soft: #E8EEF5;
+  --surface: #FFFFFF;
+  --surface-2: #E6EDF3;
+  --surface-3: #DCE5EE;
+  --ink: #08131F;
+  --ink-soft: #162333;
+  --muted: #52606E;
+  --line: #CBD5E1;
+  --line-soft: #E2E8F0;
+  --accent: #5E88B8;
+  --blue: #4C739F;
+  --highlight: #5E88B8;
+  --green: #2F9366;
+  --strong-green: #2F9366;
+  --warning: #D58A3B;
+  --orange: #D58A3B;
+  --neutral-signal: #52606E;
+  --red: #B84E4E;
   --shadow: 0 24px 66px rgba(70, 56, 36, 0.13);
   --shadow-soft: 0 10px 30px rgba(70, 56, 36, 0.10);
 }
@@ -3418,12 +3418,12 @@ button {
 }
 
 .icon-btn:hover {
-  border-color: color-mix(in srgb, var(--gold) 44%, var(--line));
+  border-color: color-mix(in srgb, var(--highlight) 44%, var(--line));
   background: color-mix(in srgb, var(--surface-3) 84%, transparent);
 }
 
 .eyebrow {
-  color: var(--gold);
+  color: var(--highlight);
   font-weight: 850;
   letter-spacing: 0;
 }
@@ -3447,10 +3447,10 @@ small {
   position: relative;
   min-height: 132px;
   padding: var(--space-5);
-  border: 1px solid color-mix(in srgb, var(--gold) 24%, var(--line));
+  border: 1px solid color-mix(in srgb, var(--highlight) 24%, var(--line));
   border-radius: var(--radius);
   background:
-    linear-gradient(145deg, color-mix(in srgb, var(--surface) 84%, var(--gold) 16%), color-mix(in srgb, var(--surface-2) 94%, var(--blue) 6%));
+    linear-gradient(145deg, color-mix(in srgb, var(--surface) 84%, var(--highlight) 16%), color-mix(in srgb, var(--surface-2) 94%, var(--blue) 6%));
   box-shadow: var(--shadow);
   overflow: hidden;
 }
@@ -3461,7 +3461,7 @@ small {
   inset-inline: var(--space-5);
   bottom: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gold) 70%, transparent), transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--highlight) 70%, transparent), transparent);
 }
 
 .product-hero .home-brand-line {
@@ -3472,8 +3472,8 @@ small {
   width: 68px;
   height: 68px;
   border-radius: 16px;
-  border-color: color-mix(in srgb, var(--gold) 56%, var(--line));
-  background: color-mix(in srgb, var(--surface-2) 78%, var(--gold) 22%);
+  border-color: color-mix(in srgb, var(--highlight) 56%, var(--line));
+  background: color-mix(in srgb, var(--surface-2) 78%, var(--highlight) 22%);
 }
 
 .product-hero h1 {
@@ -3544,8 +3544,8 @@ textarea {
 .workflow-field input:focus,
 textarea:focus {
   outline: none;
-  border-color: color-mix(in srgb, var(--gold) 62%, var(--line));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 14%, transparent);
+  border-color: color-mix(in srgb, var(--highlight) 62%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--highlight) 14%, transparent);
 }
 
 .quick-tickers button {
@@ -3571,7 +3571,7 @@ textarea:focus {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background:
-    linear-gradient(160deg, color-mix(in srgb, var(--surface) 84%, var(--gold) 16%), color-mix(in srgb, var(--surface-2) 88%, transparent));
+    linear-gradient(160deg, color-mix(in srgb, var(--surface) 84%, var(--highlight) 16%), color-mix(in srgb, var(--surface-2) 88%, transparent));
   color: var(--ink);
   padding: var(--space-4);
   min-height: 96px;
@@ -3617,7 +3617,7 @@ textarea:focus {
 }
 
 .empty-home-state {
-  border-color: color-mix(in srgb, var(--gold) 22%, var(--line));
+  border-color: color-mix(in srgb, var(--highlight) 22%, var(--line));
   background: color-mix(in srgb, var(--surface-2) 72%, transparent);
 }
 
@@ -3653,8 +3653,8 @@ textarea:focus {
 
 .workflow-step.active,
 .workflow-step.ready {
-  border-color: color-mix(in srgb, var(--gold) 48%, var(--line));
-  background: color-mix(in srgb, var(--surface-2) 70%, var(--gold) 30%);
+  border-color: color-mix(in srgb, var(--highlight) 48%, var(--line));
+  background: color-mix(in srgb, var(--surface-2) 70%, var(--highlight) 30%);
 }
 
 .report-company-header {
@@ -3662,8 +3662,8 @@ textarea:focus {
   padding: var(--space-5);
   grid-template-columns: minmax(0, 1fr) auto auto;
   background:
-    linear-gradient(145deg, color-mix(in srgb, var(--surface) 76%, var(--blue) 24%), color-mix(in srgb, var(--surface-2) 86%, var(--gold) 14%));
-  border-color: color-mix(in srgb, var(--gold) 32%, var(--line));
+    linear-gradient(145deg, color-mix(in srgb, var(--surface) 76%, var(--blue) 24%), color-mix(in srgb, var(--surface-2) 86%, var(--highlight) 14%));
+  border-color: color-mix(in srgb, var(--highlight) 32%, var(--line));
   box-shadow: var(--shadow);
 }
 
@@ -3697,7 +3697,7 @@ textarea:focus {
 }
 
 .report-hero-metrics > div {
-  border: 1px solid color-mix(in srgb, var(--line) 74%, var(--gold));
+  border: 1px solid color-mix(in srgb, var(--line) 74%, var(--highlight));
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--surface) 62%, transparent);
   padding: var(--space-3);
@@ -3730,7 +3730,7 @@ textarea:focus {
 
 .report-hero-metrics .hold strong,
 .report-hero-metrics .trim strong {
-  color: var(--amber);
+  color: var(--warning);
 }
 
 .product-decision-card {
@@ -3740,7 +3740,7 @@ textarea:focus {
   min-height: 560px;
   align-content: end;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface) 74%, var(--gold) 26%) 0%, color-mix(in srgb, var(--surface-2) 90%, transparent) 100%);
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 74%, var(--highlight) 26%) 0%, color-mix(in srgb, var(--surface-2) 90%, transparent) 100%);
   overflow: hidden;
 }
 
@@ -3750,7 +3750,7 @@ textarea:focus {
   inset-inline: var(--space-5);
   top: var(--space-5);
   height: 1px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gold) 74%, transparent), transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--highlight) 74%, transparent), transparent);
 }
 
 .product-decision-card .decision-card-main {
@@ -3797,7 +3797,7 @@ textarea:focus {
 .confidence-ring {
   background:
     radial-gradient(circle at center, color-mix(in srgb, var(--surface) 94%, transparent) 58%, transparent 60%),
-    conic-gradient(var(--gold) calc(var(--value) * 1%), color-mix(in srgb, var(--line) 82%, transparent) 0);
+    conic-gradient(var(--highlight) calc(var(--value) * 1%), color-mix(in srgb, var(--line) 82%, transparent) 0);
 }
 
 .investment-score-pill {
@@ -3825,7 +3825,7 @@ textarea:focus {
 }
 
 .takeaway-grid > div:nth-child(3) {
-  border-color: color-mix(in srgb, var(--gold) 36%, var(--line));
+  border-color: color-mix(in srgb, var(--highlight) 36%, var(--line));
 }
 
 .scenario-report-grid {
@@ -3856,7 +3856,7 @@ textarea:focus {
 }
 
 .fair-axis-range {
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--gold) 18%, transparent);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--highlight) 18%, transparent);
 }
 
 .value-marker {
@@ -3868,7 +3868,7 @@ textarea:focus {
 }
 
 .quality-breakdown i {
-  background: linear-gradient(90deg, var(--gold), var(--green));
+  background: linear-gradient(90deg, var(--highlight), var(--green));
 }
 
 .risk-card,
@@ -3893,7 +3893,7 @@ textarea:focus {
 }
 
 .report-detail[open] {
-  border-color: color-mix(in srgb, var(--gold) 32%, var(--line));
+  border-color: color-mix(in srgb, var(--highlight) 32%, var(--line));
 }
 
 .processing-screen {
@@ -3925,7 +3925,7 @@ textarea:focus {
   .quick-actions-panel button:hover,
   .report-section:hover,
   .report-detail:hover {
-    border-color: color-mix(in srgb, var(--gold) 30%, var(--line));
+    border-color: color-mix(in srgb, var(--highlight) 30%, var(--line));
   }
 }
 
@@ -4193,47 +4193,47 @@ textarea:focus {
 
 /* Version 9.3 Visual Polish */
 :root {
-  --bg: #12110f;
-  --surface: #191916;
-  --surface-2: #22211d;
-  --surface-3: #2a2924;
-  --ink: #f4f0e8;
-  --muted: #aaa49a;
-  --line: #343229;
-  --accent: #92aaa8;
-  --blue: #8da5b8;
-  --gold: #c7a66e;
-  --green: #78a984;
-  --strong-green: #9bd19c;
-  --amber: #c8a25b;
-  --orange: #bd8357;
-  --neutral-signal: #b3afa7;
-  --red: #c97b72;
+  --bg: #08131F;
+  --surface: #1A232E;
+  --surface-2: #102030;
+  --surface-3: #25303C;
+  --ink: #E8ECEF;
+  --muted: #AAB5C2;
+  --line: #303A46;
+  --accent: #5E88B8;
+  --blue: #5E88B8;
+  --highlight: #5E88B8;
+  --green: #3FBF7F;
+  --strong-green: #3FBF7F;
+  --warning: #D58A3B;
+  --orange: #D58A3B;
+  --neutral-signal: #AAB5C2;
+  --red: #C95757;
   --shadow: 0 20px 54px rgba(0, 0, 0, 0.32);
 }
 
 [data-theme="light"] {
-  --bg: #f5f3ef;
-  --surface: #fffefa;
-  --surface-2: #eeeae2;
-  --surface-3: #e7e0d4;
-  --ink: #161512;
-  --muted: #6c675f;
-  --line: #ded8cc;
-  --accent: #537879;
-  --blue: #55768d;
-  --gold: #99733d;
-  --green: #477657;
-  --strong-green: #27673c;
-  --amber: #8f6f33;
-  --orange: #9f6646;
-  --neutral-signal: #706b62;
-  --red: #a95952;
+  --bg: #F4F7FA;
+  --surface: #FFFFFF;
+  --surface-2: #E6EDF3;
+  --surface-3: #DCE5EE;
+  --ink: #08131F;
+  --muted: #52606E;
+  --line: #CBD5E1;
+  --accent: #5E88B8;
+  --blue: #4C739F;
+  --highlight: #5E88B8;
+  --green: #2F9366;
+  --strong-green: #2F9366;
+  --warning: #D58A3B;
+  --orange: #D58A3B;
+  --neutral-signal: #52606E;
+  --red: #B84E4E;
   --shadow: 0 18px 42px rgba(55, 48, 38, 0.10);
 }
 
 body {
-  background: linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 88%, #27231b) 100%);
+  background: linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 88%, #102030) 100%);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -4257,19 +4257,19 @@ body {
 }
 
 .home-hero-polish .eyebrow {
-  color: var(--gold);
+  color: var(--highlight);
 }
 
 .app-logo {
   background: var(--surface-2);
-  border: 1px solid color-mix(in srgb, var(--gold) 38%, var(--line));
+  border: 1px solid color-mix(in srgb, var(--highlight) 38%, var(--line));
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.24);
 }
 
 .home-search-premium {
   padding: 16px;
   border-color: color-mix(in srgb, var(--accent) 22%, var(--line));
-  background: color-mix(in srgb, var(--surface) 92%, var(--gold) 8%);
+  background: color-mix(in srgb, var(--surface) 92%, var(--highlight) 8%);
   box-shadow: var(--shadow);
 }
 
@@ -4376,8 +4376,8 @@ body {
 }
 
 .premium-ticker-avatar {
-  border: 1px solid color-mix(in srgb, var(--gold) 42%, var(--line));
-  background: color-mix(in srgb, var(--surface-2) 70%, var(--gold) 30%);
+  border: 1px solid color-mix(in srgb, var(--highlight) 42%, var(--line));
+  background: color-mix(in srgb, var(--surface-2) 70%, var(--highlight) 30%);
   color: var(--ink);
 }
 
@@ -4396,11 +4396,11 @@ body {
 }
 
 .decision-card {
-  border: 1px solid color-mix(in srgb, var(--gold) 32%, var(--line));
+  border: 1px solid color-mix(in srgb, var(--highlight) 32%, var(--line));
   border-radius: var(--radius);
   padding: clamp(18px, 3vw, 30px);
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--surface) 94%, var(--gold) 6%), color-mix(in srgb, var(--surface-2) 92%, var(--blue) 8%));
+    linear-gradient(135deg, color-mix(in srgb, var(--surface) 94%, var(--highlight) 6%), color-mix(in srgb, var(--surface-2) 92%, var(--blue) 8%));
   box-shadow: var(--shadow);
   display: grid;
   grid-template-columns: minmax(0, 1.12fr) minmax(320px, 0.9fr) auto;
@@ -4438,7 +4438,7 @@ body {
 
 .decision-card.hold .decision-card-main strong,
 .decision-card.trim .decision-card-main strong {
-  color: var(--amber);
+  color: var(--warning);
 }
 
 .decision-card-main p {
@@ -4464,7 +4464,7 @@ body {
 }
 
 .decision-metric.hero {
-  border-color: color-mix(in srgb, var(--gold) 44%, var(--line));
+  border-color: color-mix(in srgb, var(--highlight) 44%, var(--line));
 }
 
 .decision-metric strong {
@@ -4588,8 +4588,8 @@ body {
 }
 
 .scenario-report-card.base {
-  border-color: color-mix(in srgb, var(--gold) 52%, var(--line));
-  background: color-mix(in srgb, var(--surface-2) 76%, var(--gold) 24%);
+  border-color: color-mix(in srgb, var(--highlight) 52%, var(--line));
+  background: color-mix(in srgb, var(--surface-2) 76%, var(--highlight) 24%);
 }
 
 .scenario-card-head,
@@ -4660,7 +4660,7 @@ body {
 }
 
 .fair-axis-range {
-  background: linear-gradient(90deg, var(--red), var(--amber), var(--green));
+  background: linear-gradient(90deg, var(--red), var(--warning), var(--green));
 }
 
 .fair-axis .value-marker {
@@ -4668,8 +4668,8 @@ body {
 }
 
 .value-marker.fair {
-  border-color: color-mix(in srgb, var(--gold) 58%, var(--line));
-  background: color-mix(in srgb, var(--surface) 84%, var(--gold) 16%);
+  border-color: color-mix(in srgb, var(--highlight) 58%, var(--line));
+  background: color-mix(in srgb, var(--surface) 84%, var(--highlight) 16%);
 }
 
 .value-marker.current {
@@ -4761,7 +4761,7 @@ body {
 }
 
 .risk-card.medium {
-  border-color: color-mix(in srgb, var(--amber) 42%, var(--line));
+  border-color: color-mix(in srgb, var(--warning) 42%, var(--line));
 }
 
 .risk-card.low {
@@ -5032,4 +5032,310 @@ body {
 .danger-action {
   border-color: color-mix(in srgb, var(--red) 42%, var(--line));
   color: var(--red);
+}
+
+/* V10.1 Institutional Steel Brand System */
+:root {
+  color-scheme: dark;
+  --bg: #08131F;
+  --bg-soft: #102030;
+  --surface: #1A232E;
+  --surface-2: #102030;
+  --surface-3: #25303C;
+  --ink: #E8ECEF;
+  --ink-soft: #D7DEE6;
+  --muted: #AAB5C2;
+  --line: #303A46;
+  --line-soft: #25303C;
+  --accent: #5E88B8;
+  --blue: #5E88B8;
+  --highlight: #5E88B8;
+  --green: #3FBF7F;
+  --strong-green: #3FBF7F;
+  --warning: #D58A3B;
+  --orange: #D58A3B;
+  --neutral-signal: #AAB5C2;
+  --red: #C95757;
+  --shadow: 0 18px 46px rgba(0, 0, 0, 0.30);
+  --shadow-soft: 0 10px 28px rgba(0, 0, 0, 0.22);
+  --surface-steel: linear-gradient(160deg, color-mix(in srgb, var(--surface) 92%, #E8ECEF 8%), color-mix(in srgb, var(--surface-2) 94%, #5E88B8 6%));
+  --panel-steel: linear-gradient(180deg, color-mix(in srgb, var(--surface) 90%, #E8ECEF 4%) 0%, color-mix(in srgb, var(--surface-2) 96%, #5E88B8 4%) 100%);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #E8ECEF;
+  --bg-soft: #DCE5EE;
+  --surface: #F7F9FB;
+  --surface-2: #E6EDF3;
+  --surface-3: #D7DEE6;
+  --ink: #08131F;
+  --ink-soft: #102030;
+  --muted: #52606E;
+  --line: #B7C3CF;
+  --line-soft: #CBD5E1;
+  --accent: #4C739F;
+  --blue: #4C739F;
+  --highlight: #4C739F;
+  --green: #2F9366;
+  --strong-green: #2F9366;
+  --warning: #B66F2D;
+  --orange: #B66F2D;
+  --neutral-signal: #52606E;
+  --red: #B84E4E;
+  --shadow: 0 18px 42px rgba(8, 19, 31, 0.12);
+  --shadow-soft: 0 10px 24px rgba(8, 19, 31, 0.08);
+  --surface-steel: linear-gradient(160deg, #F7F9FB, color-mix(in srgb, #E6EDF3 90%, #4C739F 10%));
+  --panel-steel: linear-gradient(180deg, #F7F9FB 0%, color-mix(in srgb, #E6EDF3 92%, #4C739F 8%) 100%);
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  background:
+    repeating-linear-gradient(90deg, rgba(232, 236, 239, 0.018) 0 1px, transparent 1px 8px),
+    linear-gradient(180deg, #08131F 0%, #102030 52%, #08131F 100%);
+}
+
+[data-theme="light"] body {
+  background:
+    repeating-linear-gradient(90deg, rgba(8, 19, 31, 0.018) 0 1px, transparent 1px 8px),
+    linear-gradient(180deg, #E8ECEF 0%, #DCE5EE 52%, #E8ECEF 100%);
+}
+
+.rail,
+.mobile-nav,
+.product-topbar {
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  border-color: color-mix(in srgb, var(--line) 88%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.mark,
+.app-logo,
+.premium-ticker-avatar {
+  background: var(--surface-steel);
+  border: 1px solid color-mix(in srgb, var(--line) 76%, var(--accent));
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.26);
+}
+
+.product-hero,
+.home-search-premium,
+.recent-analyses-panel,
+.watchlist-home-panel,
+.panel,
+.analysis-flow-shell,
+.processing-screen,
+.report-section,
+.report-detail,
+.report-company-header,
+.decision-card,
+.product-decision-card,
+.company-card,
+.rail-card,
+.settings-status,
+.watchlist-home-list button,
+.empty-mini,
+.takeaway-grid > div,
+.quality-two-col > div,
+.risk-card,
+.valuation-model-card,
+.forecast-kpi,
+.monitoring-card-list > div,
+.scenario-report-card,
+.fair-stage,
+.decision-metric,
+.investment-score-pill,
+.review-group,
+.review-score-card,
+.analysis-input-card,
+.paste-preview {
+  background: var(--panel-steel);
+  border-color: color-mix(in srgb, var(--line) 86%, var(--accent));
+  box-shadow: var(--shadow-soft);
+}
+
+.product-hero,
+.report-company-header,
+.decision-card,
+.product-decision-card {
+  background:
+    linear-gradient(150deg, color-mix(in srgb, var(--surface) 88%, #E8ECEF 7%) 0%, color-mix(in srgb, var(--surface-2) 88%, #5E88B8 12%) 100%);
+  border-color: color-mix(in srgb, var(--line) 72%, var(--accent));
+  box-shadow: var(--shadow);
+}
+
+.product-hero::after,
+.product-decision-card::before {
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 58%, transparent), transparent);
+}
+
+.eyebrow,
+.settings-status span,
+.signal-neutral,
+.badge-neutral,
+.score-card-neutral strong {
+  color: var(--accent);
+}
+
+.primary-btn {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 92%, #E8ECEF 8%), var(--accent));
+  border: 1px solid color-mix(in srgb, var(--accent) 66%, var(--line));
+  color: #E8ECEF;
+  box-shadow: 0 12px 26px rgba(8, 19, 31, 0.26);
+}
+
+.primary-btn:hover {
+  background: color-mix(in srgb, var(--accent) 84%, #E8ECEF 16%);
+  box-shadow: 0 16px 32px rgba(8, 19, 31, 0.30);
+}
+
+.icon-btn,
+.quick-tickers button,
+.secondary-btn,
+.language-toggle,
+.filter-chip,
+.quick-actions-panel button,
+summary {
+  background: color-mix(in srgb, var(--surface-2) 86%, transparent);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.icon-btn:hover,
+.quick-tickers button:hover,
+.quick-actions-panel button:hover,
+.report-section:hover,
+.report-detail:hover,
+.company-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 54%, var(--line));
+  background: color-mix(in srgb, var(--surface) 86%, var(--accent) 14%);
+}
+
+.language-toggle button.active,
+.rail-nav button.active,
+.mobile-nav button.active,
+.filter-chip.active {
+  background: color-mix(in srgb, var(--accent) 24%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--accent) 56%, var(--line));
+  color: var(--ink);
+  box-shadow: inset 0 1px 0 rgba(232, 236, 239, 0.05);
+}
+
+.home-search-premium input,
+.search-block input,
+.workflow-field input,
+textarea,
+input {
+  background: color-mix(in srgb, var(--bg) 38%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--line) 84%, var(--accent));
+  color: var(--ink);
+}
+
+.home-search-premium input:focus,
+.search-block input:focus,
+.workflow-field input:focus,
+textarea:focus,
+input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.signal-strong-positive,
+.signal-positive,
+.badge-strong-positive,
+.badge-positive,
+.score-card-strong-positive,
+.score-card-positive,
+.score-card-strong-positive strong,
+.score-card-positive strong,
+.decision-card.buy .decision-card-main strong,
+.report-hero-metrics .buy strong {
+  color: var(--green);
+}
+
+.signal-warning,
+.badge-warning,
+.score-card-warning,
+.score-card-warning strong,
+.decision-card.hold .decision-card-main strong,
+.decision-card.trim .decision-card-main strong,
+.report-hero-metrics .hold strong,
+.report-hero-metrics .trim strong,
+.risk-card.medium strong {
+  color: var(--warning);
+}
+
+.signal-negative,
+.badge-negative,
+.score-card-negative,
+.score-card-negative strong,
+.decision-card.sell .decision-card-main strong,
+.report-hero-metrics .sell strong,
+.risk-card.high strong {
+  color: var(--red);
+}
+
+.recommendation-badge,
+.signal,
+.score-pill,
+.company-meta-line span,
+.filter-chip {
+  background: color-mix(in srgb, currentColor 9%, transparent);
+  border-color: color-mix(in srgb, currentColor 24%, var(--line));
+}
+
+.confidence-ring {
+  background:
+    radial-gradient(circle at center, var(--surface) 58%, transparent 60%),
+    conic-gradient(var(--accent) calc(var(--value) * 1%), color-mix(in srgb, var(--line) 82%, transparent) 0);
+}
+
+.fair-axis-muted {
+  background: color-mix(in srgb, var(--line) 72%, var(--surface-3));
+}
+
+.fair-axis-range,
+.quality-breakdown i {
+  background: linear-gradient(90deg, var(--red), var(--accent), var(--green));
+}
+
+.scenario-report-card.bear {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--surface-2) 86%, var(--red) 14%), var(--surface-2));
+}
+
+.scenario-report-card.base {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--surface-2) 84%, var(--accent) 16%), var(--surface-2));
+  border-color: color-mix(in srgb, var(--accent) 52%, var(--line));
+}
+
+.scenario-report-card.bull {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--surface-2) 86%, var(--green) 14%), var(--surface-2));
+}
+
+.value-marker.fair {
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--line));
+  background: color-mix(in srgb, var(--surface) 84%, var(--accent) 16%);
+}
+
+.value-marker.current {
+  border-color: color-mix(in srgb, var(--line) 72%, var(--accent));
+  background: color-mix(in srgb, var(--surface) 88%, var(--line) 12%);
+}
+
+.danger-action,
+button.danger-action {
+  border-color: color-mix(in srgb, var(--red) 46%, var(--line));
+  color: var(--red);
+}
+
+@media (hover: hover) {
+  .quick-actions-panel button:hover,
+  .report-section:hover,
+  .report-detail:hover {
+    border-color: color-mix(in srgb, var(--accent) 44%, var(--line));
+  }
 }

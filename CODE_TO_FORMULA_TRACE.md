@@ -1,6 +1,6 @@
 # Code To Formula Trace - Version 9
 
-This file traces the documented formulas to the code that actually runs and to golden-case outputs. No production code was changed.
+This file traces the documented formulas to the code that actually runs and to reference-case outputs. No production code was changed.
 
 ## Trace Table
 

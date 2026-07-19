@@ -53,7 +53,7 @@ The V9.2 additions reuse these variables:
 - `--line`
 - `--accent`
 - `--green`
-- `--amber`
+- `--warning`
 - `--red`
 - `--radius`
 

@@ -32,15 +32,15 @@ Total assertion statements reviewed: **111**.
 | 13 | tests/version6.test.mjs:86 | NUMERICAL CHECK | assert.equal(colors.fairValueColorCategory(102.1, 100), "positive"); |
 | 14 | tests/version6.test.mjs:87 | NUMERICAL CHECK | assert.equal(colors.fairValueColorCategory(97.9, 100), "negative"); |
 | 15 | tests/version6.test.mjs:89 | NUMERICAL CHECK | assert.equal(colors.recommendationColorCategory("BUY", "ACTIONABLE"), "positive"); |
-| 16 | tests/version6.test.mjs:90 | NUMERICAL CHECK | assert.equal(colors.recommendationColorCategory("HOLD", "ACTIONABLE"), "amber"); |
+| 16 | tests/version6.test.mjs:90 | NUMERICAL CHECK | assert.equal(colors.recommendationColorCategory("HOLD", "ACTIONABLE"), "warning"); |
 | 17 | tests/version6.test.mjs:91 | NUMERICAL CHECK | assert.equal(colors.recommendationColorCategory("SELL", "ACTIONABLE"), "negative"); |
 | 18 | tests/version6.test.mjs:92 | NEGATIVE CHECK | assert.equal(colors.recommendationColorCategory("BUY", "INSUFFICIENT_DATA"), "missing"); |
 | 19 | tests/version6.test.mjs:94 | NUMERICAL CHECK | assert.equal(colors.riskColorCategory(80), "positive", "higher Risk Score means lower risk"); |
-| 20 | tests/version6.test.mjs:95 | NUMERICAL CHECK | assert.equal(colors.riskColorCategory(60), "amber"); |
+| 20 | tests/version6.test.mjs:95 | NUMERICAL CHECK | assert.equal(colors.riskColorCategory(60), "warning"); |
 | 21 | tests/version6.test.mjs:96 | NUMERICAL CHECK | assert.equal(colors.riskColorCategory(30), "negative"); |
 | 22 | tests/version6.test.mjs:97 | NUMERICAL CHECK | assert.equal(colors.scoreColorCategory(85), "strong-positive"); |
 | 23 | tests/version6.test.mjs:98 | NUMERICAL CHECK | assert.equal(colors.scoreColorCategory(70), "positive"); |
-| 24 | tests/version6.test.mjs:99 | NUMERICAL CHECK | assert.equal(colors.scoreColorCategory(55), "amber"); |
+| 24 | tests/version6.test.mjs:99 | NUMERICAL CHECK | assert.equal(colors.scoreColorCategory(55), "warning"); |
 | 25 | tests/version6.test.mjs:100 | NUMERICAL CHECK | assert.equal(colors.scoreColorCategory(40), "warning"); |
 | 26 | tests/version6.test.mjs:101 | NUMERICAL CHECK | assert.equal(colors.scoreColorCategory(39), "negative"); |
 | 27 | tests/version6.test.mjs:103 | NUMERICAL CHECK | assert.equal(colors.formatSignedPercent(0.2376), "+24%"); |

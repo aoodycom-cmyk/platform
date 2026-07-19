@@ -9,7 +9,7 @@ The app metadata is prepared:
 - App name: Franklin Research
 - Version: 10.0.0
 - Display mode: standalone
-- Theme color: `#0b1110`
+- Theme color: `#08131F`
 - Apple touch icon: `public/assets/apple-touch-icon.png`
 - Manifest icons: `192x192` and `512x512`
 

@@ -137,7 +137,7 @@ Recommendations:
 
 ```text
 BUY / شراء      green
-HOLD / احتفاظ   amber
+HOLD / احتفاظ   warning
 SELL / بيع      red
 Insufficient    gray
 ```
@@ -148,7 +148,7 @@ Risk:
 Risk Score higher = lower risk
 
 >= 75   green
-55-74   amber
+55-74   warning
 < 55    red
 ```
 
@@ -157,7 +157,7 @@ Scores:
 ```text
 85-100  strong green
 70-84   green
-55-69   amber
+55-69   warning
 40-54   orange
 < 40    red
 ```

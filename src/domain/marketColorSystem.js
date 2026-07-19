@@ -1,7 +1,6 @@
 export const COLOR_CATEGORIES = {
   STRONG_POSITIVE: "strong-positive",
   POSITIVE: "positive",
-  AMBER: "amber",
   NEUTRAL: "neutral",
   WARNING: "warning",
   NEGATIVE: "negative",
@@ -28,19 +27,19 @@ export function recommendationColorCategory(recommendation, status) {
   if (status === "INSUFFICIENT_DATA") return COLOR_CATEGORIES.MISSING;
   if (recommendation === "BUY" || recommendation === "شراء") return COLOR_CATEGORIES.POSITIVE;
   if (recommendation === "SELL" || recommendation === "بيع") return COLOR_CATEGORIES.NEGATIVE;
-  if (recommendation === "HOLD" || recommendation === "احتفاظ") return COLOR_CATEGORIES.AMBER;
+  if (recommendation === "HOLD" || recommendation === "احتفاظ") return COLOR_CATEGORIES.WARNING;
   return COLOR_CATEGORIES.MISSING;
 }
 
 export function riskColorCategory(value) {
   if (typeof value === "string") {
     if (value === "Low" || value === "مخاطر منخفضة") return COLOR_CATEGORIES.POSITIVE;
-    if (value === "Medium" || value === "مخاطر متوسطة") return COLOR_CATEGORIES.AMBER;
+    if (value === "Medium" || value === "مخاطر متوسطة") return COLOR_CATEGORIES.WARNING;
     if (value === "High" || value === "مخاطر مرتفعة") return COLOR_CATEGORIES.NEGATIVE;
   }
   if (!Number.isFinite(value)) return COLOR_CATEGORIES.MISSING;
   if (value >= 75) return COLOR_CATEGORIES.POSITIVE;
-  if (value >= 55) return COLOR_CATEGORIES.AMBER;
+  if (value >= 55) return COLOR_CATEGORIES.WARNING;
   return COLOR_CATEGORIES.NEGATIVE;
 }
 
@@ -48,7 +47,7 @@ export function scoreColorCategory(score) {
   if (!Number.isFinite(score)) return COLOR_CATEGORIES.MISSING;
   if (score >= 85) return COLOR_CATEGORIES.STRONG_POSITIVE;
   if (score >= 70) return COLOR_CATEGORIES.POSITIVE;
-  if (score >= 55) return COLOR_CATEGORIES.AMBER;
+  if (score >= 55) return COLOR_CATEGORIES.WARNING;
   if (score >= 40) return COLOR_CATEGORIES.WARNING;
   return COLOR_CATEGORIES.NEGATIVE;
 }
