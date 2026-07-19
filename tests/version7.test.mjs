@@ -37,8 +37,8 @@ function completeWorkspace() {
     capex: 55_000_000,
     freeCashFlow: 180_000_000,
     dilutedShares: 100_000_000,
-    analystTargetAverage: 115,
-    morningstarFairValue: 120
+    analystTargetAverage: 42,
+    morningstarFairValue: 40
   };
   for (const [field, value] of Object.entries(inputs)) {
     workspace = updateWorkspaceField(workspace, field, value);
@@ -84,7 +84,7 @@ function completeWorkspace() {
     "en"
   ).report;
   assert.notEqual(base.executiveConclusion.baseFairValue, overridden.executiveConclusion.baseFairValue);
-  assert.equal(overridden.assumptionRationale.wacc.value, 0.12);
+  assert.equal(overridden.assumptionRationale.wacc.value, overridden.forecastAssumptions.wacc.guardrail[1]);
 }
 
 {

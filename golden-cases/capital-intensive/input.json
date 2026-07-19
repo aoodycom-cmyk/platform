@@ -1,0 +1,10 @@
+{
+  "caseId": "capital-intensive",
+  "description": "Capital-intensive company",
+  "workspaceCompany": {
+    "ticker": "CAPX",
+    "name": "Grid Assets Co",
+    "price": 62
+  },
+  "pastedBlock": "Ticker: CAPX\nCompany Name: Grid Assets Co\nCurrent Price: 62\nSector: Industrials\nIndustry: Infrastructure industrial\nRevenue: 4200000000\nOperating Income: 520000000\nEBITDA: 900000000\nNet Income: 310000000\nEPS: 2.4\nFree Cash Flow: 120000000\nCapital Expenditure: 650000000\nCash: 300000000\nTotal Debt: 3400000000\nDiluted Shares Outstanding: 140000000\nRegulatory Risks: tariff and rate-case exposure"
+}

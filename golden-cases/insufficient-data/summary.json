@@ -1,0 +1,37 @@
+{
+  "expectedStable": {
+    "methodologyVersion": "investment-analyst-brain-v1.1-canonical",
+    "schemaVersion": "analyst-brain-output-schema-1.1.0",
+    "ticker": "MISS",
+    "classification": "Mature Cash Generator",
+    "selectedModels": [],
+    "unsupportedSelected": [],
+    "recommendation": "INSUFFICIENT_DATA",
+    "confidence": 45,
+    "investmentScore": 40,
+    "forecastYears": 5,
+    "scenarioProbabilityTotal": 1,
+    "probabilityWeightedFairValue": null,
+    "finalFairValue": null,
+    "monitoringCount": 7,
+    "validationValid": true
+  },
+  "actualStable": {
+    "methodologyVersion": "investment-analyst-brain-v1.1-canonical",
+    "schemaVersion": "analyst-brain-output-schema-1.1.0",
+    "ticker": "MISS",
+    "classification": "Mature Cash Generator",
+    "selectedModels": [],
+    "unsupportedSelected": [],
+    "recommendation": "INSUFFICIENT_DATA",
+    "confidence": 45,
+    "investmentScore": 40,
+    "forecastYears": 5,
+    "scenarioProbabilityTotal": 1,
+    "probabilityWeightedFairValue": null,
+    "finalFairValue": null,
+    "monitoringCount": 7,
+    "validationValid": true
+  },
+  "diffCount": 0
+}

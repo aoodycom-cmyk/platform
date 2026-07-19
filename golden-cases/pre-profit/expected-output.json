@@ -1,0 +1,1745 @@
+{
+  "schemaVersion": "analyst-brain-output-schema-1.1.0",
+  "methodologyVersion": "investment-analyst-brain-v1.1-canonical",
+  "analystBrainVersion": "Investment Analyst Brain v1.1 Canonical",
+  "language": "ar",
+  "company": {
+    "ticker": "LOSS",
+    "name": "Transition AI Co",
+    "valuationDate": "2026-07-18",
+    "currentPrice": 22,
+    "currency": "USD",
+    "sector": "Technology",
+    "industry": "Software"
+  },
+  "companyAndValuationDate": {
+    "ticker": "LOSS",
+    "companyName": "Transition AI Co",
+    "valuationDate": "2026-07-18",
+    "currentPrice": 22,
+    "currency": "USD"
+  },
+  "executiveDecision": {
+    "recommendation": "HOLD",
+    "confidence": 76,
+    "investmentScore": 81,
+    "currentPrice": 22,
+    "fairValue": 63.06818181818181,
+    "upsideDownside": 1.8667355371900825,
+    "why": "HOLD لأن هامش الأمان 186.7%، Business Quality 52/100، Forecast Confidence 94%، Data Quality 86/100، وRisk Score 53/100."
+  },
+  "executiveConclusion": {
+    "recommendation": "HOLD",
+    "confidence": 76,
+    "currentPrice": 22,
+    "bearFairValue": -11.538319933779109,
+    "baseFairValue": -10.616898392781636,
+    "bullFairValue": -9.38368744840817,
+    "morningstarFairValue": null,
+    "rangeFairValue": 63.06818181818181,
+    "expectedUpside": 1.8667355371900825,
+    "maximumUpside": -1.4265312476549168,
+    "investmentScore": 81,
+    "why": "HOLD لأن هامش الأمان 186.7%، Business Quality 52/100، Forecast Confidence 94%، Data Quality 86/100، وRisk Score 53/100."
+  },
+  "dataQuality": {
+    "completeness": 86,
+    "confirmedSources": [
+      "ticker: User Paste",
+      "companyName: User Paste",
+      "currentPrice: User Paste",
+      "sector: User Paste",
+      "industry: User Paste",
+      "revenue: User Paste",
+      "revenueEstimates: User Paste",
+      "operatingIncome: User Paste",
+      "ebitda: User Paste",
+      "netIncome: User Paste",
+      "eps: User Paste",
+      "freeCashFlow: User Paste",
+      "capex: User Paste",
+      "cash: User Paste",
+      "totalDebt: User Paste",
+      "dilutedShares: User Paste",
+      "businessModel: User Paste",
+      "managementGrowthGuidance: User Paste"
+    ],
+    "missingData": [],
+    "conflictingData": [],
+    "importantLimitations": [
+      "DCF: DCF requires positive FCF and diluted shares.",
+      "P/E: P/E requires positive normalized EPS.",
+      "PEG: PEG is a supporting check only for profitable growth companies.",
+      "EV/EBITDA: EV/EBITDA requires EBITDA and diluted shares.",
+      "Price/FCF: Price/FCF requires positive FCF and diluted shares.",
+      "Morningstar Fair Value: Morningstar Fair Value was not supplied.",
+      "Analyst Consensus: Analyst Consensus was not supplied.",
+      "DCF: DCF requires positive FCF.",
+      "P/E: P/E requires positive normalized EPS.",
+      "PEG: PEG requires profitable growth evidence."
+    ]
+  },
+  "classification": {
+    "classification": "High Growth — Transition to Profitability",
+    "evidence": [
+      "Revenue exists but profitability is not yet established.",
+      "Operating Margin evidence: -17.8%.",
+      "FCF Margin evidence: -13.3%.",
+      "Growth evidence: 25.0%."
+    ],
+    "suitableModels": [
+      "Forward EV/Sales"
+    ],
+    "excludedModels": [
+      {
+        "method": "DCF",
+        "why": "DCF requires positive FCF."
+      },
+      {
+        "method": "P/E",
+        "why": "P/E requires positive normalized EPS."
+      },
+      {
+        "method": "PEG",
+        "why": "PEG requires profitable growth evidence."
+      },
+      {
+        "method": "EV/EBITDA",
+        "why": "EV/EBITDA requires EBITDA."
+      },
+      {
+        "method": "EV/Sales",
+        "why": "EV/Sales is not suitable for High Growth — Transition to Profitability."
+      },
+      {
+        "method": "Price/FCF",
+        "why": "Price/FCF requires positive FCF."
+      },
+      {
+        "method": "Morningstar Fair Value",
+        "why": "Morningstar Fair Value was not supplied."
+      },
+      {
+        "method": "Analyst Consensus",
+        "why": "Analyst Consensus was not supplied."
+      }
+    ],
+    "confidence": 94,
+    "reason": "Revenue exists but profitability is not yet established. Operating Margin evidence: -17.8%. FCF Margin evidence: -13.3%. Growth evidence: 25.0%."
+  },
+  "companyClassification": {
+    "classification": "High Growth — Transition to Profitability",
+    "reason": "Revenue exists but profitability is not yet established. Operating Margin evidence: -17.8%. FCF Margin evidence: -13.3%. Growth evidence: 25.0%.",
+    "suitableValuationModels": [
+      "Forward EV/Sales"
+    ],
+    "excludedModels": [
+      {
+        "method": "DCF",
+        "why": "DCF requires positive FCF."
+      },
+      {
+        "method": "P/E",
+        "why": "P/E requires positive normalized EPS."
+      },
+      {
+        "method": "PEG",
+        "why": "PEG requires profitable growth evidence."
+      },
+      {
+        "method": "EV/EBITDA",
+        "why": "EV/EBITDA requires EBITDA."
+      },
+      {
+        "method": "EV/Sales",
+        "why": "EV/Sales is not suitable for High Growth — Transition to Profitability."
+      },
+      {
+        "method": "Price/FCF",
+        "why": "Price/FCF requires positive FCF."
+      },
+      {
+        "method": "Morningstar Fair Value",
+        "why": "Morningstar Fair Value was not supplied."
+      },
+      {
+        "method": "Analyst Consensus",
+        "why": "Analyst Consensus was not supplied."
+      }
+    ]
+  },
+  "businessQuality": {
+    "score": 52,
+    "rating": "Weak",
+    "confidence": 67,
+    "components": [
+      {
+        "name": "Business model",
+        "weight": 10,
+        "score": 80,
+        "points": 8,
+        "evidence": []
+      },
+      {
+        "name": "Revenue quality",
+        "weight": 10,
+        "score": 80,
+        "points": 8,
+        "evidence": []
+      },
+      {
+        "name": "Moat",
+        "weight": 15,
+        "score": 40,
+        "points": 6,
+        "evidence": []
+      },
+      {
+        "name": "Growth visibility",
+        "weight": 10,
+        "score": 75,
+        "points": 7.5,
+        "evidence": []
+      },
+      {
+        "name": "Profitability",
+        "weight": 10,
+        "score": 10,
+        "points": 1,
+        "evidence": []
+      },
+      {
+        "name": "Cash generation",
+        "weight": 15,
+        "score": 10,
+        "points": 1.5,
+        "evidence": []
+      },
+      {
+        "name": "Balance sheet",
+        "weight": 10,
+        "score": 85,
+        "points": 8.5,
+        "evidence": []
+      },
+      {
+        "name": "Management",
+        "weight": 8,
+        "score": 60,
+        "points": 4.8,
+        "evidence": []
+      },
+      {
+        "name": "Capital allocation",
+        "weight": 7,
+        "score": 45,
+        "points": 3.15,
+        "evidence": []
+      },
+      {
+        "name": "Risk resilience",
+        "weight": 5,
+        "score": 70,
+        "points": 3.5,
+        "evidence": []
+      }
+    ],
+    "explanation": "Business Quality تقيس جودة الشركة من الأدلة المالية والتشغيلية، وليس من حركة السعر."
+  },
+  "financialPerformanceReview": {
+    "revenue": "Revenue: 900,000,000",
+    "eps": "EPS: -1.4",
+    "fcf": "FCF: -120,000,000",
+    "margins": "Operating Margin: -0.18",
+    "roic": "ROIC: غير متوفر من بيانات مؤكدة.",
+    "balanceSheet": "Net cash / debt: 300,000,000",
+    "dilution": "Diluted shares: 110,000,000",
+    "capex": "CapEx: 55,000,000"
+  },
+  "modelSelection": {
+    "selectedModels": [
+      {
+        "method": "EV/Sales",
+        "role": "valuation_model",
+        "fairValue": 51.81818181818182,
+        "value": 51.81818181818182,
+        "weight": 0.45,
+        "confidence": 0.48,
+        "source": "Methodology default EV/Sales for High Growth — Transition to Profitability",
+        "assumptions": {
+          "revenue": 900000000,
+          "multiple": 6
+        },
+        "explanation": "EV/Sales محسوب من مدخلات مؤكدة ومصدر الافتراض ظاهر في التقرير."
+      },
+      {
+        "method": "Forward EV/Sales",
+        "role": "valuation_model",
+        "fairValue": 74.31818181818181,
+        "value": 74.31818181818181,
+        "weight": 0.45,
+        "confidence": 0.48,
+        "source": "Methodology default Forward EV/Sales for High Growth — Transition to Profitability",
+        "assumptions": {
+          "forwardRevenue": 1125000000,
+          "multiple": 7
+        },
+        "explanation": "Forward EV/Sales محسوب من مدخلات مؤكدة ومصدر الافتراض ظاهر في التقرير."
+      }
+    ],
+    "excludedModels": [
+      {
+        "method": "DCF",
+        "why": "DCF requires positive FCF and diluted shares."
+      },
+      {
+        "method": "P/E",
+        "why": "P/E requires positive normalized EPS."
+      },
+      {
+        "method": "PEG",
+        "why": "PEG is a supporting check only for profitable growth companies."
+      },
+      {
+        "method": "EV/EBITDA",
+        "why": "EV/EBITDA requires EBITDA and diluted shares."
+      },
+      {
+        "method": "Price/FCF",
+        "why": "Price/FCF requires positive FCF and diluted shares."
+      },
+      {
+        "method": "Morningstar Fair Value",
+        "why": "Morningstar Fair Value was not supplied."
+      },
+      {
+        "method": "Analyst Consensus",
+        "why": "Analyst Consensus was not supplied."
+      },
+      {
+        "method": "DCF",
+        "why": "DCF requires positive FCF."
+      },
+      {
+        "method": "P/E",
+        "why": "P/E requires positive normalized EPS."
+      },
+      {
+        "method": "PEG",
+        "why": "PEG requires profitable growth evidence."
+      },
+      {
+        "method": "EV/EBITDA",
+        "why": "EV/EBITDA requires EBITDA."
+      },
+      {
+        "method": "EV/Sales",
+        "why": "EV/Sales is not suitable for High Growth — Transition to Profitability."
+      },
+      {
+        "method": "Price/FCF",
+        "why": "Price/FCF requires positive FCF."
+      },
+      {
+        "method": "Morningstar Fair Value",
+        "why": "Morningstar Fair Value was not supplied."
+      },
+      {
+        "method": "Analyst Consensus",
+        "why": "Analyst Consensus was not supplied."
+      }
+    ],
+    "unsupportedModels": [],
+    "fairValue": 63.06818181818181,
+    "externalReferenceWeight": 0,
+    "weightChecks": {
+      "maxModelWeight": 0.45,
+      "externalReferenceWeight": 0,
+      "valid": true
+    }
+  },
+  "forecastAssumptions": {
+    "sourcePriority": [
+      "Company guidance",
+      "Analyst estimates",
+      "Historical trends",
+      "Backlog, contracts, unit economics",
+      "Sector assumptions",
+      "Methodology defaults"
+    ],
+    "yearlyForecast": [
+      {
+        "year": 1,
+        "revenue": 1125000000,
+        "revenueGrowth": 0.25,
+        "operatingMargin": -0.17777777777777778,
+        "operatingIncome": -200000000,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -200000000,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 39375000.00000001,
+        "capexToRevenue": 0.06111111111111111,
+        "capex": 68750000,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 2250000,
+        "dilution": 0.02,
+        "dilutedShares": 112200000,
+        "freeCashFlow": -231625000,
+        "fcfGrowth": null,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      },
+      {
+        "year": 2,
+        "revenue": 1342968750,
+        "revenueGrowth": 0.19375,
+        "operatingMargin": -0.14805555555555555,
+        "operatingIncome": -198833984.375,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -198833984.375,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 47003906.25000001,
+        "capexToRevenue": 0.06111111111111111,
+        "capex": 82070312.5,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 2179687.5,
+        "dilution": 0.02,
+        "dilutedShares": 114444000,
+        "freeCashFlow": -236080078.125,
+        "fcfGrowth": -0.019234012412304373,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      },
+      {
+        "year": 3,
+        "revenue": 1527626953.125,
+        "revenueGrowth": 0.1375,
+        "operatingMargin": -0.11833333333333335,
+        "operatingIncome": -180769189.45312503,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -180769189.45312503,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 53466943.35937501,
+        "capexToRevenue": 0.06111111111111111,
+        "capex": 93354980.46875,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 1846582.03125,
+        "dilution": 0.02,
+        "dilutedShares": 116732880,
+        "freeCashFlow": -222503808.59375003,
+        "fcfGrowth": 0.05750705285713091,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      },
+      {
+        "year": 4,
+        "revenue": 1651746643.0664062,
+        "revenueGrowth": 0.08125,
+        "operatingMargin": -0.08861111111111111,
+        "operatingIncome": -146363105.3161621,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -146363105.3161621,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 57811132.507324226,
+        "capexToRevenue": 0.06111111111111111,
+        "capex": 100940072.63183594,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 1241196.8994140625,
+        "dilution": 0.02,
+        "dilutedShares": 119067537.60000001,
+        "freeCashFlow": -190733242.3400879,
+        "fcfGrowth": 0.1427866176963703,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      },
+      {
+        "year": 5,
+        "revenue": 1693040309.1430662,
+        "revenueGrowth": 0.025,
+        "operatingMargin": -0.05888888888888889,
+        "operatingIncome": -99701262.64953613,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -99701262.64953613,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 59256410.820007324,
+        "capexToRevenue": 0.06111111111111111,
+        "capex": 103463574.44763182,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 412936.6607665992,
+        "dilution": 0.02,
+        "dilutedShares": 121448888.35200001,
+        "freeCashFlow": -144321362.93792725,
+        "fcfGrowth": 0.24333398222951458,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      }
+    ],
+    "wacc": {
+      "riskFreeRate": 0.045,
+      "equityRiskPremium": 0.055,
+      "betaOrBusinessRiskProxy": "High Growth — Transition to Profitability",
+      "costOfEquity": 0.1355,
+      "costOfDebt": 0.05925,
+      "taxRate": 0.21,
+      "capitalWeights": {
+        "debtWeight": 0.047244094488188976,
+        "equityWeight": 0.952755905511811
+      },
+      "finalWacc": 0.1235,
+      "guardrail": [
+        0.1,
+        0.13
+      ],
+      "confidence": 86,
+      "why": "تم اختيار WACC ضمن نطاق High Growth — Transition to Profitability مع تعديلات بسبب pre-profit or transition status، net cash.",
+      "sensitivity": [
+        {
+          "change": -0.01,
+          "wacc": 0.1135
+        },
+        {
+          "change": 0,
+          "wacc": 0.1235
+        },
+        {
+          "change": 0.01,
+          "wacc": 0.1335
+        }
+      ]
+    },
+    "sensitivity": [
+      {
+        "change": -0.01,
+        "wacc": 0.1135
+      },
+      {
+        "change": 0,
+        "wacc": 0.1235
+      },
+      {
+        "change": 0.01,
+        "wacc": 0.1335
+      }
+    ],
+    "confidence": 94,
+    "revenueGrowth": {
+      "label": "Revenue Growth",
+      "value": 0.25,
+      "source": "Analyst estimates",
+      "confidence": 0.82
+    },
+    "marginForecast": {
+      "value": -0.17777777777777778,
+      "target": -0.05888888888888889,
+      "label": "Operating Margin",
+      "source": "Current Operating Margin",
+      "confidence": 0.72
+    },
+    "capex": {
+      "label": "CapEx / Revenue",
+      "value": 0.06111111111111111,
+      "source": "Historical CapEx / Revenue",
+      "confidence": 0.76
+    },
+    "workingCapital": {
+      "label": "Working Capital",
+      "value": 0.01,
+      "source": "Methodology default",
+      "confidence": 0.5
+    },
+    "taxRate": {
+      "label": "Tax Rate",
+      "value": 0.21,
+      "source": "Methodology default",
+      "confidence": 0.55
+    },
+    "terminalGrowth": {
+      "label": "Terminal Growth",
+      "value": 0.025,
+      "source": "Classification default: High Growth — Transition to Profitability",
+      "confidence": 0.62
+    },
+    "dilution": {
+      "label": "Dilution",
+      "value": 0.02,
+      "source": "Methodology default",
+      "confidence": 0.45
+    }
+  },
+  "assumptionRationale": {
+    "wacc": {
+      "value": 0.1235,
+      "why": "تم اختيار WACC ضمن نطاق High Growth — Transition to Profitability مع تعديلات بسبب pre-profit or transition status، net cash.",
+      "source": {
+        "riskFreeRate": 0.045,
+        "equityRiskPremium": 0.055,
+        "betaOrBusinessRiskProxy": "High Growth — Transition to Profitability",
+        "costOfEquity": 0.1355,
+        "costOfDebt": 0.05925,
+        "taxRate": 0.21,
+        "capitalWeights": {
+          "debtWeight": 0.047244094488188976,
+          "equityWeight": 0.952755905511811
+        },
+        "finalWacc": 0.1235,
+        "guardrail": [
+          0.1,
+          0.13
+        ],
+        "confidence": 86,
+        "why": "تم اختيار WACC ضمن نطاق High Growth — Transition to Profitability مع تعديلات بسبب pre-profit or transition status، net cash.",
+        "sensitivity": [
+          {
+            "change": -0.01,
+            "wacc": 0.1135
+          },
+          {
+            "change": 0,
+            "wacc": 0.1235
+          },
+          {
+            "change": 0.01,
+            "wacc": 0.1335
+          }
+        ]
+      }
+    },
+    "revenueGrowth": {
+      "value": 0.25,
+      "why": "Revenue Growth مصدره Analyst estimates بثقة 82%."
+    },
+    "fcfGrowth": {
+      "value": null,
+      "why": "FCF Growth ينتج من Revenue وOperating Margin وCapEx وWorking Capital سنويًا."
+    },
+    "marginForecast": {
+      "value": -0.17777777777777778,
+      "why": "Operating Margin مصدره Current Operating Margin بثقة 72%."
+    },
+    "capex": {
+      "value": 0.06111111111111111,
+      "why": "CapEx / Revenue مصدره Historical CapEx / Revenue بثقة 76%.",
+      "source": "Historical CapEx / Revenue"
+    },
+    "workingCapital": {
+      "value": 0.01,
+      "why": "Working Capital مصدره Methodology default بثقة 50%."
+    },
+    "taxRate": {
+      "value": 0.21,
+      "why": "Tax Rate مصدره Methodology default بثقة 55%."
+    },
+    "terminalGrowth": {
+      "value": 0.025,
+      "why": "Terminal Growth مصدره Classification default: High Growth — Transition to Profitability بثقة 62%."
+    },
+    "exitMultiple": {
+      "value": null,
+      "why": "Exit Multiple لا يستخدم في DCF الحالي إلا إذا كان النموذج مدعومًا بمدخلات كافية."
+    },
+    "dilution": {
+      "value": 0.02,
+      "why": "Dilution مصدره Methodology default بثقة 45%."
+    }
+  },
+  "valuationResults": [
+    {
+      "method": "EV/Sales",
+      "role": "valuation_model",
+      "value": 51.81818181818182,
+      "weight": 0.45,
+      "confidence": 0.48,
+      "source": "Methodology default EV/Sales for High Growth — Transition to Profitability",
+      "assumptions": {
+        "revenue": 900000000,
+        "multiple": 6
+      },
+      "fairValue": 51.81818181818182,
+      "explanation": "EV/Sales محسوب من مدخلات مؤكدة ومصدر الافتراض ظاهر في التقرير."
+    },
+    {
+      "method": "Forward EV/Sales",
+      "role": "valuation_model",
+      "value": 74.31818181818181,
+      "weight": 0.45,
+      "confidence": 0.48,
+      "source": "Methodology default Forward EV/Sales for High Growth — Transition to Profitability",
+      "assumptions": {
+        "forwardRevenue": 1125000000,
+        "multiple": 7
+      },
+      "fairValue": 74.31818181818181,
+      "explanation": "Forward EV/Sales محسوب من مدخلات مؤكدة ومصدر الافتراض ظاهر في التقرير."
+    }
+  ],
+  "valuationModels": [
+    {
+      "method": "EV/Sales",
+      "assumptions": {
+        "revenue": 900000000,
+        "multiple": 6
+      },
+      "weight": 0.45,
+      "confidence": 0.48,
+      "fairValue": 51.81818181818182,
+      "explanation": "EV/Sales محسوب من مدخلات مؤكدة ومصدر الافتراض ظاهر في التقرير."
+    },
+    {
+      "method": "Forward EV/Sales",
+      "assumptions": {
+        "forwardRevenue": 1125000000,
+        "multiple": 7
+      },
+      "weight": 0.45,
+      "confidence": 0.48,
+      "fairValue": 74.31818181818181,
+      "explanation": "Forward EV/Sales محسوب من مدخلات مؤكدة ومصدر الافتراض ظاهر في التقرير."
+    }
+  ],
+  "scenarios": {
+    "Conservative": {
+      "name": "Conservative",
+      "probability": 0.25,
+      "fairValue": -11.538319933779109,
+      "revenuePath": [
+        0.22,
+        0.16375,
+        0.10750000000000001,
+        0.051250000000000004,
+        -0.0049999999999999975
+      ],
+      "margins": [
+        -0.20277777777777778,
+        -0.17305555555555555,
+        -0.14333333333333334,
+        -0.11361111111111111,
+        -0.0838888888888889
+      ],
+      "fcf": [
+        -264280000,
+        -269070618.75,
+        -255316363.53125,
+        -223465181.09521484,
+        -177629913.61595157
+      ],
+      "capex": [
+        0.07111111111111111,
+        0.07111111111111111,
+        0.07111111111111111,
+        0.07111111111111111,
+        0.07111111111111111
+      ],
+      "wacc": 0.1335,
+      "terminalGrowth": 0.02,
+      "forecast": [
+        {
+          "year": 1,
+          "revenue": 1098000000,
+          "revenueGrowth": 0.22,
+          "operatingMargin": -0.20277777777777778,
+          "operatingIncome": -222650000,
+          "taxRate": 0.21,
+          "tax": 0,
+          "nopat": -222650000,
+          "daToRevenue": 0.035,
+          "depreciationAmortization": 38430000,
+          "capexToRevenue": 0.07111111111111111,
+          "capex": 78080000,
+          "workingCapitalToRevenueGrowth": 0.01,
+          "workingCapitalChange": 1980000,
+          "dilution": 0.02,
+          "dilutedShares": 112200000,
+          "freeCashFlow": -264280000,
+          "fcfGrowth": null,
+          "source": "Analyst estimates",
+          "confidence": 0.72
+        },
+        {
+          "year": 2,
+          "revenue": 1277797500,
+          "revenueGrowth": 0.16375,
+          "operatingMargin": -0.17305555555555555,
+          "operatingIncome": -221129956.25,
+          "taxRate": 0.21,
+          "tax": 0,
+          "nopat": -221129956.25,
+          "daToRevenue": 0.035,
+          "depreciationAmortization": 44722912.50000001,
+          "capexToRevenue": 0.07111111111111111,
+          "capex": 90865600,
+          "workingCapitalToRevenueGrowth": 0.01,
+          "workingCapitalChange": 1797975,
+          "dilution": 0.02,
+          "dilutedShares": 114444000,
+          "freeCashFlow": -269070618.75,
+          "fcfGrowth": -0.01812705747691842,
+          "source": "Analyst estimates",
+          "confidence": 0.72
+        },
+        {
+          "year": 3,
+          "revenue": 1415160731.25,
+          "revenueGrowth": 0.10750000000000001,
+          "operatingMargin": -0.14333333333333334,
+          "operatingIncome": -202839704.8125,
+          "taxRate": 0.21,
+          "tax": 0,
+          "nopat": -202839704.8125,
+          "daToRevenue": 0.035,
+          "depreciationAmortization": 49530625.59375001,
+          "capexToRevenue": 0.07111111111111111,
+          "capex": 100633652,
+          "workingCapitalToRevenueGrowth": 0.01,
+          "workingCapitalChange": 1373632.3125,
+          "dilution": 0.02,
+          "dilutedShares": 116732880,
+          "freeCashFlow": -255316363.53125,
+          "fcfGrowth": 0.051117640724383254,
+          "source": "Analyst estimates",
+          "confidence": 0.72
+        },
+        {
+          "year": 4,
+          "revenue": 1487687718.7265625,
+          "revenueGrowth": 0.051250000000000004,
+          "operatingMargin": -0.11361111111111111,
+          "operatingIncome": -169017854.7108789,
+          "taxRate": 0.21,
+          "tax": 0,
+          "nopat": -169017854.7108789,
+          "daToRevenue": 0.035,
+          "depreciationAmortization": 52069070.15542969,
+          "capexToRevenue": 0.07111111111111111,
+          "capex": 105791126.665,
+          "workingCapitalToRevenueGrowth": 0.01,
+          "workingCapitalChange": 725269.874765625,
+          "dilution": 0.02,
+          "dilutedShares": 119067537.60000001,
+          "freeCashFlow": -223465181.09521484,
+          "fcfGrowth": 0.1247518255215031,
+          "source": "Analyst estimates",
+          "confidence": 0.72
+        },
+        {
+          "year": 5,
+          "revenue": 1480249280.1329296,
+          "revenueGrowth": -0.0049999999999999975,
+          "operatingMargin": -0.0838888888888889,
+          "operatingIncome": -124176467.38892911,
+          "taxRate": 0.21,
+          "tax": 0,
+          "nopat": -124176467.38892911,
+          "daToRevenue": 0.035,
+          "depreciationAmortization": 51808724.80465254,
+          "capexToRevenue": 0.07111111111111111,
+          "capex": 105262171.031675,
+          "workingCapitalToRevenueGrowth": 0.01,
+          "workingCapitalChange": 0,
+          "dilution": 0.02,
+          "dilutedShares": 121448888.35200001,
+          "freeCashFlow": -177629913.61595157,
+          "fcfGrowth": 0.2051114507173877,
+          "source": "Analyst estimates",
+          "confidence": 0.72
+        }
+      ],
+      "requiredConditions": "لتبرير -11.54 يجب أن تصمد Revenue وFCF رغم ضغط الهوامش وارتفاع WACC.",
+      "mainRisk": "الخطر الرئيسي هو ضغط الهوامش أو ارتفاع WACC في تصنيف High Growth — Transition to Profitability.",
+      "keyCatalysts": [
+        "تحقق Guidance واستقرار الهوامش يدعمان السيناريو."
+      ]
+    },
+    "Base": {
+      "name": "Base",
+      "probability": 0.5,
+      "fairValue": -10.616898392781636,
+      "revenuePath": [
+        0.25,
+        0.19375,
+        0.1375,
+        0.08125,
+        0.025
+      ],
+      "margins": [
+        -0.17777777777777778,
+        -0.14805555555555555,
+        -0.11833333333333335,
+        -0.08861111111111111,
+        -0.05888888888888889
+      ],
+      "fcf": [
+        -231625000,
+        -236080078.125,
+        -222503808.59375003,
+        -190733242.3400879,
+        -144321362.93792725
+      ],
+      "capex": [
+        0.06111111111111111,
+        0.06111111111111111,
+        0.06111111111111111,
+        0.06111111111111111,
+        0.06111111111111111
+      ],
+      "wacc": 0.1235,
+      "terminalGrowth": 0.025,
+      "forecast": [
+        {
+          "year": 1,
+          "revenue": 1125000000,
+          "revenueGrowth": 0.25,
+          "operatingMargin": -0.17777777777777778,
+          "operatingIncome": -200000000,
+          "taxRate": 0.21,
+          "tax": 0,
+          "nopat": -200000000,
+          "daToRevenue": 0.035,
+          "depreciationAmortization": 39375000.00000001,
+          "capexToRevenue": 0.06111111111111111,
+          "capex": 68750000,
+          "workingCapitalToRevenueGrowth": 0.01,
+          "workingCapitalChange": 2250000,
+          "dilution": 0.02,
+          "dilutedShares": 112200000,
+          "freeCashFlow": -231625000,
+          "fcfGrowth": null,
+          "source": "Analyst estimates",
+          "confidence": 0.72
+        },
+        {
+          "year": 2,
+          "revenue": 1342968750,
+          "revenueGrowth": 0.19375,
+          "operatingMargin": -0.14805555555555555,
+          "operatingIncome": -198833984.375,
+          "taxRate": 0.21,
+          "tax": 0,
+          "nopat": -198833984.375,
+          "daToRevenue": 0.035,
+          "depreciationAmortization": 47003906.25000001,
+          "capexToRevenue": 0.06111111111111111,
+          "capex": 82070312.5,
+          "workingCapitalToRevenueGrowth": 0.01,
+          "workingCapitalChange": 2179687.5,
+          "dilution": 0.02,
+          "dilutedShares": 114444000,
+          "freeCashFlow": -236080078.125,
+          "fcfGrowth": -0.019234012412304373,
+          "source": "Analyst estimates",
+          "confidence": 0.72
+        },
+        {
+          "year": 3,
+          "revenue": 1527626953.125,
+          "revenueGrowth": 0.1375,
+          "operatingMargin": -0.11833333333333335,
+          "operatingIncome": -180769189.45312503,
+          "taxRate": 0.21,
+          "tax": 0,
+          "nopat": -180769189.45312503,
+          "daToRevenue": 0.035,
+          "depreciationAmortization": 53466943.35937501,
+          "capexToRevenue": 0.06111111111111111,
+          "capex": 93354980.46875,
+          "workingCapitalToRevenueGrowth": 0.01,
+          "workingCapitalChange": 1846582.03125,
+          "dilution": 0.02,
+          "dilutedShares": 116732880,
+          "freeCashFlow": -222503808.59375003,
+          "fcfGrowth": 0.05750705285713091,
+          "source": "Analyst estimates",
+          "confidence": 0.72
+        },
+        {
+          "year": 4,
+          "revenue": 1651746643.0664062,
+          "revenueGrowth": 0.08125,
+          "operatingMargin": -0.08861111111111111,
+          "operatingIncome": -146363105.3161621,
+          "taxRate": 0.21,
+          "tax": 0,
+          "nopat": -146363105.3161621,
+          "daToRevenue": 0.035,
+          "depreciationAmortization": 57811132.507324226,
+          "capexToRevenue": 0.06111111111111111,
+          "capex": 100940072.63183594,
+          "workingCapitalToRevenueGrowth": 0.01,
+          "workingCapitalChange": 1241196.8994140625,
+          "dilution": 0.02,
+          "dilutedShares": 119067537.60000001,
+          "freeCashFlow": -190733242.3400879,
+          "fcfGrowth": 0.1427866176963703,
+          "source": "Analyst estimates",
+          "confidence": 0.72
+        },
+        {
+          "year": 5,
+          "revenue": 1693040309.1430662,
+          "revenueGrowth": 0.025,
+          "operatingMargin": -0.05888888888888889,
+          "operatingIncome": -99701262.64953613,
+          "taxRate": 0.21,
+          "tax": 0,
+          "nopat": -99701262.64953613,
+          "daToRevenue": 0.035,
+          "depreciationAmortization": 59256410.820007324,
+          "capexToRevenue": 0.06111111111111111,
+          "capex": 103463574.44763182,
+          "workingCapitalToRevenueGrowth": 0.01,
+          "workingCapitalChange": 412936.6607665992,
+          "dilution": 0.02,
+          "dilutedShares": 121448888.35200001,
+          "freeCashFlow": -144321362.93792725,
+          "fcfGrowth": 0.24333398222951458,
+          "source": "Analyst estimates",
+          "confidence": 0.72
+        }
+      ],
+      "requiredConditions": "لتبرير -10.62 يجب أن تتحقق افتراضات Base في Revenue وFCF وWACC.",
+      "mainRisk": "الخطر الرئيسي هو فشل الافتراضات التشغيلية مقابل Base case.",
+      "keyCatalysts": [
+        "تحقق Guidance واستقرار الهوامش يدعمان السيناريو."
+      ]
+    },
+    "Optimistic": {
+      "name": "Optimistic",
+      "probability": 0.25,
+      "fairValue": -9.38368744840817,
+      "revenuePath": [
+        0.275,
+        0.21875,
+        0.1625,
+        0.10625000000000001,
+        0.05
+      ],
+      "margins": [
+        -0.1577777777777778,
+        -0.12805555555555556,
+        -0.09833333333333334,
+        -0.06861111111111111,
+        -0.03888888888888889
+      ],
+      "fcf": [
+        -206602500.00000003,
+        -209723554.6875,
+        -194836535.15625003,
+        -161295450.54016113,
+        -112317133.45001222
+      ],
+      "capex": [
+        0.05511111111111111,
+        0.05511111111111111,
+        0.05511111111111111,
+        0.05511111111111111,
+        0.05511111111111111
+      ],
+      "wacc": 0.11599999999999999,
+      "terminalGrowth": 0.030000000000000002,
+      "forecast": [
+        {
+          "year": 1,
+          "revenue": 1147500000,
+          "revenueGrowth": 0.275,
+          "operatingMargin": -0.1577777777777778,
+          "operatingIncome": -181050000.00000003,
+          "taxRate": 0.21,
+          "tax": 0,
+          "nopat": -181050000.00000003,
+          "daToRevenue": 0.035,
+          "depreciationAmortization": 40162500.00000001,
+          "capexToRevenue": 0.05511111111111111,
+          "capex": 63240000,
+          "workingCapitalToRevenueGrowth": 0.01,
+          "workingCapitalChange": 2475000,
+          "dilution": 0.02,
+          "dilutedShares": 112200000,
+          "freeCashFlow": -206602500.00000003,
+          "fcfGrowth": null,
+          "source": "Analyst estimates",
+          "confidence": 0.72
+        },
+        {
+          "year": 2,
+          "revenue": 1398515625,
+          "revenueGrowth": 0.21875,
+          "operatingMargin": -0.12805555555555556,
+          "operatingIncome": -179087695.3125,
+          "taxRate": 0.21,
+          "tax": 0,
+          "nopat": -179087695.3125,
+          "daToRevenue": 0.035,
+          "depreciationAmortization": 48948046.87500001,
+          "capexToRevenue": 0.05511111111111111,
+          "capex": 77073750,
+          "workingCapitalToRevenueGrowth": 0.01,
+          "workingCapitalChange": 2510156.25,
+          "dilution": 0.02,
+          "dilutedShares": 114444000,
+          "freeCashFlow": -209723554.6875,
+          "fcfGrowth": -0.015106567865829163,
+          "source": "Analyst estimates",
+          "confidence": 0.72
+        },
+        {
+          "year": 3,
+          "revenue": 1625774414.0625002,
+          "revenueGrowth": 0.1625,
+          "operatingMargin": -0.09833333333333334,
+          "operatingIncome": -159867817.38281253,
+          "taxRate": 0.21,
+          "tax": 0,
+          "nopat": -159867817.38281253,
+          "daToRevenue": 0.035,
+          "depreciationAmortization": 56902104.492187515,
+          "capexToRevenue": 0.05511111111111111,
+          "capex": 89598234.37500001,
+          "workingCapitalToRevenueGrowth": 0.01,
+          "workingCapitalChange": 2272587.8906250023,
+          "dilution": 0.02,
+          "dilutedShares": 116732880,
+          "freeCashFlow": -194836535.15625003,
+          "fcfGrowth": 0.07098401299478485,
+          "source": "Analyst estimates",
+          "confidence": 0.72
+        },
+        {
+          "year": 4,
+          "revenue": 1798512945.5566409,
+          "revenueGrowth": 0.10625000000000001,
+          "operatingMargin": -0.06861111111111111,
+          "operatingIncome": -123397971.54235841,
+          "taxRate": 0.21,
+          "tax": 0,
+          "nopat": -123397971.54235841,
+          "daToRevenue": 0.035,
+          "depreciationAmortization": 62947953.09448244,
+          "capexToRevenue": 0.05511111111111111,
+          "capex": 99118046.77734376,
+          "workingCapitalToRevenueGrowth": 0.01,
+          "workingCapitalChange": 1727385.3149414062,
+          "dilution": 0.02,
+          "dilutedShares": 119067537.60000001,
+          "freeCashFlow": -161295450.54016113,
+          "fcfGrowth": 0.17214987214379723,
+          "source": "Analyst estimates",
+          "confidence": 0.72
+        },
+        {
+          "year": 5,
+          "revenue": 1888438592.834473,
+          "revenueGrowth": 0.05,
+          "operatingMargin": -0.03888888888888889,
+          "operatingIncome": -73439278.6102295,
+          "taxRate": 0.21,
+          "tax": 0,
+          "nopat": -73439278.6102295,
+          "daToRevenue": 0.035,
+          "depreciationAmortization": 66095350.74920656,
+          "capexToRevenue": 0.05511111111111111,
+          "capex": 104073949.11621095,
+          "workingCapitalToRevenueGrowth": 0.01,
+          "workingCapitalChange": 899256.4727783203,
+          "dilution": 0.02,
+          "dilutedShares": 121448888.35200001,
+          "freeCashFlow": -112317133.45001222,
+          "fcfGrowth": 0.3036559117205463,
+          "source": "Analyst estimates",
+          "confidence": 0.72
+        }
+      ],
+      "requiredConditions": "لتبرير -9.38 يجب أن يتحسن Growth وOperating Margin مع انضباط CapEx.",
+      "mainRisk": "الخطر الرئيسي هو فشل الافتراضات التشغيلية مقابل Base case.",
+      "keyCatalysts": [
+        "تحسن الهوامش واستدامة FCF يرفعان Fair Value."
+      ]
+    },
+    "Exceptional": {
+      "included": false,
+      "fairValue": null,
+      "probability": 0,
+      "requiredConditions": "لا يوجد Exceptional scenario لأن الأدلة لا تدعم حالة استثنائية منفصلة.",
+      "mainRisk": ""
+    }
+  },
+  "bearScenario": {
+    "probability": 0.25,
+    "fairValue": -11.538319933779109,
+    "revenueAssumptions": 0.22,
+    "marginAssumptions": -0.20277777777777778,
+    "fcfAssumptions": -0.01812705747691842,
+    "capexAssumptions": 0.07111111111111111,
+    "wacc": 0.1335,
+    "terminalGrowth": 0.02,
+    "forecast": [
+      {
+        "year": 1,
+        "revenue": 1098000000,
+        "revenueGrowth": 0.22,
+        "operatingMargin": -0.20277777777777778,
+        "operatingIncome": -222650000,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -222650000,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 38430000,
+        "capexToRevenue": 0.07111111111111111,
+        "capex": 78080000,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 1980000,
+        "dilution": 0.02,
+        "dilutedShares": 112200000,
+        "freeCashFlow": -264280000,
+        "fcfGrowth": null,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      },
+      {
+        "year": 2,
+        "revenue": 1277797500,
+        "revenueGrowth": 0.16375,
+        "operatingMargin": -0.17305555555555555,
+        "operatingIncome": -221129956.25,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -221129956.25,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 44722912.50000001,
+        "capexToRevenue": 0.07111111111111111,
+        "capex": 90865600,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 1797975,
+        "dilution": 0.02,
+        "dilutedShares": 114444000,
+        "freeCashFlow": -269070618.75,
+        "fcfGrowth": -0.01812705747691842,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      },
+      {
+        "year": 3,
+        "revenue": 1415160731.25,
+        "revenueGrowth": 0.10750000000000001,
+        "operatingMargin": -0.14333333333333334,
+        "operatingIncome": -202839704.8125,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -202839704.8125,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 49530625.59375001,
+        "capexToRevenue": 0.07111111111111111,
+        "capex": 100633652,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 1373632.3125,
+        "dilution": 0.02,
+        "dilutedShares": 116732880,
+        "freeCashFlow": -255316363.53125,
+        "fcfGrowth": 0.051117640724383254,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      },
+      {
+        "year": 4,
+        "revenue": 1487687718.7265625,
+        "revenueGrowth": 0.051250000000000004,
+        "operatingMargin": -0.11361111111111111,
+        "operatingIncome": -169017854.7108789,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -169017854.7108789,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 52069070.15542969,
+        "capexToRevenue": 0.07111111111111111,
+        "capex": 105791126.665,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 725269.874765625,
+        "dilution": 0.02,
+        "dilutedShares": 119067537.60000001,
+        "freeCashFlow": -223465181.09521484,
+        "fcfGrowth": 0.1247518255215031,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      },
+      {
+        "year": 5,
+        "revenue": 1480249280.1329296,
+        "revenueGrowth": -0.0049999999999999975,
+        "operatingMargin": -0.0838888888888889,
+        "operatingIncome": -124176467.38892911,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -124176467.38892911,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 51808724.80465254,
+        "capexToRevenue": 0.07111111111111111,
+        "capex": 105262171.031675,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 0,
+        "dilution": 0.02,
+        "dilutedShares": 121448888.35200001,
+        "freeCashFlow": -177629913.61595157,
+        "fcfGrowth": 0.2051114507173877,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      }
+    ],
+    "keyRisks": [
+      "الخطر الرئيسي هو ضغط الهوامش أو ارتفاع WACC في تصنيف High Growth — Transition to Profitability."
+    ],
+    "keyCatalysts": [
+      "تحقق Guidance واستقرار الهوامش يدعمان السيناريو."
+    ]
+  },
+  "baseScenario": {
+    "probability": 0.5,
+    "fairValue": -10.616898392781636,
+    "revenueAssumptions": 0.25,
+    "marginAssumptions": -0.17777777777777778,
+    "fcfAssumptions": -0.019234012412304373,
+    "capexAssumptions": 0.06111111111111111,
+    "wacc": 0.1235,
+    "terminalGrowth": 0.025,
+    "forecast": [
+      {
+        "year": 1,
+        "revenue": 1125000000,
+        "revenueGrowth": 0.25,
+        "operatingMargin": -0.17777777777777778,
+        "operatingIncome": -200000000,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -200000000,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 39375000.00000001,
+        "capexToRevenue": 0.06111111111111111,
+        "capex": 68750000,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 2250000,
+        "dilution": 0.02,
+        "dilutedShares": 112200000,
+        "freeCashFlow": -231625000,
+        "fcfGrowth": null,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      },
+      {
+        "year": 2,
+        "revenue": 1342968750,
+        "revenueGrowth": 0.19375,
+        "operatingMargin": -0.14805555555555555,
+        "operatingIncome": -198833984.375,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -198833984.375,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 47003906.25000001,
+        "capexToRevenue": 0.06111111111111111,
+        "capex": 82070312.5,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 2179687.5,
+        "dilution": 0.02,
+        "dilutedShares": 114444000,
+        "freeCashFlow": -236080078.125,
+        "fcfGrowth": -0.019234012412304373,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      },
+      {
+        "year": 3,
+        "revenue": 1527626953.125,
+        "revenueGrowth": 0.1375,
+        "operatingMargin": -0.11833333333333335,
+        "operatingIncome": -180769189.45312503,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -180769189.45312503,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 53466943.35937501,
+        "capexToRevenue": 0.06111111111111111,
+        "capex": 93354980.46875,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 1846582.03125,
+        "dilution": 0.02,
+        "dilutedShares": 116732880,
+        "freeCashFlow": -222503808.59375003,
+        "fcfGrowth": 0.05750705285713091,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      },
+      {
+        "year": 4,
+        "revenue": 1651746643.0664062,
+        "revenueGrowth": 0.08125,
+        "operatingMargin": -0.08861111111111111,
+        "operatingIncome": -146363105.3161621,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -146363105.3161621,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 57811132.507324226,
+        "capexToRevenue": 0.06111111111111111,
+        "capex": 100940072.63183594,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 1241196.8994140625,
+        "dilution": 0.02,
+        "dilutedShares": 119067537.60000001,
+        "freeCashFlow": -190733242.3400879,
+        "fcfGrowth": 0.1427866176963703,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      },
+      {
+        "year": 5,
+        "revenue": 1693040309.1430662,
+        "revenueGrowth": 0.025,
+        "operatingMargin": -0.05888888888888889,
+        "operatingIncome": -99701262.64953613,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -99701262.64953613,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 59256410.820007324,
+        "capexToRevenue": 0.06111111111111111,
+        "capex": 103463574.44763182,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 412936.6607665992,
+        "dilution": 0.02,
+        "dilutedShares": 121448888.35200001,
+        "freeCashFlow": -144321362.93792725,
+        "fcfGrowth": 0.24333398222951458,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      }
+    ],
+    "keyRisks": [
+      "الخطر الرئيسي هو فشل الافتراضات التشغيلية مقابل Base case."
+    ],
+    "keyCatalysts": [
+      "تحقق Guidance واستقرار الهوامش يدعمان السيناريو."
+    ]
+  },
+  "bullScenario": {
+    "probability": 0.25,
+    "fairValue": -9.38368744840817,
+    "revenueAssumptions": 0.275,
+    "marginAssumptions": -0.1577777777777778,
+    "fcfAssumptions": -0.015106567865829163,
+    "capexAssumptions": 0.05511111111111111,
+    "wacc": 0.11599999999999999,
+    "terminalGrowth": 0.030000000000000002,
+    "forecast": [
+      {
+        "year": 1,
+        "revenue": 1147500000,
+        "revenueGrowth": 0.275,
+        "operatingMargin": -0.1577777777777778,
+        "operatingIncome": -181050000.00000003,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -181050000.00000003,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 40162500.00000001,
+        "capexToRevenue": 0.05511111111111111,
+        "capex": 63240000,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 2475000,
+        "dilution": 0.02,
+        "dilutedShares": 112200000,
+        "freeCashFlow": -206602500.00000003,
+        "fcfGrowth": null,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      },
+      {
+        "year": 2,
+        "revenue": 1398515625,
+        "revenueGrowth": 0.21875,
+        "operatingMargin": -0.12805555555555556,
+        "operatingIncome": -179087695.3125,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -179087695.3125,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 48948046.87500001,
+        "capexToRevenue": 0.05511111111111111,
+        "capex": 77073750,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 2510156.25,
+        "dilution": 0.02,
+        "dilutedShares": 114444000,
+        "freeCashFlow": -209723554.6875,
+        "fcfGrowth": -0.015106567865829163,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      },
+      {
+        "year": 3,
+        "revenue": 1625774414.0625002,
+        "revenueGrowth": 0.1625,
+        "operatingMargin": -0.09833333333333334,
+        "operatingIncome": -159867817.38281253,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -159867817.38281253,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 56902104.492187515,
+        "capexToRevenue": 0.05511111111111111,
+        "capex": 89598234.37500001,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 2272587.8906250023,
+        "dilution": 0.02,
+        "dilutedShares": 116732880,
+        "freeCashFlow": -194836535.15625003,
+        "fcfGrowth": 0.07098401299478485,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      },
+      {
+        "year": 4,
+        "revenue": 1798512945.5566409,
+        "revenueGrowth": 0.10625000000000001,
+        "operatingMargin": -0.06861111111111111,
+        "operatingIncome": -123397971.54235841,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -123397971.54235841,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 62947953.09448244,
+        "capexToRevenue": 0.05511111111111111,
+        "capex": 99118046.77734376,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 1727385.3149414062,
+        "dilution": 0.02,
+        "dilutedShares": 119067537.60000001,
+        "freeCashFlow": -161295450.54016113,
+        "fcfGrowth": 0.17214987214379723,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      },
+      {
+        "year": 5,
+        "revenue": 1888438592.834473,
+        "revenueGrowth": 0.05,
+        "operatingMargin": -0.03888888888888889,
+        "operatingIncome": -73439278.6102295,
+        "taxRate": 0.21,
+        "tax": 0,
+        "nopat": -73439278.6102295,
+        "daToRevenue": 0.035,
+        "depreciationAmortization": 66095350.74920656,
+        "capexToRevenue": 0.05511111111111111,
+        "capex": 104073949.11621095,
+        "workingCapitalToRevenueGrowth": 0.01,
+        "workingCapitalChange": 899256.4727783203,
+        "dilution": 0.02,
+        "dilutedShares": 121448888.35200001,
+        "freeCashFlow": -112317133.45001222,
+        "fcfGrowth": 0.3036559117205463,
+        "source": "Analyst estimates",
+        "confidence": 0.72
+      }
+    ],
+    "keyRisks": [
+      "الخطر الرئيسي هو فشل الافتراضات التشغيلية مقابل Base case."
+    ],
+    "keyCatalysts": [
+      "تحسن الهوامش واستدامة FCF يرفعان Fair Value."
+    ]
+  },
+  "catalysts": [
+    "تحقق Revenue Growth وGuidance يدعم Fair Value.",
+    "تحسن الهوامش مع النمو يرفع السيناريو."
+  ],
+  "risks": [
+    "ارتفاع WACC أو ضغط Operating Margin يخفض Fair Value."
+  ],
+  "whatChangesMyMind": {
+    "items": [
+      "تغير WACC بأكثر من 100 نقطة أساس.",
+      "Revenue Growth أو Operating Margin يبتعدان عن Base case.",
+      "FCF أو CapEx يخالفان مسار Year 1-5.",
+      "Dilution أو Balance Sheet يضعفان بشكل جوهري."
+    ],
+    "biggestAssumption": "أكبر افتراض هو تفاعل Revenue Growth وOperating Margin مع WACC في نموذج DCF.",
+    "upgradeTrigger": "يرتفع القرار إذا تحسن هامش الأمان مع ثبات Business Quality وForecast Confidence.",
+    "downgradeTrigger": "ينخفض القرار إذا ضغطت الهوامش أو ارتفع WACC أو تدهور FCF.",
+    "thesisBreak": "تنكسر الفرضية إذا أصبحت افتراضات Base غير قابلة للتحقق.",
+    "revaluationRequired": "أعد التقييم بعد النتائج الفصلية أو Guidance جديدة أو تغير سعر كبير."
+  },
+  "whatWouldChangeTheValuation": [
+    "تغير WACC بأكثر من 100 نقطة أساس.",
+    "Revenue Growth أو Operating Margin يبتعدان عن Base case.",
+    "FCF أو CapEx يخالفان مسار Year 1-5.",
+    "Dilution أو Balance Sheet يضعفان بشكل جوهري."
+  ],
+  "finalDecision": {
+    "decision": "HOLD",
+    "why": "HOLD لأن هامش الأمان 186.7%، Business Quality 52/100، Forecast Confidence 94%، Data Quality 86/100، وRisk Score 53/100.",
+    "whyNot": "HOLD لأن بعض بوابات السياسة لم تعط إشارة كافية: scenarioFairValuePositive, businessQuality.",
+    "mainPositiveDrivers": [
+      "أكثر من نموذج صالح يدعم التقييم.",
+      "Margin of Safety"
+    ],
+    "mainNegativeDrivers": [],
+    "dataLimitations": [],
+    "biggestAssumption": "أكبر افتراض هو تفاعل Revenue Growth وOperating Margin مع WACC في نموذج DCF.",
+    "whatChangesTheDecision": [
+      "تغير WACC بأكثر من 100 نقطة أساس.",
+      "Revenue Growth أو Operating Margin يبتعدان عن Base case.",
+      "FCF أو CapEx يخالفان مسار Year 1-5.",
+      "Dilution أو Balance Sheet يضعفان بشكل جوهري."
+    ],
+    "policyGates": {
+      "hasPrice": true,
+      "hasValuation": true,
+      "hasInternalValuation": true,
+      "scenarioFairValuePositive": false,
+      "dataQuality": true,
+      "businessQuality": false,
+      "forecastConfidence": true,
+      "riskAcceptable": true,
+      "balanceSheetAcceptable": true,
+      "dilutionAcceptable": true,
+      "scenarioAsymmetryPositive": true
+    }
+  },
+  "finalInvestmentDecision": {
+    "decision": "HOLD",
+    "why": "HOLD لأن هامش الأمان 186.7%، Business Quality 52/100، Forecast Confidence 94%، Data Quality 86/100، وRisk Score 53/100.",
+    "whyNot": "HOLD لأن بعض بوابات السياسة لم تعط إشارة كافية: scenarioFairValuePositive, businessQuality.",
+    "mainPositiveDrivers": [
+      "أكثر من نموذج صالح يدعم التقييم.",
+      "Margin of Safety"
+    ],
+    "mainNegativeDrivers": [],
+    "dataLimitations": [],
+    "biggestAssumption": "أكبر افتراض هو تفاعل Revenue Growth وOperating Margin مع WACC في نموذج DCF.",
+    "whatChangesTheDecision": [
+      "تغير WACC بأكثر من 100 نقطة أساس.",
+      "Revenue Growth أو Operating Margin يبتعدان عن Base case.",
+      "FCF أو CapEx يخالفان مسار Year 1-5.",
+      "Dilution أو Balance Sheet يضعفان بشكل جوهري."
+    ],
+    "policyGates": {
+      "hasPrice": true,
+      "hasValuation": true,
+      "hasInternalValuation": true,
+      "scenarioFairValuePositive": false,
+      "dataQuality": true,
+      "businessQuality": false,
+      "forecastConfidence": true,
+      "riskAcceptable": true,
+      "balanceSheetAcceptable": true,
+      "dilutionAcceptable": true,
+      "scenarioAsymmetryPositive": true
+    }
+  },
+  "monitoringChecklist": [
+    {
+      "metric": "Revenue",
+      "currentValue": 900000000,
+      "expectedRange": [
+        1091250000,
+        1158750000
+      ],
+      "upgradeTrigger": "Revenue beats Base case by 3%+",
+      "downgradeTrigger": "Revenue misses Base case by 3%+",
+      "thesisBreak": "Two consecutive Revenue misses",
+      "revaluationEvent": "Quarterly results",
+      "focus": "Revenue: راقب الانحراف عن Base case."
+    },
+    {
+      "metric": "Operating Margin",
+      "currentValue": -0.17777777777777778,
+      "expectedRange": [
+        -0.19277777777777777,
+        -0.1627777777777778
+      ],
+      "upgradeTrigger": "Operating Margin expands above Base",
+      "downgradeTrigger": "Operating Margin compresses below Conservative",
+      "thesisBreak": "Permanent margin reset",
+      "revaluationEvent": "Margin guidance update",
+      "focus": "Operating Margin: راقب الانحراف عن Base case."
+    },
+    {
+      "metric": "FCF",
+      "currentValue": -120000000,
+      "expectedRange": [
+        -259420000,
+        -203830000
+      ],
+      "upgradeTrigger": "FCF conversion improves",
+      "downgradeTrigger": "FCF falls below Conservative",
+      "thesisBreak": "FCF turns structurally negative",
+      "revaluationEvent": "Cash flow statement",
+      "focus": "FCF: راقب الانحراف عن Base case."
+    },
+    {
+      "metric": "CapEx",
+      "currentValue": 55000000,
+      "expectedRange": [
+        46750000,
+        63250000
+      ],
+      "upgradeTrigger": "CapEx discipline improves FCF",
+      "downgradeTrigger": "CapEx intensity rises without growth",
+      "thesisBreak": "Investment cycle consumes FCF",
+      "revaluationEvent": "CapEx guidance",
+      "focus": "CapEx: راقب الانحراف عن Base case."
+    },
+    {
+      "metric": "Cash / Debt",
+      "currentValue": 300000000,
+      "expectedRange": null,
+      "upgradeTrigger": "Net cash improves",
+      "downgradeTrigger": "Net debt rises faster than EBITDA",
+      "thesisBreak": "Financing risk becomes material",
+      "revaluationEvent": "Balance sheet update",
+      "focus": "Cash / Debt: راقب الانحراف عن Base case."
+    },
+    {
+      "metric": "Diluted Shares",
+      "currentValue": 110000000,
+      "expectedRange": [
+        107800000,
+        112200000
+      ],
+      "upgradeTrigger": "Buybacks reduce share count",
+      "downgradeTrigger": "Dilution exceeds Base",
+      "thesisBreak": "Dilution becomes structural",
+      "revaluationEvent": "Share count update",
+      "focus": "Diluted Shares: راقب الانحراف عن Base case."
+    },
+    {
+      "metric": "Guidance / bookings",
+      "currentValue": "Revenue growth 25%",
+      "expectedRange": null,
+      "upgradeTrigger": "Guidance raised",
+      "downgradeTrigger": "Guidance cut",
+      "thesisBreak": "Growth thesis breaks",
+      "revaluationEvent": "Earnings call",
+      "focus": "Guidance / bookings: راقب الانحراف عن Base case."
+    }
+  ],
+  "dashboardExport": {
+    "approvedOnly": true,
+    "exported": false,
+    "ticker": "LOSS",
+    "recommendation": "HOLD",
+    "currentPrice": 22,
+    "fairValue": 63.06818181818181,
+    "rangeFairValue": -10.538951041937636,
+    "upsideDownside": 1.8667355371900825,
+    "investmentScore": 81,
+    "confidence": 76,
+    "dataQuality": 86
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "caseId": "holding-company",
+  "description": "Holding company",
+  "workspaceCompany": {
+    "ticker": "HOLD",
+    "name": "HoldCo Partners",
+    "price": 80
+  },
+  "pastedBlock": "Ticker: HOLD\nCompany Name: HoldCo Partners\nCurrent Price: 80\nSector: Conglomerate\nIndustry: Holding Company\nRevenue: 500000000\nOperating Income: 100000000\nEBITDA: 130000000\nNet Income: 200000000\nEPS: 4\nFree Cash Flow: 60000000\nCash: 800000000\nTotal Debt: 200000000\nDiluted Shares Outstanding: 50000000\nBusiness Model: holding company with listed and private subsidiaries"
+}

@@ -1,0 +1,43 @@
+{
+  "expectedStable": {
+    "methodologyVersion": "investment-analyst-brain-v1.1-canonical",
+    "schemaVersion": "analyst-brain-output-schema-1.1.0",
+    "ticker": "LOSS",
+    "classification": "High Growth — Transition to Profitability",
+    "selectedModels": [
+      "EV/Sales",
+      "Forward EV/Sales"
+    ],
+    "unsupportedSelected": [],
+    "recommendation": "HOLD",
+    "confidence": 76,
+    "investmentScore": 81,
+    "forecastYears": 5,
+    "scenarioProbabilityTotal": 1,
+    "probabilityWeightedFairValue": -10.538951041937636,
+    "finalFairValue": 63.06818181818181,
+    "monitoringCount": 7,
+    "validationValid": true
+  },
+  "actualStable": {
+    "methodologyVersion": "investment-analyst-brain-v1.1-canonical",
+    "schemaVersion": "analyst-brain-output-schema-1.1.0",
+    "ticker": "LOSS",
+    "classification": "High Growth — Transition to Profitability",
+    "selectedModels": [
+      "EV/Sales",
+      "Forward EV/Sales"
+    ],
+    "unsupportedSelected": [],
+    "recommendation": "HOLD",
+    "confidence": 76,
+    "investmentScore": 81,
+    "forecastYears": 5,
+    "scenarioProbabilityTotal": 1,
+    "probabilityWeightedFairValue": -10.538951041937636,
+    "finalFairValue": 63.06818181818181,
+    "monitoringCount": 7,
+    "validationValid": true
+  },
+  "diffCount": 0
+}

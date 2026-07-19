@@ -2,7 +2,13 @@
 node_modules/
 .env
 .env.*
+!.env.example
 dist/
 coverage/
 *.log
 tmp/
+*.zip
+raw-*/
+screenshots-*/
+version_9_evidence/
+investment-analyst-platform-v*/

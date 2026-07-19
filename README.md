@@ -1,6 +1,6 @@
-# AI Equity Research Platform V9.1
+# Franklin Research 10.0.0
 
-Version 9.1 keeps the deterministic investment engine, data platform, workflow, valuation methodology, ranking, comparison, approval system, and report-first experience stable. It corrects the Investment Analyst Brain so the platform uses a canonical deterministic methodology engine rather than wrapping the legacy valuation report.
+Franklin Research 10.0.0 keeps the deterministic investment engine, data platform, workflow, valuation methodology, ranking, comparison, approval system, and report-first experience stable. This release prepares the application for private production deployment as a full-stack Node.js app with server-side API configuration and private access protection.
 
 The app answers one question:
 
@@ -10,7 +10,7 @@ It is not a stock dashboard. A ticker search opens a Company Valuation Workspace
 
 Drafts and unapproved valuations do not appear in the final Evaluated Companies dashboard.
 
-Analyst Brain V9.1 runs:
+The Analyst Brain runs:
 
 ```text
 parse -> evidence normalization -> classification -> business quality -> yearly forecast -> model selection -> valuation -> recommendation -> monitoring -> report
@@ -37,25 +37,39 @@ It also supports deterministic ranking filters, 2-5 company comparison, and a se
 ## Run
 
 ```bash
-node server.mjs
+npm start
 ```
 
-Open the printed local URL.
+Required production environment variables:
 
-## GitHub Pages
+```text
+FMP_API_KEY
+OPENAI_API_KEY
+OPENAI_MODEL
+APP_ACCESS_PASSWORD
+APP_SESSION_SECRET
+APP_ORIGIN
+```
 
-After pushing to a GitHub repository:
+The server listens on `process.env.PORT` and defaults to `0.0.0.0`.
 
-1. Open the repository on GitHub.
-2. Go to `Settings -> Pages`.
-3. Set `Source` to `Deploy from a branch`.
-4. Select branch `main`.
-5. Select folder `/root`.
-6. Save.
+Health check:
 
-The deployed Pages site serves the static app from the repository root. A `/docs` copy is also kept as a fallback, but `/root` is the recommended setting.
+```text
+GET /api/health
+```
 
-Local development uses `server.mjs` as an API proxy. On GitHub Pages, the app falls back to browser-side Financial Modeling Prep requests when the user enters an FMP key in Settings. API keys are not committed to the repository and remain in the browser session.
+## Production Deployment
+
+Use a Node.js host such as Render or Railway. Do not deploy the API-dependent production build as static GitHub Pages only.
+
+The browser calls only the private backend:
+
+- `POST /api/search`
+- `POST /api/research-data`
+- `POST /api/parse-investment-analyst`
+
+API keys must be configured only as hosting environment variables. They are not requested in the UI, not sent by the browser, and not stored in browser storage.
 
 ## Documentation
 
@@ -74,6 +88,10 @@ Local development uses `server.mjs` as an API proxy. On GitHub Pages, the app fa
 - `VALUATION_OUTPUT_SCHEMA.json`: fixed JSON report schema
 - `AI_ANALYST_CONTRACT.md`: AI vs deterministic responsibility contract
 - `CHANGELOG.md`: version history
+- `PRODUCTION_DEPLOYMENT.md`: private deployment instructions and status
+- `PRODUCTION_SECURITY_REVIEW.md`: production security review
+- `PRODUCTION_TEST_RESULTS.md`: production and analytical test output
+- `IPHONE_INSTALLATION_GUIDE.md`: iPhone Safari installation guide
 - `TODO.md`: next development phases
 
 ## Source Structure
@@ -82,13 +100,13 @@ Local development uses `server.mjs` as an API proxy. On GitHub Pages, the app fa
 - `public/src/dataPlatform`: provider contracts, field provenance, timeline, and Data Health
 - `public/src/domain`: financial metric helpers, evaluated-company formulas, semantic colors, and formatting
 - `public/src/engines`: deterministic investment engines
-- `public/src/providers`: browser-side API client
+- `public/src/providers`: private backend API client
 - `public/src/research`: institutional research layer
 - `public/src/state`: local app state and persistence
 - `public/src/ui`: rendering and interaction components
 - `public/src/analystBrain`: canonical Analyst Brain engine, methodology loader, and schema validator
 - `public/src/valuationWorkflow`: fixed-methodology valuation workspace, parser, validation, report, approval, and export logic
-- `server.mjs`: local static server and FMP API proxy
+- `server.mjs`: production Node server, private auth, static app server, FMP/OpenAI proxy, and health endpoint
 
 ## Investment Rules
 

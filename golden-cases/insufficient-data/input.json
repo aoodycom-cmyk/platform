@@ -1,0 +1,10 @@
+{
+  "caseId": "insufficient-data",
+  "description": "Insufficient data",
+  "workspaceCompany": {
+    "ticker": "MISS",
+    "name": "Sparse Data Co",
+    "price": 100
+  },
+  "pastedBlock": "Ticker: MISS\nCompany Name: Sparse Data Co\nCurrent Price: 100\nSector: Technology\nUser Notes: investor has not supplied financial statements yet"
+}

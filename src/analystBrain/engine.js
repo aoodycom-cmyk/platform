@@ -61,16 +61,19 @@ const MODEL_BASE_WEIGHTS = {
   "Analyst Consensus": 0.06
 };
 
+const NO_SUPPORTED_MODEL_CLASSES = new Set(["Financial Institution", "REIT", "Holding Company"]);
+
 export function runAnalystBrainEngine(workspace, options = {}) {
   const language = options.language || "ar";
+  const overrides = options.overrides || workspace?.overrides || {};
   const evidence = normalizeEvidence(workspace);
   const valuationDate = new Date().toISOString().slice(0, 10);
   const classification = classifyCompany(evidence, language);
   const businessQuality = scoreBusinessQuality(evidence, classification, language);
-  const forecastPolicy = buildForecastPolicy(evidence, classification, language);
+  const forecastPolicy = buildForecastPolicy(evidence, classification, language, overrides);
   const scenarios = buildScenarios(evidence, classification, forecastPolicy, language);
   const modelSelection = selectAndValueModels(evidence, classification, forecastPolicy, scenarios, language);
-  const dataQuality = buildDataQuality(evidence, modelSelection);
+  const dataQuality = buildDataQuality(evidence, classification, forecastPolicy, scenarios, modelSelection);
   const recommendation = buildRecommendation({ evidence, classification, businessQuality, forecastPolicy, scenarios, modelSelection, dataQuality, language });
   const monitoringChecklist = buildMonitoringChecklist(evidence, classification, forecastPolicy, language);
   const report = buildReport({
@@ -140,15 +143,15 @@ function classifyCompany(evidence, language) {
   const evidenceItems = [];
   let classification = "Mature Cash Generator";
 
-  if (/bank|insurance|financial|asset management|broker/.test(`${sector} ${industry}`)) {
-    classification = "Financial Institution";
-    evidenceItems.push("Sector/industry indicates a financial institution.");
-  } else if (/reit|real estate investment trust/.test(`${sector} ${industry}`)) {
+  if (/reit|real estate investment trust/.test(`${sector} ${industry}`)) {
     classification = "REIT";
     evidenceItems.push("Industry indicates REIT economics.");
   } else if (/holding|conglomerate/.test(`${industry} ${notes}`)) {
     classification = "Holding Company";
     evidenceItems.push("Business description indicates holding-company or conglomerate structure.");
+  } else if (/bank|insurance|financial|asset management|broker/.test(`${sector} ${industry}`)) {
+    classification = "Financial Institution";
+    evidenceItems.push("Sector/industry indicates a financial institution.");
   } else if (/commodity|oil|gas|mining|metals|energy/.test(`${sector} ${industry}`)) {
     classification = "Commodity";
     evidenceItems.push("Sector/industry indicates commodity exposure.");
@@ -183,7 +186,6 @@ function classifyCompany(evidence, language) {
     evidence: evidenceItems,
     suitableModels,
     excludedModels,
-    unsupportedModels: UNSUPPORTED_MODELS.map((method) => ({ method, why: "Unsupported in Version 9 until deterministic implementation and required inputs are added." })),
     confidence,
     reason: evidenceItems.join(" ")
   };
@@ -191,11 +193,15 @@ function classifyCompany(evidence, language) {
 
 function suitableModelsFor(classification, v) {
   const models = [];
-  if (!["Financial Institution", "REIT", "Holding Company"].includes(classification) && positive(v.freeCashFlow) && positive(v.dilutedShares)) models.push("DCF", "Price/FCF");
+  if (NO_SUPPORTED_MODEL_CLASSES.has(classification)) return models;
+  if (positive(v.freeCashFlow) && positive(v.dilutedShares)) models.push("DCF", "Price/FCF");
   if (positive(v.eps)) models.push("P/E");
   if (positive(v.eps) && classification === "High Growth — Profitable") models.push("PEG");
-  if (positive(v.ebitda) && positive(v.dilutedShares) && !["Financial Institution", "REIT"].includes(classification)) models.push("EV/EBITDA");
-  if (positive(v.revenue) && positive(v.dilutedShares) && !["Financial Institution", "REIT", "Holding Company"].includes(classification)) models.push(classification.includes("Transition") ? "Forward EV/Sales" : "EV/Sales");
+  if (positive(v.ebitda) && positive(v.dilutedShares)) models.push("EV/EBITDA");
+  if (positive(v.revenue) && positive(v.dilutedShares)) {
+    models.push("EV/Sales");
+    if (classification.includes("Transition") || classification === "Early Stage / Pre-Profit") models.push("Forward EV/Sales");
+  }
   if (positive(v.morningstarFairValue)) models.push("Morningstar Fair Value");
   if (positive(v.analystTargetAverage)) models.push("Analyst Consensus");
   return [...new Set(models)];
@@ -232,19 +238,27 @@ function scoreBusinessQuality(evidence, classification, language) {
   };
 }
 
-function buildForecastPolicy(evidence, classification, language) {
+function buildForecastPolicy(evidence, classification, language, overrides = {}) {
   const v = evidence.values;
   const defaults = CLASS_DEFAULTS[classification.classification] || CLASS_DEFAULTS["Mature Cash Generator"];
-  const revenueGrowthStart = selectRevenueGrowth(v, defaults);
-  const marginStart = selectOperatingMargin(v, defaults);
-  const taxRate = selectAssumption(v.taxRate, 0.21, "Tax Rate", "Methodology default", 0.55);
-  const daToRevenue = selectDaToRevenue(v);
-  const capexToRevenue = selectCapex(v, defaults, language);
-  const workingCapitalToRevenueGrowth = selectAssumption(v.workingCapitalToRevenueGrowth, 0.01, "Working Capital", "Methodology default", 0.5);
-  const dilution = selectDilution(v, classification.classification);
-  const wacc = buildWacc(evidence, classification, defaults, language);
-  const yearlyForecast = buildYearlyForecast({
+  const revenueGrowthStart = applyAssumptionOverride(selectRevenueGrowth(v, defaults), overrides, "revenueGrowth", -0.15, 0.35);
+  const marginStart = applyMarginOverride(selectOperatingMargin(v, defaults), overrides);
+  const taxRate = applyAssumptionOverride(selectAssumption(v.taxRate, 0.21, "Tax Rate", "Methodology default", 0.55), overrides, "taxRate", 0, 0.35);
+  const daToRevenue = applyAssumptionOverride(selectDaToRevenue(v), overrides, "daToRevenue", 0, 0.15);
+  const capexToRevenue = applyAssumptionOverride(selectCapex(v, defaults, language), overrides, "capexToRevenue", 0.005, 0.25);
+  const workingCapitalToRevenueGrowth = applyAssumptionOverride(selectAssumption(v.workingCapitalToRevenueGrowth, 0.01, "Working Capital", "Methodology default", 0.5), overrides, "workingCapitalToRevenueGrowth", -0.05, 0.08);
+  const dilution = applyAssumptionOverride(selectDilution(v, classification.classification), overrides, "dilution", -0.08, 0.08);
+  const wacc = buildWacc(evidence, classification, defaults, language, overrides);
+  const terminalGrowth = applyAssumptionOverride(
+    selectAssumption(defaults.terminalGrowth, defaults.terminalGrowth, "Terminal Growth", `Classification default: ${classification.classification}`, 0.62),
+    overrides,
+    "terminalGrowth",
+    0.005,
+    Math.min(0.04, wacc.finalWacc - 0.015)
+  );
+  const yearlyAssumptions = buildYearlyAssumptions({
     v,
+    classification: classification.classification,
     revenueGrowthStart,
     marginStart,
     taxRate,
@@ -252,7 +266,12 @@ function buildForecastPolicy(evidence, classification, language) {
     capexToRevenue,
     workingCapitalToRevenueGrowth,
     dilution,
-    terminalGrowth: defaults.terminalGrowth
+    terminalGrowth,
+    overrides
+  });
+  const yearlyForecast = buildYearlyForecast({
+    v,
+    yearlyAssumptions
   });
   const confidence = Math.round(clamp(35
     + revenueGrowthStart.confidence * 18
@@ -262,6 +281,7 @@ function buildForecastPolicy(evidence, classification, language) {
     + (positive(v.dilutedShares) ? 8 : 0), 20, 94));
   return {
     sourcePriority: SOURCE_PRIORITY,
+    yearlyAssumptions,
     yearlyForecast,
     revenueGrowth: revenueGrowthStart,
     operatingMargin: marginStart,
@@ -270,14 +290,14 @@ function buildForecastPolicy(evidence, classification, language) {
     capex: capexToRevenue,
     workingCapital: workingCapitalToRevenueGrowth,
     dilution,
-    terminalGrowth: selectAssumption(defaults.terminalGrowth, defaults.terminalGrowth, "Terminal Growth", `Classification default: ${classification.classification}`, 0.62),
+    terminalGrowth,
     wacc,
     sensitivity: buildWaccSensitivity(wacc.finalWacc),
     confidence
   };
 }
 
-function buildWacc(evidence, classification, defaults, language) {
+function buildWacc(evidence, classification, defaults, language, overrides = {}) {
   const v = evidence.values;
   const [low, high] = defaults.wacc;
   let adjustment = 0;
@@ -311,7 +331,9 @@ function buildWacc(evidence, classification, defaults, language) {
     reasons.push("moat evidence");
   }
   const midpoint = (low + high) / 2;
-  const finalWacc = clamp(midpoint + adjustment, low, high);
+  const overrideWacc = overrideNumber(overrides, "wacc");
+  if (Number.isFinite(overrideWacc)) reasons.push("investor WACC override bounded by methodology guardrail");
+  const finalWacc = clamp(Number.isFinite(overrideWacc) ? overrideWacc : midpoint + adjustment, low, high);
   const confidence = Math.round(clamp(72 + (positive(v.marketCap) ? 8 : -8) + (positive(v.totalDebt) || positive(v.cash) ? 6 : -6), 35, 92));
   return {
     riskFreeRate: 0.045,
@@ -334,24 +356,52 @@ function buildWacc(evidence, classification, defaults, language) {
   };
 }
 
-function buildYearlyForecast({ v, revenueGrowthStart, marginStart, taxRate, daToRevenue, capexToRevenue, workingCapitalToRevenueGrowth, dilution, terminalGrowth }) {
+function buildYearlyAssumptions({ classification, revenueGrowthStart, marginStart, taxRate, daToRevenue, capexToRevenue, workingCapitalToRevenueGrowth, dilution, terminalGrowth, overrides = {} }) {
+  const revenueGrowthPath = assumptionPath(revenueGrowthStart.value, terminalGrowth.value, -0.15, 0.35, 0.28);
+  const marginPath = assumptionPath(marginStart.value, marginStart.target, -0.2, 0.45, classification === "High Growth — Transition to Profitability" ? 0.34 : 0.26);
+  const rows = [];
+  for (let year = 1; year <= 5; year += 1) {
+    rows.push({
+      year,
+      revenueGrowth: yearAssumption(year, "revenueGrowth", revenueGrowthPath[year - 1], revenueGrowthStart, overrides, -0.15, 0.35),
+      operatingMargin: yearAssumption(year, "operatingMargin", marginPath[year - 1], marginStart, overrides, -0.2, 0.45),
+      taxRate: yearAssumption(year, "taxRate", taxRate.value, taxRate, overrides, 0, 0.35),
+      daToRevenue: yearAssumption(year, "daToRevenue", daToRevenue.value, daToRevenue, overrides, 0, 0.15),
+      capexToRevenue: yearAssumption(year, "capexToRevenue", capexToRevenue.value, capexToRevenue, overrides, 0.005, 0.25),
+      workingCapitalToRevenueGrowth: yearAssumption(year, "workingCapitalToRevenueGrowth", workingCapitalToRevenueGrowth.value, workingCapitalToRevenueGrowth, overrides, -0.05, 0.08),
+      dilution: yearAssumption(year, "dilution", dilution.value, dilution, overrides, -0.08, 0.08)
+    });
+  }
+  return rows;
+}
+
+function buildYearlyForecast({ v, yearlyAssumptions }) {
   const rows = [];
   let revenue = positive(v.revenue) ? v.revenue : 0;
   let priorFcf = positive(v.freeCashFlow) ? v.freeCashFlow : null;
   let shares = positive(v.dilutedShares) ? v.dilutedShares : null;
-  for (let year = 1; year <= 5; year += 1) {
-    const fade = (year - 1) / 4;
-    const revenueGrowth = clamp(revenueGrowthStart.value * (1 - fade) + terminalGrowth * fade, -0.15, 0.35);
-    const operatingMargin = clamp(marginStart.value + (marginStart.target - marginStart.value) * fade, -0.2, 0.45);
+  for (const assumptionRow of yearlyAssumptions) {
+    const year = assumptionRow.year;
+    const revenueGrowth = assumptionRow.revenueGrowth.value;
+    const operatingMargin = assumptionRow.operatingMargin.value;
     const previousRevenue = revenue;
     revenue = revenue * (1 + revenueGrowth);
     const operatingIncome = revenue * operatingMargin;
-    const tax = Math.max(0, operatingIncome * taxRate.value);
+    const tax = Math.max(0, operatingIncome * assumptionRow.taxRate.value);
     const nopat = operatingIncome - tax;
-    const depreciationAmortization = revenue * daToRevenue.value;
-    const capex = revenue * capexToRevenue.value;
-    const workingCapitalChange = Math.max(0, revenue - previousRevenue) * workingCapitalToRevenueGrowth.value;
-    if (shares) shares *= 1 + dilution.value;
+    const depreciationAmortization = revenue * assumptionRow.daToRevenue.value;
+    const capex = revenue * assumptionRow.capexToRevenue.value;
+    const workingCapitalChange = Math.max(0, revenue - previousRevenue) * assumptionRow.workingCapitalToRevenueGrowth.value;
+    if (shares) shares *= 1 + assumptionRow.dilution.value;
+    const rowConfidence = Math.min(
+      assumptionRow.revenueGrowth.confidence,
+      assumptionRow.operatingMargin.confidence,
+      assumptionRow.taxRate.confidence,
+      assumptionRow.daToRevenue.confidence,
+      assumptionRow.capexToRevenue.confidence,
+      assumptionRow.workingCapitalToRevenueGrowth.confidence,
+      assumptionRow.dilution.confidence
+    );
     const freeCashFlow = nopat + depreciationAmortization - capex - workingCapitalChange;
     rows.push({
       year,
@@ -359,21 +409,24 @@ function buildYearlyForecast({ v, revenueGrowthStart, marginStart, taxRate, daTo
       revenueGrowth,
       operatingMargin,
       operatingIncome,
-      taxRate: taxRate.value,
+      taxRate: assumptionRow.taxRate.value,
       tax,
       nopat,
-      daToRevenue: daToRevenue.value,
+      daToRevenue: assumptionRow.daToRevenue.value,
       depreciationAmortization,
-      capexToRevenue: capexToRevenue.value,
+      capexToRevenue: assumptionRow.capexToRevenue.value,
       capex,
-      workingCapitalToRevenueGrowth: workingCapitalToRevenueGrowth.value,
+      workingCapitalToRevenueGrowth: assumptionRow.workingCapitalToRevenueGrowth.value,
       workingCapitalChange,
-      dilution: dilution.value,
+      dilution: assumptionRow.dilution.value,
       dilutedShares: shares,
       freeCashFlow,
-      fcfGrowth: priorFcf ? (freeCashFlow - priorFcf) / Math.abs(priorFcf) : null,
-      source: revenueGrowthStart.source,
-      confidence: Math.min(revenueGrowthStart.confidence, marginStart.confidence, capexToRevenue.confidence)
+      fcfGrowth: priorFcf && priorFcf !== 0 ? (freeCashFlow - priorFcf) / Math.abs(priorFcf) : null,
+      assumptionSources: Object.fromEntries(Object.entries(assumptionRow)
+        .filter(([key]) => key !== "year")
+        .map(([key, item]) => [key, { source: item.source, confidence: item.confidence }])),
+      source: yearlySourceSummary(assumptionRow),
+      confidence: rowConfidence
     });
     priorFcf = freeCashFlow;
   }
@@ -415,17 +468,24 @@ function buildScenarios(evidence, classification, forecastPolicy, language) {
 function selectAndValueModels(evidence, classification, forecastPolicy, scenarios, language) {
   const v = evidence.values;
   const excludedModels = [];
-  const unsupportedModels = classification.unsupportedModels;
+  const unsupportedModels = [];
   const candidates = [];
-  addModel(candidates, excludedModels, valueDcf(v, classification, forecastPolicy, scenarios.Base, language));
-  addModel(candidates, excludedModels, valuePe(v, classification, language));
-  addModel(candidates, excludedModels, valuePeg(v, classification, forecastPolicy, language));
-  addModel(candidates, excludedModels, valueEvEbitda(v, classification, language));
-  addModel(candidates, excludedModels, valueEvSales(v, classification, language));
-  addModel(candidates, excludedModels, valueForwardEvSales(v, classification, forecastPolicy, language));
-  addModel(candidates, excludedModels, valuePriceFcf(v, classification, language));
-  addModel(candidates, excludedModels, externalReference("Morningstar Fair Value", v.morningstarFairValue, v.currentPrice, language));
-  addModel(candidates, excludedModels, externalReference("Analyst Consensus", v.analystTargetAverage, v.currentPrice, language));
+  const builders = {
+    DCF: () => valueDcf(v, classification, forecastPolicy, scenarios.Base, language),
+    "P/E": () => valuePe(v, classification, language),
+    PEG: () => valuePeg(v, classification, forecastPolicy, language),
+    "EV/EBITDA": () => valueEvEbitda(v, classification, language),
+    "EV/Sales": () => valueEvSales(v, classification, language),
+    "Forward EV/Sales": () => valueForwardEvSales(v, classification, forecastPolicy, language),
+    "Price/FCF": () => valuePriceFcf(v, classification, language),
+    "Morningstar Fair Value": () => externalReference("Morningstar Fair Value", v.morningstarFairValue, v.currentPrice, language),
+    "Analyst Consensus": () => externalReference("Analyst Consensus", v.analystTargetAverage, v.currentPrice, language)
+  };
+
+  for (const method of classification.suitableModels) {
+    const build = builders[method];
+    if (build) addModel(candidates, excludedModels, build());
+  }
 
   const selectedModels = applyModelWeights(candidates);
   const fairValue = weightedAverage(selectedModels.map((model) => ({
@@ -440,6 +500,12 @@ function selectAndValueModels(evidence, classification, forecastPolicy, scenario
   };
   return {
     selectedModels,
+    modelPolicyStatus: selectedModels.length
+      ? "SUPPORTED_MODELS_SELECTED"
+      : NO_SUPPORTED_MODEL_CLASSES.has(classification.classification)
+        ? "NO_SUPPORTED_MODEL"
+        : "NO_VALID_MODEL",
+    weightedFairValue: fairValue,
     excludedModels: [...excludedModels, ...classification.excludedModels],
     unsupportedModels,
     fairValue,
@@ -448,20 +514,101 @@ function selectAndValueModels(evidence, classification, forecastPolicy, scenario
   };
 }
 
-function buildDataQuality(evidence, modelSelection) {
+function buildDataQuality(evidence, classification, forecastPolicy, scenarios, modelSelection) {
   const required = ["ticker", "companyName", "currentPrice"];
   const financialCore = ["revenue", "dilutedShares", "cash", "totalDebt"];
   const confirmedRequired = required.filter((key) => evidence.present.has(key)).length;
   const confirmedFinancial = financialCore.filter((key) => evidence.present.has(key)).length;
   const selectedModels = modelSelection.selectedModels.length;
-  const completeness = Math.round(clamp(confirmedRequired / required.length * 35 + confirmedFinancial / financialCore.length * 25 + Math.min(25, selectedModels * 6) + dataCoverage(evidence) * 15, 0, 100));
+  const conflictingData = detectConflicts(evidence, classification, forecastPolicy, scenarios, modelSelection);
+  const completeness = Math.round(clamp(confirmedRequired / required.length * 35 + confirmedFinancial / financialCore.length * 25 + Math.min(25, selectedModels * 6) + dataCoverage(evidence) * 15 - conflictingData.length * 6, 0, 100));
   return {
     completeness,
     confirmedSources: Object.entries(evidence.sources).map(([fieldId, source]) => `${fieldId}: ${source.source}`).slice(0, 20),
     missingData: [...required, ...financialCore].filter((key) => !evidence.present.has(key)),
-    conflictingData: [],
-    importantLimitations: modelSelection.excludedModels.map((item) => `${item.method}: ${item.why}`).slice(0, 10)
+    conflictingData,
+    importantLimitations: [
+      modelSelection.modelPolicyStatus === "NO_SUPPORTED_MODEL" ? `No supported valuation model is implemented for ${classification.classification}.` : "",
+      ...modelSelection.excludedModels.map((item) => `${item.method}: ${item.why}`)
+    ].filter(Boolean).slice(0, 10)
   };
+}
+
+function detectConflicts(evidence, classification, forecastPolicy, scenarios, modelSelection) {
+  const v = evidence.values;
+  const conflicts = [];
+  const add = (code, message, fields = []) => conflicts.push({ code, message, fields });
+  const grossMargin = safeDiv(v.grossProfit, v.revenue);
+  const operatingMargin = safeDiv(v.operatingIncome, v.revenue);
+  const fcfMargin = safeDiv(v.freeCashFlow, v.revenue);
+
+  if (positive(v.revenueEstimates) && positive(v.revenue) && v.revenueEstimates < v.revenue && (forecastPolicy.yearlyForecast[0]?.revenueGrowth || 0) > 0) {
+    add("REVENUE_GROWTH_CONFLICT", "Revenue estimates decline while the Year 1 Revenue Growth assumption is positive.", ["revenue", "revenueEstimates", "revenueGrowth"]);
+  }
+  if (negative(v.freeCashFlow) && Number.isFinite(fcfMargin) && fcfMargin > 0) {
+    add("NEGATIVE_FCF_MARGIN_CONFLICT", "Free Cash Flow is negative while FCF Margin is positive.", ["freeCashFlow", "revenue"]);
+  }
+  if (Number.isFinite(grossMargin) && Number.isFinite(operatingMargin) && operatingMargin > grossMargin + 0.0001) {
+    add("IMPOSSIBLE_MARGIN_STACK", "Operating Margin is higher than Gross Margin.", ["grossProfit", "operatingIncome", "revenue"]);
+  }
+  if (Number.isFinite(grossMargin) && (grossMargin > 1.05 || grossMargin < -1)) {
+    add("IMPOSSIBLE_GROSS_MARGIN", "Gross Margin is outside a plausible range.", ["grossProfit", "revenue"]);
+  }
+  if (Number.isFinite(operatingMargin) && (operatingMargin > 0.75 || operatingMargin < -1)) {
+    add("IMPOSSIBLE_OPERATING_MARGIN", "Operating Margin is outside a plausible range.", ["operatingIncome", "revenue"]);
+  }
+
+  const forecast = forecastPolicy.yearlyForecast || [];
+  for (let i = 1; i < forecast.length; i += 1) {
+    const priorShares = forecast[i - 1].dilutedShares;
+    const currentShares = forecast[i].dilutedShares;
+    if (positive(forecast[i].dilution) && Number.isFinite(priorShares) && Number.isFinite(currentShares) && currentShares < priorShares) {
+      add("SHARE_COUNT_DILUTION_CONFLICT", "Diluted Shares decline while Dilution is positive.", ["dilutedShares", "dilution"]);
+      break;
+    }
+  }
+
+  if (evidence.present.has("marketCap") && positive(v.currentPrice) && positive(v.dilutedShares) && positive(v.marketCap)) {
+    const impliedMarketCap = v.currentPrice * v.dilutedShares;
+    if (relativeDifference(impliedMarketCap, v.marketCap) > 0.25) {
+      add("MARKET_CAP_UNIT_CONFLICT", "Market Cap does not match Current Price x Diluted Shares; check millions vs billions.", ["currentPrice", "dilutedShares", "marketCap"]);
+    }
+  }
+  if (evidence.present.has("enterpriseValue") && positive(v.enterpriseValue) && positive(v.marketCap)) {
+    const impliedEnterpriseValue = v.marketCap + (v.totalDebt || 0) - (v.cash || 0);
+    if (positive(impliedEnterpriseValue) && relativeDifference(impliedEnterpriseValue, v.enterpriseValue) > 0.25) {
+      add("ENTERPRISE_VALUE_CONFLICT", "Enterprise Value does not reconcile with Market Cap plus debt minus cash.", ["enterpriseValue", "marketCap", "totalDebt", "cash"]);
+    }
+  }
+
+  const currencies = sourceCurrencyTokens(evidence);
+  if (currencies.size > 1 || (v.currency && currencies.size === 1 && !currencies.has(String(v.currency).toUpperCase()))) {
+    add("CURRENCY_CONFLICT", "Multiple currencies appear in the supplied evidence.", ["currency"]);
+  }
+
+  const probabilityTotal = ["Conservative", "Base", "Optimistic"].reduce((sum, key) => sum + (toNumber(scenarios[key]?.probability) || 0), 0);
+  if (Math.abs(probabilityTotal - 1) > 0.0001) {
+    add("SCENARIO_PROBABILITY_CONFLICT", "Bear/Base/Bull probabilities do not total 100%.", ["scenarios"]);
+  }
+
+  const fairValues = ["Conservative", "Base", "Optimistic"].map((key) => toNumber(scenarios[key]?.fairValue));
+  if (fairValues.every(Number.isFinite) && !(fairValues[0] <= fairValues[1] && fairValues[1] <= fairValues[2])) {
+    add("SCENARIO_ORDERING_CONFLICT", "Scenario fair values are not ordered Conservative <= Base <= Optimistic.", ["scenarios"]);
+  }
+
+  const selected = modelSelection.selectedModels || [];
+  if (negative(v.freeCashFlow) && selected.some((model) => model.method === "DCF" || model.method === "Price/FCF")) {
+    add("NEGATIVE_FCF_MODEL_CONFLICT", "Negative FCF cannot support DCF or Price/FCF in the implemented engine.", ["freeCashFlow", "modelSelection"]);
+  }
+  const selectedValues = selected.map((model) => toNumber(model.fairValue)).filter((value) => Number.isFinite(value) && value > 0).sort((a, b) => a - b);
+  if (selectedValues.length >= 3 && selectedValues[selectedValues.length - 1] / selectedValues[0] > 3) {
+    add("VALUATION_MODEL_CONFLICT", "Selected valuation models imply a wider than 3x spread in fair value.", ["modelSelection"]);
+  }
+  if (NO_SUPPORTED_MODEL_CLASSES.has(classification.classification) && selected.length) {
+    add("UNSUPPORTED_CLASS_MODEL_CONFLICT", `${classification.classification} must not select a valuation model until its engine is implemented.`, ["classification", "modelSelection"]);
+  }
+
+  return conflicts;
 }
 
 function buildRecommendation({ evidence, businessQuality, forecastPolicy, scenarios, modelSelection, dataQuality, language }) {
@@ -476,29 +623,51 @@ function buildRecommendation({ evidence, businessQuality, forecastPolicy, scenar
   const netCash = (v.cash || 0) - (v.totalDebt || 0);
   const dilution = forecastPolicy.dilution.value;
   const riskScore = riskScoreFrom(evidence, forecastPolicy, scenarios);
+  const confidence = Math.round(clamp(dataQuality.completeness * 0.3 + businessQuality.confidence * 0.18 + forecastPolicy.confidence * 0.22 + (100 - riskScore) * 0.15 + (modelSelection.selectedModels.length * 5), 15, 94));
   const gates = {
     hasPrice: positive(currentPrice),
     hasValuation: positive(fairValue),
     hasInternalValuation: modelSelection.selectedModels.some((model) => model.role !== "external_reference"),
+    modelPolicySupported: modelSelection.modelPolicyStatus === "SUPPORTED_MODELS_SELECTED",
+    scenarioFairValuePositive: positive(rangeFairValue),
     dataQuality: dataQuality.completeness >= 60,
+    noCriticalConflicts: dataQuality.conflictingData.length === 0,
     businessQuality: businessQuality.score >= 55,
     forecastConfidence: forecastPolicy.confidence >= 55,
     riskAcceptable: riskScore <= 68,
     balanceSheetAcceptable: netCash >= 0 || safeDiv(v.totalDebt, v.ebitda) <= 3,
     dilutionAcceptable: dilution <= 0.03,
-    scenarioAsymmetryPositive: Number.isFinite(optimisticUpside) && Number.isFinite(conservativeUpside) ? Math.abs(optimisticUpside) >= Math.abs(conservativeUpside) * 0.8 : true
+    scenarioAsymmetryPositive: Number.isFinite(optimisticUpside) && Number.isFinite(conservativeUpside) ? Math.abs(optimisticUpside) >= Math.abs(conservativeUpside) * 0.8 : true,
+    marginOfSafety: Number.isFinite(upside) && upside >= 0.22,
+    confidenceAcceptable: confidence >= 55
   };
+  const mandatoryBuyGates = [
+    "hasPrice",
+    "hasValuation",
+    "hasInternalValuation",
+    "modelPolicySupported",
+    "scenarioFairValuePositive",
+    "dataQuality",
+    "noCriticalConflicts",
+    "businessQuality",
+    "forecastConfidence",
+    "riskAcceptable",
+    "balanceSheetAcceptable",
+    "dilutionAcceptable",
+    "scenarioAsymmetryPositive",
+    "marginOfSafety",
+    "confidenceAcceptable"
+  ];
   let decision = "HOLD";
   let status = "ACTIONABLE";
-  if (!gates.hasPrice || !gates.hasValuation || !gates.hasInternalValuation || modelSelection.selectedModels.length === 0 || dataQuality.completeness < 45) {
+  if (!gates.hasPrice || !gates.hasValuation || !gates.hasInternalValuation || modelSelection.selectedModels.length === 0 || dataQuality.completeness < 45 || modelSelection.modelPolicyStatus === "NO_SUPPORTED_MODEL") {
     decision = "INSUFFICIENT_DATA";
     status = "INSUFFICIENT_DATA";
   } else if (upside <= -0.15 || businessQuality.score < 40 || riskScore > 78) {
     decision = "SELL";
-  } else if (upside >= 0.22 && gates.businessQuality && gates.forecastConfidence && gates.riskAcceptable && gates.dilutionAcceptable && gates.scenarioAsymmetryPositive) {
+  } else if (mandatoryBuyGates.every((gate) => gates[gate])) {
     decision = "BUY";
   }
-  const confidence = Math.round(clamp(dataQuality.completeness * 0.3 + businessQuality.confidence * 0.18 + forecastPolicy.confidence * 0.22 + (100 - riskScore) * 0.15 + (modelSelection.selectedModels.length * 5), 15, 94));
   const upsideScore = Number.isFinite(upside) ? clamp(50 + upside * 150, 0, 100) : 25;
   const investmentScore = Math.round(clamp(upsideScore * 0.38 + businessQuality.score * 0.22 + dataQuality.completeness * 0.18 + forecastPolicy.confidence * 0.12 + (100 - riskScore) * 0.1, 0, 100));
   return {
@@ -512,6 +681,7 @@ function buildRecommendation({ evidence, businessQuality, forecastPolicy, scenar
     optimisticUpside,
     riskScore,
     policyGates: gates,
+    mandatoryBuyGates,
     why: recommendationWhy(decision, upside, businessQuality, forecastPolicy, dataQuality, riskScore, language),
     whyNot: recommendationWhyNot(decision, gates, language)
   };
@@ -572,7 +742,8 @@ function buildReport({ workspace, evidence, classification, businessQuality, for
     dataLimitations: dataQuality.missingData,
     biggestAssumption: biggestAssumption(forecastPolicy, language),
     whatChangesTheDecision: changeTriggers.items,
-    policyGates: recommendation.policyGates
+    policyGates: recommendation.policyGates,
+    mandatoryBuyGates: recommendation.mandatoryBuyGates
   };
   const report = {
     schemaVersion: "analyst-brain-output-schema-1.1.0",
@@ -624,13 +795,14 @@ function buildReport({ workspace, evidence, classification, businessQuality, for
       classification: classification.classification,
       reason: classification.reason,
       suitableValuationModels: classification.suitableModels,
-      excludedModels: [...classification.excludedModels, ...classification.unsupportedModels]
+      excludedModels: classification.excludedModels
     },
     businessQuality,
     financialPerformanceReview: financialPerformanceReview(evidence, language),
     modelSelection,
     forecastAssumptions: {
       sourcePriority: SOURCE_PRIORITY,
+      yearlyAssumptions: forecastPolicy.yearlyAssumptions,
       yearlyForecast: forecastPolicy.yearlyForecast,
       wacc: forecastPolicy.wacc,
       sensitivity: forecastPolicy.sensitivity,
@@ -688,26 +860,89 @@ export function validateCanonicalReport(report) {
   const scenarioTotal = ["Conservative", "Base", "Optimistic"].reduce((sum, key) => sum + (toNumber(report.scenarios?.[key]?.probability) || 0), 0);
   if (Math.abs(scenarioTotal - 1) > 0.0001) errors.push("Conservative + Base + Optimistic probabilities must total 100%.");
   const models = report.modelSelection?.selectedModels || [];
+  if (report.modelSelection?.modelPolicyStatus === "NO_SUPPORTED_MODEL" && models.length) errors.push("NO_SUPPORTED_MODEL status cannot include selected models.");
   for (const model of models) {
     if (!SUPPORTED_MODELS.includes(model.method)) errors.push(`Unsupported selected model: ${model.method}.`);
     if (!Number.isFinite(toNumber(model.fairValue))) errors.push(`Selected model lacks fair value: ${model.method}.`);
     if (!model.source) errors.push(`Selected model lacks source: ${model.method}.`);
     if (!model.assumptions) errors.push(`Selected model lacks assumptions: ${model.method}.`);
     if ((toNumber(model.weight) || 0) > 0.450001 && !model.overrideReason) errors.push(`Model weight exceeds 45% without override: ${model.method}.`);
+    const audited = auditModelFairValue(model);
+    if (Number.isFinite(audited) && !approximatelyEqual(audited, toNumber(model.fairValue), Math.max(0.01, Math.abs(audited) * 0.000001))) {
+      errors.push(`Selected model fair value is inconsistent with assumptions: ${model.method}.`);
+    }
+    if (["DCF", "Price/FCF"].includes(model.method) && !positive(model.assumptions?.currentFreeCashFlow ?? model.assumptions?.freeCashFlow)) {
+      errors.push(`${model.method} requires positive current Free Cash Flow.`);
+    }
   }
   const externalWeight = models.filter((model) => model.role === "external_reference").reduce((sum, model) => sum + (toNumber(model.weight) || 0), 0);
   if (externalWeight > 0.250001) errors.push("External references exceed 25% combined weight.");
+  const weightTotal = models.reduce((sum, model) => sum + (toNumber(model.weight) || 0), 0);
+  if (weightTotal > 1.0001) errors.push("Selected model weights cannot exceed 100%.");
+  const weightedFairValue = weightedAverage(models.map((model) => ({
+    value: model.fairValue,
+    weight: model.weight * model.confidence
+  })));
+  if (models.length && Number.isFinite(weightedFairValue) && !approximatelyEqual(weightedFairValue, report.modelSelection?.fairValue, 0.01)) errors.push("Weighted fair value does not match selected model weights.");
   const forecast = report.forecastAssumptions?.yearlyForecast || [];
   if (forecast.length !== 5) errors.push("Year 1-5 forecast is required.");
   for (const row of forecast) {
     for (const key of ["year", "revenueGrowth", "revenue", "operatingMargin", "taxRate", "daToRevenue", "capexToRevenue", "workingCapitalToRevenueGrowth", "dilution", "freeCashFlow"]) {
       if (!Number.isFinite(toNumber(row[key]))) errors.push(`Forecast year ${row.year || "?"} missing ${key}.`);
     }
+    if (!row.assumptionSources) errors.push(`Forecast year ${row.year || "?"} missing assumption sources.`);
+  }
+  const wacc = report.forecastAssumptions?.wacc;
+  if (wacc?.guardrail?.length === 2) {
+    const [low, high] = wacc.guardrail.map(toNumber);
+    const finalWacc = toNumber(wacc.finalWacc);
+    if (Number.isFinite(low) && Number.isFinite(high) && (finalWacc < low - 0.000001 || finalWacc > high + 0.000001)) {
+      errors.push("WACC is outside methodology guardrail.");
+    }
+  } else {
+    errors.push("WACC guardrail is required.");
+  }
+  const scenarioValues = ["Conservative", "Base", "Optimistic"].map((key) => toNumber(report.scenarios?.[key]?.fairValue));
+  if (scenarioValues.every(Number.isFinite) && !(scenarioValues[0] <= scenarioValues[1] && scenarioValues[1] <= scenarioValues[2])) {
+    errors.push("Scenario fair values must be ordered Conservative <= Base <= Optimistic.");
+  }
+  if (report.company?.currency && report.companyAndValuationDate?.currency && report.company.currency !== report.companyAndValuationDate.currency) {
+    errors.push("Company currency and valuation currency must match.");
+  }
+  const criticalConflicts = report.dataQuality?.conflictingData || [];
+  if (criticalConflicts.some((item) => /UNIT|CURRENCY|PROBABILITY|ORDERING|MODEL/i.test(item.code || ""))) {
+    errors.push("Critical data conflicts must be resolved before validation.");
   }
   if (report.scenarios?.Exceptional?.included === false && Number.isFinite(toNumber(report.scenarios.Exceptional.fairValue))) errors.push("Exceptional fair value must be omitted when not supported.");
   if (!["BUY", "HOLD", "SELL", "INSUFFICIENT_DATA"].includes(report.finalDecision?.decision)) errors.push("Invalid recommendation.");
   if ((report.monitoringChecklist || []).length < 5 || (report.monitoringChecklist || []).length > 8) errors.push("Monitoring checklist must contain 5-8 items.");
   return { valid: errors.length === 0, errors };
+}
+
+function auditModelFairValue(model) {
+  const a = model.assumptions || {};
+  if (model.method === "DCF") return dcfFairValuePerShare({
+    forecast: a.forecast,
+    terminalGrowth: toNumber(a.terminalGrowth),
+    wacc: toNumber(a.wacc),
+    cash: toNumber(a.cash) || 0,
+    debt: toNumber(a.debt) || 0,
+    shares: toNumber(a.shares)
+  });
+  if (model.method === "P/E") return toNumber(a.eps) * toNumber(a.multiple);
+  if (model.method === "PEG") return toNumber(a.eps) * toNumber(a.growthPercent) * toNumber(a.peg);
+  if (model.method === "EV/EBITDA") return (toNumber(a.ebitda) * toNumber(a.multiple) + (toNumber(a.cash) || 0) - (toNumber(a.debt) || 0)) / toNumber(a.shares);
+  if (model.method === "EV/Sales") return (toNumber(a.revenue) * toNumber(a.multiple) + (toNumber(a.cash) || 0) - (toNumber(a.debt) || 0)) / toNumber(a.shares);
+  if (model.method === "Forward EV/Sales") return (toNumber(a.forwardRevenue) * toNumber(a.multiple) + (toNumber(a.cash) || 0) - (toNumber(a.debt) || 0)) / toNumber(a.shares);
+  if (model.method === "Price/FCF") return toNumber(a.freeCashFlow) * toNumber(a.multiple) / toNumber(a.shares);
+  if (model.method === "Morningstar Fair Value" || model.method === "Analyst Consensus") return toNumber(model.fairValue);
+  return null;
+}
+
+function approximatelyEqual(a, b, tolerance = 0.0001) {
+  const left = toNumber(a);
+  const right = toNumber(b);
+  return Number.isFinite(left) && Number.isFinite(right) && Math.abs(left - right) <= tolerance;
 }
 
 function addModel(candidates, excluded, result) {
@@ -719,9 +954,13 @@ function valueDcf(v, classification, forecastPolicy, baseScenario, language) {
   if (!positive(v.freeCashFlow) || !positive(v.dilutedShares)) return excluded("DCF", "DCF requires positive FCF and diluted shares.");
   if (["Financial Institution", "REIT", "Holding Company"].includes(classification.classification)) return excluded("DCF", "DCF is not selected for this company type.");
   return selectedModel("DCF", baseScenario.fairValue, "valuation_model", {
-    forecast: "Year 1-5 FCF bridge",
+    forecast: baseScenario.forecast,
     wacc: baseScenario.wacc,
-    terminalGrowth: baseScenario.terminalGrowth
+    terminalGrowth: baseScenario.terminalGrowth,
+    cash: v.cash || 0,
+    debt: v.totalDebt || 0,
+    shares: lastForecastShares(baseScenario.forecast) || v.dilutedShares,
+    currentFreeCashFlow: v.freeCashFlow
   }, forecastPolicy.wacc.confidence / 100, "Deterministic DCF from yearly FCF forecast", language);
 }
 
@@ -743,14 +982,14 @@ function valueEvEbitda(v, classification, language) {
   if (["Financial Institution", "REIT"].includes(classification.classification)) return excluded("EV/EBITDA", "EV/EBITDA is not selected for this company type.");
   if (!positive(v.ebitda) || !positive(v.dilutedShares)) return excluded("EV/EBITDA", "EV/EBITDA requires EBITDA and diluted shares.");
   const multiple = multipleAssumption(v, classification.classification, "evEbitda", "peerEvEbitdaMultiple", "EV/EBITDA");
-  return selectedModel("EV/EBITDA", equityValueFromEv(v.ebitda * multiple.value, v), "valuation_model", { ebitda: v.ebitda, multiple: multiple.value }, multiple.confidence, multiple.source, language);
+  return selectedModel("EV/EBITDA", equityValueFromEv(v.ebitda * multiple.value, v), "valuation_model", { ebitda: v.ebitda, multiple: multiple.value, cash: v.cash || 0, debt: v.totalDebt || 0, shares: v.dilutedShares }, multiple.confidence, multiple.source, language);
 }
 
 function valueEvSales(v, classification, language) {
   if (["Financial Institution", "REIT", "Holding Company"].includes(classification.classification)) return excluded("EV/Sales", "EV/Sales is not selected for this company type.");
   if (!positive(v.revenue) || !positive(v.dilutedShares)) return excluded("EV/Sales", "EV/Sales requires Revenue and diluted shares.");
   const multiple = multipleAssumption(v, classification.classification, "evSales", "peerEvSalesMultiple", "EV/Sales");
-  return selectedModel("EV/Sales", equityValueFromEv(v.revenue * multiple.value, v), "valuation_model", { revenue: v.revenue, multiple: multiple.value }, multiple.confidence, multiple.source, language);
+  return selectedModel("EV/Sales", equityValueFromEv(v.revenue * multiple.value, v), "valuation_model", { revenue: v.revenue, multiple: multiple.value, cash: v.cash || 0, debt: v.totalDebt || 0, shares: v.dilutedShares }, multiple.confidence, multiple.source, language);
 }
 
 function valueForwardEvSales(v, classification, forecastPolicy, language) {
@@ -758,13 +997,13 @@ function valueForwardEvSales(v, classification, forecastPolicy, language) {
   const forwardRevenue = positive(v.revenueEstimates) ? v.revenueEstimates : forecastPolicy.yearlyForecast[0]?.revenue;
   if (!positive(forwardRevenue) || !positive(v.dilutedShares)) return excluded("Forward EV/Sales", "Forward EV/Sales requires forward Revenue and diluted shares.");
   const multiple = multipleAssumption(v, classification.classification, "forwardEvSales", "peerForwardEvSalesMultiple", "Forward EV/Sales");
-  return selectedModel("Forward EV/Sales", equityValueFromEv(forwardRevenue * multiple.value, v), "valuation_model", { forwardRevenue, multiple: multiple.value }, multiple.confidence, multiple.source, language);
+  return selectedModel("Forward EV/Sales", equityValueFromEv(forwardRevenue * multiple.value, v), "valuation_model", { forwardRevenue, multiple: multiple.value, cash: v.cash || 0, debt: v.totalDebt || 0, shares: v.dilutedShares }, multiple.confidence, multiple.source, language);
 }
 
 function valuePriceFcf(v, classification, language) {
   if (!positive(v.freeCashFlow) || !positive(v.dilutedShares)) return excluded("Price/FCF", "Price/FCF requires positive FCF and diluted shares.");
   const multiple = multipleAssumption(v, classification.classification, "fcf", "peerPriceFcfMultiple", "Price/FCF");
-  return selectedModel("Price/FCF", v.freeCashFlow * multiple.value / v.dilutedShares, "valuation_model", { freeCashFlow: v.freeCashFlow, multiple: multiple.value }, multiple.confidence, multiple.source, language);
+  return selectedModel("Price/FCF", v.freeCashFlow * multiple.value / v.dilutedShares, "valuation_model", { freeCashFlow: v.freeCashFlow, multiple: multiple.value, shares: v.dilutedShares }, multiple.confidence, multiple.source, language);
 }
 
 function externalReference(method, value, currentPrice, language) {
@@ -993,6 +1232,72 @@ function selectAssumption(value, fallback, label, source, confidence) {
   return { label, value: finalValue, source, confidence };
 }
 
+function applyAssumptionOverride(assumption, overrides, key, min, max) {
+  const override = overrideNumber(overrides, key);
+  if (!Number.isFinite(override)) return assumption;
+  return {
+    ...assumption,
+    value: clamp(override, min, max),
+    source: `Investor override bounded by ${assumption.label} guardrail`,
+    confidence: clamp(toNumber(overrides?.[key]?.confidence) ?? 0.82, 0.25, 0.95)
+  };
+}
+
+function applyMarginOverride(assumption, overrides) {
+  const adjusted = applyAssumptionOverride(assumption, overrides, "operatingMargin", -0.2, 0.45);
+  const targetOverride = overrideNumber(overrides, "targetOperatingMargin");
+  return {
+    ...adjusted,
+    target: Number.isFinite(targetOverride) ? clamp(targetOverride, -0.2, 0.45) : adjusted.target
+  };
+}
+
+function assumptionPath(start, target, min, max, convergenceRate) {
+  const values = [];
+  let current = clamp(start, min, max);
+  const anchor = clamp(target, min, max);
+  for (let year = 1; year <= 5; year += 1) {
+    if (year > 1) current = clamp(current + (anchor - current) * convergenceRate, min, max);
+    values.push(current);
+  }
+  return values;
+}
+
+function yearAssumption(year, key, defaultValue, baseAssumption, overrides, min, max) {
+  const patch = yearOverride(overrides, year, key);
+  const hasOverride = Number.isFinite(patch.value);
+  return {
+    label: `${baseAssumption.label} Y${year}`,
+    value: clamp(hasOverride ? patch.value : defaultValue, min, max),
+    source: hasOverride ? `Investor override Y${year}` : `${baseAssumption.source} / Year ${year} assumption`,
+    confidence: hasOverride ? clamp(patch.confidence ?? 0.82, 0.25, 0.95) : baseAssumption.confidence
+  };
+}
+
+function yearOverride(overrides, year, key) {
+  const yearly = overrides?.yearlyAssumptions || {};
+  const row = yearly[year] || yearly[String(year)] || yearly[`year${year}`] || yearly[`Y${year}`] || {};
+  const raw = row?.[key]?.value ?? row?.[key];
+  const confidence = toNumber(row?.[key]?.confidence ?? row?.confidence);
+  return {
+    value: toNumber(raw),
+    confidence: Number.isFinite(confidence) ? confidence : undefined
+  };
+}
+
+function yearlySourceSummary(row) {
+  return Object.entries(row)
+    .filter(([key]) => key !== "year")
+    .map(([key, item]) => `${key}: ${item.source}`)
+    .join(" | ");
+}
+
+function overrideNumber(overrides, key) {
+  const raw = overrides?.[key]?.value ?? overrides?.[key];
+  const value = toNumber(raw);
+  return Number.isFinite(value) ? value : null;
+}
+
 function buildWaccSensitivity(wacc) {
   return [
     { change: -0.01, wacc: Math.max(0.04, wacc - 0.01) },
@@ -1117,6 +1422,26 @@ function qualityRating(score) {
 function dataCoverage(evidence) {
   const useful = ["ticker", "companyName", "currentPrice", "revenue", "operatingIncome", "freeCashFlow", "dilutedShares", "cash", "totalDebt", "eps", "ebitda", "grossProfit"];
   return useful.filter((key) => evidence.present.has(key)).length / useful.length;
+}
+
+function relativeDifference(a, b) {
+  const left = toNumber(a);
+  const right = toNumber(b);
+  if (!Number.isFinite(left) || !Number.isFinite(right) || right === 0) return 0;
+  return Math.abs(left - right) / Math.abs(right);
+}
+
+function sourceCurrencyTokens(evidence) {
+  const allowed = new Set(["USD", "SAR", "EUR", "GBP", "JPY", "CAD", "AUD", "CNY", "HKD", "CHF"]);
+  const tokens = new Set();
+  for (const source of Object.values(evidence.sources || {})) {
+    const textValue = String(source.originalTextReference || "");
+    for (const token of textValue.match(/\b[A-Z]{3}\b/g) || []) {
+      if (allowed.has(token)) tokens.add(token);
+    }
+  }
+  if (String(evidence.values.currency || "").trim()) tokens.add(String(evidence.values.currency).toUpperCase());
+  return tokens;
 }
 
 function inferredRevenueGrowth(v) {
@@ -1266,6 +1591,7 @@ function scenarioCatalysts(name, language) {
 }
 
 function exclusionReason(method, classification, v) {
+  if (NO_SUPPORTED_MODEL_CLASSES.has(classification)) return `${classification} requires a dedicated valuation engine that is not implemented yet.`;
   if (method === "DCF" && !positive(v.freeCashFlow)) return "DCF requires positive FCF.";
   if (method === "P/E" && !positive(v.eps)) return "P/E requires positive normalized EPS.";
   if (method === "PEG" && (!positive(v.eps) || classification !== "High Growth — Profitable")) return "PEG requires profitable growth evidence.";

@@ -1,0 +1,47 @@
+{
+  "expectedStable": {
+    "methodologyVersion": "investment-analyst-brain-v1.1-canonical",
+    "schemaVersion": "analyst-brain-output-schema-1.1.0",
+    "ticker": "CAPX",
+    "classification": "Capital Intensive",
+    "selectedModels": [
+      "EV/EBITDA",
+      "EV/Sales",
+      "P/E",
+      "Price/FCF"
+    ],
+    "unsupportedSelected": [],
+    "recommendation": "SELL",
+    "confidence": 86,
+    "investmentScore": 41,
+    "forecastYears": 5,
+    "scenarioProbabilityTotal": 1,
+    "probabilityWeightedFairValue": -9.340653225225214,
+    "finalFairValue": 26.18136645962733,
+    "monitoringCount": 7,
+    "validationValid": true
+  },
+  "actualStable": {
+    "methodologyVersion": "investment-analyst-brain-v1.1-canonical",
+    "schemaVersion": "analyst-brain-output-schema-1.1.0",
+    "ticker": "CAPX",
+    "classification": "Capital Intensive",
+    "selectedModels": [
+      "EV/EBITDA",
+      "EV/Sales",
+      "P/E",
+      "Price/FCF"
+    ],
+    "unsupportedSelected": [],
+    "recommendation": "SELL",
+    "confidence": 86,
+    "investmentScore": 41,
+    "forecastYears": 5,
+    "scenarioProbabilityTotal": 1,
+    "probabilityWeightedFairValue": -9.340653225225214,
+    "finalFairValue": 26.18136645962733,
+    "monitoringCount": 7,
+    "validationValid": true
+  },
+  "diffCount": 0
+}

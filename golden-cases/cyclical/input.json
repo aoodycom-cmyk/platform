@@ -1,0 +1,10 @@
+{
+  "caseId": "cyclical",
+  "description": "Cyclical company",
+  "workspaceCompany": {
+    "ticker": "CYC",
+    "name": "Cycle Semi Co",
+    "price": 45
+  },
+  "pastedBlock": "Ticker: CYC\nCompany Name: Cycle Semi Co\nCurrent Price: 45\nSector: Technology\nIndustry: Semiconductor cyclical\nRevenue: 3000000000\nOperating Income: 400000000\nEBITDA: 650000000\nNet Income: 360000000\nEPS: 3\nFree Cash Flow: 260000000\nCapital Expenditure: 190000000\nCash: 500000000\nTotal Debt: 700000000\nDiluted Shares Outstanding: 120000000"
+}

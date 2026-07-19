@@ -1,0 +1,45 @@
+{
+  "expectedStable": {
+    "methodologyVersion": "investment-analyst-brain-v1.1-canonical",
+    "schemaVersion": "analyst-brain-output-schema-1.1.0",
+    "ticker": "HOLD",
+    "classification": "Holding Company",
+    "selectedModels": [
+      "EV/EBITDA",
+      "P/E",
+      "Price/FCF"
+    ],
+    "unsupportedSelected": [],
+    "recommendation": "SELL",
+    "confidence": 82,
+    "investmentScore": 46,
+    "forecastYears": 5,
+    "scenarioProbabilityTotal": 1,
+    "probabilityWeightedFairValue": 31.441490735548946,
+    "finalFairValue": 15.435062297982672,
+    "monitoringCount": 7,
+    "validationValid": true
+  },
+  "actualStable": {
+    "methodologyVersion": "investment-analyst-brain-v1.1-canonical",
+    "schemaVersion": "analyst-brain-output-schema-1.1.0",
+    "ticker": "HOLD",
+    "classification": "Holding Company",
+    "selectedModels": [
+      "EV/EBITDA",
+      "P/E",
+      "Price/FCF"
+    ],
+    "unsupportedSelected": [],
+    "recommendation": "SELL",
+    "confidence": 82,
+    "investmentScore": 46,
+    "forecastYears": 5,
+    "scenarioProbabilityTotal": 1,
+    "probabilityWeightedFairValue": 31.441490735548946,
+    "finalFairValue": 15.435062297982672,
+    "monitoringCount": 7,
+    "validationValid": true
+  },
+  "diffCount": 0
+}

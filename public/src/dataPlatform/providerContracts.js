@@ -14,10 +14,10 @@ export const PROVIDER_FALLBACK_ORDER = [
   SOURCES.MISSING
 ];
 
-export function createProviderRegistry(apiKeys = {}, manualInputs = {}) {
+export function createProviderRegistry(_serverOptions = {}, manualInputs = {}) {
   return [
     createMorningstarProvider(),
-    createFmpProvider(apiKeys.fmp),
+    createFmpProvider(),
     createManualProvider(manualInputs),
     createMissingProvider()
   ];
@@ -34,12 +34,11 @@ export function createMorningstarProvider() {
   };
 }
 
-export function createFmpProvider(apiKey) {
+export function createFmpProvider() {
   return {
     id: "fmp",
     name: SOURCES.FMP,
-    enabled: Boolean(apiKey),
-    apiKey,
+    enabled: true,
     providerTypes: [PROVIDER_TYPES.QUOTE, PROVIDER_TYPES.FINANCIAL, PROVIDER_TYPES.ANALYST],
     priority: 20,
     confidence: {
@@ -48,21 +47,18 @@ export function createFmpProvider(apiKey) {
       [PROVIDER_TYPES.ANALYST]: 82
     },
     async search(query) {
-      try {
-        const response = await fetch("/api/search", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query, apiKey })
-        });
-        if (!response.ok) throw new Error(await response.text());
-        const data = await response.json();
-        return data.results;
-      } catch {
-        return searchFmpDirect(query, apiKey);
-      }
+      const response = await fetch("/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ query })
+      });
+      if (!response.ok) throw await safeApiError(response, "Search failed.");
+      const data = await response.json();
+      return data.results;
     },
     async loadCompany(ticker) {
-      const data = await loadFmpPayload(ticker, apiKey);
+      const data = await loadFmpPayload(ticker);
       return {
         company: data.company,
         source: this.name,
@@ -120,110 +116,24 @@ export function publicProviderMetadata(registry = []) {
   }));
 }
 
-async function loadFmpPayload(ticker, apiKey) {
-  try {
-    const response = await fetch("/api/research-data", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ticker, apiKey })
-    });
-    if (!response.ok) throw new Error(await response.text());
-    return response.json();
-  } catch {
-    return loadFmpDirect(ticker, apiKey);
-  }
-}
-
-async function searchFmpDirect(query, apiKey) {
-  const data = await fetchFmpDirect(`/stable/search-symbol?query=${encodeURIComponent(query)}`, apiKey);
-  return (Array.isArray(data) ? data : []).slice(0, 10).map((item) => ({
-    ticker: item.symbol || item.ticker,
-    name: item.name || item.companyName || item.symbol,
-    sector: item.exchange || item.exchangeShortName || "Market",
-    industry: item.currency || "Equity",
-    exchange: item.exchangeShortName || item.exchange || "",
-    currency: item.currency || "USD"
-  })).filter((item) => item.ticker);
-}
-
-async function loadFmpDirect(ticker, apiKey) {
-  const cleanTicker = cleanSymbol(ticker);
-  const [quoteData, profileData, consensusData, incomeData, balanceData, cashflowData, quarterlyIncomeData, quarterlyBalanceData, quarterlyCashflowData] = await Promise.all([
-    fetchFmpDirect(`/stable/quote?symbol=${encodeURIComponent(cleanTicker)}`, apiKey),
-    fetchFmpDirect(`/stable/profile?symbol=${encodeURIComponent(cleanTicker)}`, apiKey),
-    fetchFmpDirect(`/stable/price-target-consensus?symbol=${encodeURIComponent(cleanTicker)}`, apiKey).catch(() => []),
-    fetchFmpDirect(`/stable/income-statement?symbol=${encodeURIComponent(cleanTicker)}&limit=4`, apiKey),
-    fetchFmpDirect(`/stable/balance-sheet-statement?symbol=${encodeURIComponent(cleanTicker)}&limit=4`, apiKey),
-    fetchFmpDirect(`/stable/cash-flow-statement?symbol=${encodeURIComponent(cleanTicker)}&limit=4`, apiKey),
-    fetchFmpDirect(`/stable/income-statement?symbol=${encodeURIComponent(cleanTicker)}&period=quarter&limit=8`, apiKey).catch(() => []),
-    fetchFmpDirect(`/stable/balance-sheet-statement?symbol=${encodeURIComponent(cleanTicker)}&period=quarter&limit=8`, apiKey).catch(() => []),
-    fetchFmpDirect(`/stable/cash-flow-statement?symbol=${encodeURIComponent(cleanTicker)}&period=quarter&limit=8`, apiKey).catch(() => [])
-  ]);
-  const quote = Array.isArray(quoteData) ? quoteData[0] || {} : quoteData || {};
-  const profile = Array.isArray(profileData) ? profileData[0] || {} : profileData || {};
-  const consensus = Array.isArray(consensusData) ? consensusData[0] || {} : consensusData || {};
-  const providerTimestamp = new Date().toISOString();
-  return {
-    provider: {
-      id: "fmp",
-      name: SOURCES.FMP,
-      timestamp: providerTimestamp,
-      providerTypes: [PROVIDER_TYPES.QUOTE, PROVIDER_TYPES.FINANCIAL, PROVIDER_TYPES.ANALYST]
-    },
-    company: {
-      ticker: cleanTicker,
-      name: quote.name || profile.companyName || cleanTicker,
-      sector: profile.sector || "Unknown",
-      industry: profile.industry || "Unknown",
-      currency: profile.currency || "USD",
-      exchange: profile.exchangeShortName || profile.exchange || "",
-      quote: {
-        price: number(quote.price),
-        marketCap: number(quote.marketCap),
-        changePercent: percentNumber(quote.changesPercentage),
-        enterpriseValue: number(quote.enterpriseValue),
-        updatedAt: providerTimestamp
-      },
-      consensus: {
-        target: firstNumber(consensus.targetConsensus, consensus.targetMean, consensus.priceTargetAverage, consensus.targetPrice),
-        low: firstNumber(consensus.targetLow, consensus.priceTargetLow),
-        high: firstNumber(consensus.targetHigh, consensus.priceTargetHigh),
-        rating: "Consensus"
-      },
-      financials: normalizeFinancials(incomeData, balanceData, cashflowData),
-      financialTimeline: {
-        annual: {
-          incomeStatements: normalizeIncomeStatements(incomeData, "annual"),
-          balanceSheets: normalizeBalanceSheets(balanceData, "annual"),
-          cashFlowStatements: normalizeCashFlowStatements(cashflowData, "annual")
-        },
-        quarterly: {
-          incomeStatements: normalizeIncomeStatements(quarterlyIncomeData, "quarterly"),
-          balanceSheets: normalizeBalanceSheets(quarterlyBalanceData, "quarterly"),
-          cashFlowStatements: normalizeCashFlowStatements(quarterlyCashflowData, "quarterly")
-        }
-      },
-      qualitative: {
-        moatSignals: [],
-        riskSignals: [],
-        managementNotes: []
-      },
-      researchProfile: normalizeResearchProfile(profile, providerTimestamp),
-      earningsCenter: {},
-      analystResearch: {},
-      researchTimeline: []
-    }
-  };
-}
-
-async function fetchFmpDirect(pathname, apiKey) {
-  const separator = pathname.includes("?") ? "&" : "?";
-  const response = await fetch(`https://financialmodelingprep.com${pathname}${separator}apikey=${encodeURIComponent(apiKey)}`, {
-    headers: { "Accept": "application/json" }
+async function loadFmpPayload(ticker) {
+  const response = await fetch("/api/research-data", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({ ticker })
   });
-  const data = await response.json();
-  if (!response.ok) throw new Error(JSON.stringify(data));
-  return data;
+  if (!response.ok) throw await safeApiError(response, "Could not load research data.");
+  return response.json();
+}
+
+async function safeApiError(response, fallback) {
+  const data = await response.json().catch(() => ({}));
+  const error = new Error(data?.error?.code || fallback);
+  error.status = response.status;
+  error.code = data?.error?.code || "API_ERROR";
+  error.userMessage = data?.error?.message || fallback;
+  return error;
 }
 
 function normalizeResearchProfile(profile = {}, timestamp) {

@@ -1,0 +1,10 @@
+{
+  "caseId": "pre-profit",
+  "description": "Pre-profit / transition company",
+  "workspaceCompany": {
+    "ticker": "LOSS",
+    "name": "Transition AI Co",
+    "price": 22
+  },
+  "pastedBlock": "Ticker: LOSS\nCompany Name: Transition AI Co\nCurrent Price: 22\nSector: Technology\nIndustry: Software\nRevenue: 900000000\nRevenue Estimates: 1125000000\nOperating Income: -160000000\nEBITDA: -90000000\nNet Income: -220000000\nEPS: -1.4\nFree Cash Flow: -120000000\nCapital Expenditure: 55000000\nCash: 420000000\nTotal Debt: 120000000\nDiluted Shares Outstanding: 110000000\nBusiness Model: subscription platform with AI products\nManagement Growth Guidance: Revenue growth 25%"
+}

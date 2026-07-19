@@ -71,8 +71,8 @@ Operating Cash Flow: 260000000
 Capital Expenditure: 60000000
 Free Cash Flow: 200000000
 Diluted Shares Outstanding: 100000000
-Analyst Target Average: 124
-Morningstar Fair Value: 118
+Analyst Target Average: 42
+Morningstar Fair Value: 40
 Business Model: subscription software
 Competitive Advantages: switching cost and scale
 `;
@@ -83,6 +83,8 @@ assert.ok(selectedMethods(profitable.report).includes("DCF"));
 assert.ok(selectedMethods(profitable.report).includes("P/E"));
 assert.ok(selectedMethods(profitable.report).includes("PEG"));
 assertNoUnsupportedSelected(profitable.report);
+assert.equal(profitable.report.modelSelection.unsupportedModels.length, 0);
+assert.ok(!JSON.stringify(profitable.report.companyClassification.excludedModels).includes("P/B"));
 assertWeightRules(profitable.report);
 assertForecastContract(profitable.report);
 assert.equal(profitable.report.scenarios.Exceptional.fairValue, null);

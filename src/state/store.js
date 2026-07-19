@@ -1,4 +1,5 @@
 import { createCompanyShell } from "../data/sampleData.js";
+import { DEMO_ANALYSIS_FIXTURE } from "../data/demoFlow.js";
 import { buildUnifiedDataCompany, mergeCompanyDataHistory } from "../dataPlatform/dataPlatform.js";
 import { buildEvaluatedCompany, upsertEvaluatedCompany } from "../domain/evaluatedCompanies.js";
 import { toNumber } from "../domain/financialMetrics.js";
@@ -47,13 +48,10 @@ export function createStore() {
     query: "",
     searchResults: [],
     loading: false,
+    processingStage: "idle",
     notice: "",
     language: initialLanguage,
     theme: saved.theme || "dark",
-    apiKeys: {
-      fmp: sessionStorage.getItem("equityResearchFmpKey") || "",
-      openai: sessionStorage.getItem("equityResearchOpenAiKey") || ""
-    },
     activePanel: "home",
     evaluatedSort: initialEvaluatedSort,
     rankingFilter: saved.rankingFilter || "all",
@@ -96,6 +94,7 @@ export function createStore() {
       company: mergedCompany,
       activePanel: "summary",
       loading: false,
+      processingStage: "idle",
       notice: "",
       research,
       institutionalResearch: buildInstitutionalResearch(research),
@@ -110,8 +109,75 @@ export function createStore() {
       valuationWorkspace: workspace,
       activePanel: "workspace",
       loading: false,
+      processingStage: "idle",
       notice: "",
       searchResults: []
+    });
+  }
+
+  function startBlankAnalysis() {
+    const clean = String(state.query || "").trim();
+    const ticker = clean && /^[a-z0-9.-]{1,12}$/i.test(clean) ? clean.toUpperCase() : "NEW";
+    const company = {
+      ...createCompanyShell(ticker),
+      ticker,
+      name: clean && clean.toUpperCase() !== ticker ? clean : (ticker === "NEW" ? "" : ticker),
+      quote: { price: null }
+    };
+    set({
+      company,
+      valuationWorkspace: createValuationWorkspace(company),
+      activePanel: "workspace",
+      loading: false,
+      processingStage: "idle",
+      notice: state.language === "ar"
+        ? "ألصق بيانات الشركة في الصندوق الرئيسي أو استخدم البيانات التجريبية."
+        : "Paste the company data into the main box or load the demo data.",
+      searchResults: []
+    });
+  }
+
+  function loadDemoAnalysis() {
+    let workspace = createValuationWorkspace(DEMO_ANALYSIS_FIXTURE.company);
+    workspace = updateAnalystBrainPaste(workspace, DEMO_ANALYSIS_FIXTURE.pasteText);
+    for (const [field, value] of Object.entries(DEMO_ANALYSIS_FIXTURE.fields)) {
+      workspace = updateWorkspaceField(workspace, field, value, {
+        source: DEMO_ANALYSIS_FIXTURE.source,
+        sourceDate: DEMO_ANALYSIS_FIXTURE.sourceDate,
+        mode: "Automatic",
+        confidence: 0.96,
+        userConfirmed: true,
+        originalTextReference: "Loaded from demo fixture"
+      });
+    }
+    set({
+      company: DEMO_ANALYSIS_FIXTURE.company,
+      valuationWorkspace: workspace,
+      activePanel: "workspace",
+      loading: false,
+      processingStage: "idle",
+      notice: state.language === "ar"
+        ? "تم تحميل بيانات تجريبية. راجع البيانات ثم شغّل التحليل."
+        : "Demo data loaded. Review the data, then run the analysis.",
+      searchResults: []
+    });
+  }
+
+  function clearAnalystPaste() {
+    if (!state.valuationWorkspace) {
+      startBlankAnalysis();
+      return;
+    }
+    const workspace = createValuationWorkspace({
+      ticker: state.valuationWorkspace.ticker || "NEW",
+      name: state.valuationWorkspace.companyName || "",
+      quote: { price: null }
+    });
+    set({
+      valuationWorkspace: workspace,
+      loading: false,
+      processingStage: "idle",
+      notice: state.language === "ar" ? "تم مسح مسودة التحليل." : "Analysis draft cleared."
     });
   }
 
@@ -165,11 +231,19 @@ export function createStore() {
     set({ valuationWorkspace: { ...state.valuationWorkspace, investorNotes: value, updatedAt: new Date().toISOString() } });
   }
 
-  function runWorkspaceValuation() {
+  async function runWorkspaceValuation() {
     if (!state.valuationWorkspace) return;
+    set({
+      loading: true,
+      processingStage: "reviewing-data",
+      notice: state.language === "ar" ? "جاري تثبيت البيانات وتشغيل محرك التقييم..." : "Confirming data and running the valuation engine..."
+    });
+    await wait(360);
     const result = runFixedMethodologyValuation(state.valuationWorkspace, state.language);
     set({
       valuationWorkspace: result.workspace,
+      loading: false,
+      processingStage: "idle",
       notice: result.error || "",
       activePanel: "workspace"
     });
@@ -186,15 +260,22 @@ export function createStore() {
     set({
       valuationWorkspace: draftWorkspace,
       loading: true,
+      processingStage: "parsing-paste",
       notice: state.language === "ar" ? "جاري قراءة البيانات وتشغيل المنهجية..." : "Parsing data and running the methodology..."
     });
     const methodology = await loadAnalystBrainMethodology();
+    await wait(360);
     const aiParsed = await parseInvestmentAnalystBlock({
       text,
-      apiKeys: state.apiKeys,
       methodology,
       language: state.language
     });
+    set({
+      loading: true,
+      processingStage: "running-engine",
+      notice: state.language === "ar" ? "تم استخراج البيانات. يجري الآن حساب التقييم deterministically." : "Data extracted. Running deterministic valuation now."
+    });
+    await wait(300);
     const result = runInvestmentAnalystBrainValuation(draftWorkspace, {
       text,
       language: state.language,
@@ -206,6 +287,7 @@ export function createStore() {
     set({
       valuationWorkspace: result.workspace,
       loading: false,
+      processingStage: "idle",
       notice: result.error || (state.language === "ar" ? "تم إنشاء التقرير. راجعه ثم اعتمده للتصدير." : "Report generated. Review and approve it before export."),
       activePanel: "workspace"
     });
@@ -247,11 +329,11 @@ export function createStore() {
     updateResearch();
   }
 
-  function setApiKey(field, value) {
-    state.apiKeys[field] = value;
-    const storageKey = field === "fmp" ? "equityResearchFmpKey" : "equityResearchOpenAiKey";
-    sessionStorage.setItem(storageKey, value);
-    listeners.forEach((listener) => listener(state));
+  function clearLocalData() {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem("equityResearchLanguage");
+    window.sessionStorage?.clear();
+    window.location.reload();
   }
 
   function setLanguage(language) {
@@ -341,6 +423,8 @@ export function createStore() {
       research,
       institutionalResearch: buildInstitutionalResearch(research),
       activePanel: "summary",
+      loading: false,
+      processingStage: "idle",
       notice: "",
       searchResults: []
     });
@@ -392,6 +476,9 @@ export function createStore() {
     set,
     setCompany,
     openValuationWorkspace,
+    startBlankAnalysis,
+    loadDemoAnalysis,
+    clearAnalystPaste,
     setWorkspaceField,
     setWorkspaceSectionSource,
     setWorkspacePaste,
@@ -407,7 +494,7 @@ export function createStore() {
     editWorkspaceData,
     approveAndExportWorkspace,
     setManualInput,
-    setApiKey,
+    clearLocalData,
     setLanguage,
     setEvaluatedSort,
     setRankingFilter,
@@ -445,7 +532,6 @@ function load() {
 function persist(state) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
     company: state.company,
-    manualInputs: state.manualInputs,
     language: state.language,
     theme: state.theme,
     activePanel: state.activePanel,
@@ -455,9 +541,11 @@ function persist(state) {
     compareSelectedTickers: state.compareSelectedTickers,
     comparisonOpen: state.comparisonOpen,
     evaluatedCompanies: state.evaluatedCompanies,
-    valuationWorkspace: state.valuationWorkspace,
     history: state.history,
-    watchList: state.watchList,
-    watchDraft: state.watchDraft
+    watchList: state.watchList
   }));
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

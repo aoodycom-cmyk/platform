@@ -1,0 +1,49 @@
+{
+  "expectedStable": {
+    "methodologyVersion": "investment-analyst-brain-v1.1-canonical",
+    "schemaVersion": "analyst-brain-output-schema-1.1.0",
+    "ticker": "CYC",
+    "classification": "Cyclical",
+    "selectedModels": [
+      "DCF",
+      "EV/EBITDA",
+      "EV/Sales",
+      "P/E",
+      "Price/FCF"
+    ],
+    "unsupportedSelected": [],
+    "recommendation": "SELL",
+    "confidence": 92,
+    "investmentScore": 45,
+    "forecastYears": 5,
+    "scenarioProbabilityTotal": 1,
+    "probabilityWeightedFairValue": 28.83538813337431,
+    "finalFairValue": 30.922378460692396,
+    "monitoringCount": 7,
+    "validationValid": true
+  },
+  "actualStable": {
+    "methodologyVersion": "investment-analyst-brain-v1.1-canonical",
+    "schemaVersion": "analyst-brain-output-schema-1.1.0",
+    "ticker": "CYC",
+    "classification": "Cyclical",
+    "selectedModels": [
+      "DCF",
+      "EV/EBITDA",
+      "EV/Sales",
+      "P/E",
+      "Price/FCF"
+    ],
+    "unsupportedSelected": [],
+    "recommendation": "SELL",
+    "confidence": 92,
+    "investmentScore": 45,
+    "forecastYears": 5,
+    "scenarioProbabilityTotal": 1,
+    "probabilityWeightedFairValue": 28.83538813337431,
+    "finalFairValue": 30.922378460692396,
+    "monitoringCount": 7,
+    "validationValid": true
+  },
+  "diffCount": 0
+}

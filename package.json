@@ -1,10 +1,10 @@
 {
   "name": "ai-equity-research-platform",
-  "version": "9.0.0",
+  "version": "10.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --experimental-vm-modules tests/version6.test.mjs && node --experimental-vm-modules tests/version7.test.mjs && node --experimental-vm-modules tests/version8.test.mjs && node --experimental-vm-modules tests/investmentAnalystBrain.test.mjs"
+    "test": "node --experimental-vm-modules tests/version6.test.mjs && node --experimental-vm-modules tests/version7.test.mjs && node --experimental-vm-modules tests/version8.test.mjs && node --experimental-vm-modules tests/investmentAnalystBrain.test.mjs && node --experimental-vm-modules tests/version9_1AnalyticalEngine.test.mjs && node --experimental-vm-modules tests/version9_2UIUX.test.mjs && node --experimental-vm-modules tests/productionDeployment.test.mjs"
   }
 }

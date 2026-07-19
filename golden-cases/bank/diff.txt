@@ -1,0 +1,1 @@
+No differences in audited stable output fields.

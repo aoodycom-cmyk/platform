@@ -1,0 +1,55 @@
+{
+  "expectedStable": {
+    "methodologyVersion": "investment-analyst-brain-v1.1-canonical",
+    "schemaVersion": "analyst-brain-output-schema-1.1.0",
+    "ticker": "GROW",
+    "classification": "High Growth — Profitable",
+    "selectedModels": [
+      "Analyst Consensus",
+      "DCF",
+      "EV/EBITDA",
+      "EV/Sales",
+      "Morningstar Fair Value",
+      "P/E",
+      "PEG",
+      "Price/FCF"
+    ],
+    "unsupportedSelected": [],
+    "recommendation": "BUY",
+    "confidence": 94,
+    "investmentScore": 91,
+    "forecastYears": 5,
+    "scenarioProbabilityTotal": 1,
+    "probabilityWeightedFairValue": 38.50259371732398,
+    "finalFairValue": 38.51494893874966,
+    "monitoringCount": 7,
+    "validationValid": true
+  },
+  "actualStable": {
+    "methodologyVersion": "investment-analyst-brain-v1.1-canonical",
+    "schemaVersion": "analyst-brain-output-schema-1.1.0",
+    "ticker": "GROW",
+    "classification": "High Growth — Profitable",
+    "selectedModels": [
+      "Analyst Consensus",
+      "DCF",
+      "EV/EBITDA",
+      "EV/Sales",
+      "Morningstar Fair Value",
+      "P/E",
+      "PEG",
+      "Price/FCF"
+    ],
+    "unsupportedSelected": [],
+    "recommendation": "BUY",
+    "confidence": 94,
+    "investmentScore": 91,
+    "forecastYears": 5,
+    "scenarioProbabilityTotal": 1,
+    "probabilityWeightedFairValue": 38.50259371732398,
+    "finalFairValue": 38.51494893874966,
+    "monitoringCount": 7,
+    "validationValid": true
+  },
+  "diffCount": 0
+}

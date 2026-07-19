@@ -1,0 +1,43 @@
+{
+  "expectedStable": {
+    "methodologyVersion": "investment-analyst-brain-v1.1-canonical",
+    "schemaVersion": "analyst-brain-output-schema-1.1.0",
+    "ticker": "BANK",
+    "classification": "Financial Institution",
+    "selectedModels": [
+      "Analyst Consensus",
+      "P/E"
+    ],
+    "unsupportedSelected": [],
+    "recommendation": "SELL",
+    "confidence": 72,
+    "investmentScore": 44,
+    "forecastYears": 5,
+    "scenarioProbabilityTotal": 1,
+    "probabilityWeightedFairValue": 48.6890066787967,
+    "finalFairValue": 36.33431218887996,
+    "monitoringCount": 7,
+    "validationValid": true
+  },
+  "actualStable": {
+    "methodologyVersion": "investment-analyst-brain-v1.1-canonical",
+    "schemaVersion": "analyst-brain-output-schema-1.1.0",
+    "ticker": "BANK",
+    "classification": "Financial Institution",
+    "selectedModels": [
+      "Analyst Consensus",
+      "P/E"
+    ],
+    "unsupportedSelected": [],
+    "recommendation": "SELL",
+    "confidence": 72,
+    "investmentScore": 44,
+    "forecastYears": 5,
+    "scenarioProbabilityTotal": 1,
+    "probabilityWeightedFairValue": 48.6890066787967,
+    "finalFairValue": 36.33431218887996,
+    "monitoringCount": 7,
+    "validationValid": true
+  },
+  "diffCount": 0
+}

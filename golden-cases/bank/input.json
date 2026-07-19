@@ -1,0 +1,10 @@
+{
+  "caseId": "bank",
+  "description": "Bank or financial institution",
+  "workspaceCompany": {
+    "ticker": "BANK",
+    "name": "Credit Bank Co",
+    "price": 50
+  },
+  "pastedBlock": "Ticker: BANK\nCompany Name: Credit Bank Co\nCurrent Price: 50\nSector: Financial Services\nIndustry: Bank\nRevenue: 2000000000\nNet Income: 500000000\nEPS: 5.1\nCash: 1000000000\nTotal Debt: 500000000\nDiluted Shares Outstanding: 100000000\nAnalyst Target Average: 58"
+}

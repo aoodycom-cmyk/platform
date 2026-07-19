@@ -3,23 +3,17 @@ import { buildUnifiedDataCompany } from "../dataPlatform/dataPlatform.js";
 import { createProviderRegistry, enabledProviders, publicProviderMetadata } from "../dataPlatform/providerContracts.js";
 import { SOURCES } from "../dataPlatform/fields.js";
 
-export async function searchCompanies(query, apiKeys = {}) {
+export async function searchCompanies(query) {
   const clean = query.trim();
-  const keys = normalizeApiKeys(apiKeys);
-  const registry = createProviderRegistry(keys);
+  const registry = createProviderRegistry();
   const provider = enabledProviders(registry).find((item) => typeof item.search === "function");
   if (!provider) return localSearch(clean);
   if (!clean) return [];
-  try {
-    return await provider.search(clean);
-  } catch {
-    return localSearch(clean);
-  }
+  return provider.search(clean);
 }
 
-export async function fetchResearchData(ticker, apiKeys = {}, manualInputs = {}, previousCompany = null) {
-  const keys = normalizeApiKeys(apiKeys);
-  const registry = createProviderRegistry(keys, manualInputs);
+export async function fetchResearchData(ticker, manualInputs = {}, previousCompany = null) {
+  const registry = createProviderRegistry({}, manualInputs);
   const providers = enabledProviders(registry);
   const provider = providers.find((item) => typeof item.loadCompany === "function");
 
@@ -32,35 +26,24 @@ export async function fetchResearchData(ticker, apiKeys = {}, manualInputs = {},
     });
   }
 
-  try {
-    const payload = await provider.loadCompany(ticker);
-    return buildUnifiedDataCompany(payload.company, {
-      manualInputs,
-      previousCompany,
-      source: payload.source,
-      timestamp: payload.timestamp,
-      provider: payload.provider,
-      providers: publicProviderMetadata(registry)
-    });
-  } catch {
-    return buildUnifiedDataCompany(createCompanyShell(ticker), {
-      manualInputs,
-      previousCompany,
-      source: SOURCES.MISSING,
-      providers: publicProviderMetadata(registry)
-    });
-  }
+  const payload = await provider.loadCompany(ticker);
+  return buildUnifiedDataCompany(payload.company, {
+    manualInputs,
+    previousCompany,
+    source: payload.source,
+    timestamp: payload.timestamp,
+    provider: payload.provider,
+    providers: publicProviderMetadata(registry)
+  });
 }
 
-export async function parseInvestmentAnalystBlock({ text, apiKeys = {}, methodology = null, language = "ar" }) {
-  const keys = normalizeApiKeys(apiKeys);
-  if (!String(text || "").trim() || !keys.openai) {
+export async function parseInvestmentAnalystBlock({ text, methodology = null, language = "ar" }) {
+  if (!String(text || "").trim()) {
     return { source: "Local Parser", parsedFields: [], explanations: [], unavailable: true };
   }
   const payload = {
     text,
     language,
-    apiKey: keys.openai,
     methodologyText: methodology?.combinedText || "",
     outputSchema: methodology?.outputSchema || null
   };
@@ -70,15 +53,15 @@ export async function parseInvestmentAnalystBlock({ text, apiKeys = {}, methodol
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    if (!response.ok) throw new Error("Server AI parser unavailable");
+    if (!response.ok) throw await safeApiError(response, "Server AI parser unavailable");
     return await response.json();
-  } catch {
-    return parseWithOpenAiDirect(payload).catch(() => ({
-      source: "Local Parser",
+  } catch (error) {
+    return {
+      source: "Server Parser",
       parsedFields: [],
-      explanations: [],
+      explanations: [error.userMessage || "AI parser is unavailable from the private server."],
       unavailable: true
-    }));
+    };
   }
 }
 
@@ -86,24 +69,6 @@ function localSearch(query) {
   if (!query) return starterUniverse;
   const needle = query.toLowerCase();
   return starterUniverse.filter((item) => `${item.ticker} ${item.name}`.toLowerCase().includes(needle));
-}
-
-function normalizeApiKeys(apiKeys) {
-  return typeof apiKeys === "string" ? { fmp: apiKeys } : apiKeys || {};
-}
-
-async function parseWithOpenAiDirect(payload) {
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${payload.apiKey}`
-    },
-    body: JSON.stringify(openAiParserRequest(payload))
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data?.error?.message || "OpenAI parser failed");
-  return normalizeOpenAiParserResponse(data);
 }
 
 export function openAiParserRequest({ text, language, methodologyText, outputSchema }) {
@@ -158,4 +123,13 @@ function normalizeOpenAiParserResponse(data) {
     parsedFields: Array.isArray(parsed.parsedFields) ? parsed.parsedFields : [],
     explanations: Array.isArray(parsed.explanations) ? parsed.explanations : []
   };
+}
+
+export async function safeApiError(response, fallback) {
+  const data = await response.json().catch(() => ({}));
+  const error = new Error(data?.error?.code || fallback);
+  error.status = response.status;
+  error.code = data?.error?.code || "API_ERROR";
+  error.userMessage = data?.error?.message || fallback;
+  return error;
 }

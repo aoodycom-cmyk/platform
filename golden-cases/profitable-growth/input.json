@@ -1,0 +1,10 @@
+{
+  "caseId": "profitable-growth",
+  "description": "Profitable high-growth company",
+  "workspaceCompany": {
+    "ticker": "GROW",
+    "name": "Growth Quality Co",
+    "price": 28
+  },
+  "pastedBlock": "Ticker: GROW\nCompany Name: Growth Quality Co\nCurrent Price: 28\nMarket Capitalization: 5600000000\nSector: Technology\nIndustry: Software\nCash: 800000000\nTotal Debt: 200000000\nRevenue: 1500000000\nRevenue Estimates: 1725000000\nGross Profit: 1035000000\nOperating Income: 375000000\nEBITDA: 450000000\nNet Income: 300000000\nEPS: 1.5\nOperating Cash Flow: 360000000\nCapital Expenditure: 75000000\nFree Cash Flow: 285000000\nDiluted Shares Outstanding: 200000000\nAnalyst Target Average: 35\nMorningstar Fair Value: 34\nBusiness Model: subscription software platform\nCompetitive Advantages: switching cost, scale, and network effect\nManagement Notes: strong disciplined capital allocation"
+}

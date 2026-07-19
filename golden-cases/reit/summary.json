@@ -1,0 +1,43 @@
+{
+  "expectedStable": {
+    "methodologyVersion": "investment-analyst-brain-v1.1-canonical",
+    "schemaVersion": "analyst-brain-output-schema-1.1.0",
+    "ticker": "REIT",
+    "classification": "REIT",
+    "selectedModels": [
+      "P/E",
+      "Price/FCF"
+    ],
+    "unsupportedSelected": [],
+    "recommendation": "SELL",
+    "confidence": 74,
+    "investmentScore": 44,
+    "forecastYears": 5,
+    "scenarioProbabilityTotal": 1,
+    "probabilityWeightedFairValue": 2.4683091225305107,
+    "finalFairValue": 1.7414081928856786,
+    "monitoringCount": 7,
+    "validationValid": true
+  },
+  "actualStable": {
+    "methodologyVersion": "investment-analyst-brain-v1.1-canonical",
+    "schemaVersion": "analyst-brain-output-schema-1.1.0",
+    "ticker": "REIT",
+    "classification": "REIT",
+    "selectedModels": [
+      "P/E",
+      "Price/FCF"
+    ],
+    "unsupportedSelected": [],
+    "recommendation": "SELL",
+    "confidence": 74,
+    "investmentScore": 44,
+    "forecastYears": 5,
+    "scenarioProbabilityTotal": 1,
+    "probabilityWeightedFairValue": 2.4683091225305107,
+    "finalFairValue": 1.7414081928856786,
+    "monitoringCount": 7,
+    "validationValid": true
+  },
+  "diffCount": 0
+}

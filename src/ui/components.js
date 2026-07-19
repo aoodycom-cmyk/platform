@@ -10,6 +10,7 @@ import {
   upsideColorCategory
 } from "../domain/marketColorSystem.js";
 import { rankEvaluatedCompanies } from "../engines/rankingEngine.js";
+import { DEMO_ANALYSIS_FIXTURE } from "../data/demoFlow.js";
 import {
   analysisText,
   decisionLabel,
@@ -41,17 +42,10 @@ import {
 
 const panels = [
   ["home", "Home"],
-  ["workspace", "Valuation Workspace"],
-  ["summary", "Executive"],
-  ["valuation", "Valuation"],
-  ["quality", "Quality"],
-  ["growth", "Growth"],
-  ["moat", "Moat"],
-  ["risk", "Risk"],
+  ["workspace", "New Analysis"],
   ["research", "Research"],
   ["watchlist", "Watchlist"],
-  ["settings", "Settings"],
-  ["history", "History"]
+  ["settings", "Settings"]
 ];
 
 export function mountApp(root, store) {
@@ -73,7 +67,7 @@ function render(root, store, actions) {
   root.innerHTML = `
     <aside class="rail">
       <div class="brand">
-        <div class="mark">V7</div>
+        <div class="mark">V9</div>
         <div>
           <h1>${uiLabel("Institutional Research")}</h1>
           <p>${uiLabel("Equity research layer")}</p>
@@ -104,20 +98,28 @@ function render(root, store, actions) {
 
 function homeDashboard(state) {
   return `
-    <main class="home-workspace">
-      <header class="home-topbar">
-        <div>
-          <p class="eyebrow">${uiLabel("Version 9.1")}</p>
-          <h1>${uiLabel("AI Equity Research Platform")}</h1>
+    <main class="home-workspace polished-home product-home">
+      <header class="home-topbar home-hero-polish product-hero">
+        <div class="home-brand-line">
+          <img class="app-logo" src="./assets/icon-192.png" alt="">
+          <div>
+            <p class="eyebrow">${uiLabel("Version 10.0.0")}</p>
+            <h1>${uiLabel("Franklin Research")}</h1>
+            <small>${uiLabel("AI Equity Research Platform")}</small>
+          </div>
         </div>
         <div class="home-actions">
           ${languageToggle(state)}
+          <button class="primary-btn" data-action="new-analysis">${uiLabel("New Analysis")}</button>
           <button class="icon-btn" data-action="toggle-theme" title="${uiLabel("Toggle theme")}">${state.theme === "dark" ? uiLabel("Light") : uiLabel("Dark")}</button>
         </div>
       </header>
-      ${homeStartCard(state)}
-      ${homeSearchBlock(state)}
-      ${evaluatedCompaniesTable(state)}
+      ${homePolishedSearch(state)}
+      ${homeQuickActions(state)}
+      <section class="home-polished-grid">
+        ${homeRecentAnalysesSection(state)}
+        ${homeWatchlistPanel(state)}
+      </section>
     </main>
   `;
 }
@@ -129,6 +131,100 @@ function languageToggle(state) {
       <span></span>
       <button class="${state.language === "en" ? "active" : ""}" data-language="en">English</button>
     </div>
+  `;
+}
+
+function homePolishedSearch(state) {
+  return `
+    <section class="home-search home-search-premium">
+      <div class="search-signature">
+        <span>${uiLabel("Ask the one question")}</span>
+        <strong>${uiLabel("Should I buy this stock today?")}</strong>
+      </div>
+      <div class="search-line">
+        <input id="searchInput" value="${escapeHtml(state.query)}" placeholder="${uiLabel("Search by company name or ticker")}" autocomplete="off">
+        <button class="primary-btn" data-action="search">${state.loading ? uiLabel("Searching") : uiLabel("Search")}</button>
+      </div>
+      <div class="home-search-footer">
+        <div class="quick-tickers" aria-label="${uiLabel("Common examples")}">
+          ${["AAPL", "MSFT", "NVDA", "AMZN"].map((ticker) => `<button data-sample-query="${ticker}">${ticker}</button>`).join("")}
+        </div>
+        <button class="icon-btn" data-action="load-demo-analysis">${uiLabel("Load Demo Data")}</button>
+      </div>
+      ${state.notice ? `<p class="home-note">${escapeHtml(state.notice)}</p>` : ""}
+      ${state.searchResults.length ? `<div class="results home-results">
+        <p>${uiLabel("Search Results")}</p>
+        ${state.searchResults.map(searchResult).join("")}
+      </div>` : ""}
+    </section>
+  `;
+}
+
+function homeQuickActions(state) {
+  return `
+    <section class="quick-actions-panel" aria-label="${uiLabel("Quick Actions")}">
+      <button data-action="new-analysis">
+        <span>${uiLabel("Paste Data")}</span>
+        <strong>${uiLabel("New Analysis")}</strong>
+      </button>
+      <button data-action="load-demo-analysis">
+        <span>${uiLabel("Research grade")}</span>
+        <strong>${uiLabel("Demo Report")}</strong>
+      </button>
+      <button data-panel="settings">
+        <span>${uiLabel("Private workflow")}</span>
+        <strong>${uiLabel("Source Settings")}</strong>
+      </button>
+    </section>
+  `;
+}
+
+function homeRecentAnalysesSection(state) {
+  const rankedAll = rankEvaluatedCompanies(state.evaluatedCompanies);
+  const filtered = filterEvaluatedCompanies(rankedAll, state.query, state.rankingFilter, state.sectorFilter);
+  const rows = sortVisibleRows(filtered, state.evaluatedSort).slice(0, 8);
+  return `
+    <section class="evaluated-panel company-cards-panel recent-analyses-panel">
+      <div class="table-title">
+        <div>
+          <p class="eyebrow">${uiLabel("Recent Analyses")}</p>
+          <h2>${uiLabel("Evaluated Companies")}</h2>
+        </div>
+        <button class="icon-btn" data-action="new-analysis">${uiLabel("New Analysis")}</button>
+      </div>
+      <div class="company-card-grid">
+        ${rows.length ? rows.map((item) => evaluatedCompanyCard(item)).join("") : emptyHomeState(state)}
+      </div>
+    </section>
+  `;
+}
+
+function homeWatchlistPanel(state) {
+  const visible = (state.watchList || []).slice(0, 5);
+  return `
+    <section class="evaluated-panel watchlist-home-panel">
+      <div class="table-title">
+        <div>
+          <p class="eyebrow">${uiLabel("Watchlist")}</p>
+          <h2>${uiLabel("Saved Companies")}</h2>
+        </div>
+        <button class="icon-btn" data-panel="watchlist">${uiLabel("Open")}</button>
+      </div>
+      <div class="watchlist-home-list">
+        ${visible.length ? visible.map((item) => `
+          <button data-panel="watchlist">
+            <span>${escapeHtml(item.ticker)}</span>
+            <strong>${escapeHtml(decisionLabel(item.decision))}</strong>
+            <small>${escapeHtml(item.reviewDate || item.updatedAt || "")}</small>
+          </button>
+        `).join("") : `
+          <div class="empty-mini">
+            <strong>${uiLabel("No saved companies yet")}</strong>
+            <span>${uiLabel("Approved reports can be added to Watchlist from the report.")}</span>
+          </div>
+        `}
+      </div>
+    </section>
   `;
 }
 
@@ -156,22 +252,25 @@ function homeSearchBlock(state) {
 }
 
 function homeStartCard(state) {
-  const hasMarketKey = Boolean(state.apiKeys.fmp);
   return `
     <section class="start-card">
       <div>
         <p class="eyebrow">${uiLabel("Start here")}</p>
-        <h2>${uiLabel("Build an approved valuation before it reaches Home")}</h2>
-        <p>${uiLabel("Search a ticker, paste data, review it, run the fixed analyst, then approve and export.")}</p>
+        <h2>${uiLabel("Should I buy this stock today?")}</h2>
+        <p>${uiLabel("Start with one search or one pasted data block. The app keeps drafts private until you approve the report.")}</p>
       </div>
       <div class="start-steps">
-        ${startStep("1", uiLabel("Search"), uiLabel("Open a valuation workspace, not a final decision."))}
-        ${startStep("2", uiLabel("Data"), uiLabel("Paste or enter company data and confirm the source."))}
-        ${startStep("3", uiLabel("Approve"), uiLabel("Only approved valuations appear in the dashboard."))}
+        ${startStep("1", uiLabel("Paste"), uiLabel("One main box for company and financial data."))}
+        ${startStep("2", uiLabel("Review"), uiLabel("Confirm, missing, and conflicting fields are separated."))}
+        ${startStep("3", uiLabel("Report"), uiLabel("Read the decision first; open details only when needed."))}
       </div>
       <div class="start-footer">
-        <span class="${hasMarketKey ? "ready" : "limited"}">${hasMarketKey ? uiLabel("Market data key connected") : uiLabel("Add FMP key for live data")}</span>
-        <button class="icon-btn" data-panel="settings">${uiLabel("Settings")}</button>
+        <span class="ready">${uiLabel("Market data runs through the secure server.")}</span>
+        <div class="start-buttons">
+          <button class="primary-btn" data-action="new-analysis">${uiLabel("New Analysis")}</button>
+          <button class="icon-btn" data-action="load-demo-analysis">${uiLabel("Load Demo Data")}</button>
+          <button class="icon-btn" data-panel="settings">${uiLabel("Settings")}</button>
+        </div>
       </div>
     </section>
   `;
@@ -187,11 +286,100 @@ function startStep(number, title, detail) {
   `;
 }
 
+function homeCompanyCardsSection(state) {
+  const rankedAll = rankEvaluatedCompanies(state.evaluatedCompanies);
+  const filtered = filterEvaluatedCompanies(rankedAll, state.query, state.rankingFilter, state.sectorFilter);
+  const rows = sortVisibleRows(filtered, state.evaluatedSort).slice(0, 12);
+  return `
+    <section class="evaluated-panel company-cards-panel">
+      <div class="table-title">
+        <div>
+          <h2>${uiLabel("Evaluated Companies")}</h2>
+          <p>${uiLabel("Approved reports only. Drafts never appear on Home.")}</p>
+        </div>
+        <button class="icon-btn" data-action="new-analysis">${uiLabel("New Analysis")}</button>
+      </div>
+      ${rankingToolbar(state, rankedAll)}
+      ${comparisonPanel(state, rankedAll)}
+      ${homeWatchlistStrip(state)}
+      <div class="company-card-grid">
+        ${rows.length ? rows.map((item) => evaluatedCompanyCard(item)).join("") : emptyHomeState(state)}
+      </div>
+    </section>
+  `;
+}
+
+function homeWatchlistStrip(state) {
+  const visible = (state.watchList || []).slice(0, 4);
+  if (!visible.length) return "";
+  return `
+    <div class="watchlist-strip">
+      <span>${uiLabel("Watchlist")}</span>
+      ${visible.map((item) => `<button data-panel="watchlist">${escapeHtml(item.ticker)} / ${escapeHtml(decisionLabel(item.decision))}</button>`).join("")}
+    </div>
+  `;
+}
+
+function evaluatedCompanyCard(item) {
+  const decision = item.decisionStatus === "INSUFFICIENT_DATA" ? statusLabel(item.decisionStatus) : decisionLabel(item.recommendation);
+  return `
+    <article class="company-card" data-evaluated-ticker="${escapeHtml(item.ticker)}">
+      <div class="company-card-top">
+        <div class="ticker-avatar">${escapeHtml(String(item.ticker || "").slice(0, 3))}</div>
+        <div>
+          <strong>${escapeHtml(item.ticker)}</strong>
+          <span>${escapeHtml(item.companyName || uiLabel("Company"))}</span>
+        </div>
+        <em class="${colorClass(recommendationColorCategory(item.recommendation, item.decisionStatus), "badge")}">${escapeHtml(decision)}</em>
+      </div>
+      <div class="company-card-decision">
+        <span>${uiLabel("Recommendation")}</span>
+        <b>${escapeHtml(decision)}</b>
+      </div>
+      <div class="company-card-metrics">
+        ${compactCardMetric(uiLabel("Current Price"), money(item.currentPrice, 2))}
+        ${compactCardMetric(uiLabel("Range FV"), money(item.rangeFairValue, 0))}
+        ${compactCardMetric(uiLabel("Upside %"), formatSignedPercent(item.upside))}
+        ${compactCardMetric(uiLabel("Confidence"), Number.isFinite(item.confidence) ? `${Math.round(item.confidence)}%` : "—")}
+      </div>
+      <div class="company-card-footer">
+        <span>${uiLabel("Data Quality")}: ${Number.isFinite(item.dataQuality) ? Math.round(item.dataQuality) : "—"}/100</span>
+        <small>${uiLabel("Open report")}</small>
+      </div>
+    </article>
+  `;
+}
+
+function compactCardMetric(label, value) {
+  return `
+    <div>
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(String(value || "—"))}</strong>
+    </div>
+  `;
+}
+
+function emptyHomeState(state) {
+  const message = state.evaluatedCompanies.length
+    ? uiLabel("No matching evaluated companies.")
+    : uiLabel("No approved reports yet. Start a new analysis or load the demo flow.");
+  return `
+    <div class="empty-home-state">
+      <strong>${escapeHtml(message)}</strong>
+      <p>${uiLabel("The dashboard stays clean because only approved reports are exported here.")}</p>
+      <div>
+        <button class="primary-btn" data-action="new-analysis">${uiLabel("New Analysis")}</button>
+        <button class="icon-btn" data-action="load-demo-analysis">${uiLabel("Load Demo Data")}</button>
+      </div>
+    </div>
+  `;
+}
+
 function topBar(state) {
   return `
-    <header class="topbar compact">
+    <header class="topbar compact product-topbar">
       <div>
-        <p class="eyebrow">${uiLabel("Version 9.1")}</p>
+        <p class="eyebrow">${uiLabel("Version 10.0.0")}</p>
         <h2>${escapeHtml(state.company.name)}</h2>
       </div>
       <div class="top-actions">
@@ -636,67 +824,94 @@ function panelContent(state) {
 function valuationWorkspacePanel(state) {
   const workspace = state.valuationWorkspace;
   if (!workspace) {
-    return `
-      <section class="panel workflow-empty">
-        <h3>${uiLabel("Valuation Workspace")}</h3>
-        <p>${uiLabel("Search for a company to open a disciplined valuation workspace.")}</p>
-        ${searchBlock(state)}
-      </section>
-    `;
+    return emptyAnalysisWorkspace(state);
   }
   const review = workspace.dataReview || {};
   const report = workspace.report;
+  if (state.loading) return processingStatePanel(workspace, state);
   if (report) {
     return `
       <section class="investment-report-shell">
         ${investmentReportExperience(workspace, state)}
-        ${workspace.pastePreview ? pastePreviewCard(workspace) : ""}
       </section>
     `;
   }
   return `
-    <section class="workflow-shell">
-      <article class="panel workflow-header">
-        <div>
-          <p class="eyebrow">${uiLabel("Valuation Workspace")}</p>
-          <h2>${escapeHtml(workspace.companyName || workspace.ticker)}</h2>
-          <p class="muted">${escapeHtml(workspace.ticker)} / ${uiLabel("Methodology")}: ${escapeHtml(workspace.methodologyVersion)}</p>
-        </div>
-        <div class="workflow-metrics">
-          ${metric(uiLabel("Research status"), workflowStatusLabel(workspace.status, state.language))}
-          ${metric(uiLabel("Current Price"), money(workspace.inputs?.currentPrice?.value, 2))}
-          ${metric(uiLabel("Data completeness"), `${review.completeness || 0}/100`)}
-          ${metric(uiLabel("Last saved"), workspace.lastSavedAt ? workspace.lastSavedAt.slice(0, 10) : "-")}
-        </div>
-      </article>
+    <section class="analysis-flow-shell">
+      ${analysisWorkspaceHeader(workspace, review, state)}
       ${workflowSteps(workspace, state)}
       ${workspace.pastePreview ? pastePreviewCard(workspace) : ""}
-      <section class="content-grid workflow-grid">
-        <article class="panel full">${analystBrainPastePanel(workspace, state)}</article>
-        <article class="panel">${dataReviewPanel(workspace, state)}</article>
-        <article class="panel">${analystBrainMethodologyPanel(workspace)}</article>
-        ${report ? `<article class="panel full">${fixedReportPanel(workspace, state)}</article>` : ""}
-        ${workspace.versions?.length ? `<article class="panel full">${versionHistoryPanel(workspace)}</article>` : ""}
+      <section class="analysis-flow-grid">
+        <article class="panel paste-stage">${analystBrainPastePanel(workspace, state)}</article>
+        <article class="panel review-stage">${dataReviewPanel(workspace, state)}</article>
       </section>
     </section>
   `;
 }
 
+function emptyAnalysisWorkspace(state) {
+  return `
+    <section class="analysis-flow-shell">
+      <article class="panel workflow-empty analysis-empty">
+        <div class="app-logo large"><img src="./assets/icon-192.png" alt=""></div>
+        <p class="eyebrow">${uiLabel("New Analysis")}</p>
+        <h2>${uiLabel("Start with one company data block")}</h2>
+        <p>${uiLabel("Paste the company data once. The app extracts fields, asks you to review them, then shows the investment report first.")}</p>
+        <div class="analysis-empty-actions">
+          <button class="primary-btn" data-action="new-analysis">${uiLabel("Open Paste Box")}</button>
+          <button class="icon-btn" data-action="load-demo-analysis">${uiLabel("Load Demo Data")}</button>
+        </div>
+      </article>
+      ${searchBlock(state)}
+    </section>
+  `;
+}
+
+function analysisWorkspaceHeader(workspace, review, state) {
+  return `
+    <article class="analysis-header">
+      <div>
+        <p class="eyebrow">${uiLabel("Investment Analyst")}</p>
+        <h2>${escapeHtml(workspace.companyName || workspace.ticker || uiLabel("New Analysis"))}</h2>
+        <p>${uiLabel("One paste box, one review, one investment report.")}</p>
+      </div>
+      <div class="analysis-header-metrics">
+        ${miniMetric(uiLabel("Status"), workflowStatusLabel(workspace.status, state.language))}
+        ${miniMetric(uiLabel("Data Review"), `${review.requiredConfirmed || 0}/${review.requiredTotal || 0}`)}
+        ${miniMetric(uiLabel("Completeness"), `${review.completeness || 0}/100`)}
+      </div>
+    </article>
+  `;
+}
+
 function analystBrainPastePanel(workspace, state) {
+  const pasteLength = String(workspace.analystBrainPaste || "").trim().length;
   return `
     <div class="analyst-paste-panel">
       <div class="section-head">
         <div>
-          <p class="eyebrow">Investment Analyst Brain v1</p>
+          <p class="eyebrow">Investment Analyst Brain v1.1</p>
           <h3>${uiLabel("Paste one company data block")}</h3>
-          <p class="muted">${uiLabel("Paste the company data, financials, estimates, Morningstar notes, and your notes in one block. The system parses data first, then deterministic code calculates the report.")}</p>
+          <p class="muted">${uiLabel("Paste company profile, financials, estimates, Morningstar notes, and your notes in one place. No long form is required before parsing.")}</p>
         </div>
+      </div>
+      <div class="analysis-input-row">
+        <label>${uiLabel("Ticker")}
+          <input data-workflow-field="ticker" value="${escapeHtml(workspace.inputs?.ticker?.value || workspace.ticker || "")}" autocomplete="off" autocapitalize="characters" placeholder="AAPL">
+        </label>
+        <label>${uiLabel("Company Name")}
+          <input data-workflow-field="companyName" value="${escapeHtml(workspace.inputs?.companyName?.value || workspace.companyName || "")}" autocomplete="off" placeholder="${uiLabel("Optional before paste")}">
+        </label>
       </div>
       <textarea class="paste-box brain-paste-box" data-brain-paste placeholder="${uiLabel("Paste one unstructured company data block here.")}">${escapeHtml(workspace.analystBrainPaste || "")}</textarea>
       ${workspace.aiParseNotes?.length ? `<div class="parse-notes">${workspace.aiParseNotes.map((note) => `<span>${escapeHtml(note)}</span>`).join("")}</div>` : ""}
       <div class="brain-actions">
-        <button class="primary-btn" data-action="analyze-brain" ${state.loading ? "disabled" : ""}>${state.loading ? uiLabel("Analyzing") : uiLabel("Generate Investment Report")}</button>
-        <span>${uiLabel("Drafts stay private until approval.")}</span>
+        <div class="brain-action-buttons">
+          <button class="primary-btn" data-action="analyze-brain" ${state.loading ? "disabled" : ""}>${state.loading ? uiLabel("Analyzing") : uiLabel("Analyze Paste")}</button>
+          <button class="icon-btn" data-action="load-demo-analysis">${uiLabel("Load Demo Data")}</button>
+          <button class="icon-btn" data-action="clear-analysis-paste">${uiLabel("Clear")}</button>
+        </div>
+        <span>${uiLabel("Drafts stay private until approval.")} ${pasteLength ? `${pasteLength.toLocaleString()} ${uiLabel("characters")}` : ""}</span>
       </div>
     </div>
   `;
@@ -717,11 +932,11 @@ function analystBrainMethodologyPanel() {
 
 function workflowSteps(workspace, state) {
   const steps = [
-    ["1", uiLabel("Open Workspace"), Boolean(workspace)],
-    ["2", uiLabel("Paste / Enter Data"), (workspace.dataReview?.confirmed?.length || 0) > 0],
-    ["3", uiLabel("Review and Confirm Data"), workspace.dataReview?.canRun],
-    ["4", uiLabel("Run Valuation Analyst"), Boolean(workspace.report)],
-    ["5", uiLabel("Approve and Export"), workspace.status === WORKFLOW_STATUS.APPROVED]
+    ["1", uiLabel("Paste"), Boolean(workspace.analystBrainPaste || workspace.inputs?.ticker?.value)],
+    ["2", uiLabel("Review"), (workspace.dataReview?.confirmed?.length || 0) > 0],
+    ["3", uiLabel("Analyze"), workspace.dataReview?.canRun],
+    ["4", uiLabel("Report"), Boolean(workspace.report)],
+    ["5", uiLabel("Approve"), workspace.status === WORKFLOW_STATUS.APPROVED]
   ];
   return `
     <div class="workflow-steps">
@@ -729,6 +944,33 @@ function workflowSteps(workspace, state) {
         <span class="${done ? "done" : ""}"><b>${number}</b>${escapeHtml(label)}</span>
       `).join("")}
     </div>
+  `;
+}
+
+function processingStatePanel(workspace, state) {
+  const active = state.processingStage || "running-engine";
+  const stages = [
+    ["parsing-paste", uiLabel("Reading pasted data"), uiLabel("Extracting only values present in your text.")],
+    ["reviewing-data", uiLabel("Reviewing data"), uiLabel("Checking confirmed, missing, and conflicting fields.")],
+    ["running-engine", uiLabel("Running deterministic engine"), uiLabel("Calculations come from code, not AI narrative.")],
+    ["building-report", uiLabel("Building report"), uiLabel("Preparing the investment committee view.")]
+  ];
+  return `
+    <section class="processing-screen" data-screen="Processing">
+      <div class="processing-mark" aria-hidden="true">${escapeHtml(String(workspace.ticker || "AI").slice(0, 3))}</div>
+      <p class="eyebrow">${uiLabel("Analysis in progress")}</p>
+      <h2>${escapeHtml(workspace.companyName || workspace.ticker || uiLabel("Investment Report"))}</h2>
+      <p>${uiLabel("Please keep this page open while the report is prepared.")}</p>
+      <div class="processing-steps">
+        ${stages.map(([key, label, detail]) => `
+          <div class="${key === active ? "active" : stages.findIndex(([stage]) => stage === key) < stages.findIndex(([stage]) => stage === active) ? "done" : ""}">
+            <b></b>
+            <span>${escapeHtml(label)}</span>
+            <small>${escapeHtml(detail)}</small>
+          </div>
+        `).join("")}
+      </div>
+    </section>
   `;
 }
 
@@ -771,46 +1013,140 @@ function workflowField(workspace, field) {
 function investmentReportExperience(workspace, state) {
   const report = workspace.report;
   return `
-    <article class="investment-report">
-      <header class="report-cover">
-        <div>
-          <p class="eyebrow">${uiLabel("Investment Report")}</p>
-          <h1>${escapeHtml(report.companyAndValuationDate.companyName)}</h1>
-          <p class="muted">${escapeHtml(report.companyAndValuationDate.ticker)} / ${uiLabel("Valuation Date")}: ${escapeHtml(report.companyAndValuationDate.valuationDate)} / ${uiLabel("Methodology")}: ${escapeHtml(report.methodologyVersion)}</p>
-        </div>
-        <div class="report-actions">
-          <button class="icon-btn" data-action="edit-workspace-data">${uiLabel("Edit Data and Re-run")}</button>
-          <button class="primary-btn" data-action="approve-and-export" ${workspace.status === WORKFLOW_STATUS.APPROVED ? "disabled" : ""}>${uiLabel("Approve and Export")}</button>
-        </div>
-      </header>
-      ${quickSummaryCard(report)}
-      <section class="report-main-grid">
-        <article class="report-section executive">
-          <p class="eyebrow">${uiLabel("Executive Summary")}</p>
-          <h2>${escapeHtml(reportHeadline(report, state.language))}</h2>
-          <p>${escapeHtml(executiveReportSummary(report, state.language))}</p>
-        </article>
-        <article class="report-section">
-          <p class="eyebrow">${uiLabel("Investment Thesis")}</p>
-          ${investmentThesisBlock(report, state.language)}
-        </article>
-        <article class="report-section full">
-          <p class="eyebrow">${uiLabel("Valuation Summary")}</p>
-          ${valuationSummaryBlock(report)}
-        </article>
-        <article class="report-section">
-          <p class="eyebrow">${uiLabel("Decision")}</p>
-          <div class="report-decision ${String(report.executiveConclusion.recommendation).toLowerCase()}">${escapeHtml(decisionLabel(report.executiveConclusion.recommendation))}</div>
-          <p>${escapeHtml(report.finalInvestmentDecision.why)}</p>
-          <p class="muted">${escapeHtml(report.finalInvestmentDecision.whyNot)}</p>
-        </article>
-        <article class="report-section">
+    <article class="investment-report" data-legacy-report-anchor="Executive Summary">
+      ${reportCompanyHeader(workspace, report)}
+      ${decisionCenterCard(report)}
+      <section class="report-story polished-report-story">
+        ${investmentTakeaways(report, state.language)}
+        ${scenarioCards(report)}
+        ${fairValueVisual(report)}
+        ${businessQualityOverview(report)}
+        ${riskSnapshot(report)}
+        ${valuationModelsSnapshot(report)}
+        ${forecastSnapshot(report)}
+        ${monitoringSnapshot(report)}
+        <article class="report-section" data-screen="What Changes My Mind">
           <p class="eyebrow">${uiLabel("What Could Change This Decision")}</p>
           ${listReport(report.whatWouldChangeTheValuation)}
         </article>
+        ${finalActionsBlock(workspace, report)}
       </section>
-      <label class="notes-field report-note">${uiLabel("Investor approval note")}<textarea data-investor-notes>${escapeHtml(workspace.investorNotes || "")}</textarea></label>
       ${collapsibleReportDetails(workspace, report)}
+    </article>
+  `;
+}
+
+function reportCompanyHeader(workspace, report) {
+  const c = report.executiveConclusion;
+  const company = report.companyAndValuationDate;
+  const classification = report.companyClassification?.classification || uiLabel("Data driven");
+  const sector = report.companyProfile?.sector || report.companyProfile?.industry || report.company?.sector || report.company?.industry || classification;
+  return `
+    <header class="report-cover report-company-header">
+      <div class="company-identity">
+        <div class="ticker-avatar large premium-ticker-avatar">${escapeHtml(String(company.ticker || "").slice(0, 3))}</div>
+        <div>
+          <p class="eyebrow">${uiLabel("Investment Report")}</p>
+          <h1>${escapeHtml(company.companyName)}</h1>
+          <p class="muted company-meta-line">
+            <span>${escapeHtml(company.ticker)}</span>
+            <span>${escapeHtml(sector)}</span>
+            <span>${uiLabel("Valuation Date")}: ${escapeHtml(company.valuationDate)}</span>
+            <span>${uiLabel("Methodology")}: ${escapeHtml(report.methodologyVersion)}</span>
+          </p>
+        </div>
+      </div>
+      <div class="report-hero-metrics">
+        <div>
+          <span>${uiLabel("Current Price")}</span>
+          <strong>${money(c.currentPrice, 2)}</strong>
+        </div>
+        <div>
+          <span>${uiLabel("Fair Value")}</span>
+          <strong>${money(c.rangeFairValue, 0)}</strong>
+        </div>
+        <div class="${String(c.recommendation).toLowerCase()}">
+          <span>${uiLabel("Recommendation")}</span>
+          <strong>${escapeHtml(decisionLabel(c.recommendation))}</strong>
+        </div>
+        <div>
+          <span>${uiLabel("Confidence")}</span>
+          <strong>${Math.round(c.confidence || 0)}%</strong>
+        </div>
+      </div>
+      <div class="report-actions">
+        <button class="icon-btn" data-action="edit-workspace-data">${uiLabel("Edit Data and Re-run")}</button>
+        <button class="primary-btn" data-action="approve-and-export" ${workspace.status === WORKFLOW_STATUS.APPROVED ? "disabled" : ""}>${uiLabel("Approve and Export")}</button>
+      </div>
+    </header>
+  `;
+}
+
+function decisionCenterCard(report) {
+  const item = report.executiveConclusion;
+  const decision = decisionLabel(item.recommendation);
+  const score = Math.round(item.investmentScore || 0);
+  const confidence = Math.round(item.confidence || 0);
+  const why = shortText(item.why || report.finalInvestmentDecision?.why || executiveReportSummary(report, "ar"), 150);
+  return `
+    <section class="decision-card product-decision-card ${String(item.recommendation).toLowerCase()}" data-screen="Decision Summary">
+      <div class="decision-card-main">
+        <span>${uiLabel("Recommendation")}</span>
+        <strong>${escapeHtml(decision)}</strong>
+        <p>${escapeHtml(why)}</p>
+      </div>
+      <div class="decision-metric-grid">
+        ${decisionMetric(uiLabel("Fair Value"), money(item.rangeFairValue, 0), "hero")}
+        ${decisionMetric(uiLabel("Upside %"), formatSignedPercent(item.expectedUpside), colorClass(upsideColorCategory(item.expectedUpside)))}
+        ${decisionMetric(uiLabel("Current Price"), money(item.currentPrice, 2))}
+        ${decisionMetric(uiLabel("Maximum Upside"), formatSignedPercent(item.maximumUpside), colorClass(upsideColorCategory(item.maximumUpside)))}
+      </div>
+      <div class="decision-score-row">
+        <div class="confidence-ring" style="--value:${clampNumber(confidence, 0, 100)}"><b>${confidence}%</b><span>${uiLabel("Confidence")}</span></div>
+        <div class="investment-score-pill">
+          <span>${uiLabel("Investment Score")}</span>
+          <strong>${score}</strong>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function decisionMetric(label, value, tone = "") {
+  return `
+    <div class="decision-metric ${escapeHtml(tone)}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(String(value))}</strong>
+    </div>
+  `;
+}
+
+function investmentTakeaways(report, language) {
+  const positives = takeReportItems(report.finalInvestmentDecision?.mainPositiveDrivers, report.catalysts, 3);
+  const risks = takeReportItems(report.finalInvestmentDecision?.mainNegativeDrivers, report.risks, 3);
+  const conclusion = shortText(report.finalInvestmentDecision?.why || report.executiveConclusion?.why || executiveReportSummary(report, language), 170);
+  return `
+    <article class="report-section full takeaway-section" data-screen="Investment Thesis">
+      <div class="section-title-row">
+        <div>
+          <p class="eyebrow">${uiLabel("Investment Thesis")}</p>
+          <h3>${uiLabel("Decision Snapshot")}</h3>
+        </div>
+      </div>
+      <div class="takeaway-grid">
+        <div>
+          <h4>${uiLabel("Key Positives")}</h4>
+          ${compactList(positives)}
+        </div>
+        <div>
+          <h4>${uiLabel("Key Risks")}</h4>
+          ${compactList(risks)}
+        </div>
+        <div class="short-conclusion">
+          <h4>${uiLabel("Short Conclusion")}</h4>
+          <p>${escapeHtml(conclusion || uiLabel("The decision is based only on confirmed inputs."))}</p>
+        </div>
+      </div>
     </article>
   `;
 }
@@ -840,6 +1176,430 @@ function quickMetric(label, value) {
       <strong>${escapeHtml(String(value))}</strong>
     </div>
   `;
+}
+
+function miniMetric(label, value) {
+  return `<div class="mini-metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value ?? "—"))}</strong></div>`;
+}
+
+function compactList(items = []) {
+  const visible = items.map(normalizeReportItem).filter(Boolean).slice(0, 3);
+  return visible.length
+    ? `<ul class="compact-list">${visible.map((item) => `<li>${escapeHtml(shortText(item, 92))}</li>`).join("")}</ul>`
+    : `<p class="muted">${uiLabel("Missing")}</p>`;
+}
+
+function takeReportItems(primary = [], fallback = [], count = 3) {
+  return [...(primary || []), ...(fallback || [])].map(normalizeReportItem).filter(Boolean).slice(0, count);
+}
+
+function normalizeReportItem(item) {
+  if (item === null || item === undefined) return "";
+  if (typeof item === "string") return item;
+  if (typeof item === "number") return String(item);
+  return item.title || item.name || item.metric || item.explanation || item.why || item.focus || "";
+}
+
+function shortText(text, maxLength = 120) {
+  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  return clean.length > maxLength ? `${clean.slice(0, Math.max(0, maxLength - 1)).trim()}…` : clean;
+}
+
+function scenarioCards(report) {
+  const currentPrice = report.executiveConclusion.currentPrice;
+  const scenarios = [
+    scenarioView("Bear", report.bearScenario || report.scenarios?.Conservative),
+    scenarioView("Base", report.baseScenario || report.scenarios?.Base),
+    scenarioView("Bull", report.bullScenario || report.scenarios?.Optimistic)
+  ].filter((item) => item.scenario);
+  return `
+    <article class="report-section full scenario-report-section product-scenario-section" data-screen="Bear Base Bull Cards">
+      <div class="section-title-row">
+        <div>
+          <p class="eyebrow">${uiLabel("Scenarios")}</p>
+          <h3>Bear / Base / Bull</h3>
+        </div>
+        <span>${uiLabel("Probability weighted")}</span>
+      </div>
+      <div class="scenario-report-grid">
+        ${scenarios.map(({ label, scenario }) => `
+          <div class="scenario-report-card ${label.toLowerCase()}">
+            <div class="scenario-card-head">
+              <span>${escapeHtml(label)}</span>
+              <small>${Math.round((scenario.probability || 0) * 100)}% ${uiLabel("Probability")}</small>
+            </div>
+            <strong>${money(scenario.fairValue, 0)}</strong>
+            <div class="scenario-mini-grid">
+              ${miniMetric(uiLabel("Upside %"), scenarioUpside(scenario, currentPrice))}
+              ${miniMetric(uiLabel("Main condition"), scenarioMainCondition(scenario))}
+              ${miniMetric(uiLabel("Main risk"), scenarioMainRisk(scenario))}
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function scenarioView(label, scenario) {
+  return { label, scenario };
+}
+
+function scenarioText(scenario, currentPrice) {
+  const upside = Number.isFinite(scenario?.fairValue) && Number.isFinite(currentPrice)
+    ? formatSignedPercent((scenario.fairValue - currentPrice) / currentPrice)
+    : "—";
+  const risk = (scenario?.keyRisks || [])[0];
+  const catalyst = (scenario?.keyCatalysts || [])[0];
+  return [upside, catalyst, risk].filter(Boolean).join(" / ");
+}
+
+function scenarioUpside(scenario, currentPrice) {
+  return Number.isFinite(scenario?.fairValue) && Number.isFinite(currentPrice)
+    ? formatSignedPercent((scenario.fairValue - currentPrice) / currentPrice)
+    : "—";
+}
+
+function scenarioMainCondition(scenario = {}) {
+  return shortText((scenario.keyCatalysts || scenario.conditions || [])[0] || scenario.revenueAssumption || scenario.summary || "—", 58);
+}
+
+function scenarioMainRisk(scenario = {}) {
+  return shortText((scenario.keyRisks || [])[0] || scenario.risk || "—", 58);
+}
+
+function priceScenarioChart(report) {
+  const c = report.executiveConclusion;
+  const values = [
+    ["Current", c.currentPrice],
+    ["Bear", c.bearFairValue],
+    ["Base", c.baseFairValue],
+    ["Bull", c.bullFairValue]
+  ].filter(([, value]) => Number.isFinite(value));
+  const max = Math.max(...values.map(([, value]) => value), 1);
+  return `
+    <div class="price-scenario-chart" data-screen="Price Scenario Chart">
+      ${values.map(([label, value]) => `
+        <div>
+          <span>${escapeHtml(label)}</span>
+          <i style="height:${Math.max(12, Math.round((value / max) * 86))}px"></i>
+          <strong>${money(value, 0)}</strong>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function fairValueVisual(report) {
+  const c = report.executiveConclusion;
+  const points = [c.currentPrice, c.bearFairValue, c.baseFairValue, c.bullFairValue, c.rangeFairValue].filter(Number.isFinite);
+  if (!points.length) {
+    return `
+      <article class="report-section full fair-value-card" data-screen="Fair Value Range">
+        <p class="eyebrow">${uiLabel("Fair Value Range")}</p>
+        <h3>${uiLabel("Data Unavailable")}</h3>
+        <p>${uiLabel("Fair value visualization requires confirmed price and valuation outputs.")}</p>
+      </article>
+    `;
+  }
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const pad = Math.max((max - min) * 0.14, Math.max(max, 1) * 0.06);
+  const domainMin = min - pad;
+  const domainMax = max + pad;
+  const position = (value) => Number.isFinite(value) ? clampNumber(((value - domainMin) / Math.max(domainMax - domainMin, 1)) * 100, 0, 100) : null;
+  const rangeStart = Math.min(position(c.bearFairValue) ?? 0, position(c.bullFairValue) ?? 100);
+  const rangeEnd = Math.max(position(c.bearFairValue) ?? 0, position(c.bullFairValue) ?? 100);
+  return `
+    <article class="report-section full fair-value-card" data-screen="Fair Value Range">
+      <div class="section-title-row">
+        <div>
+          <p class="eyebrow">${uiLabel("Fair Value Range")}</p>
+          <h3>${money(c.rangeFairValue, 0)} ${uiLabel("vs")} ${money(c.currentPrice, 2)}</h3>
+        </div>
+        <strong class="${colorClass(upsideColorCategory(c.expectedUpside))}">${formatSignedPercent(c.expectedUpside)}</strong>
+      </div>
+      <div class="premium-fair-range" aria-label="${uiLabel("Fair Value Range")}">
+        <div class="fair-axis">
+          <span class="fair-axis-muted"></span>
+          <span class="fair-axis-range" style="inset-inline-start:${rangeStart}%; width:${Math.max(rangeEnd - rangeStart, 4)}%"></span>
+          ${valueMarker(uiLabel("Current Price"), c.currentPrice, position(c.currentPrice), "current")}
+          ${valueMarker(uiLabel("Fair Value"), c.rangeFairValue, position(c.rangeFairValue), "fair")}
+        </div>
+        <div class="fair-stage-row">
+          ${fairStage("Bear", c.bearFairValue)}
+          ${fairStage("Base", c.baseFairValue)}
+          ${fairStage("Bull", c.bullFairValue)}
+        </div>
+      </div>
+      <div class="fair-value-legend">
+        ${miniMetric("Bear", money(c.bearFairValue, 0))}
+        ${miniMetric("Base", money(c.baseFairValue, 0))}
+        ${miniMetric("Bull", money(c.bullFairValue, 0))}
+        ${miniMetric(uiLabel("Range FV"), money(c.rangeFairValue, 0))}
+      </div>
+    </article>
+  `;
+}
+
+function valueMarker(label, value, position, tone = "") {
+  if (position === null) return "";
+  return `<span class="value-marker ${escapeHtml(tone)}" style="inset-inline-start:${position}%"><b>${escapeHtml(label)}</b><small>${money(value, 0)}</small></span>`;
+}
+
+function fairStage(label, value) {
+  return `
+    <div class="fair-stage ${escapeHtml(label.toLowerCase())}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${money(value, 0)}</strong>
+    </div>
+  `;
+}
+
+function businessQualityOverview(report) {
+  const quality = report.businessQuality || {};
+  const components = (quality.components || []).slice(0, 6);
+  const strengths = qualityStrengths(quality, report).slice(0, 3);
+  const weaknesses = qualityWeaknesses(quality, report).slice(0, 3);
+  return `
+    <article class="report-section full business-quality-card" data-screen="Business Quality">
+      <div class="section-title-row">
+        <div>
+          <p class="eyebrow">${financialTerm("Quality")}</p>
+          <h3>${Math.round(quality.score || report.executiveConclusion.investmentScore || 0)}/100</h3>
+        </div>
+        <div class="quality-summary-meta">
+          <span>${escapeHtml(quality.rating || uiLabel("Data driven"))}</span>
+          <small>${uiLabel("Confidence")} ${Math.round(quality.confidence || report.executiveConclusion.confidence || 0)}%</small>
+        </div>
+      </div>
+      <div class="quality-two-col">
+        <div>
+          <h4>${uiLabel("Strengths")}</h4>
+          ${compactList(strengths)}
+        </div>
+        <div>
+          <h4>${uiLabel("Weaknesses")}</h4>
+          ${compactList(weaknesses)}
+        </div>
+      </div>
+      <details class="inline-detail">
+        <summary>${uiLabel("Score breakdown")}</summary>
+        <div class="quality-breakdown">
+          ${components.map((item) => `
+            <div>
+              <span>${escapeHtml(item.name)}</span>
+              <strong>${Math.round(item.score || 0)}/100</strong>
+              <i style="width:${clampNumber(Math.round(item.score || 0), 0, 100)}%"></i>
+            </div>
+          `).join("") || `<p class="muted">${uiLabel("Quality is based on confirmed inputs only.")}</p>`}
+        </div>
+      </details>
+    </article>
+  `;
+}
+
+function qualityStrengths(quality = {}, report = {}) {
+  const componentStrengths = (quality.components || [])
+    .filter((item) => Number(item.score) >= 70)
+    .sort((a, b) => Number(b.score) - Number(a.score))
+    .map((item) => `${item.name}: ${Math.round(item.score || 0)}/100`);
+  return takeReportItems(componentStrengths, report.finalInvestmentDecision?.mainPositiveDrivers, 3);
+}
+
+function qualityWeaknesses(quality = {}, report = {}) {
+  const componentWeaknesses = (quality.components || [])
+    .filter((item) => Number(item.score) < 70)
+    .sort((a, b) => Number(a.score) - Number(b.score))
+    .map((item) => `${item.name}: ${Math.round(item.score || 0)}/100`);
+  return takeReportItems(componentWeaknesses, report.finalInvestmentDecision?.mainNegativeDrivers, 3);
+}
+
+function riskSnapshot(report) {
+  const risks = (report.risks || []).slice(0, 5);
+  return `
+    <article class="report-section risk-snapshot" data-screen="Risks">
+      <p class="eyebrow">${financialTerm("Risk")}</p>
+      <h3>${uiLabel("Key Risks")}</h3>
+      <div class="risk-card-list">
+        ${risks.length ? risks.map((risk, index) => riskCard(risk, index)).join("") : `<p>${uiLabel("No verified risks were provided.")}</p>`}
+      </div>
+      ${shariahComplianceCard(report)}
+    </article>
+  `;
+}
+
+function riskCard(risk, index) {
+  const label = riskSeverity(index);
+  return `
+    <div class="risk-card ${label.tone}">
+      <div>
+        <span>${escapeHtml(label.title)}</span>
+        <strong>${escapeHtml(riskTitle(risk))}</strong>
+      </div>
+      <p>${escapeHtml(riskBody(risk))}</p>
+    </div>
+  `;
+}
+
+function riskSeverity(index) {
+  if (index === 0) return { title: uiLabel("High"), tone: "high" };
+  if (index <= 2) return { title: uiLabel("Medium"), tone: "medium" };
+  return { title: uiLabel("Low"), tone: "low" };
+}
+
+function riskTitle(risk) {
+  const text = normalizeReportItem(risk);
+  const [title] = text.split(/[:.؛]/);
+  return shortText(title || text || uiLabel("Risk"), 52);
+}
+
+function riskBody(risk) {
+  const text = normalizeReportItem(risk);
+  const title = riskTitle(risk);
+  const body = text.replace(title, "").replace(/^[:.؛\s-]+/, "");
+  return shortText(body || text || uiLabel("No verified risks were provided."), 120);
+}
+
+function shariahComplianceCard() {
+  return `
+    <div class="shariah-card" data-screen="Shariah Compliance">
+      <span>${uiLabel("Shariah Compliance")}</span>
+      <strong>${uiLabel("Data Unavailable")}</strong>
+      <small>${uiLabel("No verified Shariah source was provided, so the app does not infer compliance.")}</small>
+    </div>
+  `;
+}
+
+function modelAssumptions(item = {}) {
+  const assumptions = item.assumptions || item.inputs || item.drivers || {};
+  if (typeof assumptions !== "object" || Array.isArray(assumptions) || assumptions === null) {
+    return `<p class="muted">${escapeHtml(shortText(assumptions, 160))}</p>`;
+  }
+  if (!Object.keys(assumptions).length) return `<p class="muted">${uiLabel("Missing")}</p>`;
+  return objectReport(assumptions);
+}
+
+function valuationModelsSnapshot(report) {
+  const models = (report.modelSelection?.selectedModels || report.valuationModels || [])
+    .filter((item) => Number.isFinite(item.fairValue ?? item.value) && Number(item.weight) > 0)
+    .slice(0, 5);
+  return `
+    <article class="report-section" data-screen="Valuation Models">
+      <p class="eyebrow">${uiLabel("Valuation Models")}</p>
+      <h3>${uiLabel("Selected models only")}</h3>
+      <div class="model-snapshot-list">
+        ${models.length ? models.map((item) => `
+          <div class="valuation-model-card">
+            <div>
+              <strong>${financialTerm(item.method)}</strong>
+              <small>${Math.round((item.weight || 0) * 100)}% ${uiLabel("Weight")} / ${uiLabel("Confidence")} ${Math.round(item.confidence || report.executiveConclusion.confidence || 0)}%</small>
+            </div>
+            <span>${money(item.fairValue ?? item.value, 0)}</span>
+            <p>${escapeHtml(shortText(item.explanation || item.why || uiLabel("Selected because required inputs were available."), 115))}</p>
+            <details class="inline-detail">
+              <summary>${uiLabel("Assumptions")}</summary>
+              ${modelAssumptions(item)}
+            </details>
+          </div>
+        `).join("") : `<p class="muted">${uiLabel("No supported valuation model could run from the available data.")}</p>`}
+      </div>
+    </article>
+  `;
+}
+
+function forecastKpi(label, value, detail) {
+  return `
+    <div class="forecast-kpi">
+      <span>${financialTerm(label)}</span>
+      <strong>${escapeHtml(String(value ?? "—"))}</strong>
+      <small>${escapeHtml(detail || "")}</small>
+    </div>
+  `;
+}
+
+function forecastSnapshot(report) {
+  const rows = report.forecastAssumptions?.yearlyForecast || report.baseScenario?.forecast || [];
+  const visible = rows.slice(0, 5);
+  const maxRevenue = Math.max(...visible.map((row) => Number(row.revenue) || 0), 1);
+  const latest = visible[visible.length - 1] || {};
+  const first = visible[0] || {};
+  return `
+    <article class="report-section full forecast-snapshot" data-screen="Forecast">
+      <div class="section-title-row">
+        <div>
+          <p class="eyebrow">${uiLabel("Forecast")}</p>
+          <h3>Revenue / Growth / Operating Margin / FCF</h3>
+        </div>
+        <span>${uiLabel("Five year view")}</span>
+      </div>
+      ${visible.length ? `
+        <div class="forecast-card-grid">
+          ${forecastKpi("Revenue", compact(latest.revenue), `${uiLabel("from")} ${compact(first.revenue)}`)}
+          ${forecastKpi("Growth", percent(latest.revenueGrowth ?? latest.growth), uiLabel("Latest forecast year"))}
+          ${forecastKpi("Operating Margin", percent(latest.operatingMargin ?? latest.margin), uiLabel("Base case"))}
+          ${forecastKpi("FCF", compact(latest.freeCashFlow), `${uiLabel("from")} ${compact(first.freeCashFlow)}`)}
+        </div>
+        <details class="inline-detail">
+          <summary>${uiLabel("Revenue Forecast")}</summary>
+          <div class="forecast-bars">
+            ${visible.map((row) => `
+              <div>
+                <span>${escapeHtml(String(row.year))}</span>
+                <i style="width:${clampNumber(((Number(row.revenue) || 0) / maxRevenue) * 100, 3, 100)}%"></i>
+                <strong>${compact(row.revenue)} / ${percent(row.revenueGrowth ?? row.growth)}</strong>
+              </div>
+            `).join("")}
+          </div>
+        </details>
+      ` : `<p class="muted">${uiLabel("Forecast requires enough confirmed financial data.")}</p>`}
+    </article>
+  `;
+}
+
+function monitoringSnapshot(report) {
+  const rows = (report.monitoringChecklist || []).slice(0, 6);
+  return `
+    <article class="report-section" data-screen="Monitoring">
+      <p class="eyebrow">${uiLabel("Monitoring")}</p>
+      <h3>${uiLabel("What to watch next")}</h3>
+      <div class="monitoring-list monitoring-card-list">
+        ${rows.length ? rows.map((item) => `
+          <div>
+            <div class="monitoring-card-head">
+              <strong>${escapeHtml(item.metric)}</strong>
+              <span>${escapeHtml(formatWorkflowValue(item.currentValue))}</span>
+            </div>
+            <small>${uiLabel("Expected")}: ${escapeHtml(item.expectedRange || item.expected || item.focus || "—")}</small>
+            <details class="inline-detail">
+              <summary>${uiLabel("Triggers")}</summary>
+              <p>${uiLabel("Upgrade trigger")}: ${escapeHtml(item.upgradeTrigger || "—")}</p>
+              <p>${uiLabel("Downgrade trigger")}: ${escapeHtml(item.downgradeTrigger || item.thesisBreak || "—")}</p>
+            </details>
+          </div>
+        `).join("") : `<p class="muted">${uiLabel("Monitoring metrics appear when the report can identify them from verified inputs.")}</p>`}
+      </div>
+    </article>
+  `;
+}
+
+function finalActionsBlock(workspace, report) {
+  return `
+    <article class="report-section final-actions-card" data-screen="Export">
+      <p class="eyebrow">${uiLabel("Final Actions")}</p>
+      <h3>${uiLabel("Approve only if the report reflects your data.")}</h3>
+      <label class="notes-field">${uiLabel("Investor approval note")}<textarea data-investor-notes>${escapeHtml(workspace.investorNotes || "")}</textarea></label>
+      <div class="report-actions">
+        <button class="icon-btn" data-action="edit-workspace-data">${uiLabel("Edit Data and Re-run")}</button>
+        <button class="primary-btn" data-action="approve-and-export" ${workspace.status === WORKFLOW_STATUS.APPROVED ? "disabled" : ""}>${uiLabel("Approve and Export")}</button>
+      </div>
+      <p>${escapeHtml(report.finalInvestmentDecision?.why || "")}</p>
+    </article>
+  `;
+}
+
+function clampNumber(value, min, max) {
+  return Math.min(max, Math.max(min, Number(value) || 0));
 }
 
 function reportHeadline(report, language) {
@@ -1136,31 +1896,37 @@ function pastePreviewCard(workspace) {
 function dataReviewPanel(workspace, state) {
   const review = workspace.dataReview || {};
   return `
-    <h3>${uiLabel("Data Review")}</h3>
-    <div class="two-col">
-      ${metric(uiLabel("Completeness"), `${review.completeness || 0}/100`)}
-      ${metric(uiLabel("Minimum"), `${review.minimumCompleteness || 68}/100`)}
+    <div class="review-head">
+      <div>
+        <p class="eyebrow">${uiLabel("Data Review")}</p>
+        <h3>${uiLabel("Review extracted data")}</h3>
+      </div>
+      <span class="review-status ${review.canRun ? "ready" : "limited"}">${review.canRun ? uiLabel("Ready to analyze") : uiLabel("Needs Review")}</span>
     </div>
-    ${reviewGroup(uiLabel("Unconfirmed Parsed Data"), review.unconfirmedParsed, true)}
-    ${reviewGroup(uiLabel("Missing Data"), review.missing, false)}
-    ${reviewGroup(uiLabel("Confirmed Data"), review.confirmed?.slice(0, 10), true)}
-    ${reviewGroup(uiLabel("Conflicting Data"), review.conflicting, true)}
-    ${reviewGroup(uiLabel("Outdated Data"), review.outdated, true)}
-    <button class="primary-btn full-action" data-action="run-valuation-analyst" ${review.canRun ? "" : "disabled"}>${uiLabel("Run Valuation Analyst")}</button>
+    <div class="review-score-card">
+      ${miniMetric(uiLabel("Completeness"), `${review.completeness || 0}/100`)}
+      ${miniMetric(uiLabel("Required Fields"), `${review.requiredConfirmed || 0}/${review.requiredTotal || 0}`)}
+      ${miniMetric(uiLabel("Minimum"), `${review.minimumCompleteness || 68}/100`)}
+    </div>
+    ${reviewGroup(uiLabel("Confirmed"), review.confirmed?.slice(0, 12), true, "confirmed")}
+    ${reviewGroup(uiLabel("Needs Review"), review.unconfirmedParsed, true, "needs-review")}
+    ${reviewGroup(uiLabel("Missing"), review.missing, false, "missing")}
+    ${reviewGroup(uiLabel("Conflicting Data"), review.conflicting, true, "conflict")}
+    <button class="primary-btn full-action" data-action="confirm-run-analysis" ${review.canRun ? "" : "disabled"}>${uiLabel("Confirm and Run Analysis")}</button>
     ${review.canRun ? "" : `<p class="muted">${uiLabel("Confirm required fields and resolve critical issues before running the analyst.")}</p>`}
   `;
 }
 
-function reviewGroup(title, items = [], withActions) {
+function reviewGroup(title, items = [], withActions, tone = "") {
   const visible = items?.length ? items : [];
   return `
-    <div class="review-group">
+    <div class="review-group ${escapeHtml(tone)}">
       <h4>${title}</h4>
       ${visible.length ? visible.map((item) => `
         <div class="review-item">
           <strong>${uiLabel(item.label)}</strong>
           <span>${escapeHtml(formatWorkflowValue(item.value))}</span>
-          <small>${escapeHtml(item.source || "-")} / ${escapeHtml(item.sourceDate || "-")}</small>
+          <small>${escapeHtml(item.source || "-")} / ${escapeHtml(item.sourceDate || "-")} / ${Math.round((item.confidence || 0) * 100)}%</small>
           ${withActions ? `<div>
             <button data-confirm-field="${escapeHtml(item.fieldId)}">${uiLabel("Confirm")}</button>
             <button data-reject-field="${escapeHtml(item.fieldId)}">${uiLabel("Reject")}</button>
@@ -1675,14 +2441,17 @@ function settingsPanel(state) {
     <section class="panel settings-panel">
       <h3>${uiLabel("Settings")}</h3>
       <div class="settings-grid">
-        <label>${uiLabel("FMP API key")}<input type="password" data-key="fmp" value="${escapeHtml(state.apiKeys.fmp)}" placeholder="بيانات السوق"></label>
-        <label>${uiLabel("OpenAI key")}<input type="password" data-key="openai" value="${escapeHtml(state.apiKeys.openai)}" placeholder="للشرح فقط"></label>
+        <div class="settings-status">
+          <span>${uiLabel("Private Server")}</span>
+          <strong>${uiLabel("API keys are configured on the private server only.")}</strong>
+        </div>
         <label>${uiLabel("Average cost")}<input data-manual="averageCost" value="${escapeHtml(state.manualInputs.averageCost)}" inputmode="decimal" placeholder="اختياري"></label>
         <label>${uiLabel("Morningstar FV")}<input data-manual="morningstarFairValue" value="${escapeHtml(state.manualInputs.morningstarFairValue)}" inputmode="decimal" placeholder="اختياري"></label>
       </div>
       <label class="notes-field">${uiLabel("Research notes")}<textarea data-manual="notes" placeholder="ملاحظات اختيارية للفرضية">${escapeHtml(state.manualInputs.notes)}</textarea></label>
+      <button class="icon-btn danger-action" data-action="clear-local-data">${uiLabel("Clear Local Data")}</button>
       <div class="settings-note">
-        ${analysisText("API keys stay in this browser session. Financial calculations are deterministic; AI is reserved for explanation and challenge only.")}
+        ${analysisText("API keys are stored only as server-side environment variables. Draft pasted data is not persisted automatically. Approved reports and saved watchlist items remain local until cleared.")}
       </div>
     </section>
   `;
@@ -1781,6 +2550,13 @@ function bind(root, store, actions) {
     });
   });
   root.querySelector("[data-action='save-run']")?.addEventListener("click", store.saveRun);
+  root.querySelectorAll("[data-action='new-analysis']").forEach((button) => {
+    button.addEventListener("click", store.startBlankAnalysis);
+  });
+  root.querySelectorAll("[data-action='load-demo-analysis']").forEach((button) => {
+    button.addEventListener("click", store.loadDemoAnalysis);
+  });
+  root.querySelector("[data-action='clear-analysis-paste']")?.addEventListener("click", store.clearAnalystPaste);
   root.querySelector("[data-action='search']")?.addEventListener("click", actions.search);
   root.querySelector("#searchInput")?.addEventListener("input", (event) => {
     store.state.query = event.target.value;
@@ -1794,14 +2570,13 @@ function bind(root, store, actions) {
       actions.search();
     });
   });
-  root.querySelectorAll("[data-key]").forEach((input) => {
-    input.addEventListener("input", () => store.setApiKey(input.dataset.key, input.value));
-  });
+  root.querySelector("[data-action='clear-local-data']")?.addEventListener("click", store.clearLocalData);
   root.querySelectorAll("[data-manual]").forEach((input) => {
     input.addEventListener("input", () => store.setManualInput(input.dataset.manual, input.value));
   });
   root.querySelectorAll("[data-workflow-field]").forEach((input) => {
-    input.addEventListener("input", () => store.setWorkspaceField(input.dataset.workflowField, input.value));
+    input.addEventListener("change", () => store.setWorkspaceField(input.dataset.workflowField, input.value));
+    input.addEventListener("blur", () => store.setWorkspaceField(input.dataset.workflowField, input.value));
   });
   root.querySelectorAll("[data-workflow-source]").forEach((input) => {
     input.addEventListener("input", () => store.setWorkspaceSectionSource(input.dataset.workflowSource, { [input.dataset.sourceField]: input.value }));
@@ -1834,6 +2609,7 @@ function bind(root, store, actions) {
   });
   root.querySelector("[data-investor-notes]")?.addEventListener("input", (event) => store.setWorkspaceInvestorNotes(event.target.value));
   root.querySelector("[data-action='run-valuation-analyst']")?.addEventListener("click", store.runWorkspaceValuation);
+  root.querySelector("[data-action='confirm-run-analysis']")?.addEventListener("click", store.runWorkspaceValuation);
   root.querySelector("[data-action='edit-workspace-data']")?.addEventListener("click", store.editWorkspaceData);
   root.querySelector("[data-action='approve-and-export']")?.addEventListener("click", store.approveAndExportWorkspace);
   root.querySelectorAll("[data-watch-draft]").forEach((input) => {
@@ -1853,29 +2629,24 @@ function createActions(store) {
     async search() {
       const clean = store.state.query.trim();
       if (!clean) return;
-      store.set({ loading: true, notice: store.state.language === "ar" ? "جاري البحث في السوق..." : "Searching market universe..." });
+      store.set({ loading: true, processingStage: "idle", notice: store.state.language === "ar" ? "جاري البحث في السوق..." : "Searching market universe..." });
       try {
-        const results = await searchCompanies(store.state.query, store.state.apiKeys);
-        const noKeyHint = store.state.apiKeys.fmp
-          ? ""
-          : store.state.language === "ar"
-            ? " أضف مفتاح FMP من الإعدادات لتحميل القوائم المالية الحية."
-            : " Add an FMP key in Settings for live financial statements.";
+        const results = await searchCompanies(store.state.query);
         const notice = results.length
-          ? (store.state.language === "ar" ? `اختر شركة لفتح مساحة التقييم.${noKeyHint}` : `Select a company to open the valuation workspace.${noKeyHint}`)
-          : (store.state.language === "ar" ? `لم يتم العثور على شركات.${noKeyHint}` : `No companies found.${noKeyHint}`);
-        store.set({ searchResults: results, loading: false, notice });
-      } catch {
-        store.set({ loading: false, notice: analysisText("Search failed. Check the market data key in Settings.") });
+          ? (store.state.language === "ar" ? "اختر شركة لفتح مساحة التقييم." : "Select a company to open the valuation workspace.")
+          : (store.state.language === "ar" ? "لم يتم العثور على شركات." : "No companies found.");
+        store.set({ searchResults: results, loading: false, processingStage: "idle", notice });
+      } catch (error) {
+        store.set({ loading: false, processingStage: "idle", notice: analysisText(error.userMessage || "Search failed. Market data is configured on the private server.") });
       }
     },
     async loadCompany(ticker) {
-      store.set({ loading: true, notice: store.state.language === "ar" ? `جاري فتح مساحة تقييم ${ticker}...` : `Opening valuation workspace for ${ticker}...` });
+      store.set({ loading: true, processingStage: "idle", notice: store.state.language === "ar" ? `جاري فتح مساحة تقييم ${ticker}...` : `Opening valuation workspace for ${ticker}...` });
       try {
-        const company = await fetchResearchData(ticker, store.state.apiKeys, store.state.manualInputs, store.state.company);
+        const company = await fetchResearchData(ticker, store.state.manualInputs, store.state.company);
         store.openValuationWorkspace(company);
-      } catch {
-        store.set({ loading: false, notice: analysisText("Could not load live data. Check the market data key in Settings.") });
+      } catch (error) {
+        store.set({ loading: false, processingStage: "idle", notice: analysisText(error.userMessage || "Could not load live data. Market data is configured on the private server.") });
       }
     }
   };

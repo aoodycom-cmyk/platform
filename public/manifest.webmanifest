@@ -1,7 +1,8 @@
 {
-  "name": "منصة أبحاث الأسهم",
-  "short_name": "منصة الأسهم",
-  "description": "AI Equity Research Platform for professional investment reports.",
+  "name": "Franklin Research",
+  "short_name": "Franklin",
+  "id": ".",
+  "description": "Premium AI Equity Research Platform for professional investment reports.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

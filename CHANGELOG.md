@@ -1,5 +1,175 @@
 # Changelog
 
+## Version 10.0.0 - Private Production Preparation
+
+- Hardened the Node server for production deployment with `process.env.PORT` and default `0.0.0.0` binding.
+- Added private access protection using `APP_ACCESS_PASSWORD` and an HttpOnly session cookie.
+- Added `GET /api/health` with non-sensitive configuration status only.
+- Moved FMP and OpenAI usage fully server-side for browser calls to `/api/search`, `/api/research-data`, and `/api/parse-investment-analyst`.
+- Removed frontend API-key fields, browser API-key storage, request-body API keys, and direct browser fallbacks to FMP/OpenAI.
+- Added safe production errors for missing configuration, invalid provider keys, rate limits, provider timeout, malformed provider responses, invalid inputs, and blocked unauthenticated requests.
+- Added secure HTTP headers, CSP, request body limits, ticker/query validation, CORS origin checks, safe JSON parsing, provider request timeouts, and API rate limiting.
+- Added minimal PWA support with service worker and offline page that does not cache API responses or stale financial data.
+- Added Settings action to clear local application data.
+- Added Render deployment blueprint and `.env.example` without secret values.
+- Added `tests/productionDeployment.test.mjs` for production security, API, auth, manifest, service worker, and metadata checks.
+
+## Version 10 - Product Design System
+
+- Updated the application icon to the final `MAKE MONEY / 2026 / Abdullah. Bin Mushabab` coin artwork across `public`, `docs`, and root asset folders.
+- Repositioned the product identity as `Franklin Research V10` with a premium, iPhone-first Home experience.
+- Redesigned the Home visual hierarchy around a branded hero, one large search, recent analyses, watchlist, and quick actions.
+- Added a report hero header that surfaces Current Price, Fair Value, Recommendation, and Confidence before technical sections.
+- Reworked the Investment Report presentation with calmer spacing, stronger visual hierarchy, refined card rhythm, and Apple-like interaction polish.
+- Added Version 10 styling tokens for color, typography, spacing, radius, elevation, microinteractions, RTL handling, and mobile breakpoints.
+- Updated browser/PWA identity metadata for the new product name.
+- Added Version 10 delivery documentation: design system, component library, before/after comparison, UI test results, and product design report.
+- Added refreshed mobile screenshots under `screenshots-v10-product-design/`.
+- Verified no horizontal overflow on a 430px mobile viewport.
+- Did not modify analytical engine formulas, forecast logic, recommendation logic, methodology rules, APIs, or test files for Version 10.
+
+## Version 9.3 - Visual Design Polish
+
+- Polished the Home screen into a mobile-first investment app entry point with logo, search, New Analysis, Recent Analyses, and Watchlist.
+- Removed visible Home clutter from the primary experience while preserving existing workflow capability.
+- Reworked the Investment Report presentation around a decision-centered card.
+- Added concise report-first takeaways: key positives, key risks, and a short conclusion.
+- Redesigned Bear / Base / Bull scenario cards for fast scanning.
+- Added a premium Fair Value range visual with Current Price and Fair Value markers.
+- Redesigned Business Quality, Risks, Valuation Models, Forecast, and Monitoring into compact premium cards with expandable details.
+- Added missing Arabic UI labels for the polished report experience.
+- Verified iPhone-width rendering with no horizontal overflow.
+- Did not modify analytical engine, schema validation, workflow logic, valuation models, model selection, recommendation logic, forecast logic, methodology, or tests.
+
+## Version 9.2 - UI/UX Improvement Phase
+
+### Scope
+
+- Improved the investment analyst experience without changing the analytical engine, valuation formulas, recommendation gates, model selection, forecast logic, methodology rules, or JSON validation logic.
+- Preserved the Version 9.1 deterministic engine hashes for `analystBrain/engine.js`, `valuationWorkflow/workflow.js`, and `analystBrain/schemaValidator.js`.
+
+### Home
+
+- Replaced the dense default Home table with mobile-first evaluated-company cards.
+- Added a clearer app identity row, New Analysis action, Demo Data action, and clean empty state.
+- Kept only approved reports visible on Home; drafts remain private inside the workspace.
+- Fixed the mobile search focus behavior by updating the query without re-rendering the page on every typed character.
+
+### Paste Input
+
+- Added one primary paste box workflow with optional ticker and company name fields only.
+- Added Load Demo Data, Analyze Paste, and Clear actions.
+- Kept user typing stable by avoiding continuous page re-render while editing the paste box.
+
+### Data Review
+
+- Reworked Data Review into simple groups: Confirmed, Needs Review, Missing, and Conflicting.
+- Added a single primary Confirm and Run Analysis action.
+- Added visible review status, required-field count, completeness, and minimum threshold.
+
+### Processing State
+
+- Added a polished processing state with meaningful stages: reading pasted data, reviewing data, running deterministic engine, and building report.
+- No fake percentages or terminal-style logs were added.
+
+### Investment Report
+
+- Reworked the report into a report-first institutional layout.
+- Added a company header, large recommendation, confidence, quick summary, scenario cards, Fair Value Range visual, Business Quality breakdown, Investment Thesis, Risks, selected valuation models, forecast bars, monitoring, and final approval/export block.
+- Kept technical details in collapsible sections below the primary report.
+- Added Shariah Compliance as Data Unavailable when no verified Shariah source exists; no compliance inference is made.
+
+### Responsive UI
+
+- Added iPhone-first CSS refinements for 393x852 and 430x932.
+- Verified no horizontal overflow: 393px viewport reports `scrollWidth: 393`; 430px viewport reports `scrollWidth: 430`.
+- Added desktop screenshots for Home and Investment Report.
+
+### Demo Flow
+
+- Added `demoFlow.js` fixture that feeds confirmed demo data into the real deterministic workflow.
+- Demo values are not hardcoded into UI components; the report is generated by the existing engine.
+
+### Tests
+
+- Added `tests/version9_2UIUX.test.mjs`.
+- The new test verifies home cards, paste workflow, data review, processing/report components, Shariah Data Unavailable state, mobile overflow CSS, Arabic localization, search focus behavior, demo flow through the real engine, and supported selected valuation models only.
+- Full test command output is saved in `raw-ui-test-output/v9_2_full_test_output.txt`.
+
+### Delivery Artifacts
+
+- Added `UI_CHANGELOG_V9.2.md`.
+- Added `UI_COMPONENT_MAP.md`.
+- Added `UI_TEST_RESULTS.md`.
+- Added `UI_RUN_INSTRUCTIONS.md`.
+- Added `UI_DELIVERY_STATUS_V9.2.md`.
+- Added `screenshots-v9.2-ui/`.
+- Added `investment-analyst-platform-v9.2-ui.zip`.
+
+## Version 9 Final Delivery - Evidence Package
+
+### Analytical Engine
+
+- Added a canonical deterministic Analyst Brain engine in `src/analystBrain/engine.js`.
+- Changed the Analyst Brain workflow so it runs `runAnalystBrainEngine()` directly instead of wrapping a legacy valuation report.
+- Added evidence normalization before classification and scoring.
+- Added deterministic company classification for profitable growth, transition-to-profitability, cyclical, capital-intensive, financial institution, REIT, and holding-company cases.
+
+### Forecast Engine
+
+- Added explicit Year 1-5 forecast rows.
+- Each forecast row includes Revenue, Revenue Growth, Operating Margin, tax, D&A/Revenue, CapEx/Revenue, Working Capital/Revenue Growth, dilution, diluted shares, FCF, source, and confidence.
+- Added methodology source priority: Company guidance, Analyst estimates, Historical trends, Backlog/contracts/unit economics, Sector assumptions, Methodology defaults.
+
+### Valuation Models
+
+- Enforced supported models only: DCF, P/E, PEG, EV/EBITDA, EV/Sales, Forward EV/Sales, Price/FCF, Morningstar Fair Value, Analyst Consensus.
+- Prevented unsupported models from being selected or displayed as selectable report models.
+- Documented unsupported models: P/B, Residual Income, DDM, AFFO, NAV, Dividend Yield, Cap Rate, Sum of the Parts.
+- Added optional peer/historical multiple fields inside the one-paste workflow.
+- Added model weight cap of 45%.
+- Added external reference cap of 25% combined for Morningstar Fair Value and Analyst Consensus.
+
+### Recommendation Engine
+
+- Recommendation now evaluates current price, available internal valuation, scenario fair value, data quality, business quality, forecast confidence, risk score, balance sheet, dilution, and scenario asymmetry.
+- Added `INSUFFICIENT_DATA` when external references exist without internal valuation support.
+- Added a scenario-fair-value gate so BUY is not issued when the probability-weighted scenario fair value is not positive.
+- Removed automatic Exceptional fair value generation.
+
+### Monitoring
+
+- Added company-specific monitoring checklist generated from confirmed evidence and classification.
+- Monitoring rows include metric, current value, expected range, upgrade trigger, downgrade trigger, thesis break, and revaluation event.
+
+### JSON Schema
+
+- Promoted `investment-analyst-brain-v1.1-canonical` as the report methodology version.
+- Added nested validation for required sections, scenario probabilities, selected model support, model weights, external reference weights, five-year forecast rows, monitoring checklist length, and recommendation enum.
+- Updated `11_OUTPUT_SCHEMA.json` in root, `public`, and `docs` methodology folders.
+
+### Tests
+
+- Expanded `tests/investmentAnalystBrain.test.mjs` to 47 assertions.
+- Added coverage for profitable growth, transition-to-profitability, cyclical, financial institution, REIT, holding company, external-only evidence, overweight models, overweight external references, invalid probabilities, invalid forecast length, and invalid Exceptional fair value.
+- Preserved Version 6, Version 7, and Version 8 compatibility tests.
+
+### Mobile UI
+
+- Preserved the existing mobile-first UI.
+- Updated visible version labels to Version 9.1.
+- Verified mobile evidence screenshots at 390x844 for paste input, data review, decision summary, scenario cards, assumptions, valuation models, monitoring, and export.
+
+### Delivery Artifacts
+
+- Added `VERSION_9_IMPLEMENTATION_REPORT.md`.
+- Added `SUPPORTED_VALUATION_MODELS.md`.
+- Added `METHODOLOGY_VERSION_CONTRACT.md`.
+- Added `VALUATION_CALCULATION_AUDIT.md`.
+- Added `VERSION_9_TEST_RESULTS.md`.
+- Added `VERSION_9_CHANGED_FILES.md`.
+- Added `version_9_evidence/` with test output, screenshots, sample report JSON, readable reports, and inputs.
+
 ## Version 9.1 - Canonical Analyst Brain Correction
 
 ### Changed

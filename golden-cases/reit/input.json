@@ -1,0 +1,10 @@
+{
+  "caseId": "reit",
+  "description": "REIT",
+  "workspaceCompany": {
+    "ticker": "REIT",
+    "name": "Income REIT Co",
+    "price": 35
+  },
+  "pastedBlock": "Ticker: REIT\nCompany Name: Income REIT Co\nCurrent Price: 35\nSector: Real Estate\nIndustry: REIT\nRevenue: 900000000\nOperating Income: 300000000\nNet Income: 160000000\nEPS: 1.8\nFree Cash Flow: 180000000\nCapital Expenditure: 72000000\nCash: 120000000\nTotal Debt: 1800000000\nDiluted Shares Outstanding: 200000000\nUser Notes: occupancy stable and rent spreads modest"
+}

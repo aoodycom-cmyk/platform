@@ -485,24 +485,9 @@ export function runFixedMethodologyValuation(workspace, language = "en") {
   }
 
   const now = new Date().toISOString();
-  const inputs = normalizeInputs(reviewed);
-  const classification = classifyCompany(inputs, language);
-  const wacc = buildWacc(inputs, classification, reviewed.overrides, language);
-  const assumptions = buildAssumptions(inputs, classification, wacc, reviewed.overrides, language);
-  const scenarios = ["Bear", "Base", "Bull"].map((name) => buildScenario(name, inputs, assumptions, classification, language));
-  const modelSelection = selectValuationModels(inputs, classification, assumptions, scenarios, language);
-  const report = buildReport({
-    workspace: reviewed,
-    inputs,
-    classification,
-    wacc,
-    assumptions,
-    scenarios,
-    modelSelection,
-    language,
-    date: now
-  });
-  const validation = validateValuationReport(report);
+  const engine = runAnalystBrainEngine(reviewed, { language });
+  const report = engine.report;
+  const validation = validateAnalystBrainOutput(report);
   if (!validation.valid) {
     return {
       workspace: reviewed,
@@ -514,7 +499,7 @@ export function runFixedMethodologyValuation(workspace, language = "en") {
     status: WORKFLOW_STATUS.GENERATED,
     workspace: reviewed,
     report,
-    assumptions,
+    assumptions: report.forecastAssumptions,
     approvalStatus: "Generated",
     timestamp: now
   });
