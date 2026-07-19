@@ -5339,3 +5339,88 @@ button.danger-action {
     border-color: color-mix(in srgb, var(--accent) 44%, var(--line));
   }
 }
+
+/* Mobile research-card alignment cleanup */
+.research-grid,
+.research-grid .panel,
+.research-columns,
+.research-list {
+  min-width: 0;
+}
+
+.research-list {
+  overflow: hidden;
+  text-align: start;
+}
+
+.research-list h4,
+.research-list p,
+.source-line,
+.research-copy {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.research-list h4 {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.research-list p {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+@media (max-width: 620px) {
+  .research-grid {
+    width: 100%;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding-inline: 0;
+    margin-inline: 0;
+  }
+
+  .research-grid .panel {
+    width: 100%;
+    max-width: 100%;
+    padding: 14px;
+    margin-inline: 0;
+  }
+
+  .research-grid .panel h3 {
+    font-size: 22px;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+
+  .research-copy,
+  .source-line {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .research-columns,
+  .mini-chart-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .research-list,
+  .mini-chart {
+    width: 100%;
+    padding: 10px 11px;
+    margin-inline: 0;
+  }
+
+  .research-list h4 {
+    margin: 0 0 6px;
+    font-size: 12px;
+    line-height: 1.25;
+  }
+
+  .research-list p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+}

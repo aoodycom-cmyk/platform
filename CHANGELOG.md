@@ -5,6 +5,7 @@
 - Replaced the previous warm visual palette with the logo-driven institutional palette: Deep Navy, Steel Blue, Graphite, Soft Slate, Silver White, Cool Gray, Muted Emerald, Muted Crimson, and Soft Orange.
 - Removed warm emphasis tokens and renamed the mid-signal color category to `warning`.
 - Updated Home, Investment Report, cards, buttons, badges, scenario cards, Fair Value visuals, PWA metadata, login screen, and offline screen to the new steel/graphite identity.
+- Tightened mobile Institutional Research cards so nested profile cards stay full-width in RTL and use calmer typography.
 - Preserved the investment engine, data platform, workflow, methodology, valuation calculations, and production server behavior.
 - Updated the Version 6 color tests to enforce the new `warning` category behavior.
 
