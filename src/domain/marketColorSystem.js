@@ -25,9 +25,10 @@ export function fairValueColorCategory(fairValue, currentPrice, tolerance = 0.02
 
 export function recommendationColorCategory(recommendation, status) {
   if (status === "INSUFFICIENT_DATA") return COLOR_CATEGORIES.MISSING;
-  if (recommendation === "BUY" || recommendation === "شراء") return COLOR_CATEGORIES.POSITIVE;
-  if (recommendation === "SELL" || recommendation === "بيع") return COLOR_CATEGORIES.NEGATIVE;
-  if (recommendation === "HOLD" || recommendation === "احتفاظ") return COLOR_CATEGORIES.WARNING;
+  const normalized = String(recommendation || "").trim().toUpperCase();
+  if (normalized.includes("BUY") || recommendation === "شراء") return COLOR_CATEGORIES.POSITIVE;
+  if (normalized.includes("SELL") || recommendation === "بيع") return COLOR_CATEGORIES.NEGATIVE;
+  if (normalized.includes("HOLD") || recommendation === "احتفاظ") return COLOR_CATEGORIES.WARNING;
   return COLOR_CATEGORIES.MISSING;
 }
 

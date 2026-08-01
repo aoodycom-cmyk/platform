@@ -6025,6 +6025,65 @@ button.danger-action {
   font-size: clamp(32px, 5vw, 48px);
 }
 
+.report-decision-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.decision-strip-card {
+  min-height: 96px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--surface) 88%, var(--surface-2));
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
+}
+
+.decision-strip-card span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.decision-strip-card strong {
+  color: var(--ink);
+  font-size: clamp(22px, 4vw, 34px);
+  line-height: 1;
+}
+
+.decision-strip-card.tone-positive,
+.decision-strip-card.tone-strong-positive {
+  border-color: color-mix(in srgb, var(--green) 36%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--green) 12%, var(--surface)), var(--surface-2));
+}
+
+.decision-strip-card.tone-positive strong,
+.decision-strip-card.tone-strong-positive strong {
+  color: var(--green);
+}
+
+.decision-strip-card.tone-warning {
+  border-color: color-mix(in srgb, var(--warning) 42%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--warning) 12%, var(--surface)), var(--surface-2));
+}
+
+.decision-strip-card.tone-warning strong {
+  color: var(--warning);
+}
+
+.decision-strip-card.tone-negative {
+  border-color: color-mix(in srgb, var(--red) 38%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--red) 10%, var(--surface)), var(--surface-2));
+}
+
+.decision-strip-card.tone-negative strong {
+  color: var(--red);
+}
+
 .report-v2-score-grid,
 .report-v2-fair-grid {
   display: grid;
@@ -6044,6 +6103,122 @@ button.danger-action {
 .report-v2-score-grid .scenario-card strong,
 .report-v2-fair-grid .scenario-card strong {
   font-size: 24px;
+}
+
+.score-visual-card {
+  overflow: hidden;
+}
+
+.score-visual-card strong {
+  direction: ltr;
+}
+
+.score-track {
+  height: 7px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--line) 70%, transparent);
+}
+
+.score-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.score-high {
+  border-color: color-mix(in srgb, var(--green) 34%, var(--line)) !important;
+}
+
+.score-high .score-track i {
+  background: var(--green);
+}
+
+.score-medium {
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--line)) !important;
+}
+
+.score-medium .score-track i {
+  background: var(--accent);
+}
+
+.score-low {
+  border-color: color-mix(in srgb, var(--red) 38%, var(--line)) !important;
+}
+
+.score-low .score-track i {
+  background: var(--red);
+}
+
+.valuation-card {
+  min-height: 112px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--surface) 88%, var(--surface-2));
+  display: grid;
+  align-content: center;
+  gap: 9px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
+}
+
+.valuation-card span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.valuation-card span em {
+  color: var(--muted);
+  font-style: normal;
+  font-weight: 700;
+}
+
+.valuation-card strong {
+  color: var(--ink);
+  font-size: clamp(24px, 5vw, 38px);
+  line-height: 1;
+  direction: ltr;
+}
+
+.valuation-card small {
+  font-size: 13px;
+  font-weight: 850;
+  direction: ltr;
+}
+
+.valuation-card-bear {
+  border-color: color-mix(in srgb, var(--red) 42%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--red) 11%, var(--surface)), var(--surface-2));
+}
+
+.valuation-card-bear strong,
+.valuation-card-bear small {
+  color: var(--red);
+}
+
+.valuation-card-base {
+  border-color: color-mix(in srgb, var(--accent) 44%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 13%, var(--surface)), var(--surface-2));
+}
+
+.valuation-card-base strong,
+.valuation-card-base small {
+  color: var(--accent);
+}
+
+.valuation-card-bull {
+  border-color: color-mix(in srgb, var(--green) 42%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--green) 12%, var(--surface)), var(--surface-2));
+}
+
+.valuation-card-bull strong,
+.valuation-card-bull small {
+  color: var(--green);
 }
 
 .report-v2-stack {
@@ -6106,6 +6281,10 @@ button.danger-action {
     grid-template-columns: 1fr;
   }
 
+  .report-decision-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .home-topbar,
   .external-import-head,
   .table-title,
@@ -6144,8 +6323,15 @@ button.danger-action {
   .library-card-metrics,
   .external-preview-grid,
   .external-text-editors,
-  .report-v2-score-grid,
+  .report-v2-score-grid {
+    grid-template-columns: 1fr;
+  }
+
   .report-v2-fair-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .report-decision-strip {
     grid-template-columns: 1fr;
   }
 

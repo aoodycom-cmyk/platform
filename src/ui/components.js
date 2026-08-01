@@ -787,13 +787,22 @@ function moneySignal(value, digits = 0) {
 }
 
 function valuationSummaryItem(label, value, currentPrice) {
+  const className = `valuation-card ${valuationScenarioClass(label)}`;
+  const subtitle = label === "Bear" ? uiLabel("Downside case") : label === "Bull" ? uiLabel("Upside case") : uiLabel("Base case");
+  const delta = Number.isFinite(value) && Number.isFinite(currentPrice) && currentPrice > 0 ? (value - currentPrice) / currentPrice : null;
   return `
-    <article class="valuation-card">
-      <span>${escapeHtml(label)}</span>
+    <article class="${className}">
+      <span>${escapeHtml(label)} <em>${escapeHtml(subtitle)}</em></span>
       <strong>${money(value, 0)}</strong>
-      <small>${Number.isFinite(value) && Number.isFinite(currentPrice) && currentPrice > 0 ? formatSignedPercent((value - currentPrice) / currentPrice) : "-"}</small>
+      <small>${Number.isFinite(delta) ? formatSignedPercent(delta) : "-"}</small>
     </article>
   `;
+}
+
+function valuationScenarioClass(label) {
+  if (label === "Bear") return "valuation-card-bear";
+  if (label === "Bull") return "valuation-card-bull";
+  return "valuation-card-base";
 }
 
 function fairValueSignal(value, currentPrice, digits = 0) {
@@ -1315,19 +1324,20 @@ function externalAnalysisReportView(state) {
       <header class="external-report-hero panel report-v2-header">
         <div>
           <p class="eyebrow">${uiLabel("Company Report")}</p>
-          <h2>${escapeHtml(report.company?.name || "-")}</h2>
+          <h2>${escapeHtml(report.company?.name || report.company?.ticker || "-")}</h2>
           <p>${escapeHtml(report.company?.ticker || "-")} / ${uiLabel("Analysis Date")}: ${escapeHtml(report.analysisDate || "-")} / ${uiLabel("Report Period")}: ${escapeHtml(report.reportPeriod || "-")}</p>
           <div class="report-meta-line">
             <span>${uiLabel("Price at Analysis")}: ${money(report.market?.priceAtAnalysis, 2)}</span>
             <span>${uiLabel("Current Price")}: ${money(report.market?.currentPrice ?? report.market?.priceAtAnalysis, 2)}</span>
           </div>
         </div>
-        <div class="external-verdict-card report-verdict-card">
+        <div class="external-verdict-card report-verdict-card ${completionStatusClass(completion.status)}">
           <span>${uiLabel("Verdict")}</span>
-          <strong>${escapeHtml(report.decision?.verdict || "-")}</strong>
+          <strong>${escapeHtml(localizedExternalText(report.decision?.verdict) || "-")}</strong>
           <small>${uiLabel("Stored external research")}</small>
         </div>
       </header>
+      ${reportDecisionStrip(reportWithCompletion, completion)}
       ${reportDataHealthCard(reportWithCompletion, completion)}
       <section class="scenario-grid external-score-grid report-v2-score-grid">
         ${externalScoreCard(financialTerm("Quality"), report.scores?.quality)}
@@ -1343,7 +1353,7 @@ function externalAnalysisReportView(state) {
         ${externalFairValueMetric(uiLabel("Upside"), report.fairValue?.upsideToBasePct)}
       </section>
       <section class="report-v2-stack">
-        ${reportSection(uiLabel("Investment Verdict"), paragraphBlock([report.decision?.verdict, report.decision?.rationale, report.decision?.buyZone, report.decision?.fairZone, report.decision?.expensiveZone]))}
+        ${reportSection(uiLabel("Investment Verdict"), paragraphBlock([localizedExternalText(report.decision?.verdict), report.decision?.rationale, report.decision?.buyZone, report.decision?.fairZone, report.decision?.expensiveZone]))}
         ${reportSection(uiLabel("Investment Thesis"), paragraphBlock([report.thesis?.shortSummary, report.thesis?.fullSummary]))}
         ${reportSection(uiLabel("Key Strengths"), simpleList(report.quality?.strengths))}
         ${reportSection(uiLabel("Key Risks"), itemList(report.risks, ["severity", "explanation"]))}
@@ -1364,6 +1374,26 @@ function externalAnalysisReportView(state) {
         <button class="icon-btn danger-action" data-action="delete-external-ticker" data-external-ticker="${escapeHtml(report.company?.ticker)}">${uiLabel("Delete all analyses for ticker")}</button>
       </section>
     </section>
+  `;
+}
+
+function reportDecisionStrip(report, completion = {}) {
+  return `
+    <section class="report-decision-strip">
+      ${decisionStripMetric(uiLabel("Recommendation"), localizedExternalText(report.decision?.verdict) || "-", recommendationColorCategory(report.decision?.verdict))}
+      ${decisionStripMetric(uiLabel("Data Health"), `${boundedPercent(completion.completionPct)}%`, completion.status === "complete" ? "positive" : "warning")}
+      ${decisionStripMetric("Base Fair Value", money(report.fairValue?.base, 0), "neutral")}
+      ${decisionStripMetric(uiLabel("Upside"), formatExternalPercent(report.fairValue?.upsideToBasePct), upsideColorCategory(numericValue(report.fairValue?.upsideToBasePct)))}
+    </section>
+  `;
+}
+
+function decisionStripMetric(label, value, category = "neutral") {
+  return `
+    <article class="decision-strip-card ${colorClass(category, "tone")}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+    </article>
   `;
 }
 
@@ -1463,7 +1493,7 @@ function financialHighlightsView(highlights = {}) {
       ${rows.map(([key, value]) => `
         <div>
           <span>${escapeHtml(labelFromKey(key))}</span>
-          <strong>${escapeHtml(formatAnyValue(value))}</strong>
+          <strong>${escapeHtml(localizedExternalText(formatAnyValue(value)))}</strong>
         </div>
       `).join("")}
     </div>
@@ -1471,12 +1501,22 @@ function financialHighlightsView(highlights = {}) {
 }
 
 function externalScoreCard(label, value) {
+  const score = numericValue(value);
+  const pct = Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(score * 10))) : 0;
   return `
-    <article class="scenario-card">
+    <article class="scenario-card score-visual-card ${scoreToneClass(score)}">
       <span>${escapeHtml(label)}</span>
       <strong>${scoreText(value, 1)}</strong>
+      <div class="score-track"><i style="width:${pct}%"></i></div>
     </article>
   `;
+}
+
+function scoreToneClass(score) {
+  if (!Number.isFinite(score)) return "score-missing";
+  if (score >= 8) return "score-high";
+  if (score >= 5.5) return "score-medium";
+  return "score-low";
 }
 
 function externalDetail(title, body, open = false) {
@@ -1496,7 +1536,7 @@ function valuationMethodsView(methods = {}) {
       ${rows.map(([key, value]) => `
         <div>
           <span>${escapeHtml(methodLabel(key))}</span>
-          <strong>${escapeHtml(formatAnyValue(value))}</strong>
+          <strong>${escapeHtml(localizedExternalText(formatAnyValue(value)))}</strong>
         </div>
       `).join("")}
     </div>
@@ -1526,13 +1566,13 @@ function earningsQualityBlock(quality = {}) {
 
 function paragraphBlock(items = []) {
   const visible = items.filter((item) => item !== null && item !== undefined && String(item).trim());
-  return visible.map((item) => `<p>${escapeHtml(item)}</p>`).join("");
+  return visible.map((item) => `<p>${escapeHtml(localizedExternalText(item))}</p>`).join("");
 }
 
 function objectBlock(object = {}) {
   const rows = Object.entries(object || {}).filter(([, value]) => value !== null && value !== undefined && value !== "");
   if (!rows.length) return "";
-  return rows.map(([key, value]) => `<p><strong>${escapeHtml(labelFromKey(key))}</strong>: ${escapeHtml(formatAnyValue(value))}</p>`).join("");
+  return rows.map(([key, value]) => `<p><strong>${escapeHtml(labelFromKey(key))}</strong>: ${escapeHtml(localizedExternalText(formatAnyValue(value)))}</p>`).join("");
 }
 
 function itemList(items = [], detailKeys = []) {
@@ -1540,17 +1580,17 @@ function itemList(items = [], detailKeys = []) {
   return `
     <div class="external-list">
       ${items.map((item) => {
-        if (typeof item === "string") return `<p>${escapeHtml(item)}</p>`;
+        if (typeof item === "string") return `<p>${escapeHtml(localizedExternalText(item))}</p>`;
         const title = item.title || item.name || item.sourceType || "-";
         const details = detailKeys.map((key) => item[key]).filter((value) => value !== null && value !== undefined && String(value).trim());
-        return `<article><strong>${escapeHtml(title)}</strong>${details.map((detail) => `<span>${escapeHtml(detail)}</span>`).join("")}</article>`;
+        return `<article><strong>${escapeHtml(localizedExternalText(title))}</strong>${details.map((detail) => `<span>${escapeHtml(localizedExternalText(detail))}</span>`).join("")}</article>`;
       }).join("")}
     </div>
   `;
 }
 
 function simpleList(items = []) {
-  return Array.isArray(items) && items.length ? `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : "";
+  return Array.isArray(items) && items.length ? `<ul>${items.map((item) => `<li>${escapeHtml(localizedExternalText(item))}</li>`).join("")}</ul>` : "";
 }
 
 function externalVersionHistory(currentReport, history = []) {
@@ -3582,6 +3622,46 @@ function formatAnyValue(value) {
       .join(" / ") || "-";
   }
   return String(value);
+}
+
+function localizedExternalText(value) {
+  if (value === null || value === undefined) return "";
+  const textValue = String(value).trim();
+  if (!textValue) return "";
+  if (/^https?:\/\//i.test(textValue)) return textValue;
+  const direct = {
+    BUY: decisionLabel("BUY"),
+    Buy: decisionLabel("BUY"),
+    HOLD: decisionLabel("HOLD"),
+    Hold: decisionLabel("HOLD"),
+    SELL: decisionLabel("SELL"),
+    Sell: decisionLabel("SELL"),
+    High: ratingLabel("High"),
+    Medium: ratingLabel("Medium"),
+    Low: ratingLabel("Low"),
+    official: uiLabel("Official source"),
+    news: uiLabel("News source"),
+    manual: uiLabel("Manual source"),
+    "Blended Valuation": uiLabel("Blended Valuation"),
+    "Discounted Cash Flow (DCF)": "DCF",
+    "Forward P/E": "Forward P/E",
+    "EV/EBITDA": "EV/EBITDA"
+  };
+  if (direct[textValue]) return direct[textValue];
+  return textValue
+    .replace(/\bStrong Buy\b/gi, decisionLabel("Strong Buy"))
+    .replace(/\bStrong Sell\b/gi, decisionLabel("Strong Sell"))
+    .replace(/\bBUY\b/g, decisionLabel("BUY"))
+    .replace(/\bHOLD\b/g, decisionLabel("HOLD"))
+    .replace(/\bSELL\b/g, decisionLabel("SELL"))
+    .replace(/\bBuy\b/g, decisionLabel("BUY"))
+    .replace(/\bHold\b/g, decisionLabel("HOLD"))
+    .replace(/\bSell\b/g, decisionLabel("SELL"))
+    .replace(/\bHigh\b/g, ratingLabel("High"))
+    .replace(/\bMedium\b/g, ratingLabel("Medium"))
+    .replace(/\bLow\b/g, ratingLabel("Low"))
+    .replace(/\bofficial\b/gi, uiLabel("Official source"))
+    .replace(/\bnews\b/gi, uiLabel("News source"));
 }
 
 function labelFromKey(key) {

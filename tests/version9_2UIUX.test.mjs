@@ -48,6 +48,9 @@ assert.ok(components.includes("function externalHistoryPanel"), "History page mu
 assert.ok(components.includes("function externalAnalysisReportView"), "Company Report page must exist.");
 assert.ok(components.includes("function reportDataHealthCard"), "Company Report must always show data health/completion.");
 assert.ok(components.includes("libraryCompletionRow"), "Home report cards must show completion state.");
+assert.ok(components.includes("reportDecisionStrip"), "Company Report must show a concise decision strip.");
+assert.ok(components.includes("valuation-card-bear"), "Bear/Base/Bull valuation cards must be explicitly classified.");
+assert.ok(components.includes("score-visual-card"), "Score cards must include visual bars.");
 assert.ok(components.includes("report-v2-header"), "Company Report must use the V2 report-first header.");
 assert.ok(components.includes("Investment Verdict"), "Report must contain the investment verdict section.");
 assert.ok(components.includes("Raw Analysis"), "Report must keep raw analysis available but secondary.");
@@ -83,6 +86,11 @@ assert.ok(styles.includes(".required-field-chips"), "Required fields guide style
 assert.ok(styles.includes(".missing-data-sheet"), "Missing data sheet styles must exist.");
 assert.ok(styles.includes(".report-data-health-card"), "Report data health card styles must exist.");
 assert.ok(styles.includes(".library-completion-row"), "Home completion row styles must exist.");
+assert.ok(styles.includes(".report-decision-strip"), "Report decision strip styles must exist.");
+assert.ok(styles.includes(".valuation-card-bear"), "Bear valuation color style must exist.");
+assert.ok(styles.includes(".valuation-card-base"), "Base valuation color style must exist.");
+assert.ok(styles.includes(".valuation-card-bull"), "Bull valuation color style must exist.");
+assert.ok(styles.includes(".score-track"), "Score bar styles must exist.");
 assert.ok(styles.includes(".supplement-sheet"), "Supplement input sheet styles must exist.");
 assert.ok(styles.includes(".conflict-row"), "Conflict review styles must exist.");
 assert.ok(styles.includes(".report-v2-section"), "Report reading section styles must exist.");
@@ -93,6 +101,8 @@ assert.ok(styles.includes(".forecast-bars"), "Forecast chart styles must exist."
 assert.ok(language.includes("مكتبة أبحاث أسهم احترافية"), "Arabic research-library positioning must be localized.");
 assert.ok(language.includes("اكتمال البيانات"), "Arabic data completion label must be localized.");
 assert.ok(language.includes("صحة البيانات"), "Arabic data health label must be localized.");
+assert.ok(language.includes("الحالة المتشائمة"), "Arabic Bear case helper label must be localized.");
+assert.ok(language.includes("الحالة المتفائلة"), "Arabic Bull case helper label must be localized.");
 assert.ok(language.includes("اكتب الرمز هنا إذا كان التقرير الملصوق لا يذكر رمز السهم بوضوح."), "Ticker fallback helper text must be localized.");
 assert.ok(language.includes("انسخ البرومبت الرسمي، أرسله إلى ChatGPT، ثم الصق رد JSON هنا."), "ChatGPT prep copy must be localized.");
 assert.ok(language.includes("التوافق الشرعي"), "Arabic Shariah label must be localized.");
