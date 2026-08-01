@@ -906,6 +906,13 @@ function externalImportPanel(state) {
         ${flowStep("4", uiLabel("Save"))}
         ${flowStep("5", uiLabel("Open Report"))}
       </div>
+      <div class="external-import-context">
+        <label>
+          <span>${uiLabel("Ticker Symbol")}</span>
+          <input data-external-ticker-hint dir="ltr" autocomplete="off" autocapitalize="characters" placeholder="AMZN" value="${escapeHtml(state.externalImport?.tickerHint || "")}">
+        </label>
+        <p>${uiLabel("Use this when the pasted report does not clearly include the ticker.")}</p>
+      </div>
       <textarea class="paste-box external-paste-box" data-external-raw placeholder="${uiLabel("Paste completed ChatGPT analysis or ExternalAnalysisReport JSON here.")}">${escapeHtml(state.externalImport?.rawText || "")}</textarea>
       <div class="external-import-actions">
         <button class="primary-btn" data-action="parse-external-analysis" ${state.loading ? "disabled" : ""}>${state.loading ? uiLabel("Parsing") : uiLabel("Parse Analysis")}</button>
@@ -3211,7 +3218,8 @@ function bind(root, store, actions) {
   });
   root.querySelector("[data-action='parse-external-analysis']")?.addEventListener("click", () => {
     const text = root.querySelector("[data-external-raw]")?.value || "";
-    store.parseExternalImport(text);
+    const tickerHint = root.querySelector("[data-external-ticker-hint]")?.value || "";
+    store.parseExternalImport(text, { tickerHint });
   });
   root.querySelector("[data-action='copy-missing-requirements']")?.addEventListener("click", () => copyMissingRequirements(store));
   root.querySelector("[data-action='select-copy-fallback']")?.addEventListener("click", () => {

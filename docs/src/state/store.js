@@ -194,8 +194,9 @@ export function createStore() {
     });
   }
 
-  async function parseExternalImport(text) {
+  async function parseExternalImport(text, context = {}) {
     const rawText = String(text || "").trim();
+    const tickerHint = normalizeTickerHint(context.tickerHint ?? state.externalImport?.tickerHint);
     if (!rawText) {
       set({ notice: state.language === "ar" ? "ألصق تحليل ChatGPT أولًا." : "Paste the ChatGPT analysis first." });
       return;
@@ -206,6 +207,7 @@ export function createStore() {
       externalImport: {
         ...state.externalImport,
         rawText,
+        tickerHint,
         stage: "parsing",
         validation: { valid: false, errors: [], warnings: [] },
         duplicate: null,
@@ -219,8 +221,9 @@ export function createStore() {
         parseUnstructured: (inputText) => parseExternalAnalysisBlock({ text: inputText, language: state.language })
       });
       if (!parsed.report) throw new Error("External parser did not return a report.");
-      const validation = validateExternalAnalysisReport(parsed.report);
-      const draftReport = attachCompletionStatus(parsed.report, validation);
+      const parsedReport = applyImportContextHints(parsed.report, { tickerHint });
+      const validation = validateExternalAnalysisReport(parsedReport);
+      const draftReport = attachCompletionStatus(parsedReport, validation);
       const duplicate = findDuplicateExternalAnalysis(state.externalAnalyses, draftReport);
       set({
         loading: false,
@@ -228,6 +231,7 @@ export function createStore() {
         externalImport: {
           ...state.externalImport,
           rawText,
+          tickerHint,
           draftReport,
           draftJson: JSON.stringify(draftReport, null, 2),
           validation,
@@ -247,6 +251,7 @@ export function createStore() {
         externalImport: {
           ...state.externalImport,
           rawText,
+          tickerHint,
           stage: "paste",
           validation: { valid: false, errors: [{ field: "parser", message: error.userMessage || error.message || "External parser failed." }], warnings: [] }
         },
@@ -1051,6 +1056,7 @@ function wait(ms) {
 function createExternalImportState() {
   return {
     rawText: "",
+    tickerHint: "",
     draftReport: null,
     draftJson: "",
     validation: { valid: false, errors: [], warnings: [] },
@@ -1062,6 +1068,20 @@ function createExternalImportState() {
     stage: "paste",
     editing: false
   };
+}
+
+function applyImportContextHints(report, { tickerHint } = {}) {
+  if (!report) return report;
+  if (!tickerHint || report.company?.ticker) return report;
+  return updateExternalAnalysisField(report, "company.ticker", tickerHint);
+}
+
+function normalizeTickerHint(value) {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9.-]/g, "")
+    .slice(0, 12);
 }
 
 function createSupplementState() {

@@ -64,6 +64,8 @@ const UI_LABELS = {
   "Paste external research": "لصق بحث خارجي",
   "Paste a completed ChatGPT analysis. Franklin parses, previews, saves, then opens the report. It does not create the analysis.": "ألصق تحليل ChatGPT النهائي. Franklin يقرأه، يعرضه للمراجعة، يحفظه، ثم يفتح التقرير. لا يصنع التحليل.",
   "Import flow": "مسار الاستيراد",
+  "Ticker Symbol": "رمز السهم",
+  "Use this when the pasted report does not clearly include the ticker.": "اكتب الرمز هنا إذا كان التقرير الملصوق لا يذكر رمز السهم بوضوح.",
   Parse: "استخراج",
   Save: "حفظ",
   "Open Report": "فتح التقرير",
