@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v10-external-import";
+const CACHE_NAME = "franklin-research-v10-chatgpt-contract";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -11,6 +11,7 @@ const STATIC_ASSETS = [
   "./src/externalAnalysis/schema.js",
   "./src/externalAnalysis/parser.js",
   "./src/externalAnalysis/externalAnalysisSchemaValidator.js",
+  "./src/externalAnalysis/chatgptContract.js",
   "./src/externalAnalysis/storage.js",
   "./src/externalAnalysis/reportAdapter.js",
   "./assets/app-icon.png",

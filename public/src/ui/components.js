@@ -12,7 +12,7 @@ import {
 import { rankEvaluatedCompanies } from "../engines/rankingEngine.js";
 import { DEMO_ANALYSIS_FIXTURE } from "../data/demoFlow.js";
 import { copyableExternalAnalysisJson, externalAnalysisToHomeCard } from "../externalAnalysis/reportAdapter.js";
-import { analyzeExternalAnalysisCompletion } from "../externalAnalysis/missingFields.js";
+import { analyzeExternalAnalysisCompletion, FIELD_PRIORITY, FIELD_REQUIREMENTS } from "../externalAnalysis/missingFields.js";
 import { getExternalAnalysis, listLatestExternalAnalyses } from "../externalAnalysis/storage.js";
 import {
   analysisText,
@@ -913,6 +913,7 @@ function externalImportPanel(state) {
         </label>
         <p>${uiLabel("Use this when the pasted report does not clearly include the ticker.")}</p>
       </div>
+      ${externalChatGptPrepCard(state)}
       <textarea class="paste-box external-paste-box" data-external-raw placeholder="${uiLabel("Paste completed ChatGPT analysis or ExternalAnalysisReport JSON here.")}">${escapeHtml(state.externalImport?.rawText || "")}</textarea>
       <div class="external-import-actions">
         <button class="primary-btn" data-action="parse-external-analysis" ${state.loading ? "disabled" : ""}>${state.loading ? uiLabel("Parsing") : uiLabel("Parse Analysis")}</button>
@@ -936,6 +937,39 @@ function flowStep(number, label) {
       <b>${escapeHtml(number)}</b>
       <span>${escapeHtml(label)}</span>
     </div>
+  `;
+}
+
+function externalChatGptPrepCard(state) {
+  const requiredFields = FIELD_REQUIREMENTS.filter((field) => field.priority === FIELD_PRIORITY.CRITICAL);
+  return `
+    <section class="chatgpt-prep-card">
+      <div class="table-title">
+        <div>
+          <p class="eyebrow">${uiLabel("ChatGPT Contract")}</p>
+          <h3>${uiLabel("جهّز ChatGPT قبل اللصق")}</h3>
+          <p>${uiLabel("Copy the official prompt, send it to ChatGPT, then paste the JSON response here.")}</p>
+        </div>
+        <div class="prep-actions">
+          <button class="primary-btn" data-action="copy-full-analysis-prompt">${uiLabel("نسخ برومبت تحليل السهم")}</button>
+          <button class="icon-btn" data-action="copy-external-json-template">${uiLabel("نسخ JSON Template")}</button>
+        </div>
+      </div>
+      <details class="required-fields-guide">
+        <summary>${uiLabel("Required fields before saving")} (${requiredFields.length})</summary>
+        <div class="required-field-chips">
+          ${requiredFields.map((field) => `<span><b>${escapeHtml(field.labelAr)}</b><em dir="ltr">${escapeHtml(field.path)}</em></span>`).join("")}
+        </div>
+      </details>
+      ${state.externalImport?.copyFallbackText ? `
+        <div class="clipboard-fallback">
+          <p class="muted">${escapeHtml(state.externalImport.copyFallbackTitle || uiLabel("Clipboard fallback"))}</p>
+          <textarea readonly data-copy-fallback-text>${escapeHtml(state.externalImport.copyFallbackText)}</textarea>
+          <button class="icon-btn" data-action="select-copy-fallback">${uiLabel("Select All")}</button>
+          <button class="icon-btn" data-action="${escapeHtml(state.externalImport.copyFallbackAction || "copy-full-analysis-prompt")}">${uiLabel("Copy Again")}</button>
+        </div>
+      ` : ""}
+    </section>
   `;
 }
 
@@ -3221,6 +3255,14 @@ function bind(root, store, actions) {
     const tickerHint = root.querySelector("[data-external-ticker-hint]")?.value || "";
     store.parseExternalImport(text, { tickerHint });
   });
+  root.querySelector("[data-action='copy-full-analysis-prompt']")?.addEventListener("click", () => {
+    const tickerHint = root.querySelector("[data-external-ticker-hint]")?.value || "";
+    copyExternalAnalysisPrep(store, "prompt", tickerHint);
+  });
+  root.querySelector("[data-action='copy-external-json-template']")?.addEventListener("click", () => {
+    const tickerHint = root.querySelector("[data-external-ticker-hint]")?.value || "";
+    copyExternalAnalysisPrep(store, "template", tickerHint);
+  });
   root.querySelector("[data-action='copy-missing-requirements']")?.addEventListener("click", () => copyMissingRequirements(store));
   root.querySelector("[data-action='select-copy-fallback']")?.addEventListener("click", () => {
     const textArea = root.querySelector("[data-copy-fallback-text]");
@@ -3507,6 +3549,47 @@ async function copyMissingRequirements(store) {
   } catch {
     store.set({
       externalImport: { ...store.state.externalImport, missingPromptFallback: result.text },
+      notice: store.state.language === "ar"
+        ? "تعذر النسخ تلقائيًا. استخدم النص الظاهر للنسخ اليدوي."
+        : "Automatic copy failed. Use the visible text area to copy manually."
+    });
+  }
+}
+
+async function copyExternalAnalysisPrep(store, kind, tickerHint = "") {
+  const isTemplate = kind === "template";
+  const text = isTemplate
+    ? store.currentExternalAnalysisJsonTemplate?.(tickerHint)
+    : store.currentFullAnalysisPrompt?.(tickerHint);
+  if (!text) return;
+  const copiedNotice = isTemplate
+    ? (store.state.language === "ar" ? "تم نسخ JSON Template." : "JSON Template copied.")
+    : (store.state.language === "ar" ? "تم نسخ برومبت تحليل السهم." : "Analysis prompt copied.");
+  const fallbackTitle = isTemplate
+    ? (store.state.language === "ar" ? "انسخ JSON Template يدويًا" : "Copy JSON Template manually")
+    : (store.state.language === "ar" ? "انسخ برومبت التحليل يدويًا" : "Copy analysis prompt manually");
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+    await navigator.clipboard.writeText(text);
+    store.set({
+      externalImport: {
+        ...store.state.externalImport,
+        tickerHint,
+        copyFallbackText: "",
+        copyFallbackTitle: "",
+        copyFallbackAction: ""
+      },
+      notice: copiedNotice
+    });
+  } catch {
+    store.set({
+      externalImport: {
+        ...store.state.externalImport,
+        tickerHint,
+        copyFallbackText: text,
+        copyFallbackTitle: fallbackTitle,
+        copyFallbackAction: isTemplate ? "copy-external-json-template" : "copy-full-analysis-prompt"
+      },
       notice: store.state.language === "ar"
         ? "تعذر النسخ تلقائيًا. استخدم النص الظاهر للنسخ اليدوي."
         : "Automatic copy failed. Use the visible text area to copy manually."

@@ -13,6 +13,7 @@ import { parseExternalAnalysisInput } from "../externalAnalysis/parser.js";
 import { normalizeExternalAnalysisReport, updateExternalAnalysisField } from "../externalAnalysis/schema.js";
 import { validateExternalAnalysisReport } from "../externalAnalysis/externalAnalysisSchemaValidator.js";
 import { attachCompletionStatus, buildMissingRequirementsPrompt } from "../externalAnalysis/missingFields.js";
+import { buildExternalAnalysisJsonTemplate, buildFullAnalysisPrompt } from "../externalAnalysis/chatgptContract.js";
 import { mergeExternalAnalysisSupplement } from "../externalAnalysis/supplementMerge.js";
 import { parseExternalAnalysisSupplement } from "../externalAnalysis/supplementParser.js";
 import { validateExternalAnalysisSupplement } from "../externalAnalysis/supplementValidator.js";
@@ -397,6 +398,14 @@ export function createStore() {
     const report = state.externalImport?.draftReport || selectedExternalReportFromState();
     if (!report) return { text: "", count: 0, fields: [] };
     return buildMissingRequirementsPrompt(report, report.completionStatus);
+  }
+
+  function currentFullAnalysisPrompt(tickerHint = "") {
+    return buildFullAnalysisPrompt({ tickerHint: tickerHint || state.externalImport?.tickerHint });
+  }
+
+  function currentExternalAnalysisJsonTemplate(tickerHint = "") {
+    return buildExternalAnalysisJsonTemplate({ tickerHint: tickerHint || state.externalImport?.tickerHint });
   }
 
   function openSupplementInput() {
@@ -969,6 +978,8 @@ export function createStore() {
     saveExternalDraft,
     saveExternalIncompleteDraft,
     currentMissingRequirementsPrompt,
+    currentFullAnalysisPrompt,
+    currentExternalAnalysisJsonTemplate,
     openSupplementInput,
     cancelExternalSupplement,
     parseExternalSupplement,
@@ -1064,6 +1075,9 @@ function createExternalImportState() {
     parserSource: null,
     usedAi: false,
     missingPromptFallback: "",
+    copyFallbackText: "",
+    copyFallbackTitle: "",
+    copyFallbackAction: "",
     supplement: createSupplementState(),
     stage: "paste",
     editing: false

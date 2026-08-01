@@ -13,6 +13,7 @@ const components = readFileSync(new URL("../public/src/ui/components.js", import
 const styles = readFileSync(new URL("../public/styles.css", import.meta.url), "utf8");
 const language = readFileSync(new URL("../public/src/i18n/language.js", import.meta.url), "utf8");
 const storeSource = readFileSync(new URL("../public/src/state/store.js", import.meta.url), "utf8");
+const chatgptContract = readFileSync(new URL("../public/src/externalAnalysis/chatgptContract.js", import.meta.url), "utf8");
 
 const homeStart = components.indexOf("function homeDashboard");
 const homeEnd = components.indexOf("function languageToggle", homeStart);
@@ -33,6 +34,9 @@ assert.ok(components.includes("function externalImportPanel"), "Import page must
 assert.ok(components.includes("external-import-flow"), "Import page must show Paste -> Parse -> Preview -> Save -> Open Report.");
 assert.ok(components.includes("data-external-ticker-hint"), "Import page must provide a ticker fallback field when pasted reports omit the symbol.");
 assert.ok(components.includes("store.parseExternalImport(text, { tickerHint })"), "Ticker fallback must be passed to the import parser.");
+assert.ok(components.includes("data-action=\"copy-full-analysis-prompt\""), "Import page must let users copy the official ChatGPT analysis prompt.");
+assert.ok(components.includes("data-action=\"copy-external-json-template\""), "Import page must let users copy a blank JSON Template.");
+assert.ok(components.includes("function externalChatGptPrepCard"), "Import page must show ChatGPT preparation guidance before paste.");
 assert.ok(components.includes("function missingDataCompletionCard"), "Missing data completion card must exist.");
 assert.ok(components.includes("copy-missing-requirements"), "Missing data card must expose Copy Missing Requirements.");
 assert.ok(components.includes("parse-external-supplement"), "Supplement paste flow must be wired.");
@@ -70,6 +74,8 @@ assert.ok(styles.includes("@media (max-width: 620px)"), "Mobile iPhone breakpoin
 assert.ok(styles.includes(".library-card-grid"), "Library card grid styles must exist.");
 assert.ok(styles.includes(".external-import-flow"), "External import flow styles must exist.");
 assert.ok(styles.includes(".external-import-context"), "Ticker fallback context styles must exist.");
+assert.ok(styles.includes(".chatgpt-prep-card"), "ChatGPT prep card styles must exist.");
+assert.ok(styles.includes(".required-field-chips"), "Required fields guide styles must exist.");
 assert.ok(styles.includes(".missing-data-sheet"), "Missing data sheet styles must exist.");
 assert.ok(styles.includes(".supplement-sheet"), "Supplement input sheet styles must exist.");
 assert.ok(styles.includes(".conflict-row"), "Conflict review styles must exist.");
@@ -81,10 +87,15 @@ assert.ok(styles.includes(".forecast-bars"), "Forecast chart styles must exist."
 assert.ok(language.includes("مكتبة أبحاث أسهم احترافية"), "Arabic research-library positioning must be localized.");
 assert.ok(language.includes("اكتمال البيانات"), "Arabic data completion label must be localized.");
 assert.ok(language.includes("اكتب الرمز هنا إذا كان التقرير الملصوق لا يذكر رمز السهم بوضوح."), "Ticker fallback helper text must be localized.");
+assert.ok(language.includes("انسخ البرومبت الرسمي، أرسله إلى ChatGPT، ثم الصق رد JSON هنا."), "ChatGPT prep copy must be localized.");
 assert.ok(language.includes("التوافق الشرعي"), "Arabic Shariah label must be localized.");
 assert.ok(storeSource.includes("tickerHint: \"\""), "External import state must persist the ticker hint.");
 assert.ok(storeSource.includes("applyImportContextHints(parsed.report, { tickerHint })"), "Parsed external reports must receive context hints before validation.");
 assert.ok(storeSource.includes("if (!tickerHint || report.company?.ticker) return report;"), "Ticker hint must never overwrite a ticker already present in the report.");
+assert.ok(storeSource.includes("currentFullAnalysisPrompt"), "Store must expose the official full-analysis prompt.");
+assert.ok(storeSource.includes("currentExternalAnalysisJsonTemplate"), "Store must expose the blank JSON Template.");
+assert.ok(chatgptContract.includes("buildFullAnalysisPrompt"), "ChatGPT contract prompt builder must exist.");
+assert.ok(chatgptContract.includes("buildExternalAnalysisJsonTemplate"), "ChatGPT contract JSON template builder must exist.");
 
 let workspace = createValuationWorkspace(DEMO_ANALYSIS_FIXTURE.company);
 workspace = updateAnalystBrainPaste(workspace, DEMO_ANALYSIS_FIXTURE.pasteText);
