@@ -43,6 +43,49 @@ assert.ok(prompt.text.includes("decision.verdict"));
 assert.ok(prompt.text.includes('"schemaVersion": "external-analysis-supplement/v1"'));
 assert.equal(prompt.text.includes("company.sector"), false, "Optional fields must not be included in the default missing prompt.");
 
+const noTickerReport = report({
+  id: null,
+  analysisDate: "2026-08-01",
+  company: { ticker: null, name: null },
+  market: { priceAtAnalysis: 451 },
+  scores: { quality: 8, growth: 7, valuation: 6, risk: 4 },
+  fairValue: { bear: 360, base: 475, bull: 560 },
+  thesis: { shortSummary: "Ticker missing only." },
+  risks: [{ title: "Competition" }],
+  decision: { verdict: "HOLD" }
+});
+const noTickerValidation = validateExternalAnalysisReport(noTickerReport);
+const noTickerCompletion = analyzeExternalAnalysisCompletion(noTickerReport, noTickerValidation, { now });
+assert.ok(noTickerCompletion.missingRequiredPaths.includes("company.ticker"));
+const noTickerPrompt = buildMissingRequirementsPrompt(noTickerReport, noTickerCompletion);
+assert.equal(noTickerPrompt.text.includes("TICKER TICKER"), false, "Missing ticker prompt must not say TICKER TICKER.");
+assert.ok(noTickerPrompt.text.includes('"ticker": null'), "Missing ticker prompt should leave top-level supplement ticker null.");
+
+const tickerFieldSupplement = (await parseExternalAnalysisSupplement(JSON.stringify({
+  schemaVersion: "external-analysis-supplement/v1",
+  ticker: "AAOI",
+  targetAnalysisId: null,
+  analysisDate: "2026-08-01",
+  fields: { "company.ticker": "AAOI" },
+  notes: []
+}), { existingReport: noTickerReport, now })).supplement;
+assert.equal(validateExternalAnalysisSupplement(tickerFieldSupplement, noTickerReport).valid, true, "Supplement may fill company.ticker when the report has no ticker.");
+const tickerFieldMerge = mergeExternalAnalysisSupplement(attachCompletionStatus(noTickerReport, noTickerValidation), tickerFieldSupplement, { now });
+assert.equal(tickerFieldMerge.report.company.ticker, "AAOI");
+assert.equal(tickerFieldMerge.report.completionStatus.missingRequiredPaths.includes("company.ticker"), false);
+
+const topLevelTickerSupplement = (await parseExternalAnalysisSupplement(JSON.stringify({
+  schemaVersion: "external-analysis-supplement/v1",
+  ticker: "AAOI",
+  targetAnalysisId: null,
+  analysisDate: "2026-08-01",
+  fields: { "company.ticker": null },
+  notes: []
+}), { existingReport: noTickerReport, now })).supplement;
+const topLevelTickerMerge = mergeExternalAnalysisSupplement(noTickerReport, topLevelTickerSupplement, { now });
+assert.equal(topLevelTickerMerge.report.company.ticker, "AAOI", "Top-level supplement ticker should fill missing company.ticker.");
+assert.equal(validateExternalAnalysisReport({ ...noTickerReport, company: { ticker: "TICKER" } }).valid, false, "Placeholder TICKER must not satisfy ticker validation.");
+
 const supplementJson = JSON.stringify({
   schemaVersion: "external-analysis-supplement/v1",
   ticker: "AMZN",

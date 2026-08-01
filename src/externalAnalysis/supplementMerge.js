@@ -1,6 +1,6 @@
 import { attachCompletionStatus, getPath, valuePresent } from "./missingFields.js";
 import { validateExternalAnalysisReport } from "./externalAnalysisSchemaValidator.js";
-import { PROTECTED_SUPPLEMENT_PATHS } from "./supplementValidator.js";
+import { canUseProtectedField, effectiveSupplementFields, PROTECTED_SUPPLEMENT_PATHS } from "./supplementValidator.js";
 
 export function mergeExternalAnalysisSupplement(existingReport = {}, supplement = {}, options = {}) {
   const now = options.now || new Date();
@@ -12,13 +12,14 @@ export function mergeExternalAnalysisSupplement(existingReport = {}, supplement 
   const conflicts = [];
   const unchangedFields = [];
 
-  for (const [path, incomingValue] of Object.entries(supplement.fields || {})) {
-    if (PROTECTED_SUPPLEMENT_PATHS.has(path)) {
-      rejectedFields.push(rejection(path, incomingValue, getPath(existingReport, path), "protected_field"));
-      continue;
-    }
+  const supplementFields = effectiveSupplementFields(supplement, existingReport);
+  for (const [path, incomingValue] of Object.entries(supplementFields)) {
     if (incomingValue === null || incomingValue === undefined) {
       rejectedFields.push(rejection(path, incomingValue, getPath(existingReport, path), "null_supplement_value"));
+      continue;
+    }
+    if (PROTECTED_SUPPLEMENT_PATHS.has(path) && !canUseProtectedField(path, incomingValue, existingReport)) {
+      rejectedFields.push(rejection(path, incomingValue, getPath(existingReport, path), "protected_field"));
       continue;
     }
 
@@ -70,7 +71,7 @@ export function mergeExternalAnalysisSupplement(existingReport = {}, supplement 
       id: createSupplementAuditId(existingReport, now),
       importedAt: now.toISOString(),
       rawSupplement: supplement.rawSupplement || "",
-      parsedFields: { ...(supplement.fields || {}) },
+      parsedFields: supplementFields,
       appliedFields,
       rejectedFields,
       conflicts,

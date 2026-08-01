@@ -87,7 +87,8 @@ function validateFiniteNumbers(value, errors, path = "") {
 }
 
 function isValidTicker(value) {
-  return /^[A-Z0-9][A-Z0-9.-]{0,11}$/.test(String(value || "").trim().toUpperCase());
+  const clean = String(value || "").trim().toUpperCase();
+  return /^[A-Z0-9][A-Z0-9.-]{0,11}$/.test(clean) && !["TICKER", "SYMBOL"].includes(clean);
 }
 
 function isValidDate(value) {

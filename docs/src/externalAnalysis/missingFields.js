@@ -94,11 +94,15 @@ export function buildMissingRequirementsPrompt(report = {}, completionStatus = a
     ...(options.includeRecommended === false ? [] : (details.recommended || []))
   ];
   const targetFields = fields.length ? fields : [...(details.optional || [])];
-  const ticker = report.company?.ticker || "TICKER";
+  const knownTicker = valuePresent(report.company?.ticker, "company.ticker") ? report.company.ticker : null;
+  const ticker = knownTicker || null;
+  const companyName = report.company?.name || knownTicker || "الشركة محل التقرير";
   const fieldJson = Object.fromEntries(targetFields.map((item) => [item.path, null]));
 
   const lines = [
-    `لدي تحليل سابق لشركة ${report.company?.name || ticker} ${ticker}، لكن التطبيق اكتشف أن البيانات التالية ناقصة أو غير مكتملة.`,
+    knownTicker
+      ? `لدي تحليل سابق لشركة ${companyName} ${knownTicker}، لكن التطبيق اكتشف أن البيانات التالية ناقصة أو غير مكتملة.`
+      : "لدي تحليل سابق لشركة لم يتم تحديد رمزها بعد، لكن التطبيق اكتشف أن البيانات التالية ناقصة أو غير مكتملة.",
     "",
     "أريد منك إكمال هذه البيانات فقط، اعتمادًا على التقرير الأصلي والمصادر الرسمية المتاحة.",
     "",
@@ -112,8 +116,8 @@ export function buildMissingRequirementsPrompt(report = {}, completionStatus = a
     "- استخدم أسماء الحقول كما هي.",
     "",
     "البيانات الحالية:",
-    `Ticker: ${ticker}`,
-    `Company: ${report.company?.name || "-"}`,
+    `Ticker: ${knownTicker || "غير محدد"}`,
+    `Company: ${report.company?.name || companyName}`,
     `Analysis Date: ${report.analysisDate || "-"}`,
     `Report Period: ${report.reportPeriod || "-"}`,
     `Price at Analysis: ${report.market?.priceAtAnalysis ?? "-"}`,
