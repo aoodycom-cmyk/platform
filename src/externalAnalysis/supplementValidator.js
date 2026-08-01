@@ -19,6 +19,9 @@ export function validateExternalAnalysisSupplement(supplement = {}, existingRepo
   if (!supplement.fields || typeof supplement.fields !== "object" || Array.isArray(supplement.fields)) {
     errors.push(fieldError("fields", "Supplement fields object is required."));
   }
+  if (supplement.ticker && placeholderTicker(supplement.ticker)) {
+    errors.push(fieldError("ticker", "Supplement ticker cannot be TICKER or SYMBOL. Use the real market symbol."));
+  }
   if (supplement.ticker && existingReport.company?.ticker && normalizeTicker(supplement.ticker) !== normalizeTicker(existingReport.company.ticker)) {
     errors.push(fieldError("ticker", "Supplement ticker does not match the current report ticker."));
   }
@@ -33,6 +36,9 @@ export function validateExternalAnalysisSupplement(supplement = {}, existingRepo
       continue;
     }
     validateFieldValue(path, value, errors);
+  }
+  if (!hasUsableField(fields)) {
+    errors.push(fieldError("fields", "Supplement did not include any usable non-null values."));
   }
 
   validateCombinedFairValueOrdering(existingReport, fields, errors);
@@ -123,7 +129,15 @@ function normalizeTicker(value) {
 
 function validSupplementTicker(value) {
   const clean = normalizeTicker(value);
-  return /^[A-Z0-9][A-Z0-9.-]{0,11}$/.test(clean) && !["TICKER", "SYMBOL"].includes(clean);
+  return /^[A-Z0-9][A-Z0-9.-]{0,11}$/.test(clean) && !placeholderTicker(clean);
+}
+
+function placeholderTicker(value) {
+  return ["TICKER", "SYMBOL"].includes(normalizeTicker(value));
+}
+
+function hasUsableField(fields = {}) {
+  return Object.entries(fields).some(([path, value]) => valuePresent(value, path));
 }
 
 function fieldError(field, message) {

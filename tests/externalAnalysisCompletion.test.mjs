@@ -159,6 +159,39 @@ const wrongTicker = await parseExternalAnalysisSupplement(JSON.stringify({
 }), { existingReport: incomplete, now });
 assert.equal(validateExternalAnalysisSupplement(wrongTicker.supplement, incomplete).valid, false);
 
+const placeholderTickerReply = await parseExternalAnalysisSupplement(JSON.stringify({
+  schemaVersion: "external-analysis-supplement/v1",
+  ticker: "TICKER",
+  targetAnalysisId: null,
+  analysisDate: null,
+  fields: {
+    "analysisDate": null,
+    "market.priceAtAnalysis": null,
+    "scores.quality": null,
+    "fairValue.base": null,
+    "decision.verdict": null
+  },
+  notes: []
+}), { existingReport: { ...incomplete, company: { ...incomplete.company, ticker: "MSFT" } }, now });
+const placeholderValidation = validateExternalAnalysisSupplement(placeholderTickerReply.supplement, { ...incomplete, company: { ...incomplete.company, ticker: "MSFT" } });
+assert.equal(placeholderValidation.valid, false, "Placeholder TICKER supplement must be rejected.");
+assert.ok(placeholderValidation.errors.some((item) => item.field === "ticker"));
+assert.ok(placeholderValidation.errors.some((item) => item.field === "fields"), "All-null supplement must be rejected as non-useful.");
+
+const allNullReply = await parseExternalAnalysisSupplement(JSON.stringify({
+  schemaVersion: "external-analysis-supplement/v1",
+  ticker: "MSFT",
+  targetAnalysisId: null,
+  analysisDate: null,
+  fields: {
+    "analysisDate": null,
+    "market.priceAtAnalysis": null,
+    "scores.quality": null
+  },
+  notes: []
+}), { existingReport: { ...incomplete, company: { ...incomplete.company, ticker: "MSFT" } }, now });
+assert.equal(validateExternalAnalysisSupplement(allNullReply.supplement, { ...incomplete, company: { ...incomplete.company, ticker: "MSFT" } }).valid, false, "All-null supplement with correct ticker must still be rejected.");
+
 const wrongId = await parseExternalAnalysisSupplement(JSON.stringify({
   schemaVersion: "external-analysis-supplement/v1",
   ticker: "AMZN",

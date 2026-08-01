@@ -42,6 +42,8 @@ assert.ok(components.includes("copy-missing-requirements"), "Missing data card m
 assert.ok(components.includes("parse-external-supplement"), "Supplement paste flow must be wired.");
 assert.ok(components.includes("function supplementPreviewPanel"), "Supplement preview must exist before safe merge.");
 assert.ok(components.includes("function conflictRow"), "Conflict Review UI must exist.");
+assert.ok(components.includes("الرد لا يحتوي على أي قيمة جديدة قابلة للدمج"), "All-null supplement error must be shown in Arabic.");
+assert.ok(components.includes("لا تستخدم TICKER أو SYMBOL"), "Placeholder ticker supplement error must be shown in Arabic.");
 assert.ok(components.includes("function externalHistoryPanel"), "History page must exist for prior saved analyses.");
 assert.ok(components.includes("function externalAnalysisReportView"), "Company Report page must exist.");
 assert.ok(components.includes("report-v2-header"), "Company Report must use the V2 report-first header.");
