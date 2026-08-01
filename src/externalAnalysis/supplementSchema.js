@@ -37,6 +37,9 @@ export function normalizeSupplementFieldValue(path, value) {
   if (value === undefined || value === "") return null;
   if (value === null) return null;
   if (numericPath(path)) return toNullableNumber(value);
+  if (path === "risks") return normalizeRiskItems(value);
+  if (path === "catalysts") return normalizeTitledItems(value, ["title", "explanation"]);
+  if (path === "sources") return normalizeSources(value);
   if (arrayPath(path)) return Array.isArray(value) ? value : [value].filter((item) => item !== null && item !== undefined && item !== "");
   if (typeof value === "object") return preserveNulls(value);
   return nullableString(value);
@@ -102,11 +105,32 @@ function normalizeSources(value) {
     if (typeof item === "string") return { title: item, url: null, sourceType: null };
     if (!item || typeof item !== "object") return null;
     return {
-      title: nullableString(item.title),
+      title: nullableString(item.title ?? item.name),
       url: nullableString(item.url),
-      sourceType: nullableString(item.sourceType)
+      sourceType: nullableString(item.sourceType ?? item.type)
     };
   }).filter(Boolean);
+}
+
+function normalizeRiskItems(value) {
+  return normalizeTitledItems(value, ["title", "severity", "explanation"]);
+}
+
+function normalizeTitledItems(value, keys) {
+  const items = Array.isArray(value) ? value : [value];
+  return items.map((item) => {
+    if (typeof item === "string") {
+      return Object.fromEntries(keys.map((key, index) => [key, index === 0 ? item : null]));
+    }
+    if (!item || typeof item !== "object") return null;
+    return Object.fromEntries(keys.map((key) => [key, toMaybeTextOrNumber(item[key] ?? (key === "title" ? item.name : null))]));
+  }).filter(Boolean);
+}
+
+function toMaybeTextOrNumber(value) {
+  if (value === undefined || value === "") return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  return value === null ? null : String(value).trim() || null;
 }
 
 function normalizeStringArray(value) {

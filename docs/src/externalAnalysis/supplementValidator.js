@@ -22,7 +22,8 @@ export function validateExternalAnalysisSupplement(supplement = {}, existingRepo
   if (supplement.ticker && placeholderTicker(supplement.ticker)) {
     errors.push(fieldError("ticker", "Supplement ticker cannot be TICKER or SYMBOL. Use the real market symbol."));
   }
-  if (supplement.ticker && existingReport.company?.ticker && normalizeTicker(supplement.ticker) !== normalizeTicker(existingReport.company.ticker)) {
+  const currentTicker = existingReport.company?.ticker;
+  if (supplement.ticker && validSupplementTicker(currentTicker) && normalizeTicker(supplement.ticker) !== normalizeTicker(currentTicker)) {
     errors.push(fieldError("ticker", "Supplement ticker does not match the current report ticker."));
   }
   if (supplement.targetAnalysisId && existingReport.id && supplement.targetAnalysisId !== existingReport.id) {
@@ -64,7 +65,7 @@ export function canUseProtectedField(path, value, existingReport = {}) {
   const incoming = normalizeTicker(value);
   if (!validSupplementTicker(incoming)) return false;
   const current = normalizeTicker(existingReport.company?.ticker);
-  return !current || incoming === current;
+  return !validSupplementTicker(current) || incoming === current;
 }
 
 function validateFieldValue(path, value, errors) {

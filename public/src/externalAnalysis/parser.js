@@ -26,7 +26,14 @@ export async function parseExternalAnalysisInput(text, { parseUnstructured, now 
 
 export function parseJsonCandidate(text) {
   const clean = String(text || "").trim();
-  for (const candidate of [clean, extractFirstJsonObject(clean)]) {
+  const normalized = normalizeJsonLikeText(clean);
+  const candidates = uniqueCandidates([
+    clean,
+    extractFirstJsonObject(clean),
+    normalized,
+    extractFirstJsonObject(normalized)
+  ]);
+  for (const candidate of candidates) {
     if (!candidate) continue;
     try {
       const value = JSON.parse(candidate);
@@ -40,6 +47,23 @@ export function parseJsonCandidate(text) {
 
 export function stringifyExternalAnalysisReport(report) {
   return JSON.stringify(report, null, 2);
+}
+
+export function normalizeJsonLikeText(text) {
+  return String(text || "")
+    .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, "\"")
+    .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
+    .replace(/\u00A0/g, " ")
+    .trim();
+}
+
+function uniqueCandidates(items) {
+  const seen = new Set();
+  return items.filter((item) => {
+    if (!item || seen.has(item)) return false;
+    seen.add(item);
+    return true;
+  });
 }
 
 function extractFirstJsonObject(text) {

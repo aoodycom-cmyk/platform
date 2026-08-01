@@ -86,6 +86,25 @@ const topLevelTickerMerge = mergeExternalAnalysisSupplement(noTickerReport, topL
 assert.equal(topLevelTickerMerge.report.company.ticker, "AAOI", "Top-level supplement ticker should fill missing company.ticker.");
 assert.equal(validateExternalAnalysisReport({ ...noTickerReport, company: { ticker: "TICKER" } }).valid, false, "Placeholder TICKER must not satisfy ticker validation.");
 
+const placeholderTickerReport = report({
+  ...noTickerReport,
+  company: { ticker: "TICKER", name: null }
+});
+const placeholderTickerValidation = validateExternalAnalysisReport(placeholderTickerReport);
+const placeholderTickerCompletion = analyzeExternalAnalysisCompletion(placeholderTickerReport, placeholderTickerValidation, { now });
+assert.ok(placeholderTickerCompletion.missingRequiredPaths.includes("company.ticker"), "Placeholder TICKER must remain a missing completion field.");
+const realTickerSupplement = (await parseExternalAnalysisSupplement(JSON.stringify({
+  schemaVersion: "external-analysis-supplement/v1",
+  ticker: "MSFT",
+  targetAnalysisId: null,
+  analysisDate: "2026-08-01",
+  fields: { "company.ticker": null },
+  notes: []
+}), { existingReport: placeholderTickerReport, now })).supplement;
+assert.equal(validateExternalAnalysisSupplement(realTickerSupplement, placeholderTickerReport).valid, true, "Real supplement ticker may replace a placeholder report ticker.");
+const realTickerMerge = mergeExternalAnalysisSupplement(attachCompletionStatus(placeholderTickerReport, placeholderTickerValidation), realTickerSupplement, { now });
+assert.equal(realTickerMerge.report.company.ticker, "MSFT");
+
 const supplementJson = JSON.stringify({
   schemaVersion: "external-analysis-supplement/v1",
   ticker: "AMZN",
@@ -108,6 +127,37 @@ const supplementJson = JSON.stringify({
 const parsedLocal = await parseExternalAnalysisSupplement(supplementJson, { existingReport: incomplete, now });
 assert.equal(parsedLocal.usedAi, false);
 assert.equal(parsedLocal.supplement.fields["fairValue.base"], 290);
+
+const smartQuoteSupplementText = JSON.stringify({
+  schemaVersion: "external-analysis-supplement/v1",
+  ticker: "AMZN",
+  targetAnalysisId: "external-AMZN-2026-07-31-abc123",
+  analysisDate: "2026-07-31",
+  fields: {
+    "scores.growth": 9.5,
+    "scores.valuation": 7.5,
+    "fairValue.bear": 215,
+    "fairValue.base": 290,
+    "fairValue.bull": 350,
+    "thesis.shortSummary": "AWS and advertising support long-term compounding.",
+    "risks": ["Margin compression", "Cloud competition"],
+    "decision.verdict": "HOLD",
+    "sources": [{ name: "Amazon Investor Relations", type: "official", url: "https://ir.aboutamazon.com" }]
+  },
+  notes: []
+}).replace(/"/g, "\u201c");
+const parsedSmartQuote = await parseExternalAnalysisSupplement(smartQuoteSupplementText, { existingReport: incomplete, now });
+assert.equal(parsedSmartQuote.usedAi, false, "Smart-quote JSON must parse locally without AI fallback.");
+assert.equal(parsedSmartQuote.supplement.fields["fairValue.base"], 290);
+assert.equal(parsedSmartQuote.supplement.fields.risks[0].title, "Margin compression");
+assert.equal(parsedSmartQuote.supplement.fields.sources[0].title, "Amazon Investor Relations");
+assert.equal(parsedSmartQuote.supplement.fields.sources[0].sourceType, "official");
+const smartQuoteValidation = validateExternalAnalysisSupplement(parsedSmartQuote.supplement, incomplete);
+assert.equal(smartQuoteValidation.valid, true);
+const smartQuoteMerge = mergeExternalAnalysisSupplement(attachCompletionStatus(incomplete, validation), parsedSmartQuote.supplement, { now });
+assert.equal(smartQuoteMerge.report.risks[0].title, "Margin compression");
+assert.equal(smartQuoteMerge.report.sources[0].sourceType, "official");
+assert.equal(smartQuoteMerge.report.completionStatus.missingRequiredPaths.includes("risks"), false);
 
 const parsedNatural = await parseExternalAnalysisSupplement("نص طبيعي من ChatGPT", {
   existingReport: incomplete,

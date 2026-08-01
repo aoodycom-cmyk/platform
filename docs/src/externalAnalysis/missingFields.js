@@ -176,7 +176,12 @@ export function getPath(object, path) {
 export function valuePresent(value, path = "") {
   if (value === null || value === undefined || value === "") return false;
   if (typeof value === "number") return Number.isFinite(value);
-  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value === "string") {
+    const clean = value.trim();
+    if (!clean) return false;
+    if (path === "company.ticker") return !["TICKER", "SYMBOL"].includes(clean.toUpperCase());
+    return true;
+  }
   if (Array.isArray(value)) {
     if (path === "risks") return value.some((item) => item && (hasText(item.title) || hasText(item.explanation) || hasText(item)));
     return value.length > 0;
