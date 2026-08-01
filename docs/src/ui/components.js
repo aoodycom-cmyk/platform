@@ -888,6 +888,7 @@ function externalImportPanel(state) {
   const draft = state.externalImport?.draftReport;
   const validation = state.externalImport?.validation || { errors: [], warnings: [] };
   const completion = draft ? draft.completionStatus || analyzeExternalAnalysisCompletion(draft, validation) : null;
+  const visibleValidation = visibleExternalValidation(validation, completion);
   return `
     <section class="panel external-import-panel library-import-panel">
       <div class="external-import-head">
@@ -912,8 +913,8 @@ function externalImportPanel(state) {
       </div>
       ${state.externalImport?.parserSource ? `<p class="muted">${uiLabel("Parser")}: ${escapeHtml(state.externalImport.parserSource)} / ${state.externalImport.usedAi ? "AI Parser" : "Local JSON"}</p>` : ""}
       ${draft && completion?.status !== "complete" ? missingDataCompletionCard(draft, validation, completion, state) : ""}
-      ${validation.errors?.length ? validationList(uiLabel("Validation Errors"), validation.errors, "negative") : ""}
-      ${validation.warnings?.length ? validationList(uiLabel("Validation Warnings"), validation.warnings, "warning") : ""}
+      ${visibleValidation.errors.length ? validationList(uiLabel("Validation Errors"), visibleValidation.errors, "negative") : ""}
+      ${visibleValidation.warnings.length ? validationList(uiLabel("Validation Warnings"), visibleValidation.warnings, "warning") : ""}
       ${state.externalImport?.duplicate ? duplicateWarning(state.externalImport.duplicate) : ""}
       ${state.externalImport?.supplement?.open ? supplementaryInputPanel(draft, completion, state) : ""}
       ${state.externalImport?.missingManualOpen ? missingManualPanel(draft, completion) : ""}
@@ -934,6 +935,7 @@ function flowStep(number, label) {
 function missingDataCompletionCard(report, validation, completion, state) {
   const critical = completion.details?.criticalRequired || [];
   const recommended = completion.details?.recommended || [];
+  const visibleValidation = visibleExternalValidation(validation, completion);
   return `
     <section class="missing-data-sheet">
       <div class="missing-data-head">
@@ -947,8 +949,8 @@ function missingDataCompletionCard(report, validation, completion, state) {
       <div class="completion-track"><i style="width:${Math.max(0, Math.min(100, completion.completionPct))}%"></i></div>
       <div class="missing-data-stats">
         ${missingStat(uiLabel("Missing fields"), critical.length)}
-        ${missingStat(uiLabel("Invalid fields"), validation.errors?.length || 0)}
-        ${missingStat(uiLabel("Warnings"), validation.warnings?.length || 0)}
+        ${missingStat(uiLabel("Invalid fields"), visibleValidation.errors.length)}
+        ${missingStat(uiLabel("Warnings"), visibleValidation.warnings.length)}
       </div>
       <div class="missing-field-list">
         ${critical.length ? critical.slice(0, 8).map(missingFieldRow).join("") : `<p class="muted">${uiLabel("No critical missing fields.")}</p>`}
@@ -975,6 +977,23 @@ function missingDataCompletionCard(report, validation, completion, state) {
 
 function missingStat(label, value) {
   return `<div><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></div>`;
+}
+
+function visibleExternalValidation(validation = {}, completion = null) {
+  const missingPaths = new Set([
+    ...(completion?.missingRequiredPaths || []),
+    ...(completion?.missingRecommendedPaths || []),
+    ...(completion?.missingOptionalPaths || [])
+  ]);
+  const missingErrors = new Set([
+    ...missingPaths,
+    ...(completion?.details?.criticalRequired || []).map((item) => item.path),
+    ...(completion?.details?.recommended || []).map((item) => item.path)
+  ]);
+  return {
+    errors: (validation.errors || []).filter((item) => !missingErrors.has(item.field)),
+    warnings: (validation.warnings || []).filter(Boolean)
+  };
 }
 
 function missingFieldRow(item) {
@@ -1157,9 +1176,38 @@ function validationList(title, items, tone) {
   return `
     <div class="validation-list ${tone}">
       <strong>${escapeHtml(title)}</strong>
-      ${items.map((item) => `<p>${escapeHtml(item.field)}: ${escapeHtml(item.message)}</p>`).join("")}
+      ${items.map((item) => `<p><span dir="ltr">${escapeHtml(item.field)}</span>: ${escapeHtml(localizedValidationMessage(item))}</p>`).join("")}
     </div>
   `;
+}
+
+function localizedValidationMessage(item = {}) {
+  const field = item.field || "";
+  const message = item.message || "";
+  const messages = {
+    "company.ticker": "رمز السهم مطلوب ويجب أن يكون رمزًا صحيحًا في السوق.",
+    analysisDate: "تاريخ التحليل مطلوب ويجب أن يكون تاريخًا صحيحًا.",
+    "market.priceAtAnalysis": "السعر وقت التحليل مطلوب ويجب أن يكون أكبر من صفر.",
+    "scores.quality": "Quality Score مطلوب ويجب أن يكون بين 0 و10.",
+    "scores.growth": "Growth Score مطلوب ويجب أن يكون بين 0 و10.",
+    "scores.valuation": "Valuation Score مطلوب ويجب أن يكون بين 0 و10.",
+    "scores.risk": "Risk Score مطلوب ويجب أن يكون بين 0 و10.",
+    "fairValue.bear": "Bear Fair Value مطلوب ويجب أن يكون أكبر من صفر.",
+    "fairValue.base": "Base Fair Value مطلوب ويجب أن يكون أكبر من صفر.",
+    "fairValue.bull": "Bull Fair Value مطلوب ويجب أن يكون أكبر من صفر.",
+    "thesis.shortSummary": "ملخص فرضية الاستثمار مطلوب.",
+    risks: "يجب إدخال مخاطرة رئيسية واحدة على الأقل.",
+    "decision.verdict": "التوصية النهائية مطلوبة ويجب أن تكون مذكورة في التحليل.",
+    source: "المصدر ليس ChatGPT. احتفظ بهذا فقط إذا كان التحليل الملصوق يذكر مصدرًا آخر صراحة.",
+    analysisOrigin: "تقارير الاستيراد الخارجي يجب أن تبقى مرتبطة بمسار ChatGPT الخارجي.",
+    fairValue: "ترتيب Fair Value يجب أن يكون: Bear <= Base <= Bull."
+  };
+  if (messages[field]) return messages[field];
+  if (message.includes("must be between 0 and 10")) return "القيمة يجب أن تكون بين 0 و10.";
+  if (message.includes("must be an array")) return "القيمة يجب أن تكون قائمة عناصر.";
+  if (message.includes("NaN or Infinity")) return "الأرقام غير الصالحة مثل NaN أو Infinity غير مقبولة.";
+  if (message.includes("positive number")) return "القيمة يجب أن تكون رقمًا موجبًا.";
+  return message;
 }
 
 function externalHistoryPanel(state) {
