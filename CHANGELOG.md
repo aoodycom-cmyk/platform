@@ -1,5 +1,16 @@
 # Changelog
 
+## Version 10.3 - External ChatGPT Analysis Import
+
+- Added an independent `External ChatGPT Analysis` workflow: Paste -> Parse -> Preview -> Save -> Report.
+- Added `ExternalAnalysisReport` normalization, validation, duplicate detection, version history, JSON copy/export, print, edit, delete-version, and delete-all-for-ticker behavior.
+- Added `externalAnalyses` to the existing `equityResearchV4State` localStorage shape without destructive migration.
+- Added `POST /api/parse-external-analysis` as a separate OpenAI parser endpoint for unstructured external reports.
+- Preserved raw pasted ChatGPT text as `rawAnalysisOriginal` and kept missing fields as `null`, never `0`.
+- Added imported-report Home cards that use external values directly and do not call Ranking, Valuation, Decision, Scoring, Analyst Brain, or forecast engines.
+- Added a standalone `externalAnalysisReportView(report)` UI path that renders imported reports without converting them to the internal valuation workspace.
+- Added `tests/externalAnalysisImport.test.mjs` and extended backend API tests for the new endpoint.
+
 ## Version 10.2 - Secure API Backend Split
 
 - Added a separate `backend/` Node.js service for secure FMP and OpenAI access while keeping the frontend on GitHub Pages.

@@ -51,9 +51,12 @@ GET /api/health
 GET /api/search?q=AAPL
 GET /api/company/:symbol
 POST /api/parse-investment-analyst
+POST /api/parse-external-analysis
 ```
 
 `/api/health` returns only boolean configuration status, never actual keys.
+
+`/api/parse-external-analysis` is only a parser for completed external ChatGPT reports. It must not calculate fair value, recommendation, scores, or forecasts.
 
 ## CORS
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v10-secure-backend";
+const CACHE_NAME = "franklin-research-v10-external-import";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -8,6 +8,11 @@ const STATIC_ASSETS = [
   "./manifest.webmanifest",
   "./src/main.js",
   "./src/pwa.js",
+  "./src/externalAnalysis/schema.js",
+  "./src/externalAnalysis/parser.js",
+  "./src/externalAnalysis/externalAnalysisSchemaValidator.js",
+  "./src/externalAnalysis/storage.js",
+  "./src/externalAnalysis/reportAdapter.js",
   "./assets/app-icon.png",
   "./assets/apple-touch-icon.png",
   "./assets/icon-192.png",

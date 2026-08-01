@@ -114,6 +114,14 @@ export function createAppServer(options = {}) {
         await handleInvestmentAnalystParse(request, response, env, fetchImpl);
         return;
       }
+      if (request.method === "POST" && url.pathname === "/api/parse-external-analysis") {
+        await handleExternalAnalysisParse(request, response, env, fetchImpl);
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/parse-external-analysis-supplement") {
+        await handleExternalAnalysisSupplementParse(request, response, env, fetchImpl);
+        return;
+      }
 
       if (url.pathname.startsWith("/api/")) {
         sendApiError(response, request, 404, "NOT_FOUND");
@@ -263,6 +271,62 @@ async function handleInvestmentAnalystParse(request, response, env, fetchImpl) {
   }
 }
 
+async function handleExternalAnalysisParse(request, response, env, fetchImpl) {
+  assertConfigured(env.OPENAI_API_KEY, "OPENAI_NOT_CONFIGURED");
+  const body = await readJson(request, PARSER_BODY_LIMIT);
+  const text = validatePastedText(body.text);
+  const openAiResponse = await fetchProviderJson("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${env.OPENAI_API_KEY}`
+    },
+    body: JSON.stringify(openAiExternalAnalysisParserRequest({ ...body, text }, env)),
+    signal: AbortSignal.timeout(OPENAI_TIMEOUT_MS)
+  }, fetchImpl, "openai");
+
+  const raw = openAiResponse.output_text
+    || (Array.isArray(openAiResponse.output) ? openAiResponse.output.flatMap((item) => item.content || []).map((item) => item.text || "").join("\n") : "");
+  try {
+    const parsed = JSON.parse(raw || "{}");
+    sendJson(response, 200, {
+      source: parsed.source || "OpenAI",
+      report: parsed.report || parsed,
+      explanations: Array.isArray(parsed.explanations) ? parsed.explanations : []
+    });
+  } catch {
+    throw new HttpError(502, "MALFORMED_PROVIDER_RESPONSE");
+  }
+}
+
+async function handleExternalAnalysisSupplementParse(request, response, env, fetchImpl) {
+  assertConfigured(env.OPENAI_API_KEY, "OPENAI_NOT_CONFIGURED");
+  const body = await readJson(request, PARSER_BODY_LIMIT);
+  const text = validatePastedText(body.text);
+  const openAiResponse = await fetchProviderJson("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${env.OPENAI_API_KEY}`
+    },
+    body: JSON.stringify(openAiExternalAnalysisSupplementParserRequest({ ...body, text }, env)),
+    signal: AbortSignal.timeout(OPENAI_TIMEOUT_MS)
+  }, fetchImpl, "openai");
+
+  const raw = openAiResponse.output_text
+    || (Array.isArray(openAiResponse.output) ? openAiResponse.output.flatMap((item) => item.content || []).map((item) => item.text || "").join("\n") : "");
+  try {
+    const parsed = JSON.parse(raw || "{}");
+    sendJson(response, 200, {
+      source: parsed.source || "OpenAI",
+      supplement: parsed.supplement || parsed,
+      explanations: Array.isArray(parsed.explanations) ? parsed.explanations : []
+    });
+  } catch {
+    throw new HttpError(502, "MALFORMED_PROVIDER_RESPONSE");
+  }
+}
+
 function openAiParserRequest(body, env) {
   return {
     model: env.OPENAI_MODEL || "gpt-4.1-mini",
@@ -302,6 +366,121 @@ function openAiParserRequest(body, env) {
       }
     ],
     text: { format: { type: "json_object" } }
+  };
+}
+
+function openAiExternalAnalysisParserRequest(body, env) {
+  return {
+    model: env.OPENAI_MODEL || "gpt-4.1-mini",
+    input: [
+      {
+        role: "system",
+        content: [
+          "You are a strict parser for completed external ChatGPT equity analysis reports.",
+          "Extract only values explicitly contained in the supplied analysis.",
+          "Do not perform new financial analysis.",
+          "Do not calculate a new fair value.",
+          "Do not change the original scores, fair values, or verdict.",
+          "Do not create missing information. Missing values must be null.",
+          "Preserve Arabic text where appropriate and preserve financial terminology in English when originally used.",
+          "Never infer a recommendation not stated in the pasted analysis.",
+          "Never recalculate valuation methods.",
+          "Return valid JSON only with a top-level report object matching the requested shape."
+        ].join("\n")
+      },
+      {
+        role: "user",
+        content: JSON.stringify({
+          language: body.language || "ar",
+          task: "Parse this completed external ChatGPT analysis into ExternalAnalysisReport JSON. Keep every missing field null and never compute or infer financial values.",
+          expectedJsonShape: externalAnalysisJsonShape(),
+          pastedAnalysis: body.text
+        })
+      }
+    ],
+    text: { format: { type: "json_object" } }
+  };
+}
+
+function openAiExternalAnalysisSupplementParserRequest(body, env) {
+  return {
+    model: env.OPENAI_MODEL || "gpt-4.1-mini",
+    input: [
+      {
+        role: "system",
+        content: [
+          "You are a strict parser for supplementary data that completes a previously imported equity research report.",
+          "Extract only fields requested by the application.",
+          "Do not rewrite the original analysis.",
+          "Do not change old values unless the requested field is explicitly present in the supplement.",
+          "Do not calculate a new Fair Value, recommendation, score, or thesis.",
+          "Do not invent missing values. Use null when the supplementary response does not contain the requested value.",
+          "Return valid JSON only with a top-level supplement object matching external-analysis-supplement/v1."
+        ].join("\n")
+      },
+      {
+        role: "user",
+        content: JSON.stringify({
+          language: body.language || "ar",
+          task: "Parse this supplementary response into ExternalAnalysisSupplement JSON. Include only requested field paths.",
+          missingFields: Array.isArray(body.missingFields) ? body.missingFields : [],
+          reportContext: body.reportContext || null,
+          expectedJsonShape: externalAnalysisSupplementJsonShape(),
+          supplementaryResponse: body.text
+        })
+      }
+    ],
+    text: { format: { type: "json_object" } }
+  };
+}
+
+function externalAnalysisSupplementJsonShape() {
+  return {
+    source: "OpenAI",
+    supplement: {
+      schemaVersion: "external-analysis-supplement/v1",
+      ticker: "AAPL",
+      targetAnalysisId: "existing report id or null",
+      analysisDate: "YYYY-MM-DD or null",
+      fields: {
+        "fairValue.base": null,
+        "decision.verdict": null
+      },
+      notes: [],
+      sources: []
+    },
+    explanations: []
+  };
+}
+
+function externalAnalysisJsonShape() {
+  return {
+    source: "OpenAI",
+    report: {
+      schemaVersion: "external-analysis-report/v1",
+      analysisOrigin: "external_chatgpt",
+      source: "ChatGPT",
+      sourceModel: null,
+      sourceConversation: null,
+      analysisDate: "YYYY-MM-DD or null",
+      reportPeriod: null,
+      company: { ticker: null, name: null, sector: null, industry: null, currency: "USD" },
+      market: { priceAtAnalysis: null, userAverageCost: null },
+      scores: { quality: null, growth: null, valuation: null, risk: null, overall: null, moat: null, management: null },
+      fairValue: { bear: null, base: null, bull: null, weightedFairValue: null, analystFairValue: null, upsideToBasePct: null, downsideToBearPct: null, upsideToBullPct: null },
+      valuationMethods: { dcf: null, pe: null, evEbitda: null, ps: null, peg: null, sotp: null, other: null },
+      financialHighlights: { revenue: null, revenueGrowthPct: null, operatingIncome: null, operatingIncomeGrowthPct: null, operatingMarginPct: null, epsReported: null, epsNormalized: null, operatingCashFlow: null, freeCashFlow: null, capex: null, cash: null, debt: null },
+      growthHighlights: { revenueGrowth: null, epsGrowth: null, fcfGrowth: null, majorSegmentGrowth: null, marginTrend: null, marketShareTrend: null, tamComment: null },
+      quality: { summary: null, strengths: [], weaknesses: [], moat: null, profitability: null, balanceSheet: null, capitalAllocation: null, earningsQuality: null },
+      risks: [{ title: null, severity: null, explanation: null }],
+      catalysts: [{ title: null, explanation: null }],
+      thesis: { shortSummary: null, fullSummary: null },
+      earningsQuality: { status: null, reportedVsNormalizedExplanation: null, oneOffItems: [] },
+      watchItems: [],
+      decision: { verdict: null, rationale: null, buyZone: null, fairZone: null, expensiveZone: null },
+      sources: [{ title: null, url: null, sourceType: null }]
+    },
+    explanations: []
   };
 }
 
@@ -561,7 +740,7 @@ async function checkRateLimit(request, response, rateStore, env, bucket, maxRequ
 }
 
 function rateLimitFor(pathname, env) {
-  if (pathname === "/api/parse-investment-analyst") return Number(env.PARSER_RATE_LIMIT_MAX || 8);
+  if (pathname === "/api/parse-investment-analyst" || pathname === "/api/parse-external-analysis" || pathname === "/api/parse-external-analysis-supplement") return Number(env.PARSER_RATE_LIMIT_MAX || 8);
   return Number(env.RATE_LIMIT_MAX || 45);
 }
 

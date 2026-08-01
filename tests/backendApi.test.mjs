@@ -36,6 +36,44 @@ const mockFetch = async (url, options = {}) => {
     return jsonResponse([{ calendarYear: "2025", freeCashFlow: 180, netCashProvidedByOperatingActivities: 220, capitalExpenditure: -40 }]);
   }
   if (textUrl.includes("api.openai.com")) {
+    if (String(options.body || "").includes("external-analysis-supplement/v1")) {
+      return jsonResponse({
+        output_text: JSON.stringify({
+          source: "OpenAI",
+          supplement: {
+            schemaVersion: "external-analysis-supplement/v1",
+            ticker: "AAPL",
+            targetAnalysisId: "external-AAPL-test",
+            fields: {
+              "fairValue.base": 140,
+              "decision.verdict": "HOLD"
+            },
+            notes: []
+          },
+          explanations: ["تم استخراج البيانات المكملة فقط."]
+        })
+      });
+    }
+    if (String(options.body || "").includes("ExternalAnalysisReport")) {
+      return jsonResponse({
+        output_text: JSON.stringify({
+          source: "OpenAI",
+          report: {
+            analysisOrigin: "external_chatgpt",
+            source: "ChatGPT",
+            analysisDate: "2026-07-31",
+            company: { ticker: "AAPL", name: "Apple Inc.", currency: "USD" },
+            market: { priceAtAnalysis: 123.45 },
+            scores: { quality: 9, growth: 8, valuation: 7, risk: 4 },
+            fairValue: { bear: 100, base: 140, bull: 180 },
+            thesis: { shortSummary: "External thesis only." },
+            risks: [{ title: "Competition", severity: "Medium", explanation: "Risk noted externally." }],
+            decision: { verdict: "HOLD", rationale: "External verdict." }
+          },
+          explanations: ["تم الاستخراج فقط دون إعادة حساب."]
+        })
+      });
+    }
     return jsonResponse({
       output_text: JSON.stringify({
         source: "OpenAI",
@@ -138,6 +176,33 @@ try {
   assert.equal(parser.status, 200);
   assert.equal(parser.json.parsedFields[0].fieldId, "ticker");
   assert.equal(JSON.stringify(parser.json).includes(fakeSecrets.openai), false);
+
+  const externalParser = await inject(server, {
+    method: "POST",
+    path: "/api/parse-external-analysis",
+    headers: { origin: ALLOWED_ORIGIN, "content-type": "application/json" },
+    body: { text: "ExternalAnalysisReport for AAPL", language: "ar" }
+  });
+  assert.equal(externalParser.status, 200);
+  assert.equal(externalParser.json.report.analysisOrigin, "external_chatgpt");
+  assert.equal(externalParser.json.report.decision.verdict, "HOLD");
+  assert.equal(JSON.stringify(externalParser.json).includes(fakeSecrets.openai), false);
+
+  const supplementParser = await inject(server, {
+    method: "POST",
+    path: "/api/parse-external-analysis-supplement",
+    headers: { origin: ALLOWED_ORIGIN, "content-type": "application/json" },
+    body: {
+      text: "Supplement for AAPL",
+      language: "ar",
+      missingFields: [{ path: "fairValue.base" }],
+      reportContext: { ticker: "AAPL", targetAnalysisId: "external-AAPL-test" }
+    }
+  });
+  assert.equal(supplementParser.status, 200);
+  assert.equal(supplementParser.json.supplement.schemaVersion, "external-analysis-supplement/v1");
+  assert.equal(supplementParser.json.supplement.fields["fairValue.base"], 140);
+  assert.equal(JSON.stringify(supplementParser.json).includes(fakeSecrets.openai), false);
 
   const invalidTicker = await inject(server, { path: "/api/company/../../../AAPL", headers: { origin: ALLOWED_ORIGIN } });
   assert.equal(invalidTicker.status, 404);

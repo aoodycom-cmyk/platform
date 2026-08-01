@@ -66,6 +66,50 @@ export async function parseInvestmentAnalystBlock({ text, methodology = null, la
   }
 }
 
+export async function parseExternalAnalysisBlock({ text, language = "ar" }) {
+  if (!String(text || "").trim()) {
+    return { source: "External Parser", report: null, unavailable: true };
+  }
+  try {
+    const response = await fetch(apiUrl("/api/parse-external-analysis"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, language })
+    });
+    if (!response.ok) throw await safeApiError(response, "External ChatGPT parser unavailable");
+    return await response.json();
+  } catch (error) {
+    return {
+      source: "External Parser",
+      report: null,
+      explanations: [error.userMessage || "External ChatGPT parser is unavailable from the private server."],
+      unavailable: true
+    };
+  }
+}
+
+export async function parseExternalAnalysisSupplementBlock({ text, language = "ar", missingFields = [], reportContext = null }) {
+  if (!String(text || "").trim()) {
+    return { source: "External Supplement Parser", supplement: null, unavailable: true };
+  }
+  try {
+    const response = await fetch(apiUrl("/api/parse-external-analysis-supplement"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, language, missingFields, reportContext })
+    });
+    if (!response.ok) throw await safeApiError(response, "External supplement parser unavailable");
+    return await response.json();
+  } catch (error) {
+    return {
+      source: "External Supplement Parser",
+      supplement: null,
+      explanations: [error.userMessage || "External supplement parser is unavailable from the private server."],
+      unavailable: true
+    };
+  }
+}
+
 function localSearch(query) {
   if (!query) return starterUniverse;
   const needle = query.toLowerCase();

@@ -8,7 +8,23 @@ import { runEquityResearch } from "../engines/researchEngine.js";
 import { loadAnalystBrainMethodology } from "../analystBrain/methodology.js";
 import { normalizeLanguage, setLanguageContext } from "../i18n/language.js";
 import { buildInstitutionalResearch } from "../research/institutionalResearch.js";
-import { parseInvestmentAnalystBlock } from "../providers/apiClient.js";
+import { parseExternalAnalysisBlock, parseExternalAnalysisSupplementBlock, parseInvestmentAnalystBlock } from "../providers/apiClient.js";
+import { parseExternalAnalysisInput } from "../externalAnalysis/parser.js";
+import { normalizeExternalAnalysisReport, updateExternalAnalysisField } from "../externalAnalysis/schema.js";
+import { validateExternalAnalysisReport } from "../externalAnalysis/externalAnalysisSchemaValidator.js";
+import { attachCompletionStatus, buildMissingRequirementsPrompt } from "../externalAnalysis/missingFields.js";
+import { mergeExternalAnalysisSupplement } from "../externalAnalysis/supplementMerge.js";
+import { parseExternalAnalysisSupplement } from "../externalAnalysis/supplementParser.js";
+import { validateExternalAnalysisSupplement } from "../externalAnalysis/supplementValidator.js";
+import {
+  deleteAllExternalAnalysesForTicker,
+  deleteExternalAnalysis,
+  findDuplicateExternalAnalysis,
+  getExternalAnalysis,
+  normalizeExternalAnalysesCollection,
+  saveExternalAnalysis,
+  updateSavedExternalAnalysis
+} from "../externalAnalysis/storage.js";
 import {
   applyParsedPreview,
   approveWorkspaceValuation,
@@ -35,6 +51,7 @@ export function createStore() {
   const initialManualInputs = saved.manualInputs || { averageCost: "", morningstarFairValue: "", notes: "" };
   const initialEvaluatedCompanies = rankEvaluatedCompanies(saved.evaluatedCompanies || []).map(({ rankingPosition, ...item }) => item);
   const initialEvaluatedSort = normalizeEvaluatedSort(saved.evaluatedSort);
+  const initialExternalAnalyses = normalizeExternalAnalysesCollection(saved.externalAnalyses || {});
   const initialCompany = buildUnifiedDataCompany(saved.company || createCompanyShell("NVDA"), {
     manualInputs: initialManualInputs,
     previousCompany: saved.company || null,
@@ -59,6 +76,9 @@ export function createStore() {
     compareSelectedTickers: saved.compareSelectedTickers || [],
     comparisonOpen: saved.comparisonOpen || false,
     evaluatedCompanies: initialEvaluatedCompanies,
+    externalAnalyses: initialExternalAnalyses,
+    externalImport: createExternalImportState(),
+    externalReportSelection: saved.externalReportSelection || null,
     valuationWorkspace: saved.valuationWorkspace || null,
     history: saved.history || [],
     watchList: saved.watchList || [],
@@ -160,6 +180,463 @@ export function createStore() {
         ? "تم تحميل بيانات تجريبية. راجع البيانات ثم شغّل التحليل."
         : "Demo data loaded. Review the data, then run the analysis.",
       searchResults: []
+    });
+  }
+
+  function openExternalImport() {
+    set({
+      externalImport: createExternalImportState(),
+      activePanel: "external-import",
+      loading: false,
+      processingStage: "idle",
+      notice: "",
+      searchResults: []
+    });
+  }
+
+  async function parseExternalImport(text) {
+    const rawText = String(text || "").trim();
+    if (!rawText) {
+      set({ notice: state.language === "ar" ? "ألصق تحليل ChatGPT أولًا." : "Paste the ChatGPT analysis first." });
+      return;
+    }
+    set({
+      loading: true,
+      processingStage: "parsing-external-analysis",
+      externalImport: {
+        ...state.externalImport,
+        rawText,
+        stage: "parsing",
+        validation: { valid: false, errors: [], warnings: [] },
+        duplicate: null,
+        parserSource: null,
+        usedAi: false
+      },
+      notice: state.language === "ar" ? "جاري استخراج التحليل بدون إعادة حساب الأرقام..." : "Parsing the report without recalculating numbers..."
+    });
+    try {
+      const parsed = await parseExternalAnalysisInput(rawText, {
+        parseUnstructured: (inputText) => parseExternalAnalysisBlock({ text: inputText, language: state.language })
+      });
+      if (!parsed.report) throw new Error("External parser did not return a report.");
+      const validation = validateExternalAnalysisReport(parsed.report);
+      const draftReport = attachCompletionStatus(parsed.report, validation);
+      const duplicate = findDuplicateExternalAnalysis(state.externalAnalyses, draftReport);
+      set({
+        loading: false,
+        processingStage: "idle",
+        externalImport: {
+          ...state.externalImport,
+          rawText,
+          draftReport,
+          draftJson: JSON.stringify(draftReport, null, 2),
+          validation,
+          duplicate,
+          parserSource: parsed.parserSource,
+          usedAi: parsed.usedAi,
+          stage: "preview"
+        },
+        notice: validation.valid
+          ? (state.language === "ar" ? "تم تجهيز Preview. راجع ثم احفظ." : "Preview is ready. Review, then save.")
+          : (state.language === "ar" ? "تم استخراج التقرير لكن توجد أخطاء قبل الحفظ." : "Report parsed, but validation errors must be fixed before saving.")
+      });
+    } catch (error) {
+      set({
+        loading: false,
+        processingStage: "idle",
+        externalImport: {
+          ...state.externalImport,
+          rawText,
+          stage: "paste",
+          validation: { valid: false, errors: [{ field: "parser", message: error.userMessage || error.message || "External parser failed." }], warnings: [] }
+        },
+        notice: error.userMessage || error.message || (state.language === "ar" ? "تعذر استخراج التحليل." : "Could not parse the analysis.")
+      });
+    }
+  }
+
+  function clearExternalImport() {
+    set({
+      externalImport: createExternalImportState(),
+      notice: state.language === "ar" ? "تم مسح مسودة الاستيراد." : "External import draft cleared."
+    });
+  }
+
+  function cancelExternalImport() {
+    set({
+      externalImport: createExternalImportState(),
+      activePanel: "home",
+      notice: ""
+    });
+  }
+
+  function updateExternalDraftField(path, value) {
+    if (!state.externalImport?.draftReport) return;
+    const updatedReport = updateExternalAnalysisField(state.externalImport.draftReport, path, value);
+    const validation = validateExternalAnalysisReport(updatedReport);
+    const draftReport = attachCompletionStatus(updatedReport, validation);
+    set({
+      externalImport: {
+        ...state.externalImport,
+        draftReport,
+        draftJson: JSON.stringify(draftReport, null, 2),
+        validation,
+        duplicate: findDuplicateExternalAnalysis(state.externalAnalyses, draftReport)
+      }
+    });
+  }
+
+  function updateExternalDraftJson(value) {
+    try {
+      const rawOriginal = state.externalImport?.draftReport?.rawAnalysisOriginal || state.externalImport?.rawText || "";
+      const normalizedReport = normalizeExternalAnalysisReport(JSON.parse(value || "{}"), rawOriginal, {
+        importMethod: state.externalImport?.draftReport?.metadata?.importMethod || "manual_json_edit"
+      });
+      const validation = validateExternalAnalysisReport(normalizedReport);
+      const draftReport = attachCompletionStatus(normalizedReport, validation);
+      set({
+        externalImport: {
+          ...state.externalImport,
+          draftReport,
+          draftJson: value,
+          validation,
+          duplicate: findDuplicateExternalAnalysis(state.externalAnalyses, draftReport)
+        }
+      });
+    } catch {
+      set({
+        externalImport: {
+          ...state.externalImport,
+          draftJson: value,
+          validation: { valid: false, errors: [{ field: "json", message: "JSON editor contains invalid JSON." }], warnings: [] }
+        }
+      });
+    }
+  }
+
+  function saveExternalDraft(allowDuplicate = false) {
+    const draft = state.externalImport?.draftReport;
+    if (!draft) return;
+    const validation = validateExternalAnalysisReport(draft);
+    if (!validation.valid) {
+      set({
+        externalImport: { ...state.externalImport, validation },
+        notice: state.language === "ar" ? "أصلح أخطاء التحقق قبل الحفظ." : "Fix validation errors before saving."
+      });
+      return;
+    }
+    if (state.externalImport.editing) {
+      const result = updateSavedExternalAnalysis(state.externalAnalyses, draft);
+      set({
+        externalAnalyses: result.collection,
+        externalImport: createExternalImportState(),
+        externalReportSelection: { ticker: result.report.company.ticker, reportId: result.report.id },
+        company: externalReportCompanyShell(result.report),
+        activePanel: "external-report",
+        notice: state.language === "ar" ? "تم تحديث التحليل المستورد مع حفظ النص الأصلي." : "Imported analysis updated while preserving the original raw text."
+      });
+      return;
+    }
+    const result = saveExternalAnalysis(state.externalAnalyses, draft, { allowDuplicate });
+    if (result.duplicate && !allowDuplicate) {
+      set({
+        externalImport: {
+          ...state.externalImport,
+          duplicate: result.duplicate
+        },
+        notice: state.language === "ar" ? "هذا التحليل موجود مسبقًا. يمكنك حفظ نسخة مكررة إذا رغبت." : "This analysis already exists. You can save a duplicate version if needed."
+      });
+      return;
+    }
+    set({
+      externalAnalyses: result.collection,
+      externalImport: createExternalImportState(),
+      externalReportSelection: { ticker: result.report.company.ticker, reportId: result.report.id },
+      company: externalReportCompanyShell(result.report),
+      activePanel: "external-report",
+      notice: state.language === "ar" ? "تم حفظ تحليل ChatGPT وإضافته إلى الصفحة الرئيسية." : "External ChatGPT analysis saved and added to Home."
+    });
+  }
+
+  function saveExternalIncompleteDraft(allowDuplicate = false) {
+    const draft = state.externalImport?.draftReport;
+    if (!draft) return;
+    const ticker = draft.company?.ticker;
+    if (!ticker) {
+      set({ notice: state.language === "ar" ? "لا يمكن حفظ المسودة بدون رمز السهم." : "A ticker is required before saving a draft." });
+      return;
+    }
+    const validation = validateExternalAnalysisReport(draft);
+    const draftReport = attachCompletionStatus(draft, validation, { draft: true });
+    const result = state.externalImport.editing
+      ? updateSavedExternalAnalysis(state.externalAnalyses, draftReport)
+      : saveExternalAnalysis(state.externalAnalyses, draftReport, { allowDuplicate });
+    if (result.duplicate && !allowDuplicate) {
+      set({
+        externalImport: { ...state.externalImport, duplicate: result.duplicate },
+        notice: state.language === "ar" ? "هذه المسودة موجودة مسبقًا." : "This draft already exists."
+      });
+      return;
+    }
+    set({
+      externalAnalyses: result.collection,
+      externalImport: createExternalImportState(),
+      externalReportSelection: { ticker: result.report.company.ticker, reportId: result.report.id },
+      company: externalReportCompanyShell(result.report),
+      activePanel: "external-report",
+      notice: state.language === "ar" ? "تم حفظ التقرير كمسودة غير مكتملة." : "Incomplete draft saved."
+    });
+  }
+
+  function currentMissingRequirementsPrompt() {
+    const report = state.externalImport?.draftReport || selectedExternalReportFromState();
+    if (!report) return { text: "", count: 0, fields: [] };
+    return buildMissingRequirementsPrompt(report, report.completionStatus);
+  }
+
+  function openSupplementInput() {
+    if (!state.externalImport?.draftReport) return;
+    set({
+      externalImport: {
+        ...state.externalImport,
+        supplement: {
+          ...createSupplementState(),
+          open: true,
+          stage: "paste"
+        }
+      }
+    });
+  }
+
+  function cancelExternalSupplement() {
+    set({
+      externalImport: {
+        ...state.externalImport,
+        supplement: createSupplementState()
+      }
+    });
+  }
+
+  async function parseExternalSupplement(text) {
+    const rawText = String(text || "").trim();
+    const existingReport = state.externalImport?.draftReport;
+    if (!existingReport || !rawText) {
+      set({ notice: state.language === "ar" ? "ألصق الرد التكميلي أولًا." : "Paste the supplementary response first." });
+      return;
+    }
+    set({
+      loading: true,
+      processingStage: "parsing-external-supplement",
+      externalImport: {
+        ...state.externalImport,
+        supplement: {
+          ...(state.externalImport.supplement || createSupplementState()),
+          open: true,
+          rawText,
+          stage: "parsing",
+          validation: { valid: false, errors: [], warnings: [] }
+        }
+      },
+      notice: state.language === "ar" ? "جاري قراءة البيانات المكملة فقط..." : "Parsing supplementary fields only..."
+    });
+    try {
+      const missingFields = [
+        ...(existingReport.completionStatus?.details?.criticalRequired || []),
+        ...(existingReport.completionStatus?.details?.recommended || [])
+      ];
+      const parsed = await parseExternalAnalysisSupplement(rawText, {
+        existingReport,
+        missingFields,
+        parseUnstructured: (inputText) => parseExternalAnalysisSupplementBlock({
+          text: inputText,
+          language: state.language,
+          missingFields,
+          reportContext: externalSupplementContext(existingReport)
+        })
+      });
+      const supplementValidation = validateExternalAnalysisSupplement(parsed.supplement, existingReport);
+      const mergePreview = supplementValidation.valid
+        ? mergeExternalAnalysisSupplement(existingReport, parsed.supplement)
+        : null;
+      set({
+        loading: false,
+        processingStage: "idle",
+        externalImport: {
+          ...state.externalImport,
+          supplement: {
+            ...(state.externalImport.supplement || createSupplementState()),
+            open: true,
+            rawText,
+            parsedSupplement: parsed.supplement,
+            validation: supplementValidation,
+            mergePreview,
+            parserSource: parsed.parserSource,
+            usedAi: parsed.usedAi,
+            conflictResolutions: {},
+            manualValues: {},
+            stage: "preview"
+          }
+        },
+        notice: supplementValidation.valid
+          ? (state.language === "ar" ? "تم تجهيز Preview للحقول المكملة." : "Supplement preview is ready.")
+          : (state.language === "ar" ? "الرد التكميلي غير صالح." : "Supplement is not valid.")
+      });
+    } catch (error) {
+      set({
+        loading: false,
+        processingStage: "idle",
+        externalImport: {
+          ...state.externalImport,
+          supplement: {
+            ...(state.externalImport.supplement || createSupplementState()),
+            open: true,
+            rawText,
+            stage: "paste",
+            validation: { valid: false, errors: [{ field: "supplement", message: error.userMessage || error.message || "Supplement parser failed." }], warnings: [] }
+          }
+        },
+        notice: error.userMessage || error.message || (state.language === "ar" ? "تعذر قراءة الرد التكميلي." : "Could not parse the supplement.")
+      });
+    }
+  }
+
+  function resolveSupplementConflict(path, resolution, manualValue = undefined) {
+    const supplementState = state.externalImport?.supplement;
+    const existingReport = state.externalImport?.draftReport;
+    if (!supplementState?.parsedSupplement || !existingReport) return;
+    const conflictResolutions = {
+      ...(supplementState.conflictResolutions || {}),
+      [path]: resolution
+    };
+    const manualValues = {
+      ...(supplementState.manualValues || {})
+    };
+    if (manualValue !== undefined) manualValues[path] = manualValue;
+    const mergePreview = mergeExternalAnalysisSupplement(existingReport, supplementState.parsedSupplement, {
+      resolutions: conflictResolutions,
+      manualValues
+    });
+    set({
+      externalImport: {
+        ...state.externalImport,
+        supplement: {
+          ...supplementState,
+          conflictResolutions,
+          manualValues,
+          mergePreview
+        }
+      }
+    });
+  }
+
+  function applyExternalSupplement() {
+    const supplementState = state.externalImport?.supplement;
+    if (!supplementState?.mergePreview) return;
+    const mergedReport = supplementState.mergePreview.report;
+    const validation = validateExternalAnalysisReport(mergedReport);
+    const draftReport = attachCompletionStatus(mergedReport, validation, {
+      conflictingPaths: supplementState.mergePreview.conflicts.map((item) => item.path)
+    });
+    const before = state.externalImport?.draftReport?.completionStatus || {};
+    const after = draftReport.completionStatus || {};
+    set({
+      externalImport: {
+        ...state.externalImport,
+        draftReport,
+        draftJson: JSON.stringify(draftReport, null, 2),
+        validation,
+        duplicate: findDuplicateExternalAnalysis(state.externalAnalyses, draftReport),
+        supplement: {
+          ...supplementState,
+          stage: "applied",
+          open: false
+        }
+      },
+      notice: state.language === "ar"
+        ? `تم دمج البيانات المكملة. قبل الإكمال: ${before.requiredComplete || 0}/${before.requiredTotal || 0}. بعد الإكمال: ${after.requiredComplete || 0}/${after.requiredTotal || 0}.`
+        : `Supplement merged. Before: ${before.requiredComplete || 0}/${before.requiredTotal || 0}. After: ${after.requiredComplete || 0}/${after.requiredTotal || 0}.`
+    });
+  }
+
+  function selectedExternalReportFromState() {
+    const selection = state.externalReportSelection || {};
+    return ensureExternalCompletionStatus(getExternalAnalysis(state.externalAnalyses, selection.ticker, selection.reportId));
+  }
+
+  function openExternalReport(ticker, reportId = "latest") {
+    const report = ensureExternalCompletionStatus(getExternalAnalysis(state.externalAnalyses, ticker, reportId));
+    if (!report) return;
+    set({
+      externalReportSelection: { ticker: report.company.ticker, reportId: report.id },
+      company: externalReportCompanyShell(report),
+      activePanel: "external-report",
+      notice: "",
+      searchResults: []
+    });
+  }
+
+  function editExternalReport(ticker, reportId) {
+    const report = ensureExternalCompletionStatus(getExternalAnalysis(state.externalAnalyses, ticker, reportId));
+    if (!report) return;
+    set({
+      externalImport: {
+        rawText: report.rawAnalysisOriginal || report.rawAnalysis || "",
+        draftReport: report,
+        draftJson: JSON.stringify(report, null, 2),
+        validation: validateExternalAnalysisReport(report),
+        duplicate: null,
+        parserSource: report.metadata?.importMethod || "Saved External Analysis",
+        usedAi: report.metadata?.importMethod === "openai_backend_parser",
+        stage: "preview",
+        editing: true
+      },
+      activePanel: "external-import",
+      notice: state.language === "ar" ? "يمكنك تعديل الحقول. النص الأصلي سيبقى محفوظًا." : "Edit fields as needed. The original raw text will remain preserved."
+    });
+  }
+
+  function startExternalReportCompletion(ticker, reportId) {
+    const report = ensureExternalCompletionStatus(getExternalAnalysis(state.externalAnalyses, ticker, reportId));
+    if (!report) return;
+    const validation = validateExternalAnalysisReport(report);
+    set({
+      externalImport: {
+        ...createExternalImportState(),
+        rawText: report.rawAnalysisOriginal || report.rawAnalysis || "",
+        draftReport: report,
+        draftJson: JSON.stringify(report, null, 2),
+        validation,
+        parserSource: report.metadata?.importMethod || "Saved External Analysis",
+        stage: "preview",
+        editing: true,
+        supplement: {
+          ...createSupplementState(),
+          open: true,
+          stage: "paste"
+        }
+      },
+      activePanel: "external-import",
+      notice: state.language === "ar" ? "ألصق رد ChatGPT التكميلي لإكمال التقرير." : "Paste the supplementary ChatGPT response to complete the report."
+    });
+  }
+
+  function removeExternalReport(ticker, reportId) {
+    const externalAnalyses = deleteExternalAnalysis(state.externalAnalyses, ticker, reportId);
+    set({
+      externalAnalyses,
+      externalReportSelection: null,
+      activePanel: "home",
+      notice: state.language === "ar" ? "تم حذف نسخة التحليل المستورد." : "Imported analysis version deleted."
+    });
+  }
+
+  function removeAllExternalReports(ticker) {
+    const externalAnalyses = deleteAllExternalAnalysesForTicker(state.externalAnalyses, ticker);
+    set({
+      externalAnalyses,
+      externalReportSelection: null,
+      activePanel: "home",
+      notice: state.language === "ar" ? "تم حذف جميع التحليلات المستوردة لهذا السهم." : "All imported analyses for this ticker were deleted."
     });
   }
 
@@ -478,6 +955,25 @@ export function createStore() {
     openValuationWorkspace,
     startBlankAnalysis,
     loadDemoAnalysis,
+    openExternalImport,
+    parseExternalImport,
+    clearExternalImport,
+    cancelExternalImport,
+    updateExternalDraftField,
+    updateExternalDraftJson,
+    saveExternalDraft,
+    saveExternalIncompleteDraft,
+    currentMissingRequirementsPrompt,
+    openSupplementInput,
+    cancelExternalSupplement,
+    parseExternalSupplement,
+    resolveSupplementConflict,
+    applyExternalSupplement,
+    openExternalReport,
+    editExternalReport,
+    startExternalReportCompletion,
+    removeExternalReport,
+    removeAllExternalReports,
     clearAnalystPaste,
     setWorkspaceField,
     setWorkspaceSectionSource,
@@ -541,6 +1037,8 @@ function persist(state) {
     compareSelectedTickers: state.compareSelectedTickers,
     comparisonOpen: state.comparisonOpen,
     evaluatedCompanies: state.evaluatedCompanies,
+    externalAnalyses: state.externalAnalyses,
+    externalReportSelection: state.externalReportSelection,
     history: state.history,
     watchList: state.watchList
   }));
@@ -548,4 +1046,65 @@ function persist(state) {
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function createExternalImportState() {
+  return {
+    rawText: "",
+    draftReport: null,
+    draftJson: "",
+    validation: { valid: false, errors: [], warnings: [] },
+    duplicate: null,
+    parserSource: null,
+    usedAi: false,
+    missingPromptFallback: "",
+    supplement: createSupplementState(),
+    stage: "paste",
+    editing: false
+  };
+}
+
+function createSupplementState() {
+  return {
+    open: false,
+    rawText: "",
+    parsedSupplement: null,
+    validation: { valid: false, errors: [], warnings: [] },
+    mergePreview: null,
+    parserSource: null,
+    usedAi: false,
+    conflictResolutions: {},
+    manualValues: {},
+    stage: "idle"
+  };
+}
+
+function ensureExternalCompletionStatus(report) {
+  if (!report) return null;
+  if (report.completionStatus?.status && report.completionStatus?.requiredTotal) return report;
+  const validation = validateExternalAnalysisReport(report);
+  return attachCompletionStatus(report, validation);
+}
+
+function externalSupplementContext(report) {
+  return {
+    ticker: report.company?.ticker || null,
+    company: report.company?.name || null,
+    targetAnalysisId: report.id || null,
+    analysisDate: report.analysisDate || null,
+    reportPeriod: report.reportPeriod || null,
+    priceAtAnalysis: report.market?.priceAtAnalysis ?? null
+  };
+}
+
+function externalReportCompanyShell(report) {
+  return {
+    ...createCompanyShell(report.company?.ticker || "EXT"),
+    ticker: report.company?.ticker || "EXT",
+    name: report.company?.name || report.company?.ticker || "",
+    sector: report.company?.sector || "",
+    industry: report.company?.industry || "",
+    currency: report.company?.currency || "USD",
+    quote: { price: report.market?.priceAtAnalysis ?? null }
+  };
 }

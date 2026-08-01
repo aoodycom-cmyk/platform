@@ -1,0 +1,173 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { normalizeExternalAnalysisReport } from "../src/externalAnalysis/schema.js";
+import { validateExternalAnalysisReport } from "../src/externalAnalysis/externalAnalysisSchemaValidator.js";
+import { analyzeExternalAnalysisCompletion, attachCompletionStatus, buildMissingRequirementsPrompt } from "../src/externalAnalysis/missingFields.js";
+import { parseExternalAnalysisSupplement } from "../src/externalAnalysis/supplementParser.js";
+import { validateExternalAnalysisSupplement } from "../src/externalAnalysis/supplementValidator.js";
+import { mergeExternalAnalysisSupplement } from "../src/externalAnalysis/supplementMerge.js";
+
+const now = new Date("2026-07-31T10:00:00.000Z");
+
+function report(input, raw = "ORIGINAL RAW") {
+  return normalizeExternalAnalysisReport(input, raw, { now });
+}
+
+const incomplete = report({
+  id: "external-AMZN-2026-07-31-abc123",
+  analysisDate: "2026-07-31",
+  reportPeriod: "Q2 2026",
+  company: { ticker: "AMZN", name: "Amazon" },
+  market: { priceAtAnalysis: 264 },
+  scores: { quality: 9.3, growth: null, valuation: null, risk: 5 },
+  fairValue: { bear: null, base: null, bull: null },
+  thesis: { shortSummary: null },
+  risks: [],
+  decision: { verdict: null }
+});
+
+const validation = validateExternalAnalysisReport(incomplete);
+const completion = analyzeExternalAnalysisCompletion(incomplete, validation, { now });
+assert.equal(completion.status, "incomplete");
+assert.ok(completion.missingRequiredPaths.includes("fairValue.base"));
+assert.ok(completion.missingRequiredPaths.includes("scores.growth"));
+assert.ok(completion.missingRequiredPaths.includes("risks"));
+assert.ok(completion.missingRequiredPaths.includes("decision.verdict"));
+assert.ok(completion.missingRecommendedPaths.includes("sources"));
+assert.ok(completion.missingOptionalPaths.includes("company.sector"));
+assert.equal(completion.requiredComplete < completion.requiredTotal, true);
+
+const prompt = buildMissingRequirementsPrompt(incomplete, completion);
+assert.ok(prompt.text.includes("fairValue.base"));
+assert.ok(prompt.text.includes("decision.verdict"));
+assert.ok(prompt.text.includes('"schemaVersion": "external-analysis-supplement/v1"'));
+assert.equal(prompt.text.includes("company.sector"), false, "Optional fields must not be included in the default missing prompt.");
+
+const supplementJson = JSON.stringify({
+  schemaVersion: "external-analysis-supplement/v1",
+  ticker: "AMZN",
+  targetAnalysisId: "external-AMZN-2026-07-31-abc123",
+  analysisDate: "2026-07-31",
+  fields: {
+    "scores.growth": 9.5,
+    "scores.valuation": 7.5,
+    "fairValue.bear": 215,
+    "fairValue.base": 290,
+    "fairValue.bull": 350,
+    "thesis.shortSummary": "AWS and advertising support long-term compounding.",
+    "risks": [{ title: "Margin compression", severity: "Medium", explanation: "Retail margins could weaken." }],
+    "decision.verdict": "HOLD / ACCUMULATE ON WEAKNESS",
+    "decision.rationale": "Upside exists but valuation is not deeply discounted."
+  },
+  notes: ["EPS المعلن يحتاج normalization."]
+});
+
+const parsedLocal = await parseExternalAnalysisSupplement(supplementJson, { existingReport: incomplete, now });
+assert.equal(parsedLocal.usedAi, false);
+assert.equal(parsedLocal.supplement.fields["fairValue.base"], 290);
+
+const parsedNatural = await parseExternalAnalysisSupplement("نص طبيعي من ChatGPT", {
+  existingReport: incomplete,
+  now,
+  parseUnstructured: async () => ({
+    source: "OpenAI",
+    supplement: JSON.parse(supplementJson)
+  })
+});
+assert.equal(parsedNatural.usedAi, true);
+assert.equal(parsedNatural.supplement.fields["decision.verdict"], "HOLD / ACCUMULATE ON WEAKNESS");
+
+const supplementValidation = validateExternalAnalysisSupplement(parsedLocal.supplement, incomplete);
+assert.equal(supplementValidation.valid, true);
+
+const merged = mergeExternalAnalysisSupplement(attachCompletionStatus(incomplete, validation), parsedLocal.supplement, { now });
+assert.equal(merged.conflicts.length, 0);
+assert.equal(merged.report.fairValue.base, 290);
+assert.equal(merged.report.decision.verdict, "HOLD / ACCUMULATE ON WEAKNESS");
+assert.equal(merged.report.rawAnalysisOriginal, "ORIGINAL RAW");
+assert.equal(merged.report.supplements.length, 1);
+assert.equal(merged.report.supplements[0].rawSupplement, supplementJson);
+assert.ok(merged.report.supplements[0].appliedFields.some((item) => item.path === "fairValue.base"));
+assert.equal(merged.validation.valid, true);
+assert.equal(merged.report.completionStatus.status, "complete");
+
+const conflictingSupplement = (await parseExternalAnalysisSupplement(JSON.stringify({
+  schemaVersion: "external-analysis-supplement/v1",
+  ticker: "AMZN",
+  targetAnalysisId: "external-AMZN-2026-07-31-abc123",
+  fields: { "fairValue.base": 305, "decision.verdict": "BUY" }
+}), { existingReport: merged.report, now })).supplement;
+const conflictPreview = mergeExternalAnalysisSupplement(merged.report, conflictingSupplement, { now });
+assert.equal(conflictPreview.conflicts.length, 2);
+assert.equal(conflictPreview.report.fairValue.base, 290, "Existing value must not be replaced without approval.");
+
+const resolved = mergeExternalAnalysisSupplement(merged.report, conflictingSupplement, {
+  now,
+  resolutions: { "fairValue.base": "use-new", "decision.verdict": "keep-current" }
+});
+assert.equal(resolved.report.fairValue.base, 305);
+assert.equal(resolved.report.decision.verdict, "HOLD / ACCUMULATE ON WEAKNESS");
+
+const wrongTicker = await parseExternalAnalysisSupplement(JSON.stringify({
+  schemaVersion: "external-analysis-supplement/v1",
+  ticker: "AAPL",
+  targetAnalysisId: "external-AMZN-2026-07-31-abc123",
+  fields: { "fairValue.base": 290 }
+}), { existingReport: incomplete, now });
+assert.equal(validateExternalAnalysisSupplement(wrongTicker.supplement, incomplete).valid, false);
+
+const wrongId = await parseExternalAnalysisSupplement(JSON.stringify({
+  schemaVersion: "external-analysis-supplement/v1",
+  ticker: "AMZN",
+  targetAnalysisId: "wrong-id",
+  fields: { "fairValue.base": 290 }
+}), { existingReport: incomplete, now });
+assert.equal(validateExternalAnalysisSupplement(wrongId.supplement, incomplete).valid, false);
+
+const badOrdering = report({
+  analysisDate: "2026-07-31",
+  company: { ticker: "BAD", name: "Bad Ordering" },
+  market: { priceAtAnalysis: 100 },
+  scores: { quality: 7, growth: 7, valuation: 7, risk: 5 },
+  fairValue: { bear: 120, base: 100, bull: 90 },
+  thesis: { shortSummary: "Bad order." },
+  risks: [{ title: "Risk" }],
+  decision: { verdict: "HOLD" }
+});
+assert.equal(validateExternalAnalysisReport(badOrdering).valid, false, "Bear/Base/Bull ordering must be validated.");
+
+const stillIncomplete = mergeExternalAnalysisSupplement(incomplete, (await parseExternalAnalysisSupplement(JSON.stringify({
+  schemaVersion: "external-analysis-supplement/v1",
+  ticker: "AMZN",
+  targetAnalysisId: "external-AMZN-2026-07-31-abc123",
+  fields: { "fairValue.base": 290 }
+}), { existingReport: incomplete, now })).supplement, { now });
+assert.equal(stillIncomplete.report.completionStatus.status, "incomplete");
+const remainingPrompt = buildMissingRequirementsPrompt(stillIncomplete.report, stillIncomplete.report.completionStatus);
+assert.ok(remainingPrompt.text.includes("fairValue.bear"));
+assert.equal(remainingPrompt.text.includes("fairValue.base"), false);
+
+const supplementFiles = [
+  "../src/externalAnalysis/missingFields.js",
+  "../src/externalAnalysis/supplementSchema.js",
+  "../src/externalAnalysis/supplementParser.js",
+  "../src/externalAnalysis/supplementValidator.js",
+  "../src/externalAnalysis/supplementMerge.js"
+].map((file) => readFileSync(new URL(file, import.meta.url), "utf8")).join("\n");
+for (const forbidden of ["runFixedMethodologyValuation", "runInvestmentAnalystBrainValuation", "valuationEngine", "decisionEngine", "scoringEngines"]) {
+  assert.equal(supplementFiles.includes(forbidden), false, `Completion workflow must not call ${forbidden}.`);
+}
+
+const oldReport = normalizeExternalAnalysisReport({
+  analysisDate: "2026-07-31",
+  company: { ticker: "OLD", name: "Old Stored Report" },
+  market: { priceAtAnalysis: 10 },
+  scores: { quality: 8, growth: 8, valuation: 8, risk: 4 },
+  fairValue: { bear: 8, base: 12, bull: 16 },
+  thesis: { shortSummary: "Old report." },
+  risks: [{ title: "Risk" }],
+  decision: { verdict: "HOLD" }
+}, "old raw", { now });
+assert.deepEqual(oldReport.supplements, [], "Old reports must normalize with an empty supplement audit trail.");
+
+console.log("External analysis completion workflow tests passed.");

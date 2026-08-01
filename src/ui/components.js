@@ -11,6 +11,9 @@ import {
 } from "../domain/marketColorSystem.js";
 import { rankEvaluatedCompanies } from "../engines/rankingEngine.js";
 import { DEMO_ANALYSIS_FIXTURE } from "../data/demoFlow.js";
+import { copyableExternalAnalysisJson, externalAnalysisToHomeCard } from "../externalAnalysis/reportAdapter.js";
+import { analyzeExternalAnalysisCompletion } from "../externalAnalysis/missingFields.js";
+import { getExternalAnalysis, listLatestExternalAnalyses } from "../externalAnalysis/storage.js";
 import {
   analysisText,
   decisionLabel,
@@ -41,12 +44,17 @@ import {
 } from "../valuationWorkflow/workflow.js";
 
 const panels = [
-  ["home", "Home"],
-  ["workspace", "New Analysis"],
-  ["research", "Research"],
-  ["watchlist", "Watchlist"],
+  ["home", "Library"],
+  ["external-import", "Import Analysis"],
+  ["history", "History"],
   ["settings", "Settings"]
 ];
+
+const visiblePanels = new Set(["home", "external-import", "external-report", "history", "settings"]);
+
+function visiblePanel(panel) {
+  return visiblePanels.has(panel) ? panel : "home";
+}
 
 export function mountApp(root, store) {
   const actions = createActions(store);
@@ -55,42 +63,23 @@ export function mountApp(root, store) {
 }
 
 function render(root, store, actions) {
-  const { state } = store;
+  const activePanel = visiblePanel(store.state.activePanel);
+  const state = activePanel === store.state.activePanel ? store.state : { ...store.state, activePanel };
   setupArabicDocument(state.language);
   document.documentElement.dataset.theme = state.theme;
-  if (state.activePanel === "home") {
+  if (activePanel === "home") {
     root.innerHTML = homeDashboard(state);
     bind(root, store, actions);
     return;
   }
-  const isWorkflow = state.activePanel === "workspace";
   root.innerHTML = `
-    <aside class="rail">
-      <div class="brand">
-        <div class="mark">V9</div>
-        <div>
-          <h1>${uiLabel("Institutional Research")}</h1>
-          <p>${uiLabel("Equity research layer")}</p>
-        </div>
-      </div>
-      <nav class="rail-nav">
-        ${panels.map(([key, label]) => `<button class="${state.activePanel === key ? "active" : ""}" data-panel="${key}">${uiLabel(label)}</button>`).join("")}
-      </nav>
-      <div class="rail-card">
-        <span>${escapeHtml(state.company.ticker)}</span>
-        <strong>${money(state.company.quote?.price, 2)}</strong>
-        <p>${escapeHtml(state.company.name)}</p>
-      </div>
-    </aside>
-    <main class="workspace">
+    <main class="workspace product-shell">
       ${topBar(state)}
-      ${isWorkflow ? "" : searchBlock(state)}
       ${state.notice ? `<div class="notice">${escapeHtml(state.notice)}</div>` : ""}
-      ${isWorkflow ? "" : executiveSummary(state)}
       ${panelContent(state)}
     </main>
     <nav class="mobile-nav">
-      ${panels.filter(([key]) => ["home", "workspace", "summary", "research", "settings"].includes(key)).map(([key, label]) => `<button class="${state.activePanel === key ? "active" : ""}" data-panel="${key}">${uiLabel(label)}</button>`).join("")}
+      ${panels.map(([key, label]) => `<button class="${state.activePanel === key ? "active" : ""}" data-panel="${key}">${uiLabel(label)}</button>`).join("")}
     </nav>
   `;
   bind(root, store, actions);
@@ -98,28 +87,24 @@ function render(root, store, actions) {
 
 function homeDashboard(state) {
   return `
-    <main class="home-workspace polished-home product-home">
-      <header class="home-topbar home-hero-polish product-hero">
+    <main class="home-workspace polished-home product-home library-home">
+      <header class="home-topbar home-hero-polish product-hero library-hero">
         <div class="home-brand-line">
           <img class="app-logo" src="./assets/icon-192.png" alt="">
           <div>
             <p class="eyebrow">${uiLabel("Version 10.0.0")}</p>
             <h1>${uiLabel("Franklin Research")}</h1>
-            <small>${uiLabel("AI Equity Research Platform")}</small>
+            <small>${uiLabel("Professional Equity Research Library")}</small>
           </div>
         </div>
         <div class="home-actions">
           ${languageToggle(state)}
-          <button class="primary-btn" data-action="new-analysis">${uiLabel("New Analysis")}</button>
+          <button class="primary-btn" data-action="open-external-import">${uiLabel("Import Analysis")}</button>
           <button class="icon-btn" data-action="toggle-theme" title="${uiLabel("Toggle theme")}">${state.theme === "dark" ? uiLabel("Light") : uiLabel("Dark")}</button>
         </div>
       </header>
       ${homePolishedSearch(state)}
-      ${homeQuickActions(state)}
-      <section class="home-polished-grid">
-        ${homeRecentAnalysesSection(state)}
-        ${homeWatchlistPanel(state)}
-      </section>
+      ${externalAnalysesHomeSection(state)}
     </main>
   `;
 }
@@ -136,26 +121,15 @@ function languageToggle(state) {
 
 function homePolishedSearch(state) {
   return `
-    <section class="home-search home-search-premium">
+    <section class="home-search home-search-premium library-search-panel">
       <div class="search-signature">
-        <span>${uiLabel("Ask the one question")}</span>
-        <strong>${uiLabel("Should I buy this stock today?")}</strong>
+        <span>${uiLabel("Knowledge base")}</span>
+        <strong>${uiLabel("Browse imported equity research reports")}</strong>
       </div>
       <div class="search-line">
-        <input id="searchInput" value="${escapeHtml(state.query)}" placeholder="${uiLabel("Search by company name or ticker")}" autocomplete="off">
-        <button class="primary-btn" data-action="search">${state.loading ? uiLabel("Searching") : uiLabel("Search")}</button>
-      </div>
-      <div class="home-search-footer">
-        <div class="quick-tickers" aria-label="${uiLabel("Common examples")}">
-          ${["AAPL", "MSFT", "NVDA", "AMZN"].map((ticker) => `<button data-sample-query="${ticker}">${ticker}</button>`).join("")}
-        </div>
-        <button class="icon-btn" data-action="load-demo-analysis">${uiLabel("Load Demo Data")}</button>
+        <input id="searchInput" data-library-search value="${escapeHtml(state.query)}" placeholder="${uiLabel("Search saved reports by ticker or company")}" autocomplete="off">
       </div>
       ${state.notice ? `<p class="home-note">${escapeHtml(state.notice)}</p>` : ""}
-      ${state.searchResults.length ? `<div class="results home-results">
-        <p>${uiLabel("Search Results")}</p>
-        ${state.searchResults.map(searchResult).join("")}
-      </div>` : ""}
     </section>
   `;
 }
@@ -167,6 +141,10 @@ function homeQuickActions(state) {
         <span>${uiLabel("Paste Data")}</span>
         <strong>${uiLabel("New Analysis")}</strong>
       </button>
+      <button data-action="open-external-import">
+        <span>${uiLabel("External ChatGPT")}</span>
+        <strong>${uiLabel("Import Analysis")}</strong>
+      </button>
       <button data-action="load-demo-analysis">
         <span>${uiLabel("Research grade")}</span>
         <strong>${uiLabel("Demo Report")}</strong>
@@ -177,6 +155,83 @@ function homeQuickActions(state) {
       </button>
     </section>
   `;
+}
+
+function externalAnalysesHomeSection(state) {
+  const reports = filterExternalReports(
+    listLatestExternalAnalyses(state.externalAnalyses || {}).map(externalAnalysisToHomeCard),
+    state.query
+  );
+  const totalReports = Object.values(state.externalAnalyses || {}).reduce((sum, list) => sum + (Array.isArray(list) ? list.length : 0), 0);
+  return `
+    <section class="evaluated-panel external-home-panel library-panel">
+      <div class="table-title">
+        <div>
+          <p class="eyebrow">${uiLabel("Research Library")}</p>
+          <h2>${uiLabel("Saved Company Reports")}</h2>
+          <p>${uiLabel("Franklin stores external research. It does not create investment analysis.")}</p>
+        </div>
+        <div class="library-stats">
+          <span>${reports.length} ${uiLabel("Companies")}</span>
+          <span>${totalReports} ${uiLabel("Analyses")}</span>
+        </div>
+      </div>
+      ${reports.length ? `
+        <div class="library-card-grid">
+          ${reports.map((report) => externalHomeCard(report)).join("")}
+        </div>
+      ` : externalLibraryEmptyState()}
+    </section>
+  `;
+}
+
+function externalHomeCard(report) {
+  return `
+    <article class="company-card external-company-card library-company-card" data-external-ticker="${escapeHtml(report.ticker)}" data-external-report-id="${escapeHtml(report.id)}" data-library-card data-search-text="${escapeHtml(`${report.ticker} ${report.companyName}`.toLowerCase())}">
+      <div class="company-card-top library-card-top">
+        <div>
+          <strong>${escapeHtml(report.ticker)}</strong>
+          <span>${escapeHtml(report.companyName || uiLabel("Company"))}</span>
+        </div>
+        <em class="${colorClass(recommendationColorCategory(report.verdict), "badge")}">${escapeHtml(report.verdict || "-")}</em>
+      </div>
+      <div class="library-card-metrics">
+        ${compactCardMetric(uiLabel("Price at Analysis"), money(report.currentPrice, 2))}
+        ${compactCardMetric(financialTerm("Quality"), scoreText(report.qualityScore, 0))}
+        ${compactCardMetric(financialTerm("Growth"), scoreText(report.growthScore, 0))}
+        ${compactCardMetric("Valuation", scoreText(report.valuationScore, 0))}
+        ${compactCardMetric(financialTerm("Risk"), scoreText(report.riskScore, 0))}
+        ${compactCardMetric("Base Fair Value", money(report.baseFairValue, 0))}
+        ${compactCardMetric(uiLabel("Upside"), formatExternalPercent(report.upsideToBasePct))}
+        ${compactCardMetric(uiLabel("Last Analysis"), report.analysisDate || "-")}
+      </div>
+      <div class="company-card-footer library-card-footer">
+        <span>${uiLabel("Open saved report")}</span>
+        <small>${uiLabel("Open report")}</small>
+      </div>
+    </article>
+  `;
+}
+
+function filterExternalReports(reports, query) {
+  const clean = String(query || "").trim().toLowerCase();
+  if (!clean) return reports;
+  return reports.filter((report) => `${report.ticker} ${report.companyName}`.toLowerCase().includes(clean));
+}
+
+function externalLibraryEmptyState() {
+  return `
+    <div class="empty-home-state library-empty-state">
+      <strong>${uiLabel("No imported reports yet.")}</strong>
+      <p>${uiLabel("Import a ChatGPT analysis to build your research library.")}</p>
+      <button class="primary-btn" data-action="open-external-import">${uiLabel("Import Analysis")}</button>
+    </div>
+  `;
+}
+
+function formatExternalPercent(value) {
+  const numeric = numericValue(value);
+  return Number.isFinite(numeric) ? `${numeric > 0 ? "+" : ""}${numeric.toFixed(1)}%` : "—";
 }
 
 function homeRecentAnalysesSection(state) {
@@ -380,11 +435,12 @@ function topBar(state) {
     <header class="topbar compact product-topbar">
       <div>
         <p class="eyebrow">${uiLabel("Version 10.0.0")}</p>
-        <h2>${escapeHtml(state.company.name)}</h2>
+        <h2>${uiLabel("Franklin Research")}</h2>
       </div>
       <div class="top-actions">
         ${languageToggle(state)}
         <button class="icon-btn" data-panel="home">${uiLabel("Home")}</button>
+        <button class="icon-btn" data-action="open-external-import">${uiLabel("Import")}</button>
         <button class="icon-btn" data-action="toggle-theme" title="${uiLabel("Toggle theme")}">${state.theme === "dark" ? uiLabel("Light") : uiLabel("Dark")}</button>
         <button class="icon-btn" data-panel="settings">${uiLabel("Settings")}</button>
       </div>
@@ -718,6 +774,16 @@ function moneySignal(value, digits = 0) {
   return Number.isFinite(value) ? `<span class="table-value">${money(value, digits)}</span>` : missingSignal();
 }
 
+function valuationSummaryItem(label, value, currentPrice) {
+  return `
+    <article class="valuation-card">
+      <span>${escapeHtml(label)}</span>
+      <strong>${money(value, 0)}</strong>
+      <small>${Number.isFinite(value) && Number.isFinite(currentPrice) && currentPrice > 0 ? formatSignedPercent((value - currentPrice) / currentPrice) : "-"}</small>
+    </article>
+  `;
+}
+
 function fairValueSignal(value, currentPrice, digits = 0) {
   if (!Number.isFinite(value)) return missingSignal();
   const category = fairValueColorCategory(value, currentPrice);
@@ -733,6 +799,10 @@ function upsideSignal(value) {
 function scoreSignal(value) {
   if (!Number.isFinite(value)) return missingSignal();
   return signalMarkup(scoreColorCategory(value), String(Math.round(value)), "score-badge");
+}
+
+function scoreText(value, digits = 0) {
+  return Number.isFinite(value) ? String(Math.round(value * 10 ** digits) / 10 ** digits) : "-";
 }
 
 function riskSignal(value) {
@@ -807,18 +877,539 @@ function executiveSummary(state) {
 }
 
 function panelContent(state) {
-  const r = state.research;
-  if (state.activePanel === "workspace") return valuationWorkspacePanel(state);
-  if (state.activePanel === "valuation") return valuationPanel(r, state.company);
-  if (state.activePanel === "quality") return enginePanel(uiLabel("Quality Engine"), r.quality);
-  if (state.activePanel === "growth") return enginePanel(uiLabel("Growth Engine"), r.growth);
-  if (state.activePanel === "moat") return businessPanel(r);
-  if (state.activePanel === "risk") return riskPanel(r);
-  if (state.activePanel === "research") return institutionalResearchPanel(state);
-  if (state.activePanel === "watchlist") return watchListPanel(state);
+  if (state.activePanel === "external-import") return externalImportPanel(state);
+  if (state.activePanel === "external-report") return externalAnalysisReportView(state);
+  if (state.activePanel === "history") return externalHistoryPanel(state);
   if (state.activePanel === "settings") return settingsPanel(state);
-  if (state.activePanel === "history") return historyPanel(state);
-  return summaryPanel(r);
+  return externalAnalysesHomeSection(state);
+}
+
+function externalImportPanel(state) {
+  const draft = state.externalImport?.draftReport;
+  const validation = state.externalImport?.validation || { errors: [], warnings: [] };
+  const completion = draft ? draft.completionStatus || analyzeExternalAnalysisCompletion(draft, validation) : null;
+  return `
+    <section class="panel external-import-panel library-import-panel">
+      <div class="external-import-head">
+        <div>
+          <p class="eyebrow">${uiLabel("Import Analysis")}</p>
+          <h2>${uiLabel("Paste external research")}</h2>
+          <p>${uiLabel("Paste a completed ChatGPT analysis. Franklin parses, previews, saves, then opens the report. It does not create the analysis.")}</p>
+        </div>
+        <button class="icon-btn" data-action="cancel-external-import">${uiLabel("Cancel")}</button>
+      </div>
+      <div class="external-import-flow" aria-label="${uiLabel("Import flow")}">
+        ${flowStep("1", uiLabel("Paste"))}
+        ${flowStep("2", uiLabel("Parse"))}
+        ${flowStep("3", uiLabel("Preview"))}
+        ${flowStep("4", uiLabel("Save"))}
+        ${flowStep("5", uiLabel("Open Report"))}
+      </div>
+      <textarea class="paste-box external-paste-box" data-external-raw placeholder="${uiLabel("Paste completed ChatGPT analysis or ExternalAnalysisReport JSON here.")}">${escapeHtml(state.externalImport?.rawText || "")}</textarea>
+      <div class="external-import-actions">
+        <button class="primary-btn" data-action="parse-external-analysis" ${state.loading ? "disabled" : ""}>${state.loading ? uiLabel("Parsing") : uiLabel("Parse Analysis")}</button>
+        <button class="icon-btn" data-action="clear-external-import">${uiLabel("Clear")}</button>
+      </div>
+      ${state.externalImport?.parserSource ? `<p class="muted">${uiLabel("Parser")}: ${escapeHtml(state.externalImport.parserSource)} / ${state.externalImport.usedAi ? "AI Parser" : "Local JSON"}</p>` : ""}
+      ${draft && completion?.status !== "complete" ? missingDataCompletionCard(draft, validation, completion, state) : ""}
+      ${validation.errors?.length ? validationList(uiLabel("Validation Errors"), validation.errors, "negative") : ""}
+      ${validation.warnings?.length ? validationList(uiLabel("Validation Warnings"), validation.warnings, "warning") : ""}
+      ${state.externalImport?.duplicate ? duplicateWarning(state.externalImport.duplicate) : ""}
+      ${state.externalImport?.supplement?.open ? supplementaryInputPanel(draft, completion, state) : ""}
+      ${state.externalImport?.missingManualOpen ? missingManualPanel(draft, completion) : ""}
+      ${draft ? externalPreviewPanel(draft, state) : ""}
+    </section>
+  `;
+}
+
+function flowStep(number, label) {
+  return `
+    <div class="flow-step">
+      <b>${escapeHtml(number)}</b>
+      <span>${escapeHtml(label)}</span>
+    </div>
+  `;
+}
+
+function missingDataCompletionCard(report, validation, completion, state) {
+  const critical = completion.details?.criticalRequired || [];
+  const recommended = completion.details?.recommended || [];
+  return `
+    <section class="missing-data-sheet">
+      <div class="missing-data-head">
+        <div>
+          <p class="eyebrow">${uiLabel("Data Completion")}</p>
+          <h3>${uiLabel("بيانات التقرير غير مكتملة")}</h3>
+          <p>${completion.requiredComplete} ${uiLabel("of")} ${completion.requiredTotal} ${uiLabel("required fields complete")}</p>
+        </div>
+        <strong>${completion.completionPct}%</strong>
+      </div>
+      <div class="completion-track"><i style="width:${Math.max(0, Math.min(100, completion.completionPct))}%"></i></div>
+      <div class="missing-data-stats">
+        ${missingStat(uiLabel("Missing fields"), critical.length)}
+        ${missingStat(uiLabel("Invalid fields"), validation.errors?.length || 0)}
+        ${missingStat(uiLabel("Warnings"), validation.warnings?.length || 0)}
+      </div>
+      <div class="missing-field-list">
+        ${critical.length ? critical.slice(0, 8).map(missingFieldRow).join("") : `<p class="muted">${uiLabel("No critical missing fields.")}</p>`}
+      </div>
+      ${recommended.length ? `<details class="report-detail"><summary>${uiLabel("Recommended missing fields")} (${recommended.length})</summary><div class="missing-field-list">${recommended.map(missingFieldRow).join("")}</div></details>` : ""}
+      <div class="missing-actions">
+        <button class="primary-btn" data-action="copy-missing-requirements">${uiLabel("نسخ النواقص")}</button>
+        <button class="icon-btn" data-action="open-supplement-input">${uiLabel("إضافة بيانات مكملة")}</button>
+        <button class="icon-btn" data-action="open-missing-manual">${uiLabel("تعديل يدوي")}</button>
+        <button class="icon-btn" data-action="save-external-incomplete-draft">${uiLabel("الحفظ كمسودة")}</button>
+        <button class="icon-btn" data-action="cancel-external-import">${uiLabel("Cancel")}</button>
+      </div>
+      ${state.externalImport?.missingPromptFallback ? `
+        <div class="clipboard-fallback">
+          <p class="muted">${uiLabel("Clipboard fallback")}</p>
+          <textarea readonly data-copy-fallback-text>${escapeHtml(state.externalImport.missingPromptFallback)}</textarea>
+          <button class="icon-btn" data-action="select-copy-fallback">${uiLabel("Select All")}</button>
+          <button class="icon-btn" data-action="copy-missing-requirements">${uiLabel("Copy Again")}</button>
+        </div>
+      ` : ""}
+    </section>
+  `;
+}
+
+function missingStat(label, value) {
+  return `<div><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></div>`;
+}
+
+function missingFieldRow(item) {
+  return `
+    <article class="missing-field-row">
+      <div>
+        <strong>${escapeHtml(item.labelAr || item.labelEn || item.path)}</strong>
+        <span dir="ltr">${escapeHtml(item.path)}</span>
+      </div>
+      <p>${escapeHtml(item.reasonAr || "")}</p>
+      <small>${escapeHtml(priorityLabel(item.priority))} / ${escapeHtml(item.expectedType || "-")}${item.currentValue ? ` / ${uiLabel("Current")}: ${escapeHtml(item.currentValue)}` : ""}</small>
+    </article>
+  `;
+}
+
+function supplementaryInputPanel(report, completion, state) {
+  const supplement = state.externalImport?.supplement || {};
+  const missing = [
+    ...(completion?.details?.criticalRequired || []),
+    ...(completion?.details?.recommended || [])
+  ];
+  return `
+    <section class="supplement-sheet">
+      <div class="table-title">
+        <div>
+          <p class="eyebrow">${uiLabel("Supplement")}</p>
+          <h3>${uiLabel("إكمال البيانات الناقصة")}</h3>
+          <p>${escapeHtml(report?.company?.name || "-")} / ${escapeHtml(report?.company?.ticker || "-")} / ${escapeHtml(report?.analysisDate || "-")} / ${missing.length} ${uiLabel("fields requested")}</p>
+        </div>
+        <button class="icon-btn" data-action="cancel-external-supplement">${uiLabel("Cancel")}</button>
+      </div>
+      <div class="supplement-missing-mini">
+        ${missing.slice(0, 6).map((item) => `<span><b>${escapeHtml(item.labelAr || item.path)}</b><em dir="ltr">${escapeHtml(item.path)}</em></span>`).join("")}
+      </div>
+      <textarea class="paste-box supplement-paste-box" data-supplement-raw placeholder="${uiLabel("Paste supplementary ChatGPT response here.")}">${escapeHtml(supplement.rawText || "")}</textarea>
+      <div class="external-import-actions">
+        <button class="primary-btn" data-action="parse-external-supplement" ${state.loading ? "disabled" : ""}>${state.loading ? uiLabel("Parsing") : uiLabel("Parse Supplement")}</button>
+        <button class="icon-btn" data-action="cancel-external-supplement">${uiLabel("Cancel")}</button>
+      </div>
+      ${supplement.validation?.errors?.length ? validationList(uiLabel("Validation Errors"), supplement.validation.errors, "negative") : ""}
+      ${supplement.mergePreview ? supplementPreviewPanel(supplement.mergePreview) : ""}
+    </section>
+  `;
+}
+
+function supplementPreviewPanel(preview) {
+  return `
+    <section class="supplement-preview">
+      <div class="missing-data-stats">
+        ${missingStat(uiLabel("Applied fields"), preview.appliedFields.length)}
+        ${missingStat(uiLabel("Conflicts"), preview.conflicts.length)}
+        ${missingStat(uiLabel("Rejected fields"), preview.rejectedFields.length)}
+      </div>
+      ${preview.appliedFields.length ? `<div class="supplement-applied-list">${preview.appliedFields.map((item) => `<p><b dir="ltr">${escapeHtml(item.path)}</b> ${escapeHtml(formatAnyValue(item.newValue))}</p>`).join("")}</div>` : ""}
+      ${preview.conflicts.length ? `<div class="conflict-review"><h4>${uiLabel("Conflict Review")}</h4>${preview.conflicts.map(conflictRow).join("")}</div>` : ""}
+      <button class="primary-btn" data-action="apply-external-supplement">${uiLabel("Merge Supplement")}</button>
+    </section>
+  `;
+}
+
+function conflictRow(conflict) {
+  return `
+    <article class="conflict-row">
+      <strong dir="ltr">${escapeHtml(conflict.path)}</strong>
+      <div class="conflict-values">
+        <span>${uiLabel("Current value")}<b>${escapeHtml(formatAnyValue(conflict.currentValue))}</b></span>
+        <span>${uiLabel("New value")}<b>${escapeHtml(formatAnyValue(conflict.newValue))}</b></span>
+      </div>
+      <div class="missing-actions">
+        <button class="icon-btn" data-conflict-path="${escapeHtml(conflict.path)}" data-conflict-resolution="keep-current">${uiLabel("Keep current")}</button>
+        <button class="icon-btn" data-conflict-path="${escapeHtml(conflict.path)}" data-conflict-resolution="use-new">${uiLabel("Use new")}</button>
+        <input data-conflict-manual="${escapeHtml(conflict.path)}" placeholder="${uiLabel("Manual value")}">
+        <button class="icon-btn" data-conflict-path="${escapeHtml(conflict.path)}" data-conflict-resolution="manual">${uiLabel("Manual")}</button>
+      </div>
+    </article>
+  `;
+}
+
+function missingManualPanel(report, completion) {
+  const missing = [
+    ...(completion?.details?.criticalRequired || []),
+    ...(completion?.details?.recommended || [])
+  ];
+  return `
+    <section class="manual-missing-panel">
+      <div class="table-title">
+        <div>
+          <p class="eyebrow">${uiLabel("Manual Edit")}</p>
+          <h3>${uiLabel("تعديل الحقول الناقصة")}</h3>
+        </div>
+      </div>
+      <div class="external-preview-grid">
+        ${missing.map((item) => externalInput(item.path, `${item.labelAr} / ${item.path}`, getPathValue(report, item.path), item.expectedType === "Number" ? "number" : item.expectedType === "Date" ? "date" : "text")).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function priorityLabel(priority) {
+  if (priority === "critical") return uiLabel("Required");
+  if (priority === "recommended") return uiLabel("Recommended");
+  return uiLabel("Optional");
+}
+
+function getPathValue(object, path) {
+  return String(path || "").split(".").filter(Boolean).reduce((cursor, key) => cursor?.[key], object);
+}
+
+function externalPreviewPanel(report, state) {
+  return `
+    <section class="external-preview">
+      <div class="table-title">
+        <div>
+          <p class="eyebrow">${uiLabel("Preview")}</p>
+          <h3>${uiLabel("Review before saving")}</h3>
+          <p>${escapeHtml(report.company?.ticker || "-")} / ${escapeHtml(report.company?.name || "-")}</p>
+        </div>
+        <div class="external-import-actions">
+          <button class="primary-btn" data-action="save-external-analysis" ${state.externalImport?.validation?.valid ? "" : "disabled"}>${uiLabel("Save Analysis")}</button>
+          ${state.externalImport?.duplicate ? `<button class="icon-btn warning-action" data-action="save-external-analysis-duplicate">${uiLabel("Save duplicate anyway")}</button>` : ""}
+        </div>
+      </div>
+      <div class="quick-summary-card preview-summary">
+        ${metricHtml("Ticker", escapeHtml(report.company?.ticker || "-"))}
+        ${metricHtml(uiLabel("Analysis Date"), escapeHtml(report.analysisDate || "-"))}
+        ${metricHtml(uiLabel("Price at Analysis"), money(report.market?.priceAtAnalysis, 2))}
+        ${metricHtml("Base Fair Value", money(report.fairValue?.base, 0))}
+        ${metricHtml(uiLabel("Verdict"), escapeHtml(report.decision?.verdict || "-"))}
+      </div>
+      <div class="external-preview-grid">
+        ${externalInput("company.ticker", "Ticker", report.company?.ticker)}
+        ${externalInput("company.name", uiLabel("Company"), report.company?.name)}
+        ${externalInput("analysisDate", uiLabel("Analysis Date"), report.analysisDate, "date")}
+        ${externalInput("reportPeriod", uiLabel("Report Period"), report.reportPeriod)}
+        ${externalInput("market.priceAtAnalysis", uiLabel("Price at Analysis"), report.market?.priceAtAnalysis, "number")}
+        ${externalInput("scores.quality", "Quality", report.scores?.quality, "number")}
+        ${externalInput("scores.growth", "Growth", report.scores?.growth, "number")}
+        ${externalInput("scores.valuation", "Valuation", report.scores?.valuation, "number")}
+        ${externalInput("scores.risk", "Risk", report.scores?.risk, "number")}
+        ${externalInput("scores.overall", "Overall", report.scores?.overall, "number")}
+        ${externalInput("fairValue.bear", "Bear Fair Value", report.fairValue?.bear, "number")}
+        ${externalInput("fairValue.base", "Base Fair Value", report.fairValue?.base, "number")}
+        ${externalInput("fairValue.bull", "Bull Fair Value", report.fairValue?.bull, "number")}
+        ${externalInput("decision.verdict", uiLabel("Verdict"), report.decision?.verdict)}
+      </div>
+      <div class="external-text-editors">
+        <label>${uiLabel("Investment Thesis")}<textarea data-external-field="thesis.shortSummary">${escapeHtml(report.thesis?.shortSummary || "")}</textarea></label>
+        <label>${uiLabel("Decision Rationale")}<textarea data-external-field="decision.rationale">${escapeHtml(report.decision?.rationale || "")}</textarea></label>
+      </div>
+      <details class="report-detail advanced-json-block">
+        <summary>${uiLabel("Advanced JSON")}</summary>
+        <div>
+          <p class="muted">${uiLabel("Advanced editor. Edit any field in JSON, then leave the field to re-validate.")}</p>
+          <textarea class="paste-box external-json-editor" data-external-json>${escapeHtml(state.externalImport?.draftJson || JSON.stringify(report, null, 2))}</textarea>
+        </div>
+      </details>
+    </section>
+  `;
+}
+
+function externalInput(path, label, value, type = "text") {
+  return `
+    <label>
+      <span>${escapeHtml(label)}</span>
+      <input data-external-field="${escapeHtml(path)}" type="${type}" value="${escapeHtml(value ?? "")}">
+    </label>
+  `;
+}
+
+function duplicateWarning(report) {
+  return `
+    <div class="validation-list warning">
+      <strong>${uiLabel("This analysis already exists.")}</strong>
+      <p>${escapeHtml(report.company?.ticker || "")} / ${escapeHtml(report.analysisDate || "")} / ${escapeHtml(report.reportPeriod || "")}</p>
+    </div>
+  `;
+}
+
+function validationList(title, items, tone) {
+  return `
+    <div class="validation-list ${tone}">
+      <strong>${escapeHtml(title)}</strong>
+      ${items.map((item) => `<p>${escapeHtml(item.field)}: ${escapeHtml(item.message)}</p>`).join("")}
+    </div>
+  `;
+}
+
+function externalHistoryPanel(state) {
+  const reports = Object.values(state.externalAnalyses || {})
+    .flatMap((items) => Array.isArray(items) ? items : [])
+    .sort((a, b) => String(b.analysisDate || "").localeCompare(String(a.analysisDate || "")));
+  return `
+    <section class="panel history-library-panel">
+      <div class="table-title">
+        <div>
+          <p class="eyebrow">${uiLabel("History")}</p>
+          <h2>${uiLabel("Historical Analyses")}</h2>
+          <p>${uiLabel("Review prior saved analyses. Drafts are never shown here.")}</p>
+        </div>
+      </div>
+      ${reports.length ? `
+        <div class="history-report-list">
+          ${reports.map((report) => `
+            <button data-external-ticker="${escapeHtml(report.company?.ticker || "")}" data-external-report-id="${escapeHtml(report.id || "")}">
+              <strong>${escapeHtml(report.company?.ticker || "-")} / ${escapeHtml(report.company?.name || "-")}</strong>
+              <span>${escapeHtml(report.analysisDate || "-")} / ${escapeHtml(report.reportPeriod || "-")} / ${money(report.market?.priceAtAnalysis, 2)} / Base ${money(report.fairValue?.base, 0)}</span>
+              <em>${escapeHtml(report.decision?.verdict || "-")}</em>
+            </button>
+          `).join("")}
+        </div>
+      ` : externalLibraryEmptyState()}
+    </section>
+  `;
+}
+
+function externalAnalysisReportView(state) {
+  const selection = state.externalReportSelection || {};
+  const report = getExternalAnalysis(state.externalAnalyses || {}, selection.ticker, selection.reportId);
+  if (!report) {
+    return `
+      <section class="panel empty-home-state">
+        <strong>${uiLabel("No imported report selected.")}</strong>
+        <button class="primary-btn" data-action="open-external-import">${uiLabel("Import ChatGPT Analysis")}</button>
+      </section>
+    `;
+  }
+  const history = state.externalAnalyses?.[report.company?.ticker] || [];
+  const completion = report.completionStatus || analyzeExternalAnalysisCompletion(report);
+  return `
+    <section class="external-report-shell external-report-v2">
+      <header class="external-report-hero panel report-v2-header">
+        <div>
+          <p class="eyebrow">${uiLabel("Company Report")}</p>
+          <h2>${escapeHtml(report.company?.name || "-")}</h2>
+          <p>${escapeHtml(report.company?.ticker || "-")} / ${uiLabel("Analysis Date")}: ${escapeHtml(report.analysisDate || "-")} / ${uiLabel("Report Period")}: ${escapeHtml(report.reportPeriod || "-")}</p>
+          <div class="report-meta-line">
+            <span>${uiLabel("Price at Analysis")}: ${money(report.market?.priceAtAnalysis, 2)}</span>
+            <span>${uiLabel("Current Price")}: ${money(report.market?.currentPrice ?? report.market?.priceAtAnalysis, 2)}</span>
+          </div>
+        </div>
+        <div class="external-verdict-card report-verdict-card">
+          <span>${uiLabel("Verdict")}</span>
+          <strong>${escapeHtml(report.decision?.verdict || "-")}</strong>
+          <small>${uiLabel("Stored external research")}</small>
+        </div>
+      </header>
+      ${completion.status !== "complete" ? reportCompletionEntry(report, completion) : ""}
+      <section class="scenario-grid external-score-grid report-v2-score-grid">
+        ${externalScoreCard(financialTerm("Quality"), report.scores?.quality)}
+        ${externalScoreCard(financialTerm("Growth"), report.scores?.growth)}
+        ${externalScoreCard("Valuation", report.scores?.valuation)}
+        ${externalScoreCard(financialTerm("Risk"), report.scores?.risk)}
+        ${externalScoreCard("Overall", report.scores?.overall)}
+      </section>
+      <section class="valuation-summary-grid report-v2-fair-grid">
+        ${valuationSummaryItem("Bear", report.fairValue?.bear, report.market?.priceAtAnalysis)}
+        ${valuationSummaryItem("Base", report.fairValue?.base, report.market?.priceAtAnalysis)}
+        ${valuationSummaryItem("Bull", report.fairValue?.bull, report.market?.priceAtAnalysis)}
+        ${externalFairValueMetric(uiLabel("Upside"), report.fairValue?.upsideToBasePct)}
+      </section>
+      <section class="report-v2-stack">
+        ${reportSection(uiLabel("Investment Verdict"), paragraphBlock([report.decision?.verdict, report.decision?.rationale, report.decision?.buyZone, report.decision?.fairZone, report.decision?.expensiveZone]))}
+        ${reportSection(uiLabel("Investment Thesis"), paragraphBlock([report.thesis?.shortSummary, report.thesis?.fullSummary]))}
+        ${reportSection(uiLabel("Key Strengths"), simpleList(report.quality?.strengths))}
+        ${reportSection(uiLabel("Key Risks"), itemList(report.risks, ["severity", "explanation"]))}
+        ${reportSection(uiLabel("Catalysts"), itemList(report.catalysts, ["explanation"]))}
+        ${reportSection(uiLabel("Watch List"), simpleList(report.watchItems))}
+        ${reportSection(uiLabel("Valuation Methods"), valuationMethodsView(report.valuationMethods))}
+        ${reportSection(uiLabel("Financial Highlights"), financialHighlightsView(report.financialHighlights || report.growthHighlights))}
+        ${reportSection(uiLabel("Historical Analyses"), externalVersionHistory(report, history))}
+        ${reportSection(uiLabel("Sources"), itemList(report.sources, ["url", "sourceType"]))}
+        ${externalDetail(uiLabel("Raw Analysis"), `<pre class="raw-analysis">${escapeHtml(report.rawAnalysisOriginal || report.rawAnalysis || "")}</pre>`)}
+      </section>
+      <section class="panel external-report-actions">
+        <button class="icon-btn" data-panel="home">${uiLabel("Library")}</button>
+        <button class="icon-btn" data-action="export-external-json">${uiLabel("Export JSON")}</button>
+        <button class="icon-btn" data-action="print-external-report">${uiLabel("Print Report")}</button>
+        <button class="icon-btn" data-action="edit-external-report" data-external-ticker="${escapeHtml(report.company?.ticker)}" data-external-report-id="${escapeHtml(report.id)}">${uiLabel("Edit imported analysis")}</button>
+        <button class="icon-btn danger-action" data-action="delete-external-report" data-external-ticker="${escapeHtml(report.company?.ticker)}" data-external-report-id="${escapeHtml(report.id)}">${uiLabel("Delete version")}</button>
+        <button class="icon-btn danger-action" data-action="delete-external-ticker" data-external-ticker="${escapeHtml(report.company?.ticker)}">${uiLabel("Delete all analyses for ticker")}</button>
+      </section>
+    </section>
+  `;
+}
+
+function reportCompletionEntry(report, completion) {
+  const critical = completion.details?.criticalRequired || [];
+  return `
+    <section class="panel report-completion-entry">
+      <div>
+        <p class="eyebrow">${uiLabel("Data Completion")}</p>
+        <h3>${uiLabel("بيانات التقرير غير مكتملة")}</h3>
+        <p>${completion.requiredComplete} ${uiLabel("of")} ${completion.requiredTotal} ${uiLabel("required fields complete")}</p>
+      </div>
+      <div class="completion-track"><i style="width:${Math.max(0, Math.min(100, completion.completionPct))}%"></i></div>
+      <div class="supplement-missing-mini">
+        ${critical.slice(0, 4).map((item) => `<span><b>${escapeHtml(item.labelAr || item.path)}</b><em dir="ltr">${escapeHtml(item.path)}</em></span>`).join("")}
+      </div>
+      <button class="primary-btn" data-action="start-report-supplement" data-external-ticker="${escapeHtml(report.company?.ticker || "")}" data-external-report-id="${escapeHtml(report.id || "")}">${uiLabel("إكمال البيانات الناقصة")}</button>
+    </section>
+  `;
+}
+
+function reportSection(title, body) {
+  return `
+    <section class="panel report-v2-section">
+      <h3>${escapeHtml(title)}</h3>
+      <div>${body || `<p class="muted">${uiLabel("Not provided in the imported analysis.")}</p>`}</div>
+    </section>
+  `;
+}
+
+function externalFairValueMetric(label, value) {
+  return `
+    <article class="scenario-card">
+      <span>${escapeHtml(label)}</span>
+      <strong>${formatExternalPercent(value)}</strong>
+    </article>
+  `;
+}
+
+function financialHighlightsView(highlights = {}) {
+  const rows = Object.entries(highlights || {}).filter(([, value]) => value !== null && value !== undefined && value !== "");
+  if (!rows.length) return "";
+  return `
+    <div class="external-method-grid financial-highlight-grid">
+      ${rows.map(([key, value]) => `
+        <div>
+          <span>${escapeHtml(labelFromKey(key))}</span>
+          <strong>${escapeHtml(formatAnyValue(value))}</strong>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function externalScoreCard(label, value) {
+  return `
+    <article class="scenario-card">
+      <span>${escapeHtml(label)}</span>
+      <strong>${scoreText(value, 1)}</strong>
+    </article>
+  `;
+}
+
+function externalDetail(title, body, open = false) {
+  return `
+    <details class="report-detail" ${open ? "open" : ""}>
+      <summary>${escapeHtml(title)}</summary>
+      <div>${body || `<p class="muted">${uiLabel("Not provided in the imported analysis.")}</p>`}</div>
+    </details>
+  `;
+}
+
+function valuationMethodsView(methods = {}) {
+  const rows = Object.entries(methods || {}).filter(([, value]) => value !== null && value !== undefined && value !== "");
+  if (!rows.length) return "";
+  return `
+    <div class="external-method-grid">
+      ${rows.map(([key, value]) => `
+        <div>
+          <span>${escapeHtml(methodLabel(key))}</span>
+          <strong>${escapeHtml(formatAnyValue(value))}</strong>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function businessQualityBlock(quality = {}) {
+  return [
+    quality.summary,
+    quality.moat ? `Economic Moat: ${quality.moat}` : null,
+    quality.profitability ? `Profitability: ${quality.profitability}` : null,
+    quality.balanceSheet ? `Balance Sheet: ${quality.balanceSheet}` : null,
+    quality.capitalAllocation ? `Capital Allocation: ${quality.capitalAllocation}` : null,
+    quality.earningsQuality ? `Earnings Quality: ${quality.earningsQuality}` : null,
+    quality.strengths?.length ? `Strengths: ${quality.strengths.join(" / ")}` : null,
+    quality.weaknesses?.length ? `Weaknesses: ${quality.weaknesses.join(" / ")}` : null
+  ].filter(Boolean).map((item) => `<p>${escapeHtml(item)}</p>`).join("");
+}
+
+function earningsQualityBlock(quality = {}) {
+  return paragraphBlock([
+    quality.status,
+    quality.reportedVsNormalizedExplanation,
+    ...(quality.oneOffItems || [])
+  ]);
+}
+
+function paragraphBlock(items = []) {
+  const visible = items.filter((item) => item !== null && item !== undefined && String(item).trim());
+  return visible.map((item) => `<p>${escapeHtml(item)}</p>`).join("");
+}
+
+function objectBlock(object = {}) {
+  const rows = Object.entries(object || {}).filter(([, value]) => value !== null && value !== undefined && value !== "");
+  if (!rows.length) return "";
+  return rows.map(([key, value]) => `<p><strong>${escapeHtml(labelFromKey(key))}</strong>: ${escapeHtml(formatAnyValue(value))}</p>`).join("");
+}
+
+function itemList(items = [], detailKeys = []) {
+  if (!Array.isArray(items) || !items.length) return "";
+  return `
+    <div class="external-list">
+      ${items.map((item) => {
+        if (typeof item === "string") return `<p>${escapeHtml(item)}</p>`;
+        const title = item.title || item.name || item.sourceType || "-";
+        const details = detailKeys.map((key) => item[key]).filter((value) => value !== null && value !== undefined && String(value).trim());
+        return `<article><strong>${escapeHtml(title)}</strong>${details.map((detail) => `<span>${escapeHtml(detail)}</span>`).join("")}</article>`;
+      }).join("")}
+    </div>
+  `;
+}
+
+function simpleList(items = []) {
+  return Array.isArray(items) && items.length ? `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : "";
+}
+
+function externalVersionHistory(currentReport, history = []) {
+  return `
+    <div class="version-list external-version-list">
+      ${history.map((report) => `
+        <button class="${report.id === currentReport.id ? "active" : ""}" data-external-history-ticker="${escapeHtml(report.company?.ticker)}" data-external-history-id="${escapeHtml(report.id)}">
+          <strong>${escapeHtml(report.reportPeriod || report.analysisDate || report.id)}</strong>
+          <span>${escapeHtml(report.analysisDate || "-")} / ${money(report.market?.priceAtAnalysis, 2)} / Base ${money(report.fairValue?.base, 0)}</span>
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function methodLabel(key) {
+  const labels = { dcf: "DCF", pe: "P/E", evEbitda: "EV/EBITDA", ps: "P/S", peg: "PEG", sotp: "SOTP", other: "Other" };
+  return labels[key] || labelFromKey(key);
 }
 
 function valuationWorkspacePanel(state) {
@@ -2437,6 +3028,7 @@ function enginePanelInner(title, engine) {
 }
 
 function settingsPanel(state) {
+  const savedReports = Object.values(state.externalAnalyses || {}).reduce((sum, list) => sum + (Array.isArray(list) ? list.length : 0), 0);
   return `
     <section class="panel settings-panel">
       <h3>${uiLabel("Settings")}</h3>
@@ -2445,13 +3037,14 @@ function settingsPanel(state) {
           <span>${uiLabel("Private Server")}</span>
           <strong>${uiLabel("API keys are configured on the private server only.")}</strong>
         </div>
-        <label>${uiLabel("Average cost")}<input data-manual="averageCost" value="${escapeHtml(state.manualInputs.averageCost)}" inputmode="decimal" placeholder="اختياري"></label>
-        <label>${uiLabel("Morningstar FV")}<input data-manual="morningstarFairValue" value="${escapeHtml(state.manualInputs.morningstarFairValue)}" inputmode="decimal" placeholder="اختياري"></label>
+        <div class="settings-status">
+          <span>${uiLabel("Saved reports")}</span>
+          <strong>${savedReports}</strong>
+        </div>
       </div>
-      <label class="notes-field">${uiLabel("Research notes")}<textarea data-manual="notes" placeholder="ملاحظات اختيارية للفرضية">${escapeHtml(state.manualInputs.notes)}</textarea></label>
       <button class="icon-btn danger-action" data-action="clear-local-data">${uiLabel("Clear Local Data")}</button>
       <div class="settings-note">
-        ${analysisText("API keys are stored only as server-side environment variables. Draft pasted data is not persisted automatically. Approved reports and saved watchlist items remain local until cleared.")}
+        ${analysisText("API keys are stored only as server-side environment variables. Imported reports remain local in this browser until cleared. Franklin stores research knowledge and does not create investment analysis.")}
       </div>
     </section>
   `;
@@ -2549,20 +3142,94 @@ function bind(root, store, actions) {
       store.openEvaluatedCompany(row.dataset.evaluatedTicker);
     });
   });
+  root.querySelectorAll("[data-external-ticker]").forEach((card) => {
+    card.addEventListener("click", (event) => {
+      if (event.target.closest("button, input, select, a")) return;
+      store.openExternalReport(card.dataset.externalTicker, card.dataset.externalReportId);
+    });
+  });
+  root.querySelectorAll("[data-external-history-id]").forEach((button) => {
+    button.addEventListener("click", () => store.openExternalReport(button.dataset.externalHistoryTicker, button.dataset.externalHistoryId));
+  });
   root.querySelector("[data-action='save-run']")?.addEventListener("click", store.saveRun);
   root.querySelectorAll("[data-action='new-analysis']").forEach((button) => {
     button.addEventListener("click", store.startBlankAnalysis);
   });
+  root.querySelectorAll("[data-action='open-external-import']").forEach((button) => {
+    button.addEventListener("click", store.openExternalImport);
+  });
   root.querySelectorAll("[data-action='load-demo-analysis']").forEach((button) => {
     button.addEventListener("click", store.loadDemoAnalysis);
   });
+  root.querySelector("[data-action='parse-external-analysis']")?.addEventListener("click", () => {
+    const text = root.querySelector("[data-external-raw]")?.value || "";
+    store.parseExternalImport(text);
+  });
+  root.querySelector("[data-action='copy-missing-requirements']")?.addEventListener("click", () => copyMissingRequirements(store));
+  root.querySelector("[data-action='select-copy-fallback']")?.addEventListener("click", () => {
+    const textArea = root.querySelector("[data-copy-fallback-text]");
+    textArea?.focus();
+    textArea?.select();
+  });
+  root.querySelector("[data-action='open-supplement-input']")?.addEventListener("click", store.openSupplementInput);
+  root.querySelector("[data-action='cancel-external-supplement']")?.addEventListener("click", store.cancelExternalSupplement);
+  root.querySelector("[data-action='parse-external-supplement']")?.addEventListener("click", () => {
+    const text = root.querySelector("[data-supplement-raw]")?.value || "";
+    store.parseExternalSupplement(text);
+  });
+  root.querySelector("[data-action='apply-external-supplement']")?.addEventListener("click", store.applyExternalSupplement);
+  root.querySelector("[data-action='save-external-incomplete-draft']")?.addEventListener("click", () => store.saveExternalIncompleteDraft(false));
+  root.querySelector("[data-action='open-missing-manual']")?.addEventListener("click", () => {
+    store.set({ externalImport: { ...store.state.externalImport, missingManualOpen: true } });
+  });
+  root.querySelector("[data-action='start-report-supplement']")?.addEventListener("click", (event) => {
+    const button = event.currentTarget;
+    store.startExternalReportCompletion(button.dataset.externalTicker, button.dataset.externalReportId);
+  });
+  root.querySelectorAll("[data-conflict-resolution]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const path = button.dataset.conflictPath;
+      const manualInput = root.querySelector(`[data-conflict-manual="${CSS.escape(path)}"]`);
+      store.resolveSupplementConflict(path, button.dataset.conflictResolution, manualInput?.value);
+    });
+  });
+  root.querySelector("[data-action='clear-external-import']")?.addEventListener("click", store.clearExternalImport);
+  root.querySelectorAll("[data-action='cancel-external-import']").forEach((button) => {
+    button.addEventListener("click", store.cancelExternalImport);
+  });
+  root.querySelector("[data-action='save-external-analysis']")?.addEventListener("click", () => store.saveExternalDraft(false));
+  root.querySelector("[data-action='save-external-analysis-duplicate']")?.addEventListener("click", () => store.saveExternalDraft(true));
+  root.querySelectorAll("[data-external-field]").forEach((input) => {
+    input.addEventListener("change", () => store.updateExternalDraftField(input.dataset.externalField, input.value));
+    input.addEventListener("blur", () => store.updateExternalDraftField(input.dataset.externalField, input.value));
+  });
+  root.querySelector("[data-external-json]")?.addEventListener("blur", (event) => store.updateExternalDraftJson(event.target.value));
+  root.querySelector("[data-action='edit-external-report']")?.addEventListener("click", (event) => {
+    const button = event.currentTarget;
+    store.editExternalReport(button.dataset.externalTicker, button.dataset.externalReportId);
+  });
+  root.querySelector("[data-action='delete-external-report']")?.addEventListener("click", (event) => {
+    const button = event.currentTarget;
+    if (window.confirm(uiLabel("Delete this imported analysis version?"))) store.removeExternalReport(button.dataset.externalTicker, button.dataset.externalReportId);
+  });
+  root.querySelector("[data-action='delete-external-ticker']")?.addEventListener("click", (event) => {
+    const button = event.currentTarget;
+    if (window.confirm(uiLabel("Delete all imported analyses for this ticker?"))) store.removeAllExternalReports(button.dataset.externalTicker);
+  });
+  root.querySelector("[data-action='copy-external-json']")?.addEventListener("click", () => copySelectedExternalReport(store));
+  root.querySelector("[data-action='export-external-json']")?.addEventListener("click", () => exportSelectedExternalReport(store));
+  root.querySelector("[data-action='print-external-report']")?.addEventListener("click", () => window.print());
   root.querySelector("[data-action='clear-analysis-paste']")?.addEventListener("click", store.clearAnalystPaste);
   root.querySelector("[data-action='search']")?.addEventListener("click", actions.search);
+  root.querySelector("[data-library-search]")?.addEventListener("input", (event) => {
+    store.state.query = event.target.value;
+    filterLibraryCards(root, event.target.value);
+  });
   root.querySelector("#searchInput")?.addEventListener("input", (event) => {
     store.state.query = event.target.value;
   });
   root.querySelector("#searchInput")?.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") actions.search();
+    if (event.key === "Enter" && !event.target.matches("[data-library-search]")) actions.search();
   });
   root.querySelectorAll("[data-sample-query]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -2621,6 +3288,14 @@ function bind(root, store, actions) {
   });
   root.querySelectorAll("[data-result-ticker]").forEach((button) => {
     button.addEventListener("click", () => actions.loadCompany(button.dataset.resultTicker));
+  });
+}
+
+function filterLibraryCards(root, query) {
+  const clean = String(query || "").trim().toLowerCase();
+  root.querySelectorAll("[data-library-card]").forEach((card) => {
+    const text = card.dataset.searchText || "";
+    card.hidden = Boolean(clean) && !text.includes(clean);
   });
 }
 
@@ -2726,6 +3401,74 @@ function formatValue(value) {
   }
   if (value === null || value === undefined) return "-";
   return String(value);
+}
+
+function formatAnyValue(value) {
+  if (value === null || value === undefined || value === "") return "-";
+  if (typeof value === "number") return Number.isFinite(value) ? formatValue(value) : "-";
+  if (Array.isArray(value)) return value.map(formatAnyValue).join(" / ");
+  if (typeof value === "object") {
+    return Object.entries(value)
+      .filter(([, item]) => item !== null && item !== undefined && item !== "")
+      .map(([key, item]) => `${labelFromKey(key)}: ${formatAnyValue(item)}`)
+      .join(" / ") || "-";
+  }
+  return String(value);
+}
+
+function labelFromKey(key) {
+  return String(key || "")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function selectedExternalReport(store) {
+  const selection = store.state.externalReportSelection || {};
+  return getExternalAnalysis(store.state.externalAnalyses || {}, selection.ticker, selection.reportId);
+}
+
+async function copySelectedExternalReport(store) {
+  const report = selectedExternalReport(store);
+  if (!report) return;
+  const json = copyableExternalAnalysisJson(report);
+  await navigator.clipboard?.writeText(json);
+  store.set({ notice: store.state.language === "ar" ? "تم نسخ JSON." : "JSON copied." });
+}
+
+async function copyMissingRequirements(store) {
+  const result = store.currentMissingRequirementsPrompt?.() || { text: "", count: 0 };
+  if (!result.text) return;
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+    await navigator.clipboard.writeText(result.text);
+    store.set({
+      externalImport: { ...store.state.externalImport, missingPromptFallback: "" },
+      notice: store.state.language === "ar"
+        ? `تم نسخ طلب استكمال ${result.count} حقول.`
+        : `Copied completion request for ${result.count} fields.`
+    });
+  } catch {
+    store.set({
+      externalImport: { ...store.state.externalImport, missingPromptFallback: result.text },
+      notice: store.state.language === "ar"
+        ? "تعذر النسخ تلقائيًا. استخدم النص الظاهر للنسخ اليدوي."
+        : "Automatic copy failed. Use the visible text area to copy manually."
+    });
+  }
+}
+
+function exportSelectedExternalReport(store) {
+  const report = selectedExternalReport(store);
+  if (!report) return;
+  const blob = new Blob([copyableExternalAnalysisJson(report)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${report.company?.ticker || "external-analysis"}-${report.analysisDate || "report"}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+  store.set({ notice: store.state.language === "ar" ? "تم تصدير JSON." : "JSON exported." });
 }
 
 function escapeHtml(value) {
