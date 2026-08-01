@@ -10,12 +10,30 @@
   <meta name="apple-mobile-web-app-title" content="Franklin Research">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png">
-  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./styles.css">
-  <script src="./backend-config.js"></script>
+  <link rel="manifest" href="./manifest.webmanifest?v=v10-report-ui-20260801">
+  <script>
+    (function () {
+      var version = "v10-report-ui-20260801";
+      if (!("serviceWorker" in navigator) || !("caches" in window)) return;
+      if (sessionStorage.getItem("franklin-cache-reset") === version) return;
+      sessionStorage.setItem("franklin-cache-reset", version);
+      Promise.all([
+        navigator.serviceWorker.getRegistrations().then(function (items) {
+          return Promise.all(items.map(function (item) { return item.unregister(); }));
+        }),
+        caches.keys().then(function (keys) {
+          return Promise.all(keys.filter(function (key) { return key.indexOf("franklin-research") === 0; }).map(function (key) { return caches.delete(key); }));
+        })
+      ]).finally(function () {
+        window.location.reload();
+      });
+    }());
+  </script>
+  <link rel="stylesheet" href="./styles.css?v=v10-report-ui-20260801">
+  <script src="./backend-config.js?v=v10-report-ui-20260801"></script>
 </head>
 <body>
   <div id="app"></div>
-  <script type="module" src="./src/main.js"></script>
+  <script type="module" src="./src/main.js?v=v10-report-ui-20260801"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v10-chatgpt-contract";
+const CACHE_NAME = "franklin-research-v10-report-ui-20260801";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -56,19 +56,27 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).then((response) => {
-        if (response.ok && isSafeStaticAsset(url)) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        }
-        return response;
-      });
-    })
-  );
+  if (isVersionedAppAsset(url)) {
+    event.respondWith(fetchAndCache(event.request, url).catch(() => caches.match(event.request)));
+    return;
+  }
+
+  event.respondWith(caches.match(event.request).then((cached) => cached || fetchAndCache(event.request, url)));
 });
+
+function fetchAndCache(request, url) {
+  return fetch(request).then((response) => {
+    if (response.ok && isSafeStaticAsset(url)) {
+      const clone = response.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+    }
+    return response;
+  });
+}
+
+function isVersionedAppAsset(url) {
+  return url.searchParams.has("v") || [".css", ".js"].some((extension) => url.pathname.endsWith(extension));
+}
 
 function isSafeStaticAsset(url) {
   return [
