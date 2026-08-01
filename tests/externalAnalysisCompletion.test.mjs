@@ -6,6 +6,7 @@ import { analyzeExternalAnalysisCompletion, attachCompletionStatus, buildMissing
 import { parseExternalAnalysisSupplement } from "../src/externalAnalysis/supplementParser.js";
 import { validateExternalAnalysisSupplement } from "../src/externalAnalysis/supplementValidator.js";
 import { mergeExternalAnalysisSupplement } from "../src/externalAnalysis/supplementMerge.js";
+import { copyableExternalAnalysisJson, externalAnalysisToHomeCard } from "../src/externalAnalysis/reportAdapter.js";
 
 const now = new Date("2026-07-31T10:00:00.000Z");
 
@@ -183,6 +184,12 @@ assert.equal(merged.report.supplements[0].rawSupplement, supplementJson);
 assert.ok(merged.report.supplements[0].appliedFields.some((item) => item.path === "fairValue.base"));
 assert.equal(merged.validation.valid, true);
 assert.equal(merged.report.completionStatus.status, "complete");
+const homeCardWithCompletion = externalAnalysisToHomeCard(merged.report);
+assert.equal(homeCardWithCompletion.completionStatus.status, "complete");
+assert.equal(homeCardWithCompletion.completionStatus.completionPct, 100);
+const exportedWithoutStoredCompletion = JSON.parse(copyableExternalAnalysisJson({ ...merged.report, completionStatus: undefined }));
+assert.equal(exportedWithoutStoredCompletion.completionStatus.status, "complete");
+assert.equal(exportedWithoutStoredCompletion.completionStatus.requiredComplete, exportedWithoutStoredCompletion.completionStatus.requiredTotal);
 
 const conflictingSupplement = (await parseExternalAnalysisSupplement(JSON.stringify({
   schemaVersion: "external-analysis-supplement/v1",

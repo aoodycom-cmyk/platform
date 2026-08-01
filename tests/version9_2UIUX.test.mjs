@@ -46,6 +46,8 @@ assert.ok(components.includes("الرد لا يحتوي على أي قيمة ج�
 assert.ok(components.includes("لا تستخدم TICKER أو SYMBOL"), "Placeholder ticker supplement error must be shown in Arabic.");
 assert.ok(components.includes("function externalHistoryPanel"), "History page must exist for prior saved analyses.");
 assert.ok(components.includes("function externalAnalysisReportView"), "Company Report page must exist.");
+assert.ok(components.includes("function reportDataHealthCard"), "Company Report must always show data health/completion.");
+assert.ok(components.includes("libraryCompletionRow"), "Home report cards must show completion state.");
 assert.ok(components.includes("report-v2-header"), "Company Report must use the V2 report-first header.");
 assert.ok(components.includes("Investment Verdict"), "Report must contain the investment verdict section.");
 assert.ok(components.includes("Raw Analysis"), "Report must keep raw analysis available but secondary.");
@@ -79,6 +81,8 @@ assert.ok(styles.includes(".external-import-context"), "Ticker fallback context 
 assert.ok(styles.includes(".chatgpt-prep-card"), "ChatGPT prep card styles must exist.");
 assert.ok(styles.includes(".required-field-chips"), "Required fields guide styles must exist.");
 assert.ok(styles.includes(".missing-data-sheet"), "Missing data sheet styles must exist.");
+assert.ok(styles.includes(".report-data-health-card"), "Report data health card styles must exist.");
+assert.ok(styles.includes(".library-completion-row"), "Home completion row styles must exist.");
 assert.ok(styles.includes(".supplement-sheet"), "Supplement input sheet styles must exist.");
 assert.ok(styles.includes(".conflict-row"), "Conflict review styles must exist.");
 assert.ok(styles.includes(".report-v2-section"), "Report reading section styles must exist.");
@@ -88,6 +92,7 @@ assert.ok(styles.includes(".forecast-bars"), "Forecast chart styles must exist."
 
 assert.ok(language.includes("مكتبة أبحاث أسهم احترافية"), "Arabic research-library positioning must be localized.");
 assert.ok(language.includes("اكتمال البيانات"), "Arabic data completion label must be localized.");
+assert.ok(language.includes("صحة البيانات"), "Arabic data health label must be localized.");
 assert.ok(language.includes("اكتب الرمز هنا إذا كان التقرير الملصوق لا يذكر رمز السهم بوضوح."), "Ticker fallback helper text must be localized.");
 assert.ok(language.includes("انسخ البرومبت الرسمي، أرسله إلى ChatGPT، ثم الصق رد JSON هنا."), "ChatGPT prep copy must be localized.");
 assert.ok(language.includes("التوافق الشرعي"), "Arabic Shariah label must be localized.");

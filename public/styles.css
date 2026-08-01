@@ -6321,6 +6321,125 @@ button.danger-action {
   background: color-mix(in srgb, var(--surface-2) 84%, transparent);
 }
 
+.library-completion-row {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: color-mix(in srgb, var(--surface-2) 84%, transparent);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.library-completion-row span,
+.library-completion-row em {
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.library-completion-row strong {
+  color: var(--ink);
+  font-size: 14px;
+  direction: ltr;
+}
+
+.library-completion-row.complete strong,
+.report-data-health-card.complete .data-health-score strong {
+  color: var(--green);
+}
+
+.library-completion-row.incomplete strong,
+.library-completion-row.draft strong,
+.report-data-health-card.incomplete .data-health-score strong,
+.report-data-health-card.draft .data-health-score strong {
+  color: var(--warning);
+}
+
+.library-completion-row.invalid strong,
+.library-completion-row.has-conflicts strong,
+.report-data-health-card.invalid .data-health-score strong,
+.report-data-health-card.has-conflicts .data-health-score strong {
+  color: var(--red);
+}
+
+.report-data-health-card {
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, var(--accent) 5%), color-mix(in srgb, var(--surface-2) 90%, transparent));
+  padding: clamp(14px, 2.4vw, 22px);
+  display: grid;
+  gap: 14px;
+}
+
+.report-data-health-card.complete {
+  border-color: color-mix(in srgb, var(--green) 34%, var(--line));
+}
+
+.report-data-health-card.incomplete,
+.report-data-health-card.draft {
+  border-color: color-mix(in srgb, var(--warning) 38%, var(--line));
+}
+
+.report-data-health-card.invalid,
+.report-data-health-card.has-conflicts {
+  border-color: color-mix(in srgb, var(--red) 36%, var(--line));
+}
+
+.report-data-health-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: start;
+}
+
+.report-data-health-head h3 {
+  font-size: clamp(22px, 3vw, 32px);
+  line-height: 1.12;
+  margin: 0;
+}
+
+.report-data-health-head p {
+  color: var(--muted);
+  margin-top: 6px;
+  line-height: 1.55;
+}
+
+.data-health-score {
+  min-width: 104px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--surface-2) 86%, transparent);
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.data-health-score strong {
+  font-size: clamp(30px, 7vw, 48px);
+  line-height: 1;
+  direction: ltr;
+}
+
+.data-health-score span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.data-health-stats {
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+}
+
+.complete-chip {
+  border-color: color-mix(in srgb, var(--green) 34%, var(--line)) !important;
+  background: color-mix(in srgb, var(--green) 10%, var(--surface-2)) !important;
+}
+
 .supplement-paste-box {
   min-height: 220px;
   line-height: 1.65;
@@ -6393,6 +6512,19 @@ button.danger-action {
 
   .supplement-missing-mini {
     display: grid;
+  }
+
+  .report-data-health-head,
+  .library-completion-row {
+    grid-template-columns: 1fr;
+  }
+
+  .report-data-health-head {
+    display: grid;
+  }
+
+  .data-health-score {
+    justify-items: start;
   }
 
   .missing-field-row p,

@@ -11,7 +11,7 @@ import {
 } from "../domain/marketColorSystem.js";
 import { rankEvaluatedCompanies } from "../engines/rankingEngine.js";
 import { DEMO_ANALYSIS_FIXTURE } from "../data/demoFlow.js";
-import { copyableExternalAnalysisJson, externalAnalysisToHomeCard } from "../externalAnalysis/reportAdapter.js";
+import { copyableExternalAnalysisJson, externalAnalysisToHomeCard, externalReportWithCompletionStatus } from "../externalAnalysis/reportAdapter.js";
 import { analyzeExternalAnalysisCompletion, FIELD_PRIORITY, FIELD_REQUIREMENTS } from "../externalAnalysis/missingFields.js";
 import { getExternalAnalysis, listLatestExternalAnalyses } from "../externalAnalysis/storage.js";
 import {
@@ -205,11 +205,23 @@ function externalHomeCard(report) {
         ${compactCardMetric(uiLabel("Upside"), formatExternalPercent(report.upsideToBasePct))}
         ${compactCardMetric(uiLabel("Last Analysis"), report.analysisDate || "-")}
       </div>
+      ${libraryCompletionRow(report.completionStatus)}
       <div class="company-card-footer library-card-footer">
         <span>${uiLabel("Open saved report")}</span>
         <small>${uiLabel("Open report")}</small>
       </div>
     </article>
+  `;
+}
+
+function libraryCompletionRow(completion = {}) {
+  const pct = boundedPercent(completion.completionPct);
+  return `
+    <div class="library-completion-row ${completionStatusClass(completion.status)}">
+      <span>${uiLabel("Data Health")}</span>
+      <strong>${pct}%</strong>
+      <em>${completionStatusLabel(completion.status)}</em>
+    </div>
   `;
 }
 
@@ -1295,8 +1307,9 @@ function externalAnalysisReportView(state) {
       </section>
     `;
   }
+  const reportWithCompletion = externalReportWithCompletionStatus(report);
   const history = state.externalAnalyses?.[report.company?.ticker] || [];
-  const completion = report.completionStatus || analyzeExternalAnalysisCompletion(report);
+  const completion = reportWithCompletion.completionStatus;
   return `
     <section class="external-report-shell external-report-v2">
       <header class="external-report-hero panel report-v2-header">
@@ -1315,7 +1328,7 @@ function externalAnalysisReportView(state) {
           <small>${uiLabel("Stored external research")}</small>
         </div>
       </header>
-      ${completion.status !== "complete" ? reportCompletionEntry(report, completion) : ""}
+      ${reportDataHealthCard(reportWithCompletion, completion)}
       <section class="scenario-grid external-score-grid report-v2-score-grid">
         ${externalScoreCard(financialTerm("Quality"), report.scores?.quality)}
         ${externalScoreCard(financialTerm("Growth"), report.scores?.growth)}
@@ -1354,22 +1367,74 @@ function externalAnalysisReportView(state) {
   `;
 }
 
-function reportCompletionEntry(report, completion) {
+function reportDataHealthCard(report, completion = {}) {
   const critical = completion.details?.criticalRequired || [];
+  const recommended = completion.details?.recommended || [];
+  const optional = completion.details?.optional || [];
+  const errors = completion.details?.errors || [];
+  const warnings = completion.details?.warnings || [];
+  const pct = boundedPercent(completion.completionPct);
+  const missingTotal = critical.length + recommended.length;
+  const needsCompletion = completion.status !== "complete";
   return `
-    <section class="panel report-completion-entry">
-      <div>
-        <p class="eyebrow">${uiLabel("Data Completion")}</p>
-        <h3>${uiLabel("بيانات التقرير غير مكتملة")}</h3>
-        <p>${completion.requiredComplete} ${uiLabel("of")} ${completion.requiredTotal} ${uiLabel("required fields complete")}</p>
+    <section class="panel report-data-health-card ${completionStatusClass(completion.status)}">
+      <div class="report-data-health-head">
+        <div>
+          <p class="eyebrow">${uiLabel("Data Completion")}</p>
+          <h3>${uiLabel("Data Health")}</h3>
+          <p>${completionStatusSentence(completion)}</p>
+        </div>
+        <div class="data-health-score">
+          <strong>${pct}%</strong>
+          <span>${completionStatusLabel(completion.status)}</span>
+        </div>
       </div>
-      <div class="completion-track"><i style="width:${Math.max(0, Math.min(100, completion.completionPct))}%"></i></div>
+      <div class="completion-track"><i style="width:${pct}%"></i></div>
+      <div class="missing-data-stats data-health-stats">
+        ${missingStat(uiLabel("Required fields"), `${completion.requiredComplete || 0}/${completion.requiredTotal || 0}`)}
+        ${missingStat(uiLabel("Recommended fields"), `${completion.recommendedComplete || 0}/${completion.recommendedTotal || 0}`)}
+        ${missingStat(uiLabel("Missing fields"), String(missingTotal))}
+        ${missingStat(uiLabel("Invalid fields"), String(errors.length))}
+        ${missingStat(uiLabel("Warnings"), String(warnings.length))}
+      </div>
       <div class="supplement-missing-mini">
-        ${critical.slice(0, 4).map((item) => `<span><b>${escapeHtml(item.labelAr || item.path)}</b><em dir="ltr">${escapeHtml(item.path)}</em></span>`).join("")}
+        ${critical.length || recommended.length
+          ? [...critical, ...recommended].slice(0, 6).map((item) => `<span><b>${escapeHtml(item.labelAr || item.path)}</b><em dir="ltr">${escapeHtml(item.path)}</em></span>`).join("")
+          : `<span class="complete-chip"><b>${uiLabel("All required data is complete.")}</b></span>`}
+        ${optional.length ? `<span><b>${uiLabel("Optional fields missing")}</b><em dir="ltr">${optional.length}</em></span>` : ""}
       </div>
-      <button class="primary-btn" data-action="start-report-supplement" data-external-ticker="${escapeHtml(report.company?.ticker || "")}" data-external-report-id="${escapeHtml(report.id || "")}">${uiLabel("إكمال البيانات الناقصة")}</button>
+      ${needsCompletion ? `<button class="primary-btn" data-action="start-report-supplement" data-external-ticker="${escapeHtml(report.company?.ticker || "")}" data-external-report-id="${escapeHtml(report.id || "")}">${uiLabel("إكمال البيانات الناقصة")}</button>` : ""}
     </section>
   `;
+}
+
+function completionStatusSentence(completion = {}) {
+  if (completion.status === "complete") return uiLabel("All critical data is complete and the report is ready.");
+  if (completion.status === "has_conflicts") return uiLabel("Conflicting fields need review before the report is complete.");
+  if (completion.status === "invalid") return uiLabel("Validation found fields that need review.");
+  if (completion.status === "draft") return uiLabel("This report is saved as an incomplete draft.");
+  return uiLabel("Some required data is still missing.");
+}
+
+function completionStatusLabel(status) {
+  if (status === "complete") return uiLabel("Complete");
+  if (status === "has_conflicts") return uiLabel("Has Conflicts");
+  if (status === "invalid") return uiLabel("Invalid");
+  if (status === "draft") return uiLabel("Draft");
+  return uiLabel("Incomplete");
+}
+
+function completionStatusClass(status) {
+  if (status === "complete") return "complete";
+  if (status === "has_conflicts") return "has-conflicts";
+  if (status === "invalid") return "invalid";
+  if (status === "draft") return "draft";
+  return "incomplete";
+}
+
+function boundedPercent(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Math.max(0, Math.min(100, Math.round(numeric))) : 0;
 }
 
 function reportSection(title, body) {

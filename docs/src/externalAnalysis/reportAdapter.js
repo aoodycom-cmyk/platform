@@ -1,6 +1,8 @@
 import { money } from "../domain/financialMetrics.js";
+import { analyzeExternalAnalysisCompletion } from "./missingFields.js";
 
 export function externalAnalysisToHomeCard(report = {}) {
+  const completionStatus = externalReportCompletionStatus(report);
   return {
     id: report.id,
     analysisOrigin: report.analysisOrigin,
@@ -19,7 +21,8 @@ export function externalAnalysisToHomeCard(report = {}) {
     bullFairValue: report.fairValue?.bull ?? null,
     upsideToBasePct: report.fairValue?.upsideToBasePct ?? null,
     verdict: report.decision?.verdict || "",
-    thesis: report.thesis?.shortSummary || report.thesis?.fullSummary || ""
+    thesis: report.thesis?.shortSummary || report.thesis?.fullSummary || "",
+    completionStatus
   };
 }
 
@@ -32,5 +35,16 @@ export function externalAnalysisSummaryLine(report = {}) {
 }
 
 export function copyableExternalAnalysisJson(report = {}) {
-  return JSON.stringify(report, null, 2);
+  return JSON.stringify(externalReportWithCompletionStatus(report), null, 2);
+}
+
+export function externalReportWithCompletionStatus(report = {}) {
+  return {
+    ...report,
+    completionStatus: externalReportCompletionStatus(report)
+  };
+}
+
+export function externalReportCompletionStatus(report = {}) {
+  return analyzeExternalAnalysisCompletion(report);
 }
