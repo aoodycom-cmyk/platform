@@ -1,5 +1,15 @@
 # Changelog
 
+## Version 10.4 - Fair value ChatGPT Contract Compatibility
+
+- Added support for importing `fair-value-analysis/v1` JSON produced by the external Fair value ChatGPT system.
+- Added a deterministic compatibility adapter that maps Fair value output into the existing saved-report view without running valuation, scoring, forecast, analyst brain, or recommendation engines.
+- Updated the copied stock-analysis prompt and JSON template so the user can ask ChatGPT for Fair value output that the application can import directly.
+- Preserved backward compatibility with existing `external-analysis-report/v1` imports and saved reports.
+- Reclassified Quality/Growth/Valuation/Risk scores as recommended display fields instead of blocking required fields; invalid score values are still rejected when present.
+- Updated Arabic UI text to reference Fair value JSON instead of only `ExternalAnalysisReport`.
+- Added tests for Fair value JSON import, score validation behavior, completion classification, and prompt/template contract.
+
 ## Version 10.3 - External ChatGPT Analysis Import
 
 - Added an independent `External ChatGPT Analysis` workflow: Paste -> Parse -> Preview -> Save -> Report.

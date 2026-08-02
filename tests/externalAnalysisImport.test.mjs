@@ -60,13 +60,129 @@ assert.ok(invalidRequired.errors.some((error) => error.field === "company.ticker
 
 const invalidScore = validateExternalAnalysisReport(normalizeExternalAnalysisReport({
   ...validReport,
-  scores: { ...validReport.scores, quality: 12 }
+  scores: { ...validReport.scores, quality: -1 }
 }, rawJson, { now }));
 assert.equal(invalidScore.valid, false);
 assert.ok(invalidScore.errors.some((error) => error.field === "scores.quality"));
 
 const valid = validateExternalAnalysisReport(parsedJson.report);
 assert.equal(valid.valid, true);
+
+const fairValueJson = JSON.stringify({
+  schemaVersion: "fair-value-analysis/v1",
+  methodologyVersion: "fair-value-system/v1",
+  language: "ar",
+  analysisDate: "2026-08-01",
+  company: {
+    ticker: "MSFT",
+    name: "Microsoft Corporation",
+    sector: "Technology",
+    industry: "Software",
+    currency: "USD",
+    currentPrice: 451,
+    priceTimestamp: "2026-08-01"
+  },
+  dataQuality: {
+    score: 92,
+    confidence: 88,
+    missingCriticalFields: [],
+    reportedDataThrough: "FY2026 Q2",
+    notes: []
+  },
+  classification: {
+    companyType: "شركة نمو مربحة",
+    businessStage: "ناضجة",
+    cyclicality: "منخفضة",
+    capitalIntensity: "متوسطة",
+    evidence: ["Azure growth"],
+    confidence: 90
+  },
+  executiveDecision: {
+    recommendation: "BUY",
+    confidence: 91,
+    investmentScore: 95,
+    currentPrice: 451,
+    fairValue: 435,
+    fairValueLow: 380,
+    fairValueHigh: 500,
+    upsideDownsidePercent: -4,
+    marginOfSafetyPercent: -4,
+    why: ["جودة Microsoft عالية ونمو Azure والذكاء الاصطناعي يدعم الفرضية."]
+  },
+  businessQuality: {
+    score: 99,
+    rating: "High",
+    confidence: 90,
+    components: {
+      growth: 98,
+      profitability: 97,
+      cashFlow: 85,
+      balanceSheet: 90,
+      capitalAllocation: 88,
+      competitiveAdvantage: 95,
+      management: 90
+    },
+    explanation: "الشركة تتمتع بجودة تشغيلية عالية."
+  },
+  strengths: [{ title: "Azure", explanation: "نمو قوي.", evidence: ["Cloud revenue"], importance: 5, durability: "مرتفعة", valuationImpact: "يرفع القيمة العادلة", confidence: 90 }],
+  weaknesses: [{ title: "التقييم", explanation: "السهم ليس رخيصًا.", evidence: ["Multiple elevated"], severity: 3, persistence: "متوسطة", valuationImpact: "يحد من الصعود", monitoringIndicator: "Forward P/E", confidence: 85 }],
+  valuationMethodology: {
+    primaryMethod: "DCF",
+    secondaryMethods: ["P/E"],
+    excludedMethods: ["Price to Book"],
+    selectionReason: "FCF قابل للتوقع.",
+    methodExplanations: [],
+    exclusionReasons: [],
+    modelWeights: [{ method: "DCF", weight: 70 }, { method: "P/E", weight: 30 }],
+    weightReasoning: "DCF أكثر ملاءمة.",
+    limitations: ["حساسية WACC"]
+  },
+  valuationResults: [
+    { method: "DCF", role: "primary", whySuitable: "FCF مستقر.", assumptions: {}, inputs: {}, fairValue: 440, weight: 70, confidence: 88, source: "Analyst", explanation: "DCF رئيسي.", limitation: "WACC" },
+    { method: "P/E", role: "secondary", whySuitable: "الأرباح موجبة.", assumptions: {}, inputs: {}, fairValue: 425, weight: 30, confidence: 80, source: "Analyst", explanation: "Cross-check.", limitation: "Multiple sensitivity" }
+  ],
+  forecastAssumptions: { sourcePriority: [], yearlyForecast: [], wacc: { value: 9, reason: "مخاطر معتدلة.", rangeLow: 8, rangeHigh: 10 }, terminalGrowth: { value: 3, reason: "نمو ناضج." }, sensitivity: [], confidence: 86 },
+  scenarios: {
+    Conservative: { enabled: true, probability: 25, fairValue: 380, upsideDownsidePercent: -16, assumptions: {}, requiredOutcomes: [], thesis: "تباطؤ النمو.", keyRisks: ["تباطؤ Azure"] },
+    Base: { enabled: true, probability: 50, fairValue: 435, upsideDownsidePercent: -4, assumptions: {}, requiredOutcomes: [], thesis: "نمو مستقر.", keyRisks: ["CapEx"] },
+    Optimistic: { enabled: true, probability: 25, fairValue: 500, upsideDownsidePercent: 11, assumptions: {}, requiredOutcomes: [], thesis: "تسارع AI.", keyRisks: [] },
+    Exceptional: { enabled: false, probability: 0, fairValue: null, upsideDownsidePercent: null, assumptions: {}, requiredOutcomes: [], thesis: null, keyRisks: [] }
+  },
+  fairValueSummary: {
+    fairValueLow: 380,
+    fairValueBase: 435,
+    fairValueHigh: 500,
+    probabilityWeightedFairValue: 438,
+    currentPrice: 451,
+    upsideDownsidePercent: -4,
+    marginOfSafetyPercent: -4,
+    confidenceLevel: 88
+  },
+  catalysts: ["نمو Azure", "تبني Copilot"],
+  risks: ["ارتفاع التقييم", "تباطؤ Azure"],
+  whatChangesMyMind: { items: [], biggestAssumption: "استمرار نمو Azure", upgradeTrigger: "هبوط السعر", downgradeTrigger: "ضغط الهوامش", thesisBreak: "تباطؤ جوهري", revaluationRequired: [] },
+  finalDecision: { decision: "BUY", why: ["جودة عالية ونمو قوي."], whyNot: ["التقييم مرتفع."], biggestAssumption: "Azure", mainRisk: "التقييم", whatChangesTheDecision: [], policyGates: [] },
+  monitoringChecklist: [{ metric: "Azure Growth", currentValue: "High", expectedRange: "Healthy", upgradeTrigger: "Acceleration", downgradeTrigger: "Slowdown", thesisBreak: "Sharp slowdown", revaluationEvent: "Earnings" }],
+  sources: [{ name: "Microsoft Investor Relations", type: "official", date: "2026-08-01", url: "https://www.microsoft.com/en-us/investor/", usedFor: ["earnings"] }],
+  dashboardExport: { approvedOnly: false, exported: false, ticker: "MSFT", recommendation: "BUY", currentPrice: 451, fairValue: 435, fairValueLow: 380, fairValueHigh: 500, upsideDownsidePercent: -4, investmentScore: 95, confidence: 91, primaryValuationMethod: "DCF", strengthsCount: 1, weaknessesCount: 1 }
+});
+const parsedFairValue = await parseExternalAnalysisInput(fairValueJson, { now });
+assert.equal(parsedFairValue.usedAi, false);
+assert.equal(parsedFairValue.parserSource, "Local JSON Parser");
+assert.equal(parsedFairValue.report.schemaVersion, "external-analysis-report/v1");
+assert.equal(parsedFairValue.report.metadata.nativeSchemaVersion, "fair-value-analysis/v1");
+assert.equal(parsedFairValue.report.metadata.nativeMethodologyVersion, "fair-value-system/v1");
+assert.equal(parsedFairValue.report.company.ticker, "MSFT");
+assert.equal(parsedFairValue.report.market.priceAtAnalysis, 451);
+assert.equal(parsedFairValue.report.scores.quality, 9.9);
+assert.equal(parsedFairValue.report.scores.growth, 9.8);
+assert.equal(parsedFairValue.report.scores.overall, 9.5);
+assert.equal(parsedFairValue.report.fairValue.bear, 380);
+assert.equal(parsedFairValue.report.fairValue.base, 435);
+assert.equal(parsedFairValue.report.fairValue.bull, 500);
+assert.equal(parsedFairValue.report.valuationMethods.dcf.fairValue, 440);
+assert.equal(parsedFairValue.report.decision.verdict, "BUY");
+assert.equal(validateExternalAnalysisReport(parsedFairValue.report).valid, true);
 
 let saved = saveExternalAnalysis({}, parsedJson.report, { now });
 assert.equal(saved.duplicate, null);

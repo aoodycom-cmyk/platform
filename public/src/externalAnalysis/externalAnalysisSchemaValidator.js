@@ -6,10 +6,7 @@ export function validateExternalAnalysisReport(report = {}) {
   if (!isValidDate(report.analysisDate)) errors.push(fieldError("analysisDate", "Analysis date is required and must be valid."));
   if (!isPositiveNumber(report.market?.priceAtAnalysis)) errors.push(fieldError("market.priceAtAnalysis", "Price at analysis is required and must be greater than zero."));
 
-  for (const key of ["quality", "growth", "valuation", "risk"]) {
-    if (!isScore(report.scores?.[key])) errors.push(fieldError(`scores.${key}`, `${key} score is required and must be between 0 and 10.`));
-  }
-  for (const key of ["overall", "moat", "management"]) {
+  for (const key of ["quality", "growth", "valuation", "risk", "overall", "moat", "management"]) {
     if (report.scores?.[key] !== null && report.scores?.[key] !== undefined && !isScore(report.scores?.[key])) {
       errors.push(fieldError(`scores.${key}`, `${key} score must be between 0 and 10 when present.`));
     }

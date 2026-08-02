@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v10-report-ui-20260801";
+const CACHE_NAME = "franklin-research-v10-fair-value-20260802";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -9,6 +9,7 @@ const STATIC_ASSETS = [
   "./src/main.js",
   "./src/pwa.js",
   "./src/externalAnalysis/schema.js",
+  "./src/externalAnalysis/fairValueAdapter.js",
   "./src/externalAnalysis/parser.js",
   "./src/externalAnalysis/externalAnalysisSchemaValidator.js",
   "./src/externalAnalysis/chatgptContract.js",

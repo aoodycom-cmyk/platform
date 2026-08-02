@@ -137,8 +137,8 @@ try {
   assert.equal(app.status, 200);
   assert.ok(app.text.includes("Franklin Research 10.0.0"));
   assert.ok(app.text.includes("apple-mobile-web-app-title"));
-  assert.ok(app.text.includes("styles.css?v=v10-report-ui-20260801"));
-  assert.ok(app.text.includes("src/main.js?v=v10-report-ui-20260801"));
+  assert.ok(app.text.includes("styles.css?v=v10-fair-value-20260802"));
+  assert.ok(app.text.includes("src/main.js?v=v10-fair-value-20260802"));
   assert.ok(app.text.includes("franklin-cache-reset"));
 
   const search = await inject(server, { method: "POST", path: "/api/search", headers: { cookie }, body: { query: "AAPL" } });
@@ -172,8 +172,9 @@ try {
 
   const serviceWorker = await inject(server, { path: "/service-worker.js", headers: { cookie } });
   assert.equal(serviceWorker.status, 200);
-  assert.ok(serviceWorker.text.includes("franklin-research-v10-report-ui-20260801"));
+  assert.ok(serviceWorker.text.includes("franklin-research-v10-fair-value-20260802"));
   assert.ok(serviceWorker.text.includes("isVersionedAppAsset"));
+  assert.ok(serviceWorker.text.includes("fairValueAdapter.js"));
   assert.ok(serviceWorker.text.includes("offline.html"));
   assert.equal(serviceWorker.text.includes("/api/search"), false);
   assert.equal(serviceWorker.text.includes("api.openai.com"), false);

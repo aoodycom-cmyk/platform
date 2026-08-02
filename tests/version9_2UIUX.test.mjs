@@ -104,7 +104,7 @@ assert.ok(language.includes("صحة البيانات"), "Arabic data health labe
 assert.ok(language.includes("الحالة المتشائمة"), "Arabic Bear case helper label must be localized.");
 assert.ok(language.includes("الحالة المتفائلة"), "Arabic Bull case helper label must be localized.");
 assert.ok(language.includes("اكتب الرمز هنا إذا كان التقرير الملصوق لا يذكر رمز السهم بوضوح."), "Ticker fallback helper text must be localized.");
-assert.ok(language.includes("انسخ البرومبت الرسمي، أرسله إلى ChatGPT، ثم الصق رد JSON هنا."), "ChatGPT prep copy must be localized.");
+assert.ok(language.includes("انسخ برومبت Fair value الرسمي، أرسله إلى ChatGPT، ثم الصق رد JSON هنا."), "ChatGPT prep copy must be localized.");
 assert.ok(language.includes("التوافق الشرعي"), "Arabic Shariah label must be localized.");
 assert.ok(storeSource.includes("tickerHint: \"\""), "External import state must persist the ticker hint.");
 assert.ok(storeSource.includes("applyImportContextHints(parsed.report, { tickerHint })"), "Parsed external reports must receive context hints before validation.");

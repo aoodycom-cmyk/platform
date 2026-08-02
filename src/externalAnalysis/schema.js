@@ -1,3 +1,5 @@
+import { fairValueAnalysisToExternalReport, isFairValueAnalysisReport } from "./fairValueAdapter.js";
+
 export const EXTERNAL_ANALYSIS_SCHEMA_VERSION = "external-analysis-report/v1";
 export const EXTERNAL_ANALYSIS_ORIGIN = "external_chatgpt";
 export const EXTERNAL_ANALYSIS_PARSER_VERSION = "external-parser-v1";
@@ -133,6 +135,10 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
 }
 
 export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", options = {}) {
+  const originalInput = input && typeof input === "object" ? input : {};
+  if (isFairValueAnalysisReport(originalInput)) {
+    input = fairValueAnalysisToExternalReport(originalInput);
+  }
   const now = options.now || new Date();
   const base = createEmptyExternalAnalysisReport(rawAnalysis || input.rawAnalysisOriginal || input.rawAnalysis || "", now);
   const source = input.source ?? input.metadata?.source ?? base.source;
@@ -219,7 +225,14 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
       updatedAt: input.metadata?.updatedAt || base.metadata.updatedAt,
       importMethod: input.metadata?.importMethod || options.importMethod || null,
       parserVersion: input.metadata?.parserVersion || EXTERNAL_ANALYSIS_PARSER_VERSION,
-      rawHash: input.metadata?.rawHash || hashText(String(rawAnalysis || input.rawAnalysisOriginal || input.rawAnalysis || ""))
+      rawHash: input.metadata?.rawHash || hashText(String(rawAnalysis || input.rawAnalysisOriginal || input.rawAnalysis || "")),
+      nativeSchemaVersion: input.metadata?.nativeSchemaVersion || originalInput.schemaVersion || null,
+      nativeMethodologyVersion: input.metadata?.nativeMethodologyVersion || originalInput.methodologyVersion || null,
+      fairValueDataQualityScore: input.metadata?.fairValueDataQualityScore ?? null,
+      fairValueDataConfidence: input.metadata?.fairValueDataConfidence ?? null,
+      primaryValuationMethod: input.metadata?.primaryValuationMethod ?? null,
+      valuationSelectionReason: input.metadata?.valuationSelectionReason ?? null,
+      fairValueLimitations: Array.isArray(input.metadata?.fairValueLimitations) ? input.metadata.fairValueLimitations : []
     }
   };
   return preserveNulls(report);

@@ -1,157 +1,120 @@
+import { buildFairValueAnalysisJsonObject } from "./fairValueAdapter.js";
 import { FIELD_PRIORITY, FIELD_REQUIREMENTS } from "./missingFields.js";
 
 export function buildFullAnalysisPrompt(options = {}) {
   const ticker = normalizeTicker(options.tickerHint);
   const requiredFields = fieldsByPriority(FIELD_PRIORITY.CRITICAL);
   const recommendedFields = fieldsByPriority(FIELD_PRIORITY.RECOMMENDED);
-  const template = buildExternalAnalysisJsonObject({ tickerHint: ticker });
+  const template = buildFairValueAnalysisJsonObject({ tickerHint: ticker });
 
   return [
-    "أريدك أن تعمل كمحلل أسهم محترف وتجهز تحليلًا قابلًا للاستيراد داخل Franklin Research.",
+    "أنت نظام متخصص في تحليل وتقييم الأسهم الأمريكية. اسم النظام هو Fair value.",
     "",
-    "المطلوب:",
-    "- حلل الشركة اعتمادًا على معلومات موثوقة ومصادر رسمية أو مذكورة بوضوح.",
-    "- لا تخترع أي رقم غير متوفر.",
-    "- إذا لم تجد معلومة، ضع null.",
-    "- لا تستخدم Markdown.",
-    "- لا تضف شرحًا خارج JSON.",
-    "- أخرج JSON فقط مطابقًا للأسماء والهيكل أدناه.",
-    "- اكتب التحليل والتفسير بالعربية.",
-    "- اترك المصطلحات المالية القياسية بالإنجليزية مثل DCF وFCF وROIC وEPS وP/E وEV/EBITDA.",
+    "تعريف المصطلحات:",
+    "- النظام: مشروع Fair value داخل ChatGPT، وهو المسؤول عن البحث والتحليل المالي واختيار طرق التقييم وحساب القيمة العادلة وإصدار القرار الاستثماري.",
+    "- التطبيق: واجهة خارجية مستقلة مخصصة لاستعراض نتيجة التحليل فقط.",
+    "- التطبيق لا يقوم بالتحليل ولا يعيد حساب الأرقام.",
+    "- بعد اكتمال التحليل داخل النظام، سينسخ المستخدم مخرجات JSON ويلصقها داخل التطبيق.",
+    "",
+    "الهدف الأساسي:",
+    "- عند طلب تحليل أي شركة أو سهم، نفّذ تحليلًا ماليًا واستثماريًا متكاملًا.",
+    "- قدّم تحليلًا عربيًا مفهومًا للمستخدم.",
+    "- أخرج ملف JSON نهائيًا منظمًا يستطيع تطبيق استعراض الأسهم قراءته واستيراده.",
+    "- وضّح طرق التقييم المستخدمة ولماذا تم اختيار كل طريقة.",
+    "- اذكر أهم نقاط قوة الشركة وأهم نقاط ضعفها.",
+    "- اذكر القيمة العادلة والسيناريوهات والتوصية النهائية.",
     "",
     ticker ? `رمز السهم المطلوب: ${ticker}` : "رمز السهم: حدده من الشركة محل التحليل إذا كان معروفًا، وإلا ضع null.",
     "",
-    "الحقول المطلوبة التي تمنع اعتماد التقرير إذا نقصت:",
+    "قواعد البحث والبيانات:",
+    "- استخدم أحدث البيانات المتاحة وقت التحليل.",
+    "- أعط الأولوية لتقارير الشركة وInvestor Relations وملفات SEC ومكالمات الأرباح والتوجيهات الرسمية والمصادر المالية الموثوقة.",
+    "- لا تخترع أي رقم أو معلومة.",
+    "- ميّز بين reportedData وconsensusEstimates وanalystAssumptions.",
+    "- إذا لم تتوفر معلومة ضرورية، استخدم null.",
+    "- لا تعرض رقمًا تقديريًا على أنه رقم معلن.",
+    "- اذكر تاريخ التقييم وسعر السهم المستخدم في التقييم.",
+    "- حافظ على عملة الشركة الأساسية، ولا تخلط بين العملات.",
+    "",
+    "اختيار طريقة التقييم:",
+    "- لا تستخدم طريقة تقييم ثابتة لجميع الشركات.",
+    "- صنّف الشركة أولًا حسب طبيعة أعمالها ومرحلتها المالية.",
+    "- اختر طرق التقييم المناسبة فقط من DCF وReverse DCF وP/E وPEG وEV/EBITDA وEV/EBIT وP/S وEV/Sales وP/FCF وSOTP وDividend Discount Model وPrice to Book وComparable Companies وHistorical Multiples.",
+    "- استخدم DCF عندما تكون التدفقات النقدية قابلة للتنبؤ بدرجة معقولة.",
+    "- لا تجعل DCF الطريقة الرئيسية عندما يكون FCF سلبيًا بشدة أو شديد التقلب.",
+    "- استخدم Price to Book للمؤسسات المالية عندما تكون القيمة الدفترية ذات دلالة اقتصادية.",
+    "- استخدم SOTP عندما تكون الشركة مكونة من قطاعات مختلفة تحتاج إلى تقييم مستقل.",
+    "- استخدم Reverse DCF لمعرفة مقدار النمو والهوامش التي يسعرها السوق حاليًا.",
+    "",
+    "يجب أن يحتوي valuationMethodology على primaryMethod وsecondaryMethods وexcludedMethods وselectionReason وmethodExplanations وexclusionReasons وmodelWeights وweightReasoning وlimitations.",
+    "لكل طريقة تقييم مستخدمة اذكر الدور، سبب الملاءمة، الافتراضات، المدخلات، Fair Value، الوزن، الثقة، ونقطة الضعف.",
+    "",
+    "تحليل جودة الشركة:",
+    "- حلل Revenue وEPS وFCF وGross Margin وOperating Margin وFCF Margin وROIC وCash Conversion وCapEx intensity والميزانية وStock-based Compensation وتخصيص رأس المال والميزة التنافسية والإدارة واستدامة النمو وحساسية الدورة الاقتصادية.",
+    "",
+    "نقاط القوة والضعف:",
+    "- أنشئ strengths من 3 إلى 7 نقاط فعلية مع title وexplanation وevidence وimportance وdurability وvaluationImpact وconfidence.",
+    "- أنشئ weaknesses من 3 إلى 7 نقاط فعلية مع title وexplanation وevidence وseverity وpersistence وvaluationImpact وmonitoringIndicator وconfidence.",
+    "- ميّز بين weaknesses كنقاط ضعف حالية وrisks كأحداث مستقبلية محتملة.",
+    "",
+    "السيناريوهات:",
+    "- أنشئ Conservative وBase وOptimistic وExceptional.",
+    "- Exceptional يكون enabled=false إلا إذا كان له مبرر واقعي.",
+    "- لكل سيناريو اذكر probability وfairValue وupsideDownsidePercent والافتراضات وrequiredOutcomes وthesis وkeyRisks.",
+    "- يجب أن يكون مجموع احتمالات السيناريوهات المفعلة 100%.",
+    "",
+    "القيمة العادلة والقرار:",
+    "- احسب fairValueLow وfairValueBase وfairValueHigh وprobabilityWeightedFairValue وcurrentPrice وupsideDownsidePercent وmarginOfSafety وconfidenceLevel.",
+    "- لا تستخدم متوسطًا بسيطًا لطرق التقييم إلا إذا كان ذلك مبررًا.",
+    "- استخدم توصية واحدة فقط: BUY أو ACCUMULATE أو HOLD أو REDUCE أو SELL أو INSUFFICIENT_DATA.",
+    "- لا تجعل جودة الشركة وحدها سببًا للشراء؛ يجب مراعاة السعر الحالي مقارنة بالقيمة العادلة.",
+    "",
+    "المراقبة المستقبلية:",
+    "- أنشئ monitoringChecklist من 5 إلى 8 عناصر تشمل metric وcurrentValue وexpectedRange وupgradeTrigger وdowngradeTrigger وthesisBreak وrevaluationEvent.",
+    "",
+    "صيغة الإخراج:",
+    "- بعد انتهاء التحليل، اعرض للمستخدم أولًا ملخصًا عربيًا واضحًا، ثم ضع ملف JSON كاملًا في مربع كود مستقل.",
+    "- يجب أن يكون JSON صالحًا للنسخ واللصق مباشرة في التطبيق.",
+    "- ممنوع داخل JSON: Markdown أو تعليقات برمجية أو نصوص خارج الكائن أو NaN أو Infinity أو trailing commas أو undefined.",
+    "- استخدم null عند غياب البيانات.",
+    "- لا تختصر أسماء الحقول ولا تغيّرها من تحليل إلى آخر.",
+    "- يجب أن تكون جميع الشروحات النصية داخل JSON باللغة العربية، مع الإبقاء على المصطلحات المالية القياسية بالإنجليزية مثل DCF وFCF وROIC وEPS وP/E وEV/EBITDA وWACC وSOTP.",
+    "",
+    "الحد الأدنى الذي يحتاجه التطبيق لاعتبار التقرير مكتملًا:",
     ...fieldLines(requiredFields),
     "",
-    "حقول مستحسنة ترفع جودة التقرير لكنها لا تمنع الحفظ:",
+    "حقول مستحسنة ترفع جودة العرض لكنها لا تمنع الحفظ:",
     ...fieldLines(recommendedFields),
     "",
-    "قواعد مهمة:",
-    "- scores يجب أن تكون بين 0 و10.",
-    "- market.priceAtAnalysis يجب أن يكون رقمًا أكبر من صفر.",
-    "- fairValue.bear وfairValue.base وfairValue.bull يجب أن تكون أرقامًا موجبة.",
-    "- يجب أن يكون الترتيب: Bear <= Base <= Bull.",
-    "- risks يجب أن تكون Array.",
-    "- decision.verdict يجب أن تكون نصًا واضحًا مثل BUY أو HOLD أو SELL أو صياغة قريبة.",
-    "- لا تضع TICKER أو SYMBOL كقيمة؛ إذا الرمز غير معروف ضع null.",
+    "فحص نهائي إلزامي قبل الإخراج:",
+    "- JSON صالح تقنيًا.",
+    "- رمز السهم واسم الشركة صحيحان.",
+    "- تاريخ التحليل والسعر الحالي موجودان.",
+    "- طريقة التقييم الرئيسية وسبب اختيارها موجودان.",
+    "- أسباب استبعاد الطرق غير الملائمة موجودة.",
+    "- مجموع أوزان طرق التقييم المستخدمة يساوي 100%.",
+    "- مجموع احتمالات السيناريوهات المفعلة يساوي 100%.",
+    "- أهم نقاط القوة والضعف موجودة.",
+    "- المخاطر منفصلة عن نقاط الضعف.",
+    "- القيمة العادلة متسقة في جميع الأقسام.",
+    "- نسبة الصعود أو الهبوط محسوبة من السعر المستخدم في التحليل.",
+    "- لا توجد بيانات مختلقة.",
+    "- كل معلومة غير متوفرة ممثلة بـ null.",
+    "- لا يتعارض القرار النهائي مع القيمة العادلة أو بوابات المخاطر.",
+    "- لا تخرج قالبًا فارغًا؛ يجب ملء كل ما يمكن توثيقه فعليًا.",
     "",
-    "استخدم هذا الهيكل فقط واملأ القيم المتوفرة:",
+    "مخطط JSON الإلزامي:",
     "",
     JSON.stringify(template, null, 2)
   ].join("\n");
 }
 
 export function buildExternalAnalysisJsonTemplate(options = {}) {
-  return JSON.stringify(buildExternalAnalysisJsonObject(options), null, 2);
+  return JSON.stringify(buildFairValueAnalysisJsonObject(options), null, 2);
 }
 
 export function analysisContractRequiredFields() {
   return fieldsByPriority(FIELD_PRIORITY.CRITICAL);
-}
-
-function buildExternalAnalysisJsonObject(options = {}) {
-  const ticker = normalizeTicker(options.tickerHint);
-  return {
-    schemaVersion: "external-analysis-report/v1",
-    analysisOrigin: "external_chatgpt",
-    source: "ChatGPT",
-    sourceModel: null,
-    analysisDate: null,
-    reportPeriod: null,
-    company: {
-      ticker: ticker || null,
-      name: null,
-      sector: null,
-      industry: null,
-      currency: "USD"
-    },
-    market: {
-      priceAtAnalysis: null,
-      userAverageCost: null
-    },
-    scores: {
-      quality: null,
-      growth: null,
-      valuation: null,
-      risk: null,
-      overall: null,
-      moat: null,
-      management: null
-    },
-    fairValue: {
-      bear: null,
-      base: null,
-      bull: null,
-      weightedFairValue: null,
-      analystFairValue: null,
-      upsideToBasePct: null,
-      downsideToBearPct: null,
-      upsideToBullPct: null
-    },
-    valuationMethods: {
-      dcf: null,
-      pe: null,
-      evEbitda: null,
-      ps: null,
-      peg: null,
-      sotp: null,
-      other: null
-    },
-    financialHighlights: {
-      revenue: null,
-      revenueGrowthPct: null,
-      operatingIncome: null,
-      operatingIncomeGrowthPct: null,
-      operatingMarginPct: null,
-      epsReported: null,
-      epsNormalized: null,
-      operatingCashFlow: null,
-      freeCashFlow: null,
-      capex: null,
-      cash: null,
-      debt: null
-    },
-    growthHighlights: {
-      revenueGrowth: null,
-      epsGrowth: null,
-      fcfGrowth: null,
-      majorSegmentGrowth: null,
-      marginTrend: null,
-      marketShareTrend: null,
-      tamComment: null
-    },
-    quality: {
-      summary: null,
-      strengths: [],
-      weaknesses: [],
-      moat: null,
-      profitability: null,
-      balanceSheet: null,
-      capitalAllocation: null,
-      earningsQuality: null
-    },
-    risks: [],
-    catalysts: [],
-    thesis: {
-      shortSummary: null,
-      fullSummary: null
-    },
-    earningsQuality: {
-      status: null,
-      reportedVsNormalizedExplanation: null,
-      oneOffItems: []
-    },
-    watchItems: [],
-    decision: {
-      verdict: null,
-      rationale: null,
-      buyZone: null,
-      fairZone: null,
-      expensiveZone: null
-    },
-    sources: []
-  };
 }
 
 function fieldsByPriority(priority) {
