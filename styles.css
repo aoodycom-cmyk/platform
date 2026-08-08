@@ -6027,7 +6027,7 @@ button.danger-action {
 
 .report-decision-strip {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
 }
 
@@ -6245,7 +6245,8 @@ button.danger-action {
 
 .external-recommendation-block,
 .price-requirements-block,
-.valuation-method-summary {
+.valuation-method-summary,
+.external-section-flow {
   display: grid;
   gap: 12px;
 }
@@ -6390,6 +6391,12 @@ button.danger-action {
   display: block;
   color: var(--muted);
   margin-top: 4px;
+  font-size: 12px;
+}
+
+.requirements-table th:last-child,
+.requirements-table td:last-child {
+  color: var(--muted);
   font-size: 12px;
 }
 
@@ -6666,9 +6673,12 @@ button.danger-action {
   .library-card-grid,
   .library-card-metrics,
   .external-preview-grid,
-  .external-text-editors,
-  .report-v2-score-grid {
+  .external-text-editors {
     grid-template-columns: 1fr;
+  }
+
+  .report-v2-score-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .report-v2-fair-grid {
@@ -6686,7 +6696,7 @@ button.danger-action {
   }
 
   .report-decision-strip {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .external-import-flow {

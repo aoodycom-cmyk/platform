@@ -788,7 +788,7 @@ function moneySignal(value, digits = 0) {
 
 function valuationSummaryItem(label, value, currentPrice) {
   const className = `valuation-card ${valuationScenarioClass(label)}`;
-  const subtitle = label === "Bear" ? uiLabel("Downside case") : label === "Bull" ? uiLabel("Upside case") : uiLabel("Base case");
+  const subtitle = label === "Bear" ? uiLabel("Bear Case") : label === "Bull" ? uiLabel("Bull Case") : uiLabel("Base Case");
   const delta = Number.isFinite(value) && Number.isFinite(currentPrice) && currentPrice > 0 ? (value - currentPrice) / currentPrice : null;
   return `
     <article class="${className}">
@@ -1322,6 +1322,7 @@ function externalAnalysisReportView(state) {
   const requirementSets = state.historicalRequirementSets?.[report.company?.ticker] || [];
   const completion = reportWithCompletion.completionStatus;
   const hasPreviousEvaluation = (report.previousRequirementsEvaluation?.requirements || []).length > 0;
+  const averageCost = numericValue(report.market?.userAverageCost);
   return `
     <section class="external-report-shell external-report-v2">
       <header class="external-report-hero panel report-v2-header">
@@ -1332,6 +1333,7 @@ function externalAnalysisReportView(state) {
           <div class="report-meta-line">
             <span>${uiLabel("Price at Analysis")}: ${money(report.market?.priceAtAnalysis, 2)}</span>
             <span>${uiLabel("Current Price")}: ${money(report.market?.currentPrice ?? report.market?.priceAtAnalysis, 2)}</span>
+            ${Number.isFinite(averageCost) ? `<span>${uiLabel("Average Cost")}: ${money(averageCost, 2)}</span>` : ""}
           </div>
         </div>
         <div class="external-verdict-card report-verdict-card ${completionStatusClass(completion.status)}">
@@ -1341,37 +1343,39 @@ function externalAnalysisReportView(state) {
         </div>
       </header>
       ${reportDecisionStrip(reportWithCompletion, completion)}
-      ${reportDataHealthCard(reportWithCompletion, completion)}
-      <section class="scenario-grid external-score-grid report-v2-score-grid">
-        ${externalScoreCard(financialTerm("Quality"), report.scores?.quality)}
-        ${externalScoreCard(financialTerm("Growth"), report.scores?.growth)}
-        ${externalScoreCard("Valuation", report.scores?.valuation)}
-        ${externalScoreCard(financialTerm("Risk"), report.scores?.risk)}
-        ${externalScoreCard("Overall", report.scores?.overall)}
-      </section>
       <section class="valuation-summary-grid report-v2-fair-grid">
         ${valuationSummaryItem("Bear", report.fairValue?.bear, report.market?.priceAtAnalysis)}
         ${valuationSummaryItem("Base", report.fairValue?.base, report.market?.priceAtAnalysis)}
         ${valuationSummaryItem("Bull", report.fairValue?.bull, report.market?.priceAtAnalysis)}
         ${externalFairValueMetric(uiLabel("Upside"), report.fairValue?.upsideToBasePct)}
       </section>
+      <section class="scenario-grid external-score-grid report-v2-score-grid">
+        ${externalScoreCard(financialTerm("Quality"), report.scores?.quality)}
+        ${externalScoreCard(financialTerm("Growth"), report.scores?.growth)}
+        ${externalScoreCard(financialTerm("Risk"), report.scores?.risk)}
+        ${externalScoreCard(uiLabel("Investment Score"), report.scores?.overall)}
+      </section>
       <section class="report-v2-stack">
-        ${reportSection(uiLabel("Investment Verdict"), externalRecommendationView(report))}
-        ${reportSection(uiLabel("Investment Thesis"), paragraphBlock([report.thesis?.shortSummary, report.thesis?.fullSummary]))}
-        ${reportSection(uiLabel("Key Strengths"), simpleList(report.quality?.strengths))}
-        ${reportSection(uiLabel("Key Risks"), riskList(report.risks))}
-        ${reportSection(uiLabel("Guidance"), guidanceView(report.guidance))}
-        ${reportSection(uiLabel("Company-Specific KPIs"), companyKpisView(report.companySpecificKpis))}
-        ${hasPreviousEvaluation ? reportSection(uiLabel("LAST EARNINGS EXECUTION"), previousRequirementExecutionView(report.previousRequirementsEvaluation)) : ""}
         ${reportSection(hasPreviousEvaluation ? uiLabel("NEXT EARNINGS REQUIREMENTS") : uiLabel("Requirements to Justify Next Price Target"), priceTargetRequirementsView(report.priceTargetRequirements))}
-        ${!hasPreviousEvaluation ? reportSection(uiLabel("Earnings Requirement Results"), requirementsAssessmentView(report.requirementsAssessment, report.priceTargetRequirements)) : ""}
+        ${hasPreviousEvaluation
+          ? reportSection(uiLabel("Latest Earnings Execution"), previousRequirementExecutionView(report.previousRequirementsEvaluation))
+          : reportSection(uiLabel("Latest Earnings Execution"), requirementsAssessmentView(report.requirementsAssessment, report.priceTargetRequirements))}
+        ${reportSection(uiLabel("Guidance Next"), guidanceView(report.guidance))}
+        ${reportSection(uiLabel("Why We Own or Watch This Stock"), paragraphBlock([report.thesis?.shortSummary, report.thesis?.fullSummary]))}
+        ${reportSection(uiLabel("Company Quality"), companyQualityView(report))}
+        ${reportSection(financialTerm("Growth"), growthView(report))}
+        ${reportSection(uiLabel("Company-Specific KPIs"), companyKpisView(report.companySpecificKpis))}
+        ${reportSection(uiLabel("Risks"), riskList(report.risks))}
         ${reportSection(uiLabel("Valuation Method Used"), valuationMethodSummaryView(report))}
+        ${reportSection(uiLabel("Investment Verdict"), externalRecommendationView(report))}
+        ${reportSection(uiLabel("Recommendation Upgrade / Downgrade Conditions"), recommendationConditionsView(report))}
         ${reportSection(uiLabel("Catalysts"), itemList(report.catalysts, ["explanation"]))}
         ${reportSection(uiLabel("Watch List"), simpleList(report.watchItems))}
         ${reportSection(uiLabel("Valuation Methods"), valuationMethodsView(report.valuationMethods))}
         ${reportSection(uiLabel("Financial Highlights"), financialHighlightsView(report.financialHighlights || report.growthHighlights))}
-        ${reportSection(uiLabel("Requirement Delivery Timeline"), requirementLifecycleTimeline(requirementSets, history))}
         ${reportSection(uiLabel("Historical Analyses"), externalVersionHistory(report, history))}
+        ${reportSection(uiLabel("Requirement Delivery Timeline"), requirementLifecycleTimeline(requirementSets, history))}
+        ${reportDataHealthCard(reportWithCompletion, completion)}
         ${reportSection(uiLabel("Sources"), itemList(report.sources, ["url", "sourceType"]))}
         ${externalDetail(uiLabel("Raw Analysis"), `<pre class="raw-analysis">${escapeHtml(report.rawAnalysisOriginal || report.rawAnalysis || "")}</pre>`)}
       </section>
@@ -1389,12 +1393,14 @@ function externalAnalysisReportView(state) {
 
 function reportDecisionStrip(report, completion = {}) {
   const action = externalRecommendationAction(report);
+  const averageCost = numericValue(report.market?.userAverageCost);
   return `
     <section class="report-decision-strip">
       ${decisionStripMetric(uiLabel("Recommendation"), localizedExternalText(action) || "-", recommendationColorCategory(action))}
-      ${decisionStripMetric(uiLabel("Data Health"), `${boundedPercent(completion.completionPct)}%`, completion.status === "complete" ? "positive" : "warning")}
       ${decisionStripMetric(uiLabel("Confidence"), externalRecommendationConfidence(report), "neutral")}
-      ${decisionStripMetric("Base Fair Value", money(report.fairValue?.base, 0), "neutral")}
+      ${decisionStripMetric(uiLabel("Current Price"), money(report.market?.currentPrice ?? report.market?.priceAtAnalysis, 2), "neutral")}
+      ${Number.isFinite(averageCost) ? decisionStripMetric(uiLabel("Average Cost"), money(averageCost, 2), "neutral") : ""}
+      ${decisionStripMetric(uiLabel("Base Fair Value"), money(report.fairValue?.base, 0), "neutral")}
       ${decisionStripMetric(uiLabel("Upside"), formatExternalPercent(report.fairValue?.upsideToBasePct), upsideColorCategory(numericValue(report.fairValue?.upsideToBasePct)))}
     </section>
   `;
@@ -1581,6 +1587,69 @@ function externalRecommendationView(report = {}) {
       </div>
     </div>
   `;
+}
+
+function recommendationConditionsView(report = {}) {
+  const recommendation = report.recommendation || {};
+  return `
+    ${paragraphBlock([recommendation.reason])}
+    <div class="recommendation-trigger-grid">
+      ${triggerList(uiLabel("What Would Upgrade"), recommendation.whatWouldUpgrade)}
+      ${triggerList(uiLabel("What Would Downgrade"), recommendation.whatWouldDowngrade)}
+    </div>
+    ${paragraphBlock([report.decision?.rationale, report.decision?.buyZone, report.decision?.fairZone, report.decision?.expensiveZone])}
+  `;
+}
+
+function companyQualityView(report = {}) {
+  const quality = report.quality || {};
+  const summary = paragraphBlock([quality.summary]);
+  const core = [
+    compactCardMetric(financialTerm("Quality"), scoreText(report.scores?.quality, 1)),
+    quality.moat ? compactCardMetric(uiLabel("Economic Moat"), localizedExternalText(quality.moat)) : "",
+    quality.profitability ? compactCardMetric(uiLabel("Profitability"), localizedExternalText(quality.profitability)) : "",
+    quality.balanceSheet ? compactCardMetric(uiLabel("Balance Sheet"), localizedExternalText(quality.balanceSheet)) : "",
+    quality.capitalAllocation ? compactCardMetric(uiLabel("Capital Allocation"), localizedExternalText(quality.capitalAllocation)) : "",
+    quality.earningsQuality ? compactCardMetric(uiLabel("Earnings Quality"), localizedExternalText(quality.earningsQuality)) : ""
+  ].filter(Boolean).join("");
+  const detail = [
+    quality.strengths?.length ? externalDetail(uiLabel("Key Strengths"), simpleList(quality.strengths)) : "",
+    quality.weaknesses?.length ? externalDetail(uiLabel("Weaknesses"), simpleList(quality.weaknesses)) : "",
+    earningsQualityBlock(report.earningsQuality) ? externalDetail(uiLabel("Earnings Quality"), earningsQualityBlock(report.earningsQuality)) : ""
+  ].filter(Boolean).join("");
+  return `
+    <div class="external-section-flow">
+      ${core ? `<div class="requirements-summary">${core}</div>` : ""}
+      ${summary}
+      ${detail}
+    </div>
+  `;
+}
+
+function growthView(report = {}) {
+  const growth = report.growthHighlights || {};
+  const highlights = report.financialHighlights || {};
+  const core = [
+    compactCardMetric(financialTerm("Growth"), scoreText(report.scores?.growth, 1)),
+    valueMetric(uiLabel("Revenue Growth"), growth.revenueGrowth ?? highlights.revenueGrowthPct),
+    valueMetric(uiLabel("EPS Growth"), growth.epsGrowth),
+    valueMetric(uiLabel("FCF Growth"), growth.fcfGrowth),
+    valueMetric(uiLabel("Margin Trend"), growth.marginTrend),
+    valueMetric(uiLabel("Segment Growth"), growth.majorSegmentGrowth),
+    valueMetric(uiLabel("Market Share"), growth.marketShareTrend),
+    valueMetric(uiLabel("TAM"), growth.tamComment)
+  ].filter(Boolean).join("");
+  return `
+    <div class="external-section-flow">
+      ${core ? `<div class="requirements-summary">${core}</div>` : ""}
+      ${Object.keys(growth || {}).length ? externalDetail(uiLabel("Growth Details"), objectBlock(growth)) : ""}
+    </div>
+  `;
+}
+
+function valueMetric(label, value) {
+  if (value === null || value === undefined || value === "") return "";
+  return compactCardMetric(label, localizedExternalText(formatAnyValue(value)));
 }
 
 function triggerList(title, items = []) {
