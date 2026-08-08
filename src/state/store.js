@@ -1,6 +1,6 @@
 import { createCompanyShell } from "../data/sampleData.js";
 import { DEMO_ANALYSIS_FIXTURE } from "../data/demoFlow.js";
-import { createDemoExternalAnalysisReport } from "../data/externalDemo.js";
+import { createDemoExternalAnalysisReport, createDemoExternalAnalysisScenario } from "../data/externalDemo.js";
 import { buildUnifiedDataCompany, mergeCompanyDataHistory } from "../dataPlatform/dataPlatform.js";
 import { buildEvaluatedCompany, upsertEvaluatedCompany } from "../domain/evaluatedCompanies.js";
 import { toNumber } from "../domain/financialMetrics.js";
@@ -201,19 +201,40 @@ export function createStore() {
   }
 
   function loadDemoExternalAnalysis() {
-    const report = createDemoExternalAnalysisReport();
-    const result = saveExternalAnalysis(state.externalAnalyses, report, { allowDuplicate: true });
+    const reports = createDemoExternalAnalysisScenario();
+    let externalAnalyses = state.externalAnalyses;
+    let historicalRequirementSets = state.historicalRequirementSets;
+    let latestReport = null;
+    for (const report of reports) {
+      const validation = validateExternalAnalysisReport(report);
+      const prepared = prepareExternalDraftReport(report, validation, historicalRequirementSets);
+      const reportForSave = prepareExternalReportForSave(prepared.report);
+      const result = saveExternalAnalysis(externalAnalyses, reportForSave, {
+        allowDuplicate: true,
+        now: new Date(reportForSave.metadata?.importedAt || reportForSave.analysisDate || Date.now())
+      });
+      externalAnalyses = result.collection;
+      historicalRequirementSets = applyHistoricalRequirementLifecycle(
+        historicalRequirementSets,
+        result.report,
+        prepared.requirementMatch,
+        new Date(reportForSave.metadata?.importedAt || Date.now())
+      );
+      latestReport = result.report;
+    }
+    const selectedReport = latestReport || createDemoExternalAnalysisReport();
     set({
-      externalAnalyses: result.collection,
+      externalAnalyses,
+      historicalRequirementSets,
       externalImport: createExternalImportState(),
-      externalReportSelection: { ticker: result.report.company.ticker, reportId: result.report.id },
-      company: externalReportCompanyShell(result.report),
+      externalReportSelection: { ticker: selectedReport.company.ticker, reportId: selectedReport.id },
+      company: externalReportCompanyShell(selectedReport),
       activePanel: "external-report",
       loading: false,
       processingStage: "idle",
       notice: state.language === "ar"
-        ? "تم فتح تقرير DEMO خارجي يحتوي على Guidance وKPIs ومتطلبات السعر."
-        : "DEMO external report opened with Guidance, KPIs, and price-target requirements.",
+        ? "تم فتح سيناريو DEMO خارجي يحتوي على تقرير سابق وتقرير أرباح يقيّم المتطلبات."
+        : "DEMO external scenario opened with a prior report and an earnings report that evaluates requirements.",
       searchResults: []
     });
   }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { createDemoExternalAnalysisReport } from "../src/data/externalDemo.js";
+import { createDemoExternalAnalysisReport, createDemoExternalAnalysisScenario } from "../src/data/externalDemo.js";
 import {
   calculateRequirementsAssessment,
   normalizeCompanySpecificKpis,
@@ -81,6 +81,15 @@ assert.equal(demo.requirementsAssessment.weightedAchievement, 72);
 assert.equal(demo.recommendation.action, "HOLD");
 assert.ok(demo.risks[0].whatToMonitor, "Risk items must keep whatToMonitor.");
 assert.ok(demo.risks[0].thesisBreaker, "Risk items must keep thesisBreaker.");
+
+const demoScenario = createDemoExternalAnalysisScenario();
+assert.equal(demoScenario.length, 2);
+assert.equal(demoScenario[0].company.ticker, "DEMO");
+assert.equal(demoScenario[0].priceTargetRequirements.earningsPeriod, "Q4 2026");
+assert.equal(demoScenario[0].priceTargetRequirements.requirements.every((item) => item.status === "NOT_REPORTED"), true);
+assert.equal(demoScenario[1].reportPeriod, "Q4 2026");
+assert.equal(demoScenario[1].previousRequirementsEvaluation.requirements.length, 4);
+assert.equal(demoScenario[1].priceTargetRequirements.earningsPeriod, "Q1 2027");
 
 const saved = saveExternalAnalysis({}, demo, { now });
 assert.equal(saved.collection.DEMO.length, 1);

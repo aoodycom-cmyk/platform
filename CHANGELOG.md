@@ -10,6 +10,7 @@
 - Added immutable historical requirement-set handling: required thresholds remain frozen while actual values, statuses, evaluated analysis ID, and evaluated timestamp are attached after earnings.
 - Added report UI sections that distinguish `LAST EARNINGS EXECUTION` from `NEXT EARNINGS REQUIREMENTS`.
 - Added requirement delivery timeline visibility inside saved external reports.
+- Updated the DEMO external report action to load a two-report history: pre-earnings requirements followed by an earnings report that evaluates them and creates the next requirement set.
 - Added tests for historical matching, immutability, ambiguity handling, evaluation status updates, backup/restore preservation, and source-of-truth sync.
 - Preserved Version 10.5 External ChatGPT workflow, local-first storage, old saved analyses, and internal investment engine behavior.
 - No OpenAI API, backend AI, database server, subscription, valuation logic, or recommendation engine change was added.
