@@ -1,5 +1,13 @@
 # Changelog
 
+## Version 10.8 - External ChatGPT Transport-Only Correction
+
+- Tightened External ChatGPT imports so requirement status handling accepts only the supported enum values and never converts natural-language status phrases into analytical outcomes.
+- Changed default External requirement assessment counters from generated zero values to `null` so missing ChatGPT metrics remain visibly missing.
+- Preserved supplied requirement weights as data only and stopped replacing missing weights with generated zero values.
+- Kept structured JSON imports fully local-first; valid JSON is parsed in the browser without requiring OpenAI/API fallback.
+- Preserved all existing Franklin functionality, UI identity, historical storage, and legacy engines without changing investment calculation behavior.
+
 ## Version 10.7 - External Analysis Preservation Policy
 
 - Changed External ChatGPT requirement assessment handling so Franklin preserves supplied `weightedAchievement`, reported/passed/failed/exceeded/partiallyPassed/notReported counts, `overallStatus`, and `summary` without recalculating them.

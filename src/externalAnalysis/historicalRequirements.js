@@ -98,7 +98,7 @@ export function prepareHistoricalRequirementEvaluation(report = {}, requirementS
 export function applyHistoricalRequirementLifecycle(collection = {}, report = {}, match = {}, now = new Date()) {
   let next = normalizeHistoricalRequirementSets(collection);
   const evaluation = report.previousRequirementsEvaluation;
-  if (evaluation?.requirementSetId && (evaluation.requirementsAssessment?.reportedRequirements || 0) > 0) {
+  if (hasExplicitPreviousRequirementEvaluation(evaluation)) {
     next = markRequirementSetEvaluated(next, evaluation, report, now);
   }
   const nextSet = createRequirementSetFromReport(report, now);
@@ -327,6 +327,12 @@ function actualValueFrom(actual = {}) {
   return actual.actualValue ?? actual.value ?? actual.currentValue ?? actual.reportedValue ?? null;
 }
 
+function hasExplicitPreviousRequirementEvaluation(evaluation = {}) {
+  if (!evaluation?.requirementSetId) return false;
+  if (Array.isArray(evaluation.requirements) && evaluation.requirements.length) return true;
+  return Boolean(evaluation.requirementsAssessment);
+}
+
 function isSameSetAsPreviousEvaluation(set, evaluation) {
   if (!set || !evaluation) return false;
   if (set.requirementSetId && set.requirementSetId === evaluation.requirementSetId) return true;
@@ -372,7 +378,7 @@ function normalizeRequirementSetStatus(value) {
 
 function normalizeRequirementStatus(value) {
   const clean = String(value || "").trim().toUpperCase();
-  return ["PASSED", "PARTIALLY_PASSED", "FAILED", "EXCEEDED"].includes(clean) ? clean : null;
+  return ["NOT_REPORTED", "PASSED", "PARTIALLY_PASSED", "FAILED", "EXCEEDED"].includes(clean) ? clean : null;
 }
 
 function createRequirementSetId({ ticker, earningsPeriod, createdAt, createdFromAnalysisId }) {

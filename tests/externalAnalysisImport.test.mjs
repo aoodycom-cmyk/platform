@@ -36,6 +36,17 @@ assert.equal(parsedJson.report.analysisOrigin, "external_chatgpt");
 assert.equal(parsedJson.report.fairValue.base, 290);
 assert.equal(parsedJson.report.decision.verdict, "HOLD / ACCUMULATE ON WEAKNESS");
 
+let structuredJsonFallbackCalled = false;
+const parsedJsonWithFallback = await parseExternalAnalysisInput(rawJson, {
+  now,
+  parseUnstructured: async () => {
+    structuredJsonFallbackCalled = true;
+    throw new Error("Structured JSON import must not call the backend parser.");
+  }
+});
+assert.equal(parsedJsonWithFallback.usedAi, false);
+assert.equal(structuredJsonFallbackCalled, false);
+
 const parsedText = await parseExternalAnalysisInput("تحليل نصي غير منظم", {
   now,
   parseUnstructured: async () => ({ source: "OpenAI", report: validReport })

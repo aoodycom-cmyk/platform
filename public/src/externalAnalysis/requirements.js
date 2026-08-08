@@ -117,7 +117,7 @@ export function normalizeRequirement(item, index = 0) {
     requiredValue: valueOrNull(item.requiredValue),
     unit: normalizeText(item.unit),
     importance: normalizeImportance(item.importance),
-    weight: Number.isFinite(weight) && weight > 0 ? weight : 0,
+    weight: Number.isFinite(weight) ? weight : null,
     whyItMatters: normalizeText(item.whyItMatters),
     actualValue: valueOrNull(item.actualValue),
     actualRaw: valueOrNull(item.actualRaw),
@@ -234,7 +234,7 @@ function normalizeScenario(value = {}) {
 }
 
 function normalizeRequirementStatus(value) {
-  const clean = String(value || "NOT_REPORTED").trim().toUpperCase().replace(/[\s-]+/g, "_");
+  const clean = String(value || "NOT_REPORTED").trim().toUpperCase();
   return REQUIREMENT_STATUSES.includes(clean) ? clean : "NOT_REPORTED";
 }
 

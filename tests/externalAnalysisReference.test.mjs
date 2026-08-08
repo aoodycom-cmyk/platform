@@ -70,7 +70,13 @@ assert.equal(aliasAssessment.notReported, 1);
 assert.equal(normalizePriceTargetRequirements({
   requirements: [{ id: "partial", status: "Partially Passed" }],
   requirementsAssessment: { passedRequirements: 3 }
+}).requirements[0].status, "NOT_REPORTED");
+assert.equal(normalizePriceTargetRequirements({
+  requirements: [{ id: "partial", status: "PARTIALLY_PASSED" }]
 }).requirements[0].status, "PARTIALLY_PASSED");
+assert.equal(normalizePriceTargetRequirements({
+  requirements: [{ id: "missing_weight", status: "PASSED" }]
+}).requirements[0].weight, null);
 
 const guidance = normalizeGuidance([
   { topic: "Revenue", currentGuidance: "$1B-$1.2B", direction: "raised", type: "range", interpretation: "رفع التوجيهات.", importance: "critical" },
