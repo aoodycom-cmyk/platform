@@ -22,9 +22,11 @@ const panelsStart = components.indexOf("const panels =");
 const panelsEnd = components.indexOf("];", panelsStart);
 const visiblePanelConfig = components.slice(panelsStart, panelsEnd);
 
-assert.ok(homeDashboard.includes("Professional Equity Research Library"), "Home must present Franklin as a research library.");
+assert.ok(homeDashboard.includes("My Stocks"), "Home must present Franklin as My Stocks / investment library.");
 assert.ok(homeDashboard.includes("externalAnalysesHomeSection"), "Home must focus on saved imported reports.");
 assert.ok(homeDashboard.includes("data-action=\"open-external-import\""), "Home must expose Import Analysis.");
+assert.ok(components.includes("investmentLibrarySummary"), "Home must show a compact saved-stock status summary.");
+assert.ok(components.includes("Analyze / Add Stock"), "Home primary CTA must focus on analyzing or adding a stock.");
 assert.equal(homeDashboard.includes("data-action=\"new-analysis\""), false, "Home must not surface the legacy internal New Analysis flow.");
 assert.equal(homeDashboard.includes("data-action=\"load-demo-analysis\""), false, "Home must not surface demo analysis loading.");
 assert.equal(visiblePanelConfig.includes("\"workspace\""), false, "Visible navigation must not expose the legacy workspace.");
@@ -36,6 +38,7 @@ assert.ok(components.includes("data-external-ticker-hint"), "Import page must pr
 assert.ok(components.includes("store.parseExternalImport(text, { tickerHint })"), "Ticker fallback must be passed to the import parser.");
 assert.ok(components.includes("data-action=\"copy-full-analysis-prompt\""), "Import page must let users copy the official ChatGPT analysis prompt.");
 assert.ok(components.includes("data-action=\"copy-external-json-template\""), "Import page must let users copy a blank JSON Template.");
+assert.ok(components.includes("Advanced Options"), "Blank JSON Template must be moved into advanced options.");
 assert.ok(components.includes("function externalChatGptPrepCard"), "Import page must show ChatGPT preparation guidance before paste.");
 assert.ok(components.includes("function missingDataCompletionCard"), "Missing data completion card must exist.");
 assert.ok(components.includes("copy-missing-requirements"), "Missing data card must expose Copy Missing Requirements.");
@@ -98,11 +101,11 @@ assert.ok(styles.includes(".quick-summary-card"), "Quick summary card styles mus
 assert.ok(styles.includes(".fair-value-track"), "Fair Value Range visual styles must exist.");
 assert.ok(styles.includes(".forecast-bars"), "Forecast chart styles must exist.");
 
-assert.ok(language.includes("مكتبة أبحاث أسهم احترافية"), "Arabic research-library positioning must be localized.");
+assert.ok(language.includes("أسهمي"), "Arabic My Stocks positioning must be localized.");
 assert.ok(language.includes("اكتمال البيانات"), "Arabic data completion label must be localized.");
 assert.ok(language.includes("صحة البيانات"), "Arabic data health label must be localized.");
-assert.ok(language.includes("الحالة المتشائمة"), "Arabic Bear case helper label must be localized.");
-assert.ok(language.includes("الحالة المتفائلة"), "Arabic Bull case helper label must be localized.");
+assert.ok(language.includes("السيناريو المتحفظ"), "Arabic Bear case helper label must be localized.");
+assert.ok(language.includes("السيناريو المتفائل"), "Arabic Bull case helper label must be localized.");
 assert.ok(language.includes("اكتب الرمز هنا إذا كان التقرير الملصوق لا يذكر رمز السهم بوضوح."), "Ticker fallback helper text must be localized.");
 assert.ok(language.includes("انسخ برومبت Fair value الرسمي، أرسله إلى ChatGPT، ثم الصق رد JSON هنا."), "ChatGPT prep copy must be localized.");
 assert.ok(language.includes("التوافق الشرعي"), "Arabic Shariah label must be localized.");
