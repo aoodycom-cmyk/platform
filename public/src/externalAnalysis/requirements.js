@@ -1,33 +1,19 @@
 export const REQUIREMENT_STATUSES = ["NOT_REPORTED", "PASSED", "PARTIALLY_PASSED", "FAILED", "EXCEEDED"];
 export const RECOMMENDATION_ACTIONS = ["BUY", "ADD", "HOLD", "WATCH", "REDUCE", "SELL"];
 
-const STATUS_CREDIT = {
-  EXCEEDED: 1,
-  PASSED: 1,
-  PARTIALLY_PASSED: 0.5,
-  FAILED: 0,
-  NOT_REPORTED: null
-};
-
 export function calculateRequirementsAssessment(requirementsInput = {}, suppliedAssessment = {}) {
-  const requirements = normalizeRequirementList(requirementsInput.requirements);
-  const reported = requirements.filter((item) => item.status !== "NOT_REPORTED");
-  const totalWeight = reported.reduce((sum, item) => sum + item.weight, 0);
-  const achievedWeight = reported.reduce((sum, item) => sum + item.weight * (STATUS_CREDIT[item.status] ?? 0), 0);
-  const weightedAchievement = totalWeight > 0 ? Math.round((achievedWeight / totalWeight) * 100) : null;
-
   return {
-    weightedAchievement: numberOrNull(suppliedAssessment.weightedAchievement) ?? weightedAchievement,
-    reportedRequirements: reported.length,
-    totalRequirements: requirements.length,
-    passed: reported.filter((item) => item.status === "PASSED").length,
-    failed: reported.filter((item) => item.status === "FAILED").length,
-    exceeded: reported.filter((item) => item.status === "EXCEEDED").length,
-    partiallyPassed: reported.filter((item) => item.status === "PARTIALLY_PASSED").length,
-    notReported: requirements.filter((item) => item.status === "NOT_REPORTED").length,
+    weightedAchievement: numberOrNull(suppliedAssessment.weightedAchievement),
+    reportedRequirements: numberOrNull(suppliedAssessment.reportedRequirements),
+    totalRequirements: numberOrNull(suppliedAssessment.totalRequirements),
+    passed: numberOrNull(suppliedAssessment.passed ?? suppliedAssessment.passedRequirements),
+    failed: numberOrNull(suppliedAssessment.failed ?? suppliedAssessment.failedRequirements),
+    exceeded: numberOrNull(suppliedAssessment.exceeded ?? suppliedAssessment.exceededRequirements),
+    partiallyPassed: numberOrNull(suppliedAssessment.partiallyPassed ?? suppliedAssessment.partiallyPassedRequirements),
+    notReported: numberOrNull(suppliedAssessment.notReported ?? suppliedAssessment.notReportedRequirements),
     overallStatus: normalizeStatusText(suppliedAssessment.overallStatus),
     summary: normalizeText(suppliedAssessment.summary),
-    calculatedAt: new Date().toISOString()
+    calculatedAt: normalizeText(suppliedAssessment.calculatedAt)
   };
 }
 
@@ -66,11 +52,11 @@ export function normalizePriceTargetRequirements(value = {}) {
         weightedAchievement: numberOrNull(value.requirementsAssessment.weightedAchievement),
         reportedRequirements: numberOrNull(value.requirementsAssessment.reportedRequirements),
         totalRequirements: numberOrNull(value.requirementsAssessment.totalRequirements),
-        passed: numberOrNull(value.requirementsAssessment.passed),
-        failed: numberOrNull(value.requirementsAssessment.failed),
-        exceeded: numberOrNull(value.requirementsAssessment.exceeded),
-        partiallyPassed: numberOrNull(value.requirementsAssessment.partiallyPassed),
-        notReported: numberOrNull(value.requirementsAssessment.notReported),
+        passed: numberOrNull(value.requirementsAssessment.passed ?? value.requirementsAssessment.passedRequirements),
+        failed: numberOrNull(value.requirementsAssessment.failed ?? value.requirementsAssessment.failedRequirements),
+        exceeded: numberOrNull(value.requirementsAssessment.exceeded ?? value.requirementsAssessment.exceededRequirements),
+        partiallyPassed: numberOrNull(value.requirementsAssessment.partiallyPassed ?? value.requirementsAssessment.partiallyPassedRequirements),
+        notReported: numberOrNull(value.requirementsAssessment.notReported ?? value.requirementsAssessment.notReportedRequirements),
         overallStatus: normalizeStatusText(value.requirementsAssessment.overallStatus),
         summary: normalizeText(value.requirementsAssessment.summary),
         calculatedAt: normalizeText(value.requirementsAssessment.calculatedAt)
@@ -248,7 +234,7 @@ function normalizeScenario(value = {}) {
 }
 
 function normalizeRequirementStatus(value) {
-  const clean = String(value || "NOT_REPORTED").trim().toUpperCase();
+  const clean = String(value || "NOT_REPORTED").trim().toUpperCase().replace(/[\s-]+/g, "_");
   return REQUIREMENT_STATUSES.includes(clean) ? clean : "NOT_REPORTED";
 }
 
@@ -279,15 +265,7 @@ function normalizeImportance(value) {
 }
 
 function normalizeStatusText(value) {
-  const clean = String(value || "").trim().toLowerCase();
-  return [
-    "bull_case_strengthened",
-    "bull_case_unchanged",
-    "bull_case_weakened",
-    "thesis_strengthened",
-    "thesis_weakened",
-    "thesis_broken"
-  ].includes(clean) ? clean : null;
+  return normalizeText(value);
 }
 
 function boundedNumber(value, min, max) {

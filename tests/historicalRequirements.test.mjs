@@ -63,12 +63,20 @@ const analysis2 = normalizeExternalAnalysisReport({
   decision: { verdict: "ADD" },
   previousRequirementsEvaluation: {
     requirements: [
-      { id: "revenue_growth", actualValue: 34 },
-      { id: "gross_margin", actualValue: 43 },
-      { id: "eps", actualValue: 3.2 },
-      { id: "guidance", actualValue: "Raised" }
+      { id: "revenue_growth", actualValue: 34, status: "EXCEEDED" },
+      { id: "gross_margin", actualValue: 43, status: "FAILED" },
+      { id: "eps", actualValue: 3.2, status: "PASSED" },
+      { id: "guidance", actualValue: "Raised", status: "PASSED" }
     ],
     requirementsAssessment: {
+      weightedAchievement: 70,
+      reportedRequirements: 4,
+      totalRequirements: 4,
+      passed: 2,
+      failed: 1,
+      exceeded: 1,
+      partiallyPassed: 0,
+      notReported: 0,
       overallStatus: "bull_case_strengthened",
       summary: "Revenue Growth وEPS وGuidance نجحت، لكن Gross Margin فشل."
     }
@@ -101,6 +109,31 @@ assert.deepEqual(
   ]
 );
 assert.equal(prepared2.report.requirementsAssessment.weightedAchievement, 70);
+
+const noInferenceReport = normalizeExternalAnalysisReport({
+  ...analysis2,
+  id: "DEMO-no-inference",
+  previousRequirementsEvaluation: {
+    requirements: [
+      { id: "revenue_growth", actualValue: 1000 },
+      { id: "gross_margin", actualValue: 0 },
+      { id: "eps", actualValue: 999 },
+      { id: "guidance", actualValue: "Raised" }
+    ],
+    requirementsAssessment: {
+      overallStatus: "status_supplied_without_counts",
+      summary: "No numeric outcome was supplied."
+    }
+  }
+}, "no inference", { now: new Date("2026-11-08T10:00:00.000Z") });
+const noInferencePrepared = prepareHistoricalRequirementEvaluation(noInferenceReport, { DEMO: [q4Set] });
+assert.equal(
+  noInferencePrepared.report.previousRequirementsEvaluation.requirements.every((item) => item.status === "NOT_REPORTED"),
+  true,
+  "Franklin must not infer requirement statuses from actualValue and requiredValue."
+);
+assert.equal(noInferencePrepared.report.requirementsAssessment.weightedAchievement, null);
+assert.equal(noInferencePrepared.report.requirementsAssessment.reportedRequirements, null);
 
 const saved2 = saveExternalAnalysis(saved1.collection, prepared2.report, { now: new Date("2026-11-08T10:00:00.000Z"), allowDuplicate: true });
 historicalRequirementSets = applyHistoricalRequirementLifecycle(historicalRequirementSets, saved2.report, prepared2.match, new Date("2026-11-08T10:00:00.000Z"));
@@ -175,7 +208,19 @@ const denominatorCheck = calculateRequirementsAssessment({
     { id: "a", weight: 50, status: "PASSED" },
     { id: "b", weight: 50, status: "NOT_REPORTED" }
   ]
+}, {
+  weightedAchievement: 100,
+  reportedRequirements: 1,
+  totalRequirements: 2,
+  passed: 1,
+  notReported: 1
 });
 assert.equal(denominatorCheck.weightedAchievement, 100);
+assert.equal(calculateRequirementsAssessment({
+  requirements: [
+    { id: "a", weight: 50, status: "PASSED" },
+    { id: "b", weight: 50, status: "NOT_REPORTED" }
+  ]
+}).weightedAchievement, null);
 
 console.log("Historical requirements workflow tests passed.");

@@ -1,5 +1,14 @@
 # Changelog
 
+## Version 10.7 - External Analysis Preservation Policy
+
+- Changed External ChatGPT requirement assessment handling so Franklin preserves supplied `weightedAchievement`, reported/passed/failed/exceeded/partiallyPassed/notReported counts, `overallStatus`, and `summary` without recalculating them.
+- Stopped inferring requirement statuses from `actualValue` versus `requiredValue`; supplied statuses are stored as-is, and missing statuses remain `NOT_REPORTED`.
+- Updated historical earnings requirement matching to carry ChatGPT-supplied assessment fields into the saved evaluation and historical requirement set.
+- Updated the report UI to show unavailable assessment counts as `—` instead of displaying generated zero values.
+- Added test coverage proving Franklin does not calculate External ChatGPT requirement outcomes, does not infer PASSED/FAILED/EXCEEDED, and preserves supplied values.
+- Preserved Version 10.5 and 10.6 workflows, GitHub Pages deployment, source-of-truth sync, and all legacy investment engines without adding OpenAI API calls.
+
 ## Version 10.6 - Historical Requirements Workflow and Source Sync
 
 - Established `src/` as the canonical application source and added `npm run sync-public` / `npm run build` to generate `public/` and `docs/` deploy copies.

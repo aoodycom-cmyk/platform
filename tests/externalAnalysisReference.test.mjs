@@ -35,11 +35,42 @@ const requirementsBlock = normalizePriceTargetRequirements({
     { id: "e", name: "Backlog", requiredValue: "Higher", weight: 20, status: "NOT_REPORTED" }
   ]
 });
-const assessment = calculateRequirementsAssessment(requirementsBlock);
+const emptyAssessment = calculateRequirementsAssessment(requirementsBlock);
+assert.equal(emptyAssessment.reportedRequirements, null);
+assert.equal(emptyAssessment.totalRequirements, null);
+assert.equal(emptyAssessment.notReported, null);
+assert.equal(emptyAssessment.weightedAchievement, null, "Franklin must not calculate External ChatGPT requirement outcomes.");
+const assessment = calculateRequirementsAssessment(requirementsBlock, {
+  weightedAchievement: 63,
+  reportedRequirements: 4,
+  totalRequirements: 5,
+  notReported: 1,
+  passed: 1,
+  failed: 1,
+  exceeded: 1,
+  partiallyPassed: 1,
+  overallStatus: "supplied_by_chatgpt",
+  summary: "Supplied assessment must be preserved."
+});
 assert.equal(assessment.reportedRequirements, 4);
 assert.equal(assessment.totalRequirements, 5);
 assert.equal(assessment.notReported, 1);
-assert.equal(assessment.weightedAchievement, 63, "NOT_REPORTED must be excluded from the weighted denominator.");
+assert.equal(assessment.weightedAchievement, 63, "Supplied External ChatGPT weighted achievement must be preserved.");
+assert.equal(assessment.overallStatus, "supplied_by_chatgpt");
+assert.equal(assessment.summary, "Supplied assessment must be preserved.");
+const aliasAssessment = calculateRequirementsAssessment(requirementsBlock, {
+  passedRequirements: 2,
+  failedRequirements: 1,
+  exceededRequirements: 1,
+  partiallyPassedRequirements: 0,
+  notReportedRequirements: 1
+});
+assert.equal(aliasAssessment.passed, 2);
+assert.equal(aliasAssessment.notReported, 1);
+assert.equal(normalizePriceTargetRequirements({
+  requirements: [{ id: "partial", status: "Partially Passed" }],
+  requirementsAssessment: { passedRequirements: 3 }
+}).requirements[0].status, "PARTIALLY_PASSED");
 
 const guidance = normalizeGuidance([
   { topic: "Revenue", currentGuidance: "$1B-$1.2B", direction: "raised", type: "range", interpretation: "رفع التوجيهات.", importance: "critical" },

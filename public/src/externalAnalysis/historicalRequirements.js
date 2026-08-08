@@ -160,9 +160,7 @@ export function buildRequirementEvaluation(requirementSet = {}, report = {}, mat
     const actual = findActualForRequirement(requirement, actualItems);
     const actualValue = actualValueFrom(actual);
     const actualRaw = actual?.actualRaw ?? actual?.raw ?? actual?.commentary ?? null;
-    const status = actual
-      ? normalizeRequirementStatus(actual.status) || evaluateRequirementStatus(requirement, actualValue)
-      : "NOT_REPORTED";
+    const status = actual ? normalizeRequirementStatus(actual.status) || "NOT_REPORTED" : "NOT_REPORTED";
     return {
       ...requirement,
       actualValue,
@@ -171,14 +169,8 @@ export function buildRequirementEvaluation(requirementSet = {}, report = {}, mat
       evaluationNote: actual?.evaluationNote || actual?.note || null
     };
   });
-  const supplied = report.previousRequirementsEvaluation?.requirementsAssessment || {
-    overallStatus: report.requirementsAssessment?.overallStatus,
-    summary: report.requirementsAssessment?.summary
-  };
-  const requirementsAssessment = calculateRequirementsAssessment({ requirements }, {
-    overallStatus: supplied?.overallStatus,
-    summary: supplied?.summary
-  });
+  const supplied = report.previousRequirementsEvaluation?.requirementsAssessment || report.requirementsAssessment || {};
+  const requirementsAssessment = calculateRequirementsAssessment({ requirements }, supplied);
   return {
     requirementSetId: requirementSet.requirementSetId,
     ticker: requirementSet.ticker,
@@ -335,51 +327,6 @@ function actualValueFrom(actual = {}) {
   return actual.actualValue ?? actual.value ?? actual.currentValue ?? actual.reportedValue ?? null;
 }
 
-function evaluateRequirementStatus(requirement = {}, actualValue) {
-  if (actualValue === null || actualValue === undefined || actualValue === "") return "NOT_REPORTED";
-  const type = String(requirement.type || "").toLowerCase();
-  if (["minimum", "percentage", "numeric"].includes(type)) return evaluateMinimum(requirement.requiredValue, actualValue);
-  if (type === "maximum") return evaluateMaximum(requirement.requiredValue, actualValue);
-  if (type === "range") return evaluateRange(requirement.requiredValue, actualValue);
-  if (type === "boolean") return evaluateTextMatch(requirement.requiredValue, actualValue);
-  return evaluateTextMatch(requirement.requiredValue, actualValue);
-}
-
-function evaluateMinimum(requiredValue, actualValue) {
-  const required = numberOrNull(requiredValue);
-  const actual = numberOrNull(actualValue);
-  if (!Number.isFinite(required) || !Number.isFinite(actual)) return evaluateTextMatch(requiredValue, actualValue);
-  if (actual >= required * 1.1) return "EXCEEDED";
-  if (actual >= required) return "PASSED";
-  return "FAILED";
-}
-
-function evaluateMaximum(requiredValue, actualValue) {
-  const required = numberOrNull(requiredValue);
-  const actual = numberOrNull(actualValue);
-  if (!Number.isFinite(required) || !Number.isFinite(actual)) return evaluateTextMatch(requiredValue, actualValue);
-  if (actual <= required * 0.9) return "EXCEEDED";
-  if (actual <= required) return "PASSED";
-  return "FAILED";
-}
-
-function evaluateRange(requiredValue, actualValue) {
-  const actual = numberOrNull(actualValue);
-  if (!Number.isFinite(actual)) return evaluateTextMatch(requiredValue, actualValue);
-  const parts = Array.isArray(requiredValue) ? requiredValue : String(requiredValue || "").match(/-?\d+(\.\d+)?/g);
-  if (!parts || parts.length < 2) return "NOT_REPORTED";
-  const [low, high] = parts.map(numberOrNull);
-  if (!Number.isFinite(low) || !Number.isFinite(high)) return "NOT_REPORTED";
-  return actual >= Math.min(low, high) && actual <= Math.max(low, high) ? "PASSED" : "FAILED";
-}
-
-function evaluateTextMatch(requiredValue, actualValue) {
-  const required = normalizeComparisonText(requiredValue);
-  const actual = normalizeComparisonText(actualValue);
-  if (!required || !actual) return "NOT_REPORTED";
-  return actual.includes(required) || required.includes(actual) ? "PASSED" : "FAILED";
-}
-
 function isSameSetAsPreviousEvaluation(set, evaluation) {
   if (!set || !evaluation) return false;
   if (set.requirementSetId && set.requirementSetId === evaluation.requirementSetId) return true;
@@ -448,13 +395,6 @@ function dateToIso(value, fallback) {
 function normalizeTicker(value) {
   const clean = String(value || "").trim().toUpperCase();
   return clean || null;
-}
-
-function normalizeComparisonText(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[\s_-]+/g, " ");
 }
 
 function numberOrNull(value) {

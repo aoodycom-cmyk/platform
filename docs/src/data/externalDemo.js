@@ -236,14 +236,23 @@ export const DEMO_EARNINGS_ANALYSIS = {
   },
   previousRequirementsEvaluation: {
     requirements: [
-      { id: "revenue_growth", actualValue: 34, actualRaw: "Revenue Growth reached 34%." },
-      { id: "gross_margin", actualValue: 43, actualRaw: "Gross Margin reached 43%." },
-      { id: "eps", actualValue: 3.2, actualRaw: "EPS reached $3.20." },
-      { id: "guidance", actualValue: "Raised", actualRaw: "Management raised Q1 guidance." }
+      { id: "revenue_growth", actualValue: 34, actualRaw: "Revenue Growth reached 34%.", status: "EXCEEDED" },
+      { id: "gross_margin", actualValue: 43, actualRaw: "Gross Margin reached 43%.", status: "FAILED" },
+      { id: "eps", actualValue: 3.2, actualRaw: "EPS reached $3.20.", status: "PASSED" },
+      { id: "guidance", actualValue: "Raised", actualRaw: "Management raised Q1 guidance.", status: "PASSED" }
     ],
     requirementsAssessment: {
+      weightedAchievement: 70,
+      reportedRequirements: 4,
+      totalRequirements: 4,
+      passed: 2,
+      failed: 1,
+      exceeded: 1,
+      partiallyPassed: 0,
+      notReported: 0,
       overallStatus: "bull_case_strengthened",
-      summary: "Revenue Growth وEPS وGuidance حققت المتطلبات، لكن Gross Margin فشل عند 43% مقابل 45%."
+      summary: "Revenue Growth وEPS وGuidance حققت المتطلبات، لكن Gross Margin فشل عند 43% مقابل 45%.",
+      calculatedAt: "2026-11-08T10:00:00.000Z"
     }
   },
   guidance: [
@@ -525,8 +534,17 @@ export const DEMO_EXTERNAL_ANALYSIS = {
     ]
   },
   requirementsAssessment: {
+    weightedAchievement: 72,
+    reportedRequirements: 4,
+    totalRequirements: 5,
+    passed: 2,
+    failed: 1,
+    exceeded: 1,
+    partiallyPassed: 0,
+    notReported: 1,
     overallStatus: "bull_case_weakened",
-    summary: "الشركة حققت معظم متطلبات Bull Case، لكن Gross Margin بقي دون العتبة المطلوبة لتبرير 100 دولار بالكامل."
+    summary: "الشركة حققت معظم متطلبات Bull Case، لكن Gross Margin بقي دون العتبة المطلوبة لتبرير 100 دولار بالكامل.",
+    calculatedAt: "2026-08-08T10:00:00.000Z"
   },
   risks: [
     {

@@ -1735,7 +1735,7 @@ function previousRequirementExecutionView(evaluation = {}) {
       <div class="requirements-summary">
         ${compactCardMetric(uiLabel("Target being tested"), `${money(evaluation.targetValue, 0)} ${localizedExternalText(evaluation.targetScenario || "")}`)}
         ${compactCardMetric(uiLabel("Requirement achievement"), Number.isFinite(numericValue(assessment.weightedAchievement)) ? `${Math.round(numericValue(assessment.weightedAchievement))}%` : "—")}
-        ${compactCardMetric(uiLabel("Reported Requirements"), `${assessment.reportedRequirements ?? 0}/${assessment.totalRequirements ?? requirements.length}`)}
+        ${compactCardMetric(uiLabel("Reported Requirements"), assessmentCountText(assessment.reportedRequirements, assessment.totalRequirements))}
         ${compactCardMetric(uiLabel("Earnings Period"), evaluation.earningsPeriod || "-")}
       </div>
       <div class="requirements-table-wrap">
@@ -1807,9 +1807,32 @@ function requirementRow(item = {}) {
   `;
 }
 
+function assessmentNumberText(value) {
+  const number = numericValue(value);
+  return Number.isFinite(number) ? number : "—";
+}
+
+function assessmentCountText(value, total) {
+  const reported = assessmentNumberText(value);
+  const reportedTotal = assessmentNumberText(total);
+  return reported === "—" && reportedTotal === "—" ? "—" : `${reported}/${reportedTotal}`;
+}
+
 function requirementsAssessmentView(assessment = {}, requirementsBlock = {}) {
   const requirements = requirementsBlock?.requirements || [];
-  if (!assessment?.weightedAchievement && !requirements.length) return "";
+  const hasSuppliedAssessment = [
+    assessment?.weightedAchievement,
+    assessment?.reportedRequirements,
+    assessment?.totalRequirements,
+    assessment?.passed,
+    assessment?.failed,
+    assessment?.exceeded,
+    assessment?.partiallyPassed,
+    assessment?.notReported,
+    assessment?.overallStatus,
+    assessment?.summary
+  ].some((value) => value !== null && value !== undefined && value !== "");
+  if (!hasSuppliedAssessment && !requirements.length) return "";
   return `
     <div class="requirements-assessment-card ${requirementsStatusClass(assessment.overallStatus)}">
       <div class="assessment-score">
@@ -1817,10 +1840,10 @@ function requirementsAssessmentView(assessment = {}, requirementsBlock = {}) {
         <strong>${Number.isFinite(numericValue(assessment.weightedAchievement)) ? `${Math.round(numericValue(assessment.weightedAchievement))}%` : "—"}</strong>
       </div>
       <div class="assessment-metrics">
-        ${compactCardMetric(uiLabel("Reported Requirements"), `${assessment.reportedRequirements ?? 0}/${assessment.totalRequirements ?? requirements.length}`)}
-        ${compactCardMetric(uiLabel("Passed"), assessment.passed ?? 0)}
-        ${compactCardMetric(uiLabel("Failed"), assessment.failed ?? 0)}
-        ${compactCardMetric(uiLabel("Exceeded"), assessment.exceeded ?? 0)}
+        ${compactCardMetric(uiLabel("Reported Requirements"), assessmentCountText(assessment.reportedRequirements, assessment.totalRequirements))}
+        ${compactCardMetric(uiLabel("Passed"), assessmentNumberText(assessment.passed))}
+        ${compactCardMetric(uiLabel("Failed"), assessmentNumberText(assessment.failed))}
+        ${compactCardMetric(uiLabel("Exceeded"), assessmentNumberText(assessment.exceeded))}
       </div>
       ${assessment.overallStatus ? `<p><b>${uiLabel("Thesis Status")}:</b> ${escapeHtml(requirementsStatusLabel(assessment.overallStatus))}</p>` : ""}
       ${assessment.summary ? `<p>${escapeHtml(localizedExternalText(assessment.summary))}</p>` : ""}
@@ -2016,7 +2039,7 @@ function requirementStatusLabel(status) {
 }
 
 function requirementsStatusClass(status) {
-  const clean = String(status || "");
+  const clean = String(status || "").toLowerCase();
   if (clean.includes("strengthened")) return "strengthened";
   if (clean.includes("broken")) return "broken";
   if (clean.includes("weakened")) return "weakened";
