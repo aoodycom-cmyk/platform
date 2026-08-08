@@ -2,6 +2,11 @@ export const REQUIREMENT_STATUSES = ["NOT_REPORTED", "PASSED", "PARTIALLY_PASSED
 export const RECOMMENDATION_ACTIONS = ["BUY", "ADD", "HOLD", "WATCH", "REDUCE", "SELL"];
 
 export function calculateRequirementsAssessment(requirementsInput = {}, suppliedAssessment = {}) {
+  return normalizeRequirementsAssessment(suppliedAssessment);
+}
+
+export function normalizeRequirementsAssessment(value = {}) {
+  const suppliedAssessment = value && typeof value === "object" && !Array.isArray(value) ? value : {};
   return {
     weightedAchievement: numberOrNull(suppliedAssessment.weightedAchievement),
     reportedRequirements: numberOrNull(suppliedAssessment.reportedRequirements),
@@ -48,19 +53,7 @@ export function normalizePriceTargetRequirements(value = {}) {
     earningsPeriod: normalizeText(value.earningsPeriod),
     requirements: normalizeRequirementList(value.requirements),
     requirementsAssessment: value.requirementsAssessment && typeof value.requirementsAssessment === "object"
-      ? {
-        weightedAchievement: numberOrNull(value.requirementsAssessment.weightedAchievement),
-        reportedRequirements: numberOrNull(value.requirementsAssessment.reportedRequirements),
-        totalRequirements: numberOrNull(value.requirementsAssessment.totalRequirements),
-        passed: numberOrNull(value.requirementsAssessment.passed ?? value.requirementsAssessment.passedRequirements),
-        failed: numberOrNull(value.requirementsAssessment.failed ?? value.requirementsAssessment.failedRequirements),
-        exceeded: numberOrNull(value.requirementsAssessment.exceeded ?? value.requirementsAssessment.exceededRequirements),
-        partiallyPassed: numberOrNull(value.requirementsAssessment.partiallyPassed ?? value.requirementsAssessment.partiallyPassedRequirements),
-        notReported: numberOrNull(value.requirementsAssessment.notReported ?? value.requirementsAssessment.notReportedRequirements),
-        overallStatus: normalizeStatusText(value.requirementsAssessment.overallStatus),
-        summary: normalizeText(value.requirementsAssessment.summary),
-        calculatedAt: normalizeText(value.requirementsAssessment.calculatedAt)
-      }
+      ? normalizeRequirementsAssessment(value.requirementsAssessment)
       : null
   };
 }
@@ -94,7 +87,7 @@ export function normalizePreviousRequirementsEvaluation(value = {}) {
     matchType: normalizeText(value.matchType),
     requirements,
     requirementsAssessment: value.requirementsAssessment && typeof value.requirementsAssessment === "object"
-      ? calculateRequirementsAssessment({ requirements }, value.requirementsAssessment)
+      ? normalizeRequirementsAssessment(value.requirementsAssessment)
       : null
   };
 }

@@ -1,7 +1,7 @@
 import {
-  calculateRequirementsAssessment,
   normalizePriceTargetRequirements,
-  normalizeRequirementList
+  normalizeRequirementList,
+  normalizeRequirementsAssessment
 } from "./requirements.js";
 
 export const REQUIREMENT_SET_STATUSES = ["OPEN", "EVALUATED", "SUPERSEDED", "CANCELLED"];
@@ -73,7 +73,7 @@ export function createRequirementSetFromReport(report = {}, now = new Date()) {
     evaluatedAt: block.evaluatedAt || null,
     requirements: freezeRequirementSetRequirements(block.requirements, status),
     requirementsAssessment: status === "EVALUATED"
-      ? calculateRequirementsAssessment({ requirements: block.requirements }, block.requirementsAssessment || {})
+      ? normalizeRequirementsAssessment(block.requirementsAssessment || {})
       : null
   };
 }
@@ -170,7 +170,7 @@ export function buildRequirementEvaluation(requirementSet = {}, report = {}, mat
     };
   });
   const supplied = report.previousRequirementsEvaluation?.requirementsAssessment || report.requirementsAssessment || {};
-  const requirementsAssessment = calculateRequirementsAssessment({ requirements }, supplied);
+  const requirementsAssessment = normalizeRequirementsAssessment(supplied);
   return {
     requirementSetId: requirementSet.requirementSetId,
     ticker: requirementSet.ticker,

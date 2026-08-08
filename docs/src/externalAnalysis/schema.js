@@ -1,12 +1,12 @@
 import { fairValueAnalysisToExternalReport, isFairValueAnalysisReport } from "./fairValueAdapter.js";
 import {
-  calculateRequirementsAssessment,
   normalizeCompanySpecificKpis,
   normalizeExternalRecommendation,
   normalizeExternalScenarios,
   normalizeGuidance,
   normalizePriceTargetRequirements,
-  normalizePreviousRequirementsEvaluation
+  normalizePreviousRequirementsEvaluation,
+  normalizeRequirementsAssessment
 } from "./requirements.js";
 
 export const EXTERNAL_ANALYSIS_SCHEMA_VERSION = "external-analysis-report/v1";
@@ -208,7 +208,7 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
   const scoresInput = input.scores || {};
   const fairValueInput = input.fairValue || input.fairValues || {};
   const priceTargetRequirements = normalizePriceTargetRequirements(input.priceTargetRequirements);
-  const requirementsAssessment = calculateRequirementsAssessment(priceTargetRequirements, input.requirementsAssessment || {});
+  const requirementsAssessment = normalizeRequirementsAssessment(input.requirementsAssessment || {});
   const recommendation = normalizeExternalRecommendation(input.recommendation, input.decision?.verdict ?? input.verdict ?? input.recommendation, input.decision?.rationale ?? input.rationale);
   const recommendationVerdict = recommendation.action || (typeof input.recommendation === "string" ? input.recommendation : null);
   const report = {
