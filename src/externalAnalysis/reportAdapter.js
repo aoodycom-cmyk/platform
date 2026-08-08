@@ -20,8 +20,12 @@ export function externalAnalysisToHomeCard(report = {}) {
     baseFairValue: report.fairValue?.base ?? null,
     bullFairValue: report.fairValue?.bull ?? null,
     upsideToBasePct: report.fairValue?.upsideToBasePct ?? null,
-    verdict: report.decision?.verdict || "",
+    verdict: report.recommendation?.action || report.decision?.verdict || "",
     thesis: report.thesis?.shortSummary || report.thesis?.fullSummary || "",
+    guidanceCount: Array.isArray(report.guidance) ? report.guidance.length : 0,
+    kpiCount: Array.isArray(report.companySpecificKpis) ? report.companySpecificKpis.length : 0,
+    requirementsAchievement: report.requirementsAssessment?.weightedAchievement ?? null,
+    thesisStatus: report.requirementsAssessment?.overallStatus || "",
     completionStatus
   };
 }

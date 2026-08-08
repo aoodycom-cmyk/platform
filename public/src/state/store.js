@@ -1,5 +1,6 @@
 import { createCompanyShell } from "../data/sampleData.js";
 import { DEMO_ANALYSIS_FIXTURE } from "../data/demoFlow.js";
+import { createDemoExternalAnalysisReport } from "../data/externalDemo.js";
 import { buildUnifiedDataCompany, mergeCompanyDataHistory } from "../dataPlatform/dataPlatform.js";
 import { buildEvaluatedCompany, upsertEvaluatedCompany } from "../domain/evaluatedCompanies.js";
 import { toNumber } from "../domain/financialMetrics.js";
@@ -14,6 +15,12 @@ import { normalizeExternalAnalysisReport, updateExternalAnalysisField } from "..
 import { validateExternalAnalysisReport } from "../externalAnalysis/externalAnalysisSchemaValidator.js";
 import { attachCompletionStatus, buildMissingRequirementsPrompt } from "../externalAnalysis/missingFields.js";
 import { buildExternalAnalysisJsonTemplate, buildFullAnalysisPrompt } from "../externalAnalysis/chatgptContract.js";
+import {
+  createInvestmentDataBackup,
+  mergeInvestmentDataBackup,
+  parseInvestmentDataBackup,
+  replaceInvestmentDataBackup
+} from "../externalAnalysis/backup.js";
 import { mergeExternalAnalysisSupplement } from "../externalAnalysis/supplementMerge.js";
 import { parseExternalAnalysisSupplement } from "../externalAnalysis/supplementParser.js";
 import { validateExternalAnalysisSupplement } from "../externalAnalysis/supplementValidator.js";
@@ -80,6 +87,7 @@ export function createStore() {
     externalAnalyses: initialExternalAnalyses,
     externalImport: createExternalImportState(),
     externalReportSelection: saved.externalReportSelection || null,
+    restorePreview: null,
     valuationWorkspace: saved.valuationWorkspace || null,
     history: saved.history || [],
     watchList: saved.watchList || [],
@@ -180,6 +188,24 @@ export function createStore() {
       notice: state.language === "ar"
         ? "تم تحميل بيانات تجريبية. راجع البيانات ثم شغّل التحليل."
         : "Demo data loaded. Review the data, then run the analysis.",
+      searchResults: []
+    });
+  }
+
+  function loadDemoExternalAnalysis() {
+    const report = createDemoExternalAnalysisReport();
+    const result = saveExternalAnalysis(state.externalAnalyses, report, { allowDuplicate: true });
+    set({
+      externalAnalyses: result.collection,
+      externalImport: createExternalImportState(),
+      externalReportSelection: { ticker: result.report.company.ticker, reportId: result.report.id },
+      company: externalReportCompanyShell(result.report),
+      activePanel: "external-report",
+      loading: false,
+      processingStage: "idle",
+      notice: state.language === "ar"
+        ? "تم فتح تقرير DEMO خارجي يحتوي على Guidance وKPIs ومتطلبات السعر."
+        : "DEMO external report opened with Guidance, KPIs, and price-target requirements.",
       searchResults: []
     });
   }
@@ -827,6 +853,38 @@ export function createStore() {
     window.location.reload();
   }
 
+  function createInvestmentBackup() {
+    return createInvestmentDataBackup(state);
+  }
+
+  function previewInvestmentRestore(text) {
+    const result = parseInvestmentDataBackup(text);
+    set({
+      restorePreview: result,
+      notice: result.valid
+        ? (state.language === "ar" ? "تمت قراءة النسخة الاحتياطية. راجع الملخص ثم اختر دمج أو استبدال." : "Backup parsed. Review the preview, then merge or replace.")
+        : (state.language === "ar" ? "النسخة الاحتياطية غير صالحة." : "Backup is not valid.")
+    });
+  }
+
+  function cancelInvestmentRestore() {
+    set({ restorePreview: null, notice: "" });
+  }
+
+  function restoreInvestmentBackup(mode = "merge") {
+    if (!state.restorePreview?.valid || !state.restorePreview.backup) return;
+    const next = mode === "replace"
+      ? replaceInvestmentDataBackup(state, state.restorePreview.backup)
+      : mergeInvestmentDataBackup(state, state.restorePreview.backup);
+    set({
+      ...next,
+      restorePreview: null,
+      notice: state.language === "ar"
+        ? (mode === "replace" ? "تم استبدال بيانات Franklin من النسخة الاحتياطية." : "تم دمج النسخة الاحتياطية مع بيانات Franklin الحالية.")
+        : (mode === "replace" ? "Franklin data replaced from backup." : "Backup merged with current Franklin data.")
+    });
+  }
+
   function setLanguage(language) {
     const normalized = normalizeLanguage(language);
     setLanguageContext(normalized);
@@ -969,6 +1027,7 @@ export function createStore() {
     openValuationWorkspace,
     startBlankAnalysis,
     loadDemoAnalysis,
+    loadDemoExternalAnalysis,
     openExternalImport,
     parseExternalImport,
     clearExternalImport,
@@ -1007,6 +1066,10 @@ export function createStore() {
     approveAndExportWorkspace,
     setManualInput,
     clearLocalData,
+    createInvestmentBackup,
+    previewInvestmentRestore,
+    cancelInvestmentRestore,
+    restoreInvestmentBackup,
     setLanguage,
     setEvaluatedSort,
     setRankingFilter,
@@ -1044,6 +1107,7 @@ function load() {
 function persist(state) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
     company: state.company,
+    manualInputs: state.manualInputs,
     language: state.language,
     theme: state.theme,
     activePanel: state.activePanel,

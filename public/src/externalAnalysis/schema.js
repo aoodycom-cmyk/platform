@@ -1,4 +1,12 @@
 import { fairValueAnalysisToExternalReport, isFairValueAnalysisReport } from "./fairValueAdapter.js";
+import {
+  calculateRequirementsAssessment,
+  normalizeCompanySpecificKpis,
+  normalizeExternalRecommendation,
+  normalizeExternalScenarios,
+  normalizeGuidance,
+  normalizePriceTargetRequirements
+} from "./requirements.js";
 
 export const EXTERNAL_ANALYSIS_SCHEMA_VERSION = "external-analysis-report/v1";
 export const EXTERNAL_ANALYSIS_ORIGIN = "external_chatgpt";
@@ -107,6 +115,40 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
       fairZone: null,
       expensiveZone: null
     },
+    recommendation: {
+      action: null,
+      confidence: null,
+      reason: null,
+      whatWouldUpgrade: [],
+      whatWouldDowngrade: []
+    },
+    guidance: [],
+    companySpecificKpis: [],
+    priceTargetRequirements: {
+      currentJustifiedValue: null,
+      targetValue: null,
+      targetScenario: null,
+      targetDescription: null,
+      createdAt: null,
+      earningsPeriod: null,
+      requirements: []
+    },
+    requirementsAssessment: {
+      weightedAchievement: null,
+      reportedRequirements: 0,
+      totalRequirements: 0,
+      passed: 0,
+      failed: 0,
+      exceeded: 0,
+      partiallyPassed: 0,
+      notReported: 0,
+      overallStatus: null,
+      summary: null,
+      calculatedAt: null
+    },
+    scenarios: {},
+    primaryValuationMethod: null,
+    valuationSelectionReason: null,
     sources: [],
     rawAnalysis,
     rawAnalysisOriginal: rawAnalysis,
@@ -146,6 +188,10 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
   const marketInput = input.market || {};
   const scoresInput = input.scores || {};
   const fairValueInput = input.fairValue || input.fairValues || {};
+  const priceTargetRequirements = normalizePriceTargetRequirements(input.priceTargetRequirements);
+  const requirementsAssessment = calculateRequirementsAssessment(priceTargetRequirements, input.requirementsAssessment || {});
+  const recommendation = normalizeExternalRecommendation(input.recommendation, input.decision?.verdict ?? input.verdict ?? input.recommendation, input.decision?.rationale ?? input.rationale);
+  const recommendationVerdict = recommendation.action || (typeof input.recommendation === "string" ? input.recommendation : null);
   const report = {
     ...base,
     id: input.id || null,
@@ -195,7 +241,7 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
       strengths: normalizeStringArray(input.quality?.strengths),
       weaknesses: normalizeStringArray(input.quality?.weaknesses)
     },
-    risks: normalizeItems(input.risks ?? input.mainRisks, ["title", "severity", "explanation"]),
+    risks: normalizeItems(input.risks ?? input.mainRisks, ["title", "severity", "explanation", "whatToMonitor", "thesisBreaker"]),
     catalysts: normalizeItems(input.catalysts, ["title", "explanation"]),
     thesis: {
       shortSummary: nullableString(input.thesis?.shortSummary ?? input.shortSummary ?? input.thesisSummary),
@@ -208,12 +254,20 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
     },
     watchItems: normalizeStringArray(input.watchItems),
     decision: {
-      verdict: nullableString(input.decision?.verdict ?? input.verdict ?? input.recommendation),
-      rationale: nullableString(input.decision?.rationale ?? input.rationale),
+      verdict: nullableString(input.decision?.verdict ?? input.verdict ?? recommendationVerdict),
+      rationale: nullableString(input.decision?.rationale ?? input.rationale ?? recommendation.reason),
       buyZone: nullableString(input.decision?.buyZone),
       fairZone: nullableString(input.decision?.fairZone),
       expensiveZone: nullableString(input.decision?.expensiveZone)
     },
+    recommendation,
+    guidance: normalizeGuidance(input.guidance),
+    companySpecificKpis: normalizeCompanySpecificKpis(input.companySpecificKpis),
+    priceTargetRequirements,
+    requirementsAssessment,
+    scenarios: normalizeExternalScenarios(input.scenarios),
+    primaryValuationMethod: nullableString(input.primaryValuationMethod ?? input.metadata?.primaryValuationMethod),
+    valuationSelectionReason: nullableString(input.valuationSelectionReason ?? input.metadata?.valuationSelectionReason),
     sources: normalizeItems(input.sources, ["title", "url", "sourceType"]),
     rawAnalysis: String(rawAnalysis || input.rawAnalysis || input.rawAnalysisOriginal || ""),
     rawAnalysisOriginal: String(input.rawAnalysisOriginal || rawAnalysis || input.rawAnalysis || ""),
@@ -287,8 +341,14 @@ function normalizeItems(value, keys) {
       return Object.fromEntries(keys.map((key, index) => [key, index === 0 ? item : null]));
     }
     if (!item || typeof item !== "object") return null;
-    return Object.fromEntries(keys.map((key) => [key, toMaybeNumberOrString(item[key])]));
+    return Object.fromEntries(keys.map((key) => [key, toMaybeNumberOrString(aliasValue(item, key))]));
   }).filter(Boolean);
+}
+
+function aliasValue(item, key) {
+  if (key === "title") return item.title ?? item.name ?? item.topic;
+  if (key === "sourceType") return item.sourceType ?? item.type;
+  return item[key];
 }
 
 function normalizeSupplements(value) {

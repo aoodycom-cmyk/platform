@@ -6243,6 +6243,270 @@ button.danger-action {
   line-height: 1.7;
 }
 
+.external-recommendation-block,
+.price-requirements-block,
+.valuation-method-summary {
+  display: grid;
+  gap: 12px;
+}
+
+.recommendation-head {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+  display: grid;
+  gap: 4px;
+}
+
+.recommendation-head span,
+.recommendation-head em,
+.trigger-list h4 {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.recommendation-head strong {
+  font-size: clamp(26px, 5vw, 42px);
+  line-height: 1;
+}
+
+.recommendation-trigger-grid,
+.guidance-grid,
+.company-kpi-grid,
+.scenario-assumption-grid,
+.requirements-summary,
+.assessment-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.guidance-card,
+.kpi-card,
+.scenario-assumption-grid article {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 13px;
+  background: color-mix(in srgb, var(--surface-2) 86%, transparent);
+  display: grid;
+  gap: 8px;
+}
+
+.guidance-card > div,
+.kpi-card > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.guidance-card span,
+.kpi-card span {
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.guidance-card em,
+.kpi-card em,
+.kpi-card b,
+.guidance-card b {
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.guidance-card strong,
+.kpi-card strong {
+  color: var(--ink);
+  font-size: 20px;
+  direction: ltr;
+  text-align: start;
+}
+
+.guidance-card p,
+.kpi-card p,
+.scenario-assumption-grid p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.guidance-card.raised,
+.kpi-card.improving {
+  border-color: color-mix(in srgb, var(--green) 34%, var(--line));
+}
+
+.guidance-card.lowered,
+.kpi-card.deteriorating {
+  border-color: color-mix(in srgb, var(--red) 34%, var(--line));
+}
+
+.guidance-card.maintained,
+.kpi-card.stable {
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--line));
+}
+
+.requirements-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.requirements-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  background: color-mix(in srgb, var(--surface-2) 82%, transparent);
+}
+
+.requirements-table th,
+.requirements-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 11px 12px;
+  text-align: start;
+  vertical-align: top;
+  font-size: 13px;
+}
+
+.requirements-table th {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.requirements-table td strong,
+.scenario-assumption-grid strong {
+  display: block;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.requirements-table td small,
+.scenario-assumption-grid span {
+  display: block;
+  color: var(--muted);
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.requirement-note-row td {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--bg) 16%, transparent);
+}
+
+.requirement-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  padding: 4px 9px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.requirement-status.exceeded,
+.requirement-status.passed {
+  color: var(--green);
+  border-color: color-mix(in srgb, var(--green) 42%, var(--line));
+  background: color-mix(in srgb, var(--green) 10%, transparent);
+}
+
+.requirement-status.partial {
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning) 42%, var(--line));
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+}
+
+.requirement-status.failed {
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 42%, var(--line));
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+}
+
+.requirements-assessment-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+  display: grid;
+  grid-template-columns: minmax(130px, 0.28fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.assessment-score {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  display: grid;
+  gap: 5px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+}
+
+.assessment-score span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.assessment-score strong {
+  color: var(--accent);
+  font-size: clamp(28px, 6vw, 44px);
+  line-height: 1;
+  direction: ltr;
+}
+
+.requirements-assessment-card.strengthened .assessment-score strong {
+  color: var(--green);
+}
+
+.requirements-assessment-card.weakened .assessment-score strong,
+.requirements-assessment-card.broken .assessment-score strong {
+  color: var(--red);
+}
+
+.backup-restore-panel,
+.restore-preview-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--surface-2) 84%, transparent);
+  display: grid;
+  gap: 12px;
+}
+
+.restore-file-input {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.restore-file-input input {
+  width: 100%;
+}
+
+.restore-preview-card.invalid {
+  border-color: color-mix(in srgb, var(--red) 42%, var(--line));
+}
+
+.restore-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .history-report-list {
   display: grid;
   gap: 8px;
@@ -6265,6 +6529,17 @@ button.danger-action {
 .history-report-list span {
   color: var(--muted);
   font-size: 12px;
+}
+
+.external-version-list button {
+  display: grid;
+  gap: 5px;
+}
+
+.external-version-list small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
 }
 
 .history-report-list em {
@@ -6329,6 +6604,16 @@ button.danger-action {
 
   .report-v2-fair-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .guidance-grid,
+  .company-kpi-grid,
+  .recommendation-trigger-grid,
+  .scenario-assumption-grid,
+  .requirements-summary,
+  .assessment-metrics,
+  .requirements-assessment-card {
+    grid-template-columns: 1fr;
   }
 
   .report-decision-strip {

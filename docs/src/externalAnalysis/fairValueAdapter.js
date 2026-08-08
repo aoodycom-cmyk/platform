@@ -166,6 +166,71 @@ export function buildFairValueAnalysisJsonObject(options = {}) {
       whatChangesTheDecision: [],
       policyGates: []
     },
+    recommendation: {
+      action: null,
+      confidence: null,
+      reason: null,
+      whatWouldUpgrade: [],
+      whatWouldDowngrade: []
+    },
+    guidance: [
+      {
+        topic: null,
+        arabicTopic: null,
+        currentGuidance: null,
+        previousGuidance: null,
+        direction: "not_applicable",
+        type: "text",
+        interpretation: null,
+        importance: "medium"
+      }
+    ],
+    companySpecificKpis: [
+      {
+        name: null,
+        arabicName: null,
+        category: "other",
+        currentValue: null,
+        unit: "text",
+        trend: "unknown",
+        importance: "medium",
+        interpretation: null
+      }
+    ],
+    priceTargetRequirements: {
+      currentJustifiedValue: null,
+      targetValue: null,
+      targetScenario: null,
+      targetDescription: null,
+      createdAt: null,
+      earningsPeriod: null,
+      requirements: [
+        {
+          id: null,
+          name: null,
+          arabicName: null,
+          metric: null,
+          type: "minimum",
+          currentLevel: null,
+          requiredValue: null,
+          unit: null,
+          importance: "medium",
+          weight: null,
+          whyItMatters: null,
+          actualValue: null,
+          actualRaw: null,
+          status: "NOT_REPORTED",
+          evaluationNote: null
+        }
+      ]
+    },
+    requirementsAssessment: {
+      weightedAchievement: null,
+      reportedRequirements: null,
+      totalRequirements: null,
+      overallStatus: null,
+      summary: null
+    },
     monitoringChecklist: [
       {
         metric: null,
@@ -216,6 +281,7 @@ export function fairValueAnalysisToExternalReport(input = {}) {
   const fairSummary = input.fairValueSummary || {};
   const scenarios = input.scenarios || {};
   const finalDecision = input.finalDecision || {};
+  const recommendation = input.recommendation || {};
   const dashboardExport = input.dashboardExport || {};
   const whatChanges = input.whatChangesMyMind || {};
   const valuationResults = Array.isArray(input.valuationResults) ? input.valuationResults : [];
@@ -299,8 +365,9 @@ export function fairValueAnalysisToExternalReport(input = {}) {
     },
     watchItems: normalizeWatchItems(input.monitoringChecklist),
     decision: {
-      verdict: firstText(finalDecision.decision, executive.recommendation, dashboardExport.recommendation),
+      verdict: firstText(recommendation.action, finalDecision.decision, executive.recommendation, dashboardExport.recommendation),
       rationale: compactSentences([
+        recommendation.reason,
         arraySentence(finalDecision.why),
         arraySentence(executive.why),
         finalDecision.biggestAssumption ? `أهم افتراض: ${finalDecision.biggestAssumption}` : null,
@@ -310,6 +377,25 @@ export function fairValueAnalysisToExternalReport(input = {}) {
       fairZone: null,
       expensiveZone: null
     },
+    recommendation: {
+      action: firstText(recommendation.action, finalDecision.decision, executive.recommendation, dashboardExport.recommendation),
+      confidence: firstNumber(recommendation.confidence, executive.confidence, dashboardExport.confidence),
+      reason: firstText(recommendation.reason, finalDecision.why?.[0], executive.why?.[0]),
+      whatWouldUpgrade: Array.isArray(recommendation.whatWouldUpgrade) ? recommendation.whatWouldUpgrade : [],
+      whatWouldDowngrade: Array.isArray(recommendation.whatWouldDowngrade) ? recommendation.whatWouldDowngrade : []
+    },
+    guidance: Array.isArray(input.guidance) ? input.guidance : [],
+    companySpecificKpis: Array.isArray(input.companySpecificKpis) ? input.companySpecificKpis : [],
+    priceTargetRequirements: input.priceTargetRequirements || {},
+    requirementsAssessment: input.requirementsAssessment || {},
+    scenarios: {
+      Bear: scenarioForExternal(scenarios.Conservative),
+      Base: scenarioForExternal(scenarios.Base),
+      Bull: scenarioForExternal(scenarios.Optimistic),
+      Exceptional: scenarioForExternal(scenarios.Exceptional)
+    },
+    primaryValuationMethod: valuationMethodology.primaryMethod || dashboardExport.primaryValuationMethod || null,
+    valuationSelectionReason: valuationMethodology.selectionReason || null,
     sources: normalizeSources(input.sources),
     metadata: {
       nativeSchemaVersion: input.schemaVersion || FAIR_VALUE_ANALYSIS_SCHEMA_VERSION,
@@ -320,6 +406,27 @@ export function fairValueAnalysisToExternalReport(input = {}) {
       valuationSelectionReason: valuationMethodology.selectionReason || null,
       fairValueLimitations: Array.isArray(valuationMethodology.limitations) ? valuationMethodology.limitations : []
     }
+  };
+}
+
+function scenarioForExternal(scenario) {
+  if (!scenario || scenario.enabled === false) return null;
+  return {
+    fairValue: scenario.fairValue ?? null,
+    valuationMethod: scenario.valuationMethod ?? null,
+    assumptions: scenario.assumptions || {},
+    revenueAssumption: scenario.revenueAssumption ?? scenario.revenueGrowth ?? null,
+    marginAssumption: scenario.marginAssumption ?? scenario.marginAssumptions ?? null,
+    epsAssumption: scenario.epsAssumption ?? null,
+    ebitdaAssumption: scenario.ebitdaAssumption ?? null,
+    fcfAssumption: scenario.fcfAssumption ?? scenario["FCF assumptions"] ?? null,
+    multipleUsed: scenario.multipleUsed ?? scenario.valuationMultiple ?? null,
+    timeHorizon: scenario.timeHorizon ?? null,
+    probability: scenario.probability ?? null,
+    upsideDownsidePercent: scenario.upsideDownsidePercent ?? null,
+    thesis: scenario.thesis ?? null,
+    keyRisks: scenario.keyRisks || [],
+    requiredOutcomes: scenario.requiredOutcomes || []
   };
 }
 

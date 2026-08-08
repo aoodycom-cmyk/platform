@@ -17,6 +17,7 @@ export function validateExternalAnalysisReport(report = {}) {
   }
   validateFairValueOrdering(report, errors);
   validateOptionalPositiveFairValues(report, errors);
+  validateExternalDecisionFields(report, errors);
 
   if (!hasText(report.thesis?.shortSummary) && !hasText(report.thesis?.fullSummary)) {
     errors.push(fieldError("thesis.shortSummary", "Investment thesis summary is required."));
@@ -27,6 +28,9 @@ export function validateExternalAnalysisReport(report = {}) {
   if (!hasText(report.decision?.verdict)) errors.push(fieldError("decision.verdict", "Verdict is required and must be stated in the pasted analysis."));
 
   validateArrays(report, errors);
+  validateGuidance(report, errors);
+  validateCompanySpecificKpis(report, errors);
+  validatePriceTargetRequirements(report, errors);
   validateFiniteNumbers(report, errors);
 
   if (report.analysisOrigin && report.analysisOrigin !== "external_chatgpt") {
@@ -41,6 +45,17 @@ export function validateExternalAnalysisReport(report = {}) {
     errors,
     warnings
   };
+}
+
+function validateExternalDecisionFields(report, errors) {
+  const action = report.recommendation?.action;
+  if (action && !["BUY", "ADD", "HOLD", "WATCH", "REDUCE", "SELL"].includes(String(action).toUpperCase())) {
+    errors.push(fieldError("recommendation.action", "External recommendation action must be BUY, ADD, HOLD, WATCH, REDUCE, or SELL."));
+  }
+  const confidence = report.recommendation?.confidence;
+  if (confidence !== null && confidence !== undefined && (!Number.isFinite(confidence) || confidence < 0 || confidence > 100)) {
+    errors.push(fieldError("recommendation.confidence", "External recommendation confidence must be between 0 and 100 when present."));
+  }
 }
 
 function validateFairValueOrdering(report, errors) {
@@ -63,12 +78,42 @@ function validateOptionalPositiveFairValues(report, errors) {
 }
 
 function validateArrays(report, errors) {
-  const arrayPaths = ["risks", "catalysts", "watchItems", "sources", "quality.strengths", "quality.weaknesses", "earningsQuality.oneOffItems"];
+  const arrayPaths = ["risks", "catalysts", "watchItems", "sources", "quality.strengths", "quality.weaknesses", "earningsQuality.oneOffItems", "guidance", "companySpecificKpis", "priceTargetRequirements.requirements", "recommendation.whatWouldUpgrade", "recommendation.whatWouldDowngrade"];
   for (const path of arrayPaths) {
     const value = getPath(report, path);
     if (value !== undefined && value !== null && !Array.isArray(value)) {
       errors.push(fieldError(path, `${path} must be an array when present.`));
     }
+  }
+}
+
+function validateGuidance(report, errors) {
+  const directions = new Set(["raised", "maintained", "lowered", "new", "not_applicable"]);
+  for (const [index, item] of (report.guidance || []).entries()) {
+    if (item?.direction && !directions.has(item.direction)) {
+      errors.push(fieldError(`guidance.${index}.direction`, "Guidance direction is not supported."));
+    }
+  }
+}
+
+function validateCompanySpecificKpis(report, errors) {
+  const trends = new Set(["improving", "stable", "deteriorating", "unknown"]);
+  for (const [index, item] of (report.companySpecificKpis || []).entries()) {
+    if (!hasText(item?.name) && !hasText(item?.arabicName)) {
+      errors.push(fieldError(`companySpecificKpis.${index}.name`, "Company-specific KPI needs a name when present."));
+    }
+    if (item?.trend && !trends.has(item.trend)) {
+      errors.push(fieldError(`companySpecificKpis.${index}.trend`, "Company-specific KPI trend is not supported."));
+    }
+  }
+}
+
+function validatePriceTargetRequirements(report, errors) {
+  const requirements = report.priceTargetRequirements?.requirements || [];
+  const statuses = new Set(["NOT_REPORTED", "PASSED", "PARTIALLY_PASSED", "FAILED", "EXCEEDED"]);
+  for (const [index, item] of requirements.entries()) {
+    if (!statuses.has(item.status)) errors.push(fieldError(`priceTargetRequirements.requirements.${index}.status`, "Requirement status is not supported."));
+    if (!Number.isFinite(item.weight) || item.weight < 0) errors.push(fieldError(`priceTargetRequirements.requirements.${index}.weight`, "Requirement weight must be zero or greater."));
   }
 }
 

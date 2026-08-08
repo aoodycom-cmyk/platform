@@ -10,7 +10,9 @@ const PATH_OBJECT_KEYS = new Set([
   "growthHighlights",
   "quality",
   "earningsQuality",
-  "decision"
+  "decision",
+  "recommendation",
+  "priceTargetRequirements"
 ]);
 
 export function normalizeExternalAnalysisSupplement(input = {}, rawSupplement = "", options = {}) {
@@ -60,7 +62,7 @@ function flattenPartialReport(input = {}) {
     if (!PATH_OBJECT_KEYS.has(key)) continue;
     flattenObject(value, key, result);
   }
-  for (const path of ["analysisDate", "reportPeriod", "risks", "catalysts", "watchItems", "sources"]) {
+  for (const path of ["analysisDate", "reportPeriod", "risks", "catalysts", "watchItems", "sources", "guidance", "companySpecificKpis"]) {
     if (input[path] !== undefined) result[path] = input[path];
   }
   return result;
@@ -113,7 +115,7 @@ function normalizeSources(value) {
 }
 
 function normalizeRiskItems(value) {
-  return normalizeTitledItems(value, ["title", "severity", "explanation"]);
+  return normalizeTitledItems(value, ["title", "severity", "explanation", "whatToMonitor", "thesisBreaker"]);
 }
 
 function normalizeTitledItems(value, keys) {

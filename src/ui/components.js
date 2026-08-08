@@ -421,7 +421,7 @@ function compactCardMetric(label, value) {
   return `
     <div>
       <span>${escapeHtml(label)}</span>
-      <strong>${escapeHtml(String(value || "—"))}</strong>
+      <strong>${escapeHtml(String(value === null || value === undefined || value === "" ? "—" : value))}</strong>
     </div>
   `;
 }
@@ -1333,8 +1333,8 @@ function externalAnalysisReportView(state) {
         </div>
         <div class="external-verdict-card report-verdict-card ${completionStatusClass(completion.status)}">
           <span>${uiLabel("Verdict")}</span>
-          <strong>${escapeHtml(localizedExternalText(report.decision?.verdict) || "-")}</strong>
-          <small>${uiLabel("Stored external research")}</small>
+          <strong>${escapeHtml(localizedExternalText(externalRecommendationAction(report)) || "-")}</strong>
+          <small>${externalRecommendationConfidence(report)}</small>
         </div>
       </header>
       ${reportDecisionStrip(reportWithCompletion, completion)}
@@ -1353,10 +1353,15 @@ function externalAnalysisReportView(state) {
         ${externalFairValueMetric(uiLabel("Upside"), report.fairValue?.upsideToBasePct)}
       </section>
       <section class="report-v2-stack">
-        ${reportSection(uiLabel("Investment Verdict"), paragraphBlock([localizedExternalText(report.decision?.verdict), report.decision?.rationale, report.decision?.buyZone, report.decision?.fairZone, report.decision?.expensiveZone]))}
+        ${reportSection(uiLabel("Investment Verdict"), externalRecommendationView(report))}
         ${reportSection(uiLabel("Investment Thesis"), paragraphBlock([report.thesis?.shortSummary, report.thesis?.fullSummary]))}
         ${reportSection(uiLabel("Key Strengths"), simpleList(report.quality?.strengths))}
-        ${reportSection(uiLabel("Key Risks"), itemList(report.risks, ["severity", "explanation"]))}
+        ${reportSection(uiLabel("Key Risks"), riskList(report.risks))}
+        ${reportSection(uiLabel("Guidance"), guidanceView(report.guidance))}
+        ${reportSection(uiLabel("Company-Specific KPIs"), companyKpisView(report.companySpecificKpis))}
+        ${reportSection(uiLabel("Requirements to Justify Next Price Target"), priceTargetRequirementsView(report.priceTargetRequirements))}
+        ${reportSection(uiLabel("Earnings Requirement Results"), requirementsAssessmentView(report.requirementsAssessment, report.priceTargetRequirements))}
+        ${reportSection(uiLabel("Valuation Method Used"), valuationMethodSummaryView(report))}
         ${reportSection(uiLabel("Catalysts"), itemList(report.catalysts, ["explanation"]))}
         ${reportSection(uiLabel("Watch List"), simpleList(report.watchItems))}
         ${reportSection(uiLabel("Valuation Methods"), valuationMethodsView(report.valuationMethods))}
@@ -1378,14 +1383,25 @@ function externalAnalysisReportView(state) {
 }
 
 function reportDecisionStrip(report, completion = {}) {
+  const action = externalRecommendationAction(report);
   return `
     <section class="report-decision-strip">
-      ${decisionStripMetric(uiLabel("Recommendation"), localizedExternalText(report.decision?.verdict) || "-", recommendationColorCategory(report.decision?.verdict))}
+      ${decisionStripMetric(uiLabel("Recommendation"), localizedExternalText(action) || "-", recommendationColorCategory(action))}
       ${decisionStripMetric(uiLabel("Data Health"), `${boundedPercent(completion.completionPct)}%`, completion.status === "complete" ? "positive" : "warning")}
+      ${decisionStripMetric(uiLabel("Confidence"), externalRecommendationConfidence(report), "neutral")}
       ${decisionStripMetric("Base Fair Value", money(report.fairValue?.base, 0), "neutral")}
       ${decisionStripMetric(uiLabel("Upside"), formatExternalPercent(report.fairValue?.upsideToBasePct), upsideColorCategory(numericValue(report.fairValue?.upsideToBasePct)))}
     </section>
   `;
+}
+
+function externalRecommendationAction(report = {}) {
+  return report.recommendation?.action || report.decision?.verdict || "";
+}
+
+function externalRecommendationConfidence(report = {}) {
+  const confidence = numericValue(report.recommendation?.confidence);
+  return Number.isFinite(confidence) ? `${Math.round(confidence)}% ${uiLabel("Confidence")}` : uiLabel("Stored external research");
 }
 
 function decisionStripMetric(label, value, category = "neutral") {
@@ -1543,6 +1559,192 @@ function valuationMethodsView(methods = {}) {
   `;
 }
 
+function externalRecommendationView(report = {}) {
+  const recommendation = report.recommendation || {};
+  const action = externalRecommendationAction(report);
+  return `
+    <div class="external-recommendation-block">
+      <div class="recommendation-head ${colorClass(recommendationColorCategory(action), "tone")}">
+        <span>${uiLabel("Action")}</span>
+        <strong>${escapeHtml(localizedExternalText(action) || "-")}</strong>
+        <em>${externalRecommendationConfidence(report)}</em>
+      </div>
+      ${paragraphBlock([recommendation.reason, report.decision?.rationale, report.decision?.buyZone, report.decision?.fairZone, report.decision?.expensiveZone])}
+      <div class="recommendation-trigger-grid">
+        ${triggerList(uiLabel("What Would Upgrade"), recommendation.whatWouldUpgrade)}
+        ${triggerList(uiLabel("What Would Downgrade"), recommendation.whatWouldDowngrade)}
+      </div>
+    </div>
+  `;
+}
+
+function triggerList(title, items = []) {
+  const visible = Array.isArray(items) ? items.filter(Boolean) : [];
+  if (!visible.length) return "";
+  return `
+    <div class="trigger-list">
+      <h4>${escapeHtml(title)}</h4>
+      ${simpleList(visible)}
+    </div>
+  `;
+}
+
+function riskList(items = []) {
+  if (!Array.isArray(items) || !items.length) return "";
+  return `
+    <div class="external-list risk-monitor-list">
+      ${items.map((item) => {
+        if (typeof item === "string") return `<article><strong>${escapeHtml(localizedExternalText(item))}</strong></article>`;
+        return `
+          <article>
+            <strong>${escapeHtml(localizedExternalText(item.title || item.name || uiLabel("Risk")))}</strong>
+            ${item.severity ? `<span>${uiLabel("Severity")}: ${escapeHtml(localizedExternalText(item.severity))}</span>` : ""}
+            ${item.explanation ? `<span>${escapeHtml(localizedExternalText(item.explanation))}</span>` : ""}
+            ${item.whatToMonitor ? `<span><b>${uiLabel("What to Monitor")}</b>: ${escapeHtml(localizedExternalText(item.whatToMonitor))}</span>` : ""}
+            ${item.thesisBreaker ? `<span><b>${uiLabel("Thesis Breaker")}</b>: ${escapeHtml(localizedExternalText(item.thesisBreaker))}</span>` : ""}
+          </article>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function guidanceView(guidance = []) {
+  if (!Array.isArray(guidance) || !guidance.length) return "";
+  return `
+    <div class="guidance-grid">
+      ${guidance.map((item) => `
+        <article class="guidance-card ${guidanceDirectionClass(item.direction)}">
+          <div>
+            <span>${escapeHtml(item.arabicTopic || item.topic || uiLabel("Guidance"))}</span>
+            <em>${escapeHtml(guidanceDirectionLabel(item.direction))}</em>
+          </div>
+          <strong>${escapeHtml(formatAnyValue(item.currentGuidance))}</strong>
+          ${item.previousGuidance ? `<small>${uiLabel("Previous Guidance")}: ${escapeHtml(formatAnyValue(item.previousGuidance))}</small>` : ""}
+          ${item.interpretation ? `<p>${escapeHtml(localizedExternalText(item.interpretation))}</p>` : ""}
+          <b>${escapeHtml(importanceLabel(item.importance))}</b>
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
+
+function companyKpisView(kpis = []) {
+  if (!Array.isArray(kpis) || !kpis.length) return "";
+  return `
+    <div class="company-kpi-grid">
+      ${kpis.map((item) => `
+        <article class="kpi-card ${trendClass(item.trend)}">
+          <div>
+            <span>${escapeHtml(item.arabicName || item.name || uiLabel("KPI"))}</span>
+            <em>${escapeHtml(kpiCategoryLabel(item.category))}</em>
+          </div>
+          <strong>${escapeHtml(formatRequirementValue(item.currentValue, item.unit))}</strong>
+          <b>${escapeHtml(trendLabel(item.trend))} / ${escapeHtml(importanceLabel(item.importance))}</b>
+          ${item.interpretation ? `<p>${escapeHtml(localizedExternalText(item.interpretation))}</p>` : ""}
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
+
+function priceTargetRequirementsView(requirementsBlock = {}) {
+  const requirements = requirementsBlock?.requirements || [];
+  if (!Array.isArray(requirements) || !requirements.length) return "";
+  return `
+    <div class="price-requirements-block">
+      <div class="requirements-summary">
+        ${compactCardMetric(uiLabel("Current Justified Value"), money(requirementsBlock.currentJustifiedValue, 0))}
+        ${compactCardMetric(uiLabel("Next Target"), money(requirementsBlock.targetValue, 0))}
+        ${compactCardMetric(uiLabel("Target Scenario"), localizedExternalText(requirementsBlock.targetScenario || "-"))}
+        ${compactCardMetric(uiLabel("Earnings Period"), requirementsBlock.earningsPeriod || "-")}
+      </div>
+      ${requirementsBlock.targetDescription ? `<p>${escapeHtml(localizedExternalText(requirementsBlock.targetDescription))}</p>` : ""}
+      <div class="requirements-table-wrap">
+        <table class="requirements-table">
+          <thead>
+            <tr>
+              <th>${uiLabel("Requirement")}</th>
+              <th>${uiLabel("Required")}</th>
+              <th>${uiLabel("Actual")}</th>
+              <th>${uiLabel("Status")}</th>
+              <th>${uiLabel("Weight")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${requirements.map(requirementRow).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function requirementRow(item = {}) {
+  return `
+    <tr>
+      <td>
+        <strong>${escapeHtml(item.arabicName || item.name || item.metric || "-")}</strong>
+        ${item.whyItMatters ? `<small>${escapeHtml(localizedExternalText(item.whyItMatters))}</small>` : ""}
+      </td>
+      <td dir="ltr">${escapeHtml(formatRequirementValue(item.requiredValue, item.unit))}</td>
+      <td dir="ltr">${escapeHtml(formatRequirementValue(item.actualValue ?? item.actualRaw, item.unit))}</td>
+      <td>${requirementStatusBadge(item.status)}</td>
+      <td dir="ltr">${Number.isFinite(numericValue(item.weight)) ? `${numericValue(item.weight)}%` : "—"}</td>
+    </tr>
+    ${item.evaluationNote ? `<tr class="requirement-note-row"><td colspan="5">${escapeHtml(localizedExternalText(item.evaluationNote))}</td></tr>` : ""}
+  `;
+}
+
+function requirementsAssessmentView(assessment = {}, requirementsBlock = {}) {
+  const requirements = requirementsBlock?.requirements || [];
+  if (!assessment?.weightedAchievement && !requirements.length) return "";
+  return `
+    <div class="requirements-assessment-card ${requirementsStatusClass(assessment.overallStatus)}">
+      <div class="assessment-score">
+        <span>${uiLabel("Weighted Achievement")}</span>
+        <strong>${Number.isFinite(numericValue(assessment.weightedAchievement)) ? `${Math.round(numericValue(assessment.weightedAchievement))}%` : "—"}</strong>
+      </div>
+      <div class="assessment-metrics">
+        ${compactCardMetric(uiLabel("Reported Requirements"), `${assessment.reportedRequirements ?? 0}/${assessment.totalRequirements ?? requirements.length}`)}
+        ${compactCardMetric(uiLabel("Passed"), assessment.passed ?? 0)}
+        ${compactCardMetric(uiLabel("Failed"), assessment.failed ?? 0)}
+        ${compactCardMetric(uiLabel("Exceeded"), assessment.exceeded ?? 0)}
+      </div>
+      ${assessment.overallStatus ? `<p><b>${uiLabel("Thesis Status")}:</b> ${escapeHtml(requirementsStatusLabel(assessment.overallStatus))}</p>` : ""}
+      ${assessment.summary ? `<p>${escapeHtml(localizedExternalText(assessment.summary))}</p>` : ""}
+    </div>
+  `;
+}
+
+function valuationMethodSummaryView(report = {}) {
+  const method = report.primaryValuationMethod || report.metadata?.primaryValuationMethod;
+  const reason = report.valuationSelectionReason || report.metadata?.valuationSelectionReason;
+  const scenarioRows = Object.entries(report.scenarios || {}).filter(([, value]) => value);
+  if (!method && !reason && !scenarioRows.length) return "";
+  return `
+    <div class="valuation-method-summary">
+      ${method ? compactCardMetric(uiLabel("Primary Valuation Method"), method) : ""}
+      ${reason ? `<p>${escapeHtml(localizedExternalText(reason))}</p>` : ""}
+      ${scenarioRows.length ? `
+        <div class="scenario-assumption-grid">
+          ${scenarioRows.map(([label, scenario]) => `
+            <article class="${valuationScenarioClass(label)}">
+              <strong>${escapeHtml(label)} ${money(scenario.fairValue, 0)}</strong>
+              ${scenario.valuationMethod ? `<span>${uiLabel("Method")}: ${escapeHtml(scenario.valuationMethod)}</span>` : ""}
+              ${scenario.revenueAssumption ? `<span>Revenue: ${escapeHtml(formatAnyValue(scenario.revenueAssumption))}</span>` : ""}
+              ${scenario.marginAssumption ? `<span>Margin: ${escapeHtml(formatAnyValue(scenario.marginAssumption))}</span>` : ""}
+              ${scenario.multipleUsed ? `<span>${uiLabel("Multiple Used")}: ${escapeHtml(formatAnyValue(scenario.multipleUsed))}</span>` : ""}
+              ${scenario.timeHorizon ? `<span>${uiLabel("Time Horizon")}: ${escapeHtml(scenario.timeHorizon)}</span>` : ""}
+              ${scenario.thesis ? `<p>${escapeHtml(localizedExternalText(scenario.thesis))}</p>` : ""}
+            </article>
+          `).join("")}
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
 function businessQualityBlock(quality = {}) {
   return [
     quality.summary,
@@ -1599,7 +1801,11 @@ function externalVersionHistory(currentReport, history = []) {
       ${history.map((report) => `
         <button class="${report.id === currentReport.id ? "active" : ""}" data-external-history-ticker="${escapeHtml(report.company?.ticker)}" data-external-history-id="${escapeHtml(report.id)}">
           <strong>${escapeHtml(report.reportPeriod || report.analysisDate || report.id)}</strong>
-          <span>${escapeHtml(report.analysisDate || "-")} / ${money(report.market?.priceAtAnalysis, 2)} / Base ${money(report.fairValue?.base, 0)}</span>
+          <span>${escapeHtml(report.analysisDate || "-")} / ${localizedExternalText(externalRecommendationAction(report) || "-")} / ${uiLabel("Weighted Achievement")}: ${Number.isFinite(numericValue(report.requirementsAssessment?.weightedAchievement)) ? `${Math.round(numericValue(report.requirementsAssessment.weightedAchievement))}%` : "—"}</span>
+          <small>
+            Bear ${money(report.fairValue?.bear, 0)} / Base ${money(report.fairValue?.base, 0)} / Bull ${money(report.fairValue?.bull, 0)}
+            · Quality ${scoreText(report.scores?.quality, 1)} · Growth ${scoreText(report.scores?.growth, 1)} · Risk ${scoreText(report.scores?.risk, 1)}
+          </small>
         </button>
       `).join("")}
     </div>
@@ -1609,6 +1815,124 @@ function externalVersionHistory(currentReport, history = []) {
 function methodLabel(key) {
   const labels = { dcf: "DCF", pe: "P/E", evEbitda: "EV/EBITDA", ps: "P/S", peg: "PEG", sotp: "SOTP", other: "Other" };
   return labels[key] || labelFromKey(key);
+}
+
+function guidanceDirectionClass(value) {
+  const clean = String(value || "not_applicable");
+  if (clean === "raised") return "raised";
+  if (clean === "lowered") return "lowered";
+  if (clean === "maintained") return "maintained";
+  if (clean === "new") return "new";
+  return "neutral";
+}
+
+function guidanceDirectionLabel(value) {
+  const labels = {
+    raised: uiLabel("Raised"),
+    maintained: uiLabel("Maintained"),
+    lowered: uiLabel("Lowered"),
+    new: uiLabel("New"),
+    not_applicable: uiLabel("Not Applicable")
+  };
+  return labels[String(value || "not_applicable")] || uiLabel("Not Applicable");
+}
+
+function trendClass(value) {
+  const clean = String(value || "unknown");
+  if (clean === "improving") return "improving";
+  if (clean === "deteriorating") return "deteriorating";
+  if (clean === "stable") return "stable";
+  return "unknown";
+}
+
+function trendLabel(value) {
+  const labels = {
+    improving: uiLabel("Improving"),
+    stable: uiLabel("Stable"),
+    deteriorating: uiLabel("Deteriorating"),
+    unknown: uiLabel("Unknown")
+  };
+  return labels[String(value || "unknown")] || uiLabel("Unknown");
+}
+
+function importanceLabel(value) {
+  const labels = {
+    critical: uiLabel("Critical"),
+    high: uiLabel("High"),
+    medium: uiLabel("Medium"),
+    low: uiLabel("Low")
+  };
+  return labels[String(value || "medium")] || uiLabel("Medium");
+}
+
+function kpiCategoryLabel(value) {
+  const labels = {
+    growth: financialTerm("Growth"),
+    profitability: uiLabel("Profitability"),
+    demand: uiLabel("Demand"),
+    capacity: uiLabel("Capacity"),
+    customer: uiLabel("Customer"),
+    pricing: uiLabel("Pricing"),
+    backlog: uiLabel("Backlog"),
+    operational: uiLabel("Operational"),
+    other: uiLabel("Other")
+  };
+  return labels[String(value || "other")] || uiLabel("Other");
+}
+
+function requirementStatusBadge(status) {
+  const clean = String(status || "NOT_REPORTED").toUpperCase();
+  return `<span class="requirement-status ${requirementStatusClass(clean)}">${escapeHtml(requirementStatusLabel(clean))}</span>`;
+}
+
+function requirementStatusClass(status) {
+  if (status === "EXCEEDED") return "exceeded";
+  if (status === "PASSED") return "passed";
+  if (status === "PARTIALLY_PASSED") return "partial";
+  if (status === "FAILED") return "failed";
+  return "not-reported";
+}
+
+function requirementStatusLabel(status) {
+  const labels = {
+    EXCEEDED: uiLabel("Exceeded"),
+    PASSED: uiLabel("Passed"),
+    PARTIALLY_PASSED: uiLabel("Partially Passed"),
+    FAILED: uiLabel("Failed"),
+    NOT_REPORTED: uiLabel("Not Reported")
+  };
+  return labels[String(status || "NOT_REPORTED").toUpperCase()] || uiLabel("Not Reported");
+}
+
+function requirementsStatusClass(status) {
+  const clean = String(status || "");
+  if (clean.includes("strengthened")) return "strengthened";
+  if (clean.includes("broken")) return "broken";
+  if (clean.includes("weakened")) return "weakened";
+  return "unchanged";
+}
+
+function requirementsStatusLabel(status) {
+  const labels = {
+    bull_case_strengthened: uiLabel("Bull Case Strengthened"),
+    bull_case_unchanged: uiLabel("Bull Case Unchanged"),
+    bull_case_weakened: uiLabel("Bull Case Weakened"),
+    thesis_strengthened: uiLabel("Thesis Strengthened"),
+    thesis_weakened: uiLabel("Thesis Weakened"),
+    thesis_broken: uiLabel("Thesis Broken")
+  };
+  return labels[String(status || "")] || localizedExternalText(status || "-");
+}
+
+function formatRequirementValue(value, unit) {
+  if (value === null || value === undefined || value === "") return "—";
+  const formatted = formatAnyValue(value);
+  if (!unit || unit === "text" || unit === "other") return formatted;
+  const cleanUnit = String(unit).trim();
+  const cleanValue = String(formatted).trim();
+  if (!cleanUnit || cleanValue.endsWith(cleanUnit)) return cleanValue;
+  if (cleanUnit === "%" && cleanValue.endsWith("%")) return cleanValue;
+  return `${cleanValue} ${cleanUnit}`;
 }
 
 function valuationWorkspacePanel(state) {
@@ -3241,11 +3565,60 @@ function settingsPanel(state) {
           <strong>${savedReports}</strong>
         </div>
       </div>
+      <section class="backup-restore-panel">
+        <div class="table-title">
+          <div>
+            <p class="eyebrow">${uiLabel("Investment Data")}</p>
+            <h3>${uiLabel("Export and Restore")}</h3>
+            <p>${uiLabel("Export saved Franklin reports, history, settings, and watch data. API keys are never included.")}</p>
+          </div>
+          <button class="primary-btn" data-action="export-all-investment-data">${uiLabel("Export All Investment Data")}</button>
+        </div>
+        <label class="restore-file-input">
+          <span>${uiLabel("Restore Investment Data")}</span>
+          <input type="file" accept="application/json,.json" data-restore-investment-backup>
+        </label>
+        ${restorePreviewPanel(state.restorePreview)}
+      </section>
+      <button class="icon-btn" data-action="load-external-demo">${uiLabel("Open DEMO External Report")}</button>
       <button class="icon-btn danger-action" data-action="clear-local-data">${uiLabel("Clear Local Data")}</button>
       <div class="settings-note">
         ${analysisText("API keys are stored only as server-side environment variables. Imported reports remain local in this browser until cleared. Franklin stores research knowledge and does not create investment analysis.")}
       </div>
     </section>
+  `;
+}
+
+function restorePreviewPanel(result) {
+  if (!result) return "";
+  if (!result.valid) {
+    return `
+      <div class="restore-preview-card invalid">
+        <strong>${uiLabel("Backup is not valid")}</strong>
+        ${(result.errors || []).map((error) => `<p>${escapeHtml(error)}</p>`).join("")}
+        <button class="icon-btn" data-action="cancel-restore-preview">${uiLabel("Cancel")}</button>
+      </div>
+    `;
+  }
+  const preview = result.preview || {};
+  return `
+    <div class="restore-preview-card">
+      <div>
+        <strong>${uiLabel("Restore Preview")}</strong>
+        <span>${escapeHtml(preview.exportedAt || "-")}</span>
+      </div>
+      <div class="settings-grid">
+        ${compactCardMetric(uiLabel("Companies"), preview.companyCount ?? 0)}
+        ${compactCardMetric(uiLabel("Analyses"), preview.externalReportCount ?? 0)}
+        ${compactCardMetric(uiLabel("Evaluated Companies"), preview.evaluatedCompanies ?? 0)}
+        ${compactCardMetric(uiLabel("Watchlist"), preview.watchListItems ?? 0)}
+      </div>
+      <div class="restore-actions">
+        <button class="primary-btn" data-action="confirm-restore-merge">${uiLabel("Merge Backup")}</button>
+        <button class="icon-btn warning-action" data-action="confirm-restore-replace">${uiLabel("Replace Local Data")}</button>
+        <button class="icon-btn" data-action="cancel-restore-preview">${uiLabel("Cancel")}</button>
+      </div>
+    </div>
   `;
 }
 
@@ -3360,6 +3733,9 @@ function bind(root, store, actions) {
   root.querySelectorAll("[data-action='load-demo-analysis']").forEach((button) => {
     button.addEventListener("click", store.loadDemoAnalysis);
   });
+  root.querySelectorAll("[data-action='load-external-demo']").forEach((button) => {
+    button.addEventListener("click", store.loadDemoExternalAnalysis);
+  });
   root.querySelector("[data-action='parse-external-analysis']")?.addEventListener("click", () => {
     const text = root.querySelector("[data-external-raw]")?.value || "";
     const tickerHint = root.querySelector("[data-external-ticker-hint]")?.value || "";
@@ -3446,6 +3822,16 @@ function bind(root, store, actions) {
     });
   });
   root.querySelector("[data-action='clear-local-data']")?.addEventListener("click", store.clearLocalData);
+  root.querySelector("[data-action='export-all-investment-data']")?.addEventListener("click", () => exportAllInvestmentData(store));
+  root.querySelector("[data-restore-investment-backup]")?.addEventListener("change", (event) => {
+    const file = event.target.files?.[0];
+    if (file) readInvestmentBackupFile(store, file);
+  });
+  root.querySelector("[data-action='confirm-restore-merge']")?.addEventListener("click", () => store.restoreInvestmentBackup("merge"));
+  root.querySelector("[data-action='confirm-restore-replace']")?.addEventListener("click", () => {
+    if (window.confirm(uiLabel("Replace current local Franklin data with this backup?"))) store.restoreInvestmentBackup("replace");
+  });
+  root.querySelector("[data-action='cancel-restore-preview']")?.addEventListener("click", store.cancelInvestmentRestore);
   root.querySelectorAll("[data-manual]").forEach((input) => {
     input.addEventListener("input", () => store.setManualInput(input.dataset.manual, input.value));
   });
@@ -3631,10 +4017,13 @@ function localizedExternalText(value) {
   if (/^https?:\/\//i.test(textValue)) return textValue;
   const direct = {
     BUY: decisionLabel("BUY"),
+    ADD: decisionLabel("ADD"),
     Buy: decisionLabel("BUY"),
     HOLD: decisionLabel("HOLD"),
+    WATCH: decisionLabel("WATCH"),
     Hold: decisionLabel("HOLD"),
     SELL: decisionLabel("SELL"),
+    REDUCE: decisionLabel("REDUCE"),
     Sell: decisionLabel("SELL"),
     High: ratingLabel("High"),
     Medium: ratingLabel("Medium"),
@@ -3652,10 +4041,16 @@ function localizedExternalText(value) {
     .replace(/\bStrong Buy\b/gi, decisionLabel("Strong Buy"))
     .replace(/\bStrong Sell\b/gi, decisionLabel("Strong Sell"))
     .replace(/\bBUY\b/g, decisionLabel("BUY"))
+    .replace(/\bADD\b/g, decisionLabel("ADD"))
     .replace(/\bHOLD\b/g, decisionLabel("HOLD"))
+    .replace(/\bWATCH\b/g, decisionLabel("WATCH"))
+    .replace(/\bREDUCE\b/g, decisionLabel("REDUCE"))
     .replace(/\bSELL\b/g, decisionLabel("SELL"))
     .replace(/\bBuy\b/g, decisionLabel("BUY"))
+    .replace(/\bAdd\b/g, decisionLabel("ADD"))
     .replace(/\bHold\b/g, decisionLabel("HOLD"))
+    .replace(/\bWatch\b/g, decisionLabel("WATCH"))
+    .replace(/\bReduce\b/g, decisionLabel("REDUCE"))
     .replace(/\bSell\b/g, decisionLabel("SELL"))
     .replace(/\bHigh\b/g, ratingLabel("High"))
     .replace(/\bMedium\b/g, ratingLabel("Medium"))
@@ -3758,6 +4153,29 @@ function exportSelectedExternalReport(store) {
   link.click();
   URL.revokeObjectURL(url);
   store.set({ notice: store.state.language === "ar" ? "تم تصدير JSON." : "JSON exported." });
+}
+
+function exportAllInvestmentData(store) {
+  const backup = store.createInvestmentBackup?.();
+  if (!backup) return;
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const date = new Date().toISOString().slice(0, 10);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `franklin-investment-data-${date}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+  store.set({ notice: store.state.language === "ar" ? "تم تصدير كل بيانات الاستثمار بدون مفاتيح API." : "All investment data exported without API keys." });
+}
+
+function readInvestmentBackupFile(store, file) {
+  const reader = new FileReader();
+  reader.onload = () => store.previewInvestmentRestore(String(reader.result || ""));
+  reader.onerror = () => store.set({
+    notice: store.state.language === "ar" ? "تعذر قراءة ملف النسخة الاحتياطية." : "Could not read the backup file."
+  });
+  reader.readAsText(file);
 }
 
 function escapeHtml(value) {
