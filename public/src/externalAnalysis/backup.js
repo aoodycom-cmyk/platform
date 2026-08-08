@@ -13,6 +13,7 @@ const RESTORABLE_KEYS = [
   "evaluatedCompanies",
   "externalAnalyses",
   "externalReportSelection",
+  "historicalRequirementSets",
   "history",
   "watchList"
 ];
@@ -73,6 +74,7 @@ export function previewInvestmentDataBackup(backup = {}) {
     exportedAt: backup.exportedAt || null,
     companyCount,
     externalReportCount,
+    historicalRequirementSets: Object.values(data.historicalRequirementSets || {}).reduce((sum, sets) => sum + (Array.isArray(sets) ? sets.length : 0), 0),
     evaluatedCompanies: Array.isArray(data.evaluatedCompanies) ? data.evaluatedCompanies.length : 0,
     historyItems: Array.isArray(data.history) ? data.history.length : 0,
     watchListItems: Array.isArray(data.watchList) ? data.watchList.length : 0,
@@ -90,10 +92,21 @@ export function mergeInvestmentDataBackup(currentState = {}, backup = {}) {
     history: mergeByIdOrTicker(currentState.history, incoming.history),
     watchList: mergeByIdOrTicker(currentState.watchList, incoming.watchList),
     externalAnalyses: mergeExternalAnalyses(currentState.externalAnalyses, incoming.externalAnalyses),
+    historicalRequirementSets: mergeHistoricalRequirementSets(currentState.historicalRequirementSets, incoming.historicalRequirementSets),
     manualInputs: { ...(currentState.manualInputs || {}), ...(incoming.manualInputs || {}) },
     company: incoming.company || currentState.company,
     externalReportSelection: incoming.externalReportSelection || currentState.externalReportSelection
   };
+}
+
+function mergeHistoricalRequirementSets(current = {}, incoming = {}) {
+  const result = { ...(current || {}) };
+  for (const [ticker, sets] of Object.entries(incoming || {})) {
+    if (!Array.isArray(sets)) continue;
+    const currentSets = result[ticker] || [];
+    result[ticker] = mergeByIdOrTicker(currentSets, sets);
+  }
+  return result;
 }
 
 export function replaceInvestmentDataBackup(currentState = {}, backup = {}) {
@@ -121,8 +134,8 @@ function mergeExternalAnalyses(current = {}, incoming = {}) {
 function mergeByIdOrTicker(current = [], incoming = []) {
   const list = Array.isArray(current) ? [...current] : [];
   for (const item of Array.isArray(incoming) ? incoming : []) {
-    const key = item?.id || item?.ticker || item?.company?.ticker || JSON.stringify(item);
-    const exists = list.some((entry) => (entry?.id || entry?.ticker || entry?.company?.ticker || JSON.stringify(entry)) === key);
+    const key = item?.id || item?.requirementSetId || item?.ticker || item?.company?.ticker || JSON.stringify(item);
+    const exists = list.some((entry) => (entry?.id || entry?.requirementSetId || entry?.ticker || entry?.company?.ticker || JSON.stringify(entry)) === key);
     if (!exists) list.push(item);
   }
   return list;

@@ -6398,6 +6398,75 @@ button.danger-action {
   background: color-mix(in srgb, var(--bg) 16%, transparent);
 }
 
+.requirement-match-card,
+.previous-execution-block,
+.requirement-timeline {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-2) 82%, transparent);
+  padding: 14px;
+}
+
+.requirement-match-card {
+  margin: 14px 0;
+}
+
+.requirement-match-card.ambiguous {
+  border-color: color-mix(in srgb, var(--orange) 46%, var(--line));
+}
+
+.requirement-set-picker {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.requirement-set-picker button {
+  justify-content: space-between;
+  min-height: 56px;
+  text-align: start;
+}
+
+.requirement-set-picker span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.previous-execution-block {
+  display: grid;
+  gap: 14px;
+}
+
+.requirement-timeline {
+  display: grid;
+  gap: 10px;
+}
+
+.requirement-timeline article {
+  border-inline-start: 3px solid var(--line);
+  padding-inline-start: 12px;
+}
+
+.requirement-timeline article.evaluated {
+  border-inline-start-color: var(--green);
+}
+
+.requirement-timeline article.open {
+  border-inline-start-color: var(--accent);
+}
+
+.requirement-timeline span,
+.requirement-timeline p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.requirement-timeline strong {
+  display: block;
+  color: var(--ink);
+  margin: 2px 0 4px;
+}
+
 .requirement-status {
   display: inline-flex;
   align-items: center;

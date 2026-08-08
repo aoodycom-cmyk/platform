@@ -1,5 +1,19 @@
 # Changelog
 
+## Version 10.6 - Historical Requirements Workflow and Source Sync
+
+- Established `src/` as the canonical application source and added `npm run sync-public` / `npm run build` to generate `public/` and `docs/` deploy copies.
+- Added a source-of-truth sync check that fails if `public/src/`, `docs/src/`, copied assets, or root app files diverge from canonical source files.
+- Added `historicalRequirementSets` to local-first state, backup, restore, and reload behavior.
+- Added stable requirement-set IDs and lifecycle statuses: `OPEN`, `EVALUATED`, `SUPERSEDED`, and `CANCELLED`.
+- Added deterministic matching from a newly imported earnings report to the previous open requirement set by ticker and earnings period, with explicit/manual selection support for ambiguous cases.
+- Added immutable historical requirement-set handling: required thresholds remain frozen while actual values, statuses, evaluated analysis ID, and evaluated timestamp are attached after earnings.
+- Added report UI sections that distinguish `LAST EARNINGS EXECUTION` from `NEXT EARNINGS REQUIREMENTS`.
+- Added requirement delivery timeline visibility inside saved external reports.
+- Added tests for historical matching, immutability, ambiguity handling, evaluation status updates, backup/restore preservation, and source-of-truth sync.
+- Preserved Version 10.5 External ChatGPT workflow, local-first storage, old saved analyses, and internal investment engine behavior.
+- No OpenAI API, backend AI, database server, subscription, valuation logic, or recommendation engine change was added.
+
 ## Version 10.5 - External Investment Reference Extension
 
 - Extended the External ChatGPT analysis schema with optional `companySpecificKpis`, `guidance`, enhanced risk monitoring fields, external six-action recommendation values, scenario details, `primaryValuationMethod`, `valuationSelectionReason`, `priceTargetRequirements`, and `requirementsAssessment`.

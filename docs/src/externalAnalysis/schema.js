@@ -5,7 +5,8 @@ import {
   normalizeExternalRecommendation,
   normalizeExternalScenarios,
   normalizeGuidance,
-  normalizePriceTargetRequirements
+  normalizePriceTargetRequirements,
+  normalizePreviousRequirementsEvaluation
 } from "./requirements.js";
 
 export const EXTERNAL_ANALYSIS_SCHEMA_VERSION = "external-analysis-report/v1";
@@ -125,6 +126,11 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
     guidance: [],
     companySpecificKpis: [],
     priceTargetRequirements: {
+      requirementSetId: null,
+      status: null,
+      createdFromAnalysisId: null,
+      evaluatedByAnalysisId: null,
+      evaluatedAt: null,
       currentJustifiedValue: null,
       targetValue: null,
       targetScenario: null,
@@ -132,6 +138,19 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
       createdAt: null,
       earningsPeriod: null,
       requirements: []
+    },
+    previousRequirementsEvaluation: {
+      requirementSetId: null,
+      ticker: null,
+      earningsPeriod: null,
+      createdAt: null,
+      createdFromAnalysisId: null,
+      targetValue: null,
+      targetScenario: null,
+      targetDescription: null,
+      matchType: null,
+      requirements: [],
+      requirementsAssessment: null
     },
     requirementsAssessment: {
       weightedAchievement: null,
@@ -264,6 +283,7 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
     guidance: normalizeGuidance(input.guidance),
     companySpecificKpis: normalizeCompanySpecificKpis(input.companySpecificKpis),
     priceTargetRequirements,
+    previousRequirementsEvaluation: normalizePreviousRequirementsEvaluation(input.previousRequirementsEvaluation),
     requirementsAssessment,
     scenarios: normalizeExternalScenarios(input.scenarios),
     primaryValuationMethod: nullableString(input.primaryValuationMethod ?? input.metadata?.primaryValuationMethod),

@@ -21,6 +21,12 @@ import {
   parseInvestmentDataBackup,
   replaceInvestmentDataBackup
 } from "../externalAnalysis/backup.js";
+import {
+  attachRequirementSetIdentityToReport,
+  applyHistoricalRequirementLifecycle,
+  normalizeHistoricalRequirementSets,
+  prepareHistoricalRequirementEvaluation
+} from "../externalAnalysis/historicalRequirements.js";
 import { mergeExternalAnalysisSupplement } from "../externalAnalysis/supplementMerge.js";
 import { parseExternalAnalysisSupplement } from "../externalAnalysis/supplementParser.js";
 import { validateExternalAnalysisSupplement } from "../externalAnalysis/supplementValidator.js";
@@ -60,6 +66,7 @@ export function createStore() {
   const initialEvaluatedCompanies = rankEvaluatedCompanies(saved.evaluatedCompanies || []).map(({ rankingPosition, ...item }) => item);
   const initialEvaluatedSort = normalizeEvaluatedSort(saved.evaluatedSort);
   const initialExternalAnalyses = normalizeExternalAnalysesCollection(saved.externalAnalyses || {});
+  const initialHistoricalRequirementSets = normalizeHistoricalRequirementSets(saved.historicalRequirementSets || {}, initialExternalAnalyses);
   const initialCompany = buildUnifiedDataCompany(saved.company || createCompanyShell("NVDA"), {
     manualInputs: initialManualInputs,
     previousCompany: saved.company || null,
@@ -85,6 +92,7 @@ export function createStore() {
     comparisonOpen: saved.comparisonOpen || false,
     evaluatedCompanies: initialEvaluatedCompanies,
     externalAnalyses: initialExternalAnalyses,
+    historicalRequirementSets: initialHistoricalRequirementSets,
     externalImport: createExternalImportState(),
     externalReportSelection: saved.externalReportSelection || null,
     restorePreview: null,
@@ -250,8 +258,8 @@ export function createStore() {
       if (!parsed.report) throw new Error("External parser did not return a report.");
       const parsedReport = applyImportContextHints(parsed.report, { tickerHint });
       const validation = validateExternalAnalysisReport(parsedReport);
-      const draftReport = attachCompletionStatus(parsedReport, validation);
-      const duplicate = findDuplicateExternalAnalysis(state.externalAnalyses, draftReport);
+      const prepared = prepareExternalDraftReport(parsedReport, validation, state.historicalRequirementSets);
+      const duplicate = findDuplicateExternalAnalysis(state.externalAnalyses, prepared.report);
       set({
         loading: false,
         processingStage: "idle",
@@ -259,10 +267,11 @@ export function createStore() {
           ...state.externalImport,
           rawText,
           tickerHint,
-          draftReport,
-          draftJson: JSON.stringify(draftReport, null, 2),
-          validation,
+          draftReport: prepared.report,
+          draftJson: JSON.stringify(prepared.report, null, 2),
+          validation: prepared.validation,
           duplicate,
+          requirementMatch: prepared.requirementMatch,
           parserSource: parsed.parserSource,
           usedAi: parsed.usedAi,
           stage: "preview"
@@ -306,14 +315,17 @@ export function createStore() {
     if (!state.externalImport?.draftReport) return;
     const updatedReport = updateExternalAnalysisField(state.externalImport.draftReport, path, value);
     const validation = validateExternalAnalysisReport(updatedReport);
-    const draftReport = attachCompletionStatus(updatedReport, validation);
+    const prepared = prepareExternalDraftReport(updatedReport, validation, state.historicalRequirementSets, {
+      selectedRequirementSetId: state.externalImport?.requirementMatch?.selectedRequirementSetId
+    });
     set({
       externalImport: {
         ...state.externalImport,
-        draftReport,
-        draftJson: JSON.stringify(draftReport, null, 2),
-        validation,
-        duplicate: findDuplicateExternalAnalysis(state.externalAnalyses, draftReport)
+        draftReport: prepared.report,
+        draftJson: JSON.stringify(prepared.report, null, 2),
+        validation: prepared.validation,
+        requirementMatch: prepared.requirementMatch,
+        duplicate: findDuplicateExternalAnalysis(state.externalAnalyses, prepared.report)
       }
     });
   }
@@ -325,14 +337,17 @@ export function createStore() {
         importMethod: state.externalImport?.draftReport?.metadata?.importMethod || "manual_json_edit"
       });
       const validation = validateExternalAnalysisReport(normalizedReport);
-      const draftReport = attachCompletionStatus(normalizedReport, validation);
+      const prepared = prepareExternalDraftReport(normalizedReport, validation, state.historicalRequirementSets, {
+        selectedRequirementSetId: state.externalImport?.requirementMatch?.selectedRequirementSetId
+      });
       set({
         externalImport: {
           ...state.externalImport,
-          draftReport,
+          draftReport: prepared.report,
           draftJson: value,
-          validation,
-          duplicate: findDuplicateExternalAnalysis(state.externalAnalyses, draftReport)
+          validation: prepared.validation,
+          requirementMatch: prepared.requirementMatch,
+          duplicate: findDuplicateExternalAnalysis(state.externalAnalyses, prepared.report)
         }
       });
     } catch {
@@ -357,10 +372,17 @@ export function createStore() {
       });
       return;
     }
+    const draftForSave = prepareExternalReportForSave(draft);
     if (state.externalImport.editing) {
-      const result = updateSavedExternalAnalysis(state.externalAnalyses, draft);
+      const result = updateSavedExternalAnalysis(state.externalAnalyses, draftForSave);
+      const historicalRequirementSets = applyHistoricalRequirementLifecycle(
+        state.historicalRequirementSets,
+        result.report,
+        state.externalImport?.requirementMatch
+      );
       set({
         externalAnalyses: result.collection,
+        historicalRequirementSets,
         externalImport: createExternalImportState(),
         externalReportSelection: { ticker: result.report.company.ticker, reportId: result.report.id },
         company: externalReportCompanyShell(result.report),
@@ -369,7 +391,7 @@ export function createStore() {
       });
       return;
     }
-    const result = saveExternalAnalysis(state.externalAnalyses, draft, { allowDuplicate });
+    const result = saveExternalAnalysis(state.externalAnalyses, draftForSave, { allowDuplicate });
     if (result.duplicate && !allowDuplicate) {
       set({
         externalImport: {
@@ -380,8 +402,14 @@ export function createStore() {
       });
       return;
     }
+    const historicalRequirementSets = applyHistoricalRequirementLifecycle(
+      state.historicalRequirementSets,
+      result.report,
+      state.externalImport?.requirementMatch
+    );
     set({
       externalAnalyses: result.collection,
+      historicalRequirementSets,
       externalImport: createExternalImportState(),
       externalReportSelection: { ticker: result.report.company.ticker, reportId: result.report.id },
       company: externalReportCompanyShell(result.report),
@@ -400,9 +428,10 @@ export function createStore() {
     }
     const validation = validateExternalAnalysisReport(draft);
     const draftReport = attachCompletionStatus(draft, validation, { draft: true });
+    const draftForSave = prepareExternalReportForSave(draftReport);
     const result = state.externalImport.editing
-      ? updateSavedExternalAnalysis(state.externalAnalyses, draftReport)
-      : saveExternalAnalysis(state.externalAnalyses, draftReport, { allowDuplicate });
+      ? updateSavedExternalAnalysis(state.externalAnalyses, draftForSave)
+      : saveExternalAnalysis(state.externalAnalyses, draftForSave, { allowDuplicate });
     if (result.duplicate && !allowDuplicate) {
       set({
         externalImport: { ...state.externalImport, duplicate: result.duplicate },
@@ -410,8 +439,14 @@ export function createStore() {
       });
       return;
     }
+    const historicalRequirementSets = applyHistoricalRequirementLifecycle(
+      state.historicalRequirementSets,
+      result.report,
+      state.externalImport?.requirementMatch
+    );
     set({
       externalAnalyses: result.collection,
+      historicalRequirementSets,
       externalImport: createExternalImportState(),
       externalReportSelection: { ticker: result.report.company.ticker, reportId: result.report.id },
       company: externalReportCompanyShell(result.report),
@@ -574,18 +609,22 @@ export function createStore() {
     if (!supplementState?.mergePreview) return;
     const mergedReport = supplementState.mergePreview.report;
     const validation = validateExternalAnalysisReport(mergedReport);
-    const draftReport = attachCompletionStatus(mergedReport, validation, {
+    const draftReportWithCompletion = attachCompletionStatus(mergedReport, validation, {
       conflictingPaths: supplementState.mergePreview.conflicts.map((item) => item.path)
     });
+    const prepared = prepareExternalDraftReport(draftReportWithCompletion, validation, state.historicalRequirementSets, {
+      selectedRequirementSetId: state.externalImport?.requirementMatch?.selectedRequirementSetId
+    });
     const before = state.externalImport?.draftReport?.completionStatus || {};
-    const after = draftReport.completionStatus || {};
+    const after = prepared.report.completionStatus || {};
     set({
       externalImport: {
         ...state.externalImport,
-        draftReport,
-        draftJson: JSON.stringify(draftReport, null, 2),
-        validation,
-        duplicate: findDuplicateExternalAnalysis(state.externalAnalyses, draftReport),
+        draftReport: prepared.report,
+        draftJson: JSON.stringify(prepared.report, null, 2),
+        validation: prepared.validation,
+        requirementMatch: prepared.requirementMatch,
+        duplicate: findDuplicateExternalAnalysis(state.externalAnalyses, prepared.report),
         supplement: {
           ...supplementState,
           stage: "applied",
@@ -595,6 +634,29 @@ export function createStore() {
       notice: state.language === "ar"
         ? `تم دمج البيانات المكملة. قبل الإكمال: ${before.requiredComplete || 0}/${before.requiredTotal || 0}. بعد الإكمال: ${after.requiredComplete || 0}/${after.requiredTotal || 0}.`
         : `Supplement merged. Before: ${before.requiredComplete || 0}/${before.requiredTotal || 0}. After: ${after.requiredComplete || 0}/${after.requiredTotal || 0}.`
+    });
+  }
+
+  function selectHistoricalRequirementSet(requirementSetId) {
+    const draft = state.externalImport?.draftReport;
+    if (!draft) return;
+    const validation = validateExternalAnalysisReport(draft);
+    const prepared = prepareExternalDraftReport(draft, validation, state.historicalRequirementSets, { selectedRequirementSetId: requirementSetId });
+    set({
+      externalImport: {
+        ...state.externalImport,
+        draftReport: prepared.report,
+        draftJson: JSON.stringify(prepared.report, null, 2),
+        validation: prepared.validation,
+        requirementMatch: {
+          ...prepared.requirementMatch,
+          selectedRequirementSetId: requirementSetId
+        },
+        duplicate: findDuplicateExternalAnalysis(state.externalAnalyses, prepared.report)
+      },
+      notice: state.language === "ar"
+        ? "تم ربط التقرير بمجموعة المتطلبات التاريخية المحددة."
+        : "The report is linked to the selected historical requirement set."
     });
   }
 
@@ -876,8 +938,11 @@ export function createStore() {
     const next = mode === "replace"
       ? replaceInvestmentDataBackup(state, state.restorePreview.backup)
       : mergeInvestmentDataBackup(state, state.restorePreview.backup);
+    const normalizedExternalAnalyses = normalizeExternalAnalysesCollection(next.externalAnalyses || {});
     set({
       ...next,
+      externalAnalyses: normalizedExternalAnalyses,
+      historicalRequirementSets: normalizeHistoricalRequirementSets(next.historicalRequirementSets || {}, normalizedExternalAnalyses),
       restorePreview: null,
       notice: state.language === "ar"
         ? (mode === "replace" ? "تم استبدال بيانات Franklin من النسخة الاحتياطية." : "تم دمج النسخة الاحتياطية مع بيانات Franklin الحالية.")
@@ -1044,6 +1109,7 @@ export function createStore() {
     parseExternalSupplement,
     resolveSupplementConflict,
     applyExternalSupplement,
+    selectHistoricalRequirementSet,
     openExternalReport,
     editExternalReport,
     startExternalReportCompletion,
@@ -1119,6 +1185,7 @@ function persist(state) {
     evaluatedCompanies: state.evaluatedCompanies,
     externalAnalyses: state.externalAnalyses,
     externalReportSelection: state.externalReportSelection,
+    historicalRequirementSets: state.historicalRequirementSets,
     history: state.history,
     watchList: state.watchList
   }));
@@ -1136,6 +1203,7 @@ function createExternalImportState() {
     draftJson: "",
     validation: { valid: false, errors: [], warnings: [] },
     duplicate: null,
+    requirementMatch: { status: "none", candidates: [] },
     parserSource: null,
     usedAi: false,
     missingPromptFallback: "",
@@ -1175,6 +1243,29 @@ function createSupplementState() {
     manualValues: {},
     stage: "idle"
   };
+}
+
+function prepareExternalDraftReport(report, validation, historicalRequirementSets = {}, options = {}) {
+  const historical = prepareHistoricalRequirementEvaluation(report, historicalRequirementSets, options);
+  const reportWithCompletion = attachCompletionStatus(historical.report, validation);
+  return {
+    report: reportWithCompletion,
+    validation,
+    requirementMatch: historical.match
+  };
+}
+
+function prepareExternalReportForSave(report) {
+  return attachRequirementSetIdentityToReport(ensureLocalExternalReportId(report));
+}
+
+function ensureLocalExternalReportId(report) {
+  if (report?.id) return report;
+  const ticker = normalizeTickerHint(report?.company?.ticker || "EXT") || "EXT";
+  const date = String(report?.analysisDate || new Date().toISOString().slice(0, 10)).replace(/[^0-9A-Za-z-]/g, "");
+  const hash = report?.metadata?.rawHash || String(Date.now());
+  const stamp = new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 14);
+  return { ...report, id: `${ticker}-${date}-${hash}-${stamp}` };
 }
 
 function ensureExternalCompletionStatus(report) {

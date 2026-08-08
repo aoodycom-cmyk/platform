@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v10-reference-20260808b";
+const CACHE_NAME = "franklin-research-v10-reference-20260808c";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -10,6 +10,7 @@ const STATIC_ASSETS = [
   "./src/pwa.js",
   "./src/externalAnalysis/schema.js",
   "./src/externalAnalysis/requirements.js",
+  "./src/externalAnalysis/historicalRequirements.js",
   "./src/externalAnalysis/fairValueAdapter.js",
   "./src/externalAnalysis/parser.js",
   "./src/externalAnalysis/externalAnalysisSchemaValidator.js",

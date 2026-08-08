@@ -1185,6 +1185,7 @@ function externalPreviewPanel(report, state) {
         ${metricHtml("Base Fair Value", money(report.fairValue?.base, 0))}
         ${metricHtml(uiLabel("Verdict"), escapeHtml(report.decision?.verdict || "-"))}
       </div>
+      ${historicalRequirementMatchPreview(state.externalImport?.requirementMatch)}
       <div class="external-preview-grid">
         ${externalInput("company.ticker", "Ticker", report.company?.ticker)}
         ${externalInput("company.name", uiLabel("Company"), report.company?.name)}
@@ -1318,7 +1319,9 @@ function externalAnalysisReportView(state) {
   }
   const reportWithCompletion = externalReportWithCompletionStatus(report);
   const history = state.externalAnalyses?.[report.company?.ticker] || [];
+  const requirementSets = state.historicalRequirementSets?.[report.company?.ticker] || [];
   const completion = reportWithCompletion.completionStatus;
+  const hasPreviousEvaluation = (report.previousRequirementsEvaluation?.requirements || []).length > 0;
   return `
     <section class="external-report-shell external-report-v2">
       <header class="external-report-hero panel report-v2-header">
@@ -1359,13 +1362,15 @@ function externalAnalysisReportView(state) {
         ${reportSection(uiLabel("Key Risks"), riskList(report.risks))}
         ${reportSection(uiLabel("Guidance"), guidanceView(report.guidance))}
         ${reportSection(uiLabel("Company-Specific KPIs"), companyKpisView(report.companySpecificKpis))}
-        ${reportSection(uiLabel("Requirements to Justify Next Price Target"), priceTargetRequirementsView(report.priceTargetRequirements))}
-        ${reportSection(uiLabel("Earnings Requirement Results"), requirementsAssessmentView(report.requirementsAssessment, report.priceTargetRequirements))}
+        ${hasPreviousEvaluation ? reportSection(uiLabel("LAST EARNINGS EXECUTION"), previousRequirementExecutionView(report.previousRequirementsEvaluation)) : ""}
+        ${reportSection(hasPreviousEvaluation ? uiLabel("NEXT EARNINGS REQUIREMENTS") : uiLabel("Requirements to Justify Next Price Target"), priceTargetRequirementsView(report.priceTargetRequirements))}
+        ${!hasPreviousEvaluation ? reportSection(uiLabel("Earnings Requirement Results"), requirementsAssessmentView(report.requirementsAssessment, report.priceTargetRequirements)) : ""}
         ${reportSection(uiLabel("Valuation Method Used"), valuationMethodSummaryView(report))}
         ${reportSection(uiLabel("Catalysts"), itemList(report.catalysts, ["explanation"]))}
         ${reportSection(uiLabel("Watch List"), simpleList(report.watchItems))}
         ${reportSection(uiLabel("Valuation Methods"), valuationMethodsView(report.valuationMethods))}
         ${reportSection(uiLabel("Financial Highlights"), financialHighlightsView(report.financialHighlights || report.growthHighlights))}
+        ${reportSection(uiLabel("Requirement Delivery Timeline"), requirementLifecycleTimeline(requirementSets, history))}
         ${reportSection(uiLabel("Historical Analyses"), externalVersionHistory(report, history))}
         ${reportSection(uiLabel("Sources"), itemList(report.sources, ["url", "sourceType"]))}
         ${externalDetail(uiLabel("Raw Analysis"), `<pre class="raw-analysis">${escapeHtml(report.rawAnalysisOriginal || report.rawAnalysis || "")}</pre>`)}
@@ -1676,6 +1681,112 @@ function priceTargetRequirementsView(requirementsBlock = {}) {
           </tbody>
         </table>
       </div>
+    </div>
+  `;
+}
+
+function historicalRequirementMatchPreview(match = {}) {
+  if (!match || match.status === "none" || !match.status) return "";
+  if (match.status === "ambiguous") {
+    return `
+      <section class="requirement-match-card ambiguous">
+        <div class="table-title">
+          <div>
+            <p class="eyebrow">${uiLabel("Historical Requirements")}</p>
+            <h4>${uiLabel("Select the requirement set this earnings report should evaluate.")}</h4>
+            <p>${uiLabel("Franklin found more than one open requirement set and will not choose silently.")}</p>
+          </div>
+        </div>
+        <div class="requirement-set-picker">
+          ${(match.candidates || []).map((set) => `
+            <button class="icon-btn" data-requirement-set-select="${escapeHtml(set.requirementSetId)}">
+              <strong>${escapeHtml(set.earningsPeriod || "-")} / ${money(set.targetValue, 0)} ${escapeHtml(set.targetScenario || "")}</strong>
+              <span>${uiLabel("Created")}: ${escapeHtml(formatDateShort(set.createdAt))} / ${set.requirements?.length || 0} ${uiLabel("Requirements")}</span>
+            </button>
+          `).join("")}
+        </div>
+      </section>
+    `;
+  }
+  const evaluation = match.evaluationPreview;
+  const set = match.set || evaluation || {};
+  if (!set.requirementSetId) return "";
+  return `
+    <section class="requirement-match-card matched">
+      <div class="table-title">
+        <div>
+          <p class="eyebrow">${uiLabel("Historical Requirements")}</p>
+          <h4>${match.matchType === "single_open_suggested" ? uiLabel("Suggested previous requirement set") : uiLabel("Matched previous requirement set")}</h4>
+          <p>${uiLabel("Earnings period")}: ${escapeHtml(set.earningsPeriod || "-")} / ${uiLabel("Created")}: ${escapeHtml(formatDateShort(set.createdAt))}</p>
+        </div>
+        <strong>${money(set.targetValue, 0)} ${escapeHtml(set.targetScenario || "")}</strong>
+      </div>
+      ${evaluation ? previousRequirementExecutionView(evaluation) : ""}
+    </section>
+  `;
+}
+
+function previousRequirementExecutionView(evaluation = {}) {
+  const requirements = evaluation.requirements || [];
+  if (!requirements.length) return "";
+  const assessment = evaluation.requirementsAssessment || {};
+  return `
+    <div class="previous-execution-block">
+      <div class="requirements-summary">
+        ${compactCardMetric(uiLabel("Target being tested"), `${money(evaluation.targetValue, 0)} ${localizedExternalText(evaluation.targetScenario || "")}`)}
+        ${compactCardMetric(uiLabel("Requirement achievement"), Number.isFinite(numericValue(assessment.weightedAchievement)) ? `${Math.round(numericValue(assessment.weightedAchievement))}%` : "—")}
+        ${compactCardMetric(uiLabel("Reported Requirements"), `${assessment.reportedRequirements ?? 0}/${assessment.totalRequirements ?? requirements.length}`)}
+        ${compactCardMetric(uiLabel("Earnings Period"), evaluation.earningsPeriod || "-")}
+      </div>
+      <div class="requirements-table-wrap">
+        <table class="requirements-table">
+          <thead>
+            <tr>
+              <th>${uiLabel("Requirement")}</th>
+              <th>${uiLabel("Required")}</th>
+              <th>${uiLabel("Actual")}</th>
+              <th>${uiLabel("Status")}</th>
+              <th>${uiLabel("Weight")}</th>
+            </tr>
+          </thead>
+          <tbody>${requirements.map(requirementRow).join("")}</tbody>
+        </table>
+      </div>
+      ${assessment.overallStatus ? `<p><b>${uiLabel("Overall")}:</b> ${escapeHtml(requirementsStatusLabel(assessment.overallStatus))}</p>` : ""}
+      ${assessment.summary ? `<p>${escapeHtml(localizedExternalText(assessment.summary))}</p>` : ""}
+    </div>
+  `;
+}
+
+function requirementLifecycleTimeline(requirementSets = [], reports = []) {
+  const events = [];
+  for (const set of requirementSets || []) {
+    events.push({
+      date: set.createdAt,
+      title: `${uiLabel("Created")} ${set.earningsPeriod || ""} ${uiLabel("Requirements")}`,
+      detail: `${uiLabel("Target")}: ${money(set.targetValue, 0)} ${localizedExternalText(set.targetScenario || "")}`,
+      status: set.status
+    });
+    if (set.status === "EVALUATED") {
+      const report = (reports || []).find((item) => item.id === set.evaluatedByAnalysisId);
+      events.push({
+        date: set.evaluatedAt || report?.analysisDate,
+        title: `${set.earningsPeriod || ""} ${uiLabel("evaluated")}`,
+        detail: `${uiLabel("Weighted Achievement")}: ${Number.isFinite(numericValue(set.requirementsAssessment?.weightedAchievement)) ? `${Math.round(numericValue(set.requirementsAssessment.weightedAchievement))}%` : "—"}${report ? ` / Base ${money(report.fairValue?.base, 0)} / ${localizedExternalText(externalRecommendationAction(report) || "-")}` : ""}`,
+        status: "EVALUATED"
+      });
+    }
+  }
+  if (!events.length) return "";
+  return `
+    <div class="requirement-timeline">
+      ${events.sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime()).map((event) => `
+        <article class="${String(event.status || "").toLowerCase()}">
+          <span>${escapeHtml(formatDateShort(event.date))}</span>
+          <strong>${escapeHtml(event.title)}</strong>
+          <p>${escapeHtml(event.detail)}</p>
+        </article>
+      `).join("")}
     </div>
   `;
 }
@@ -3610,6 +3721,7 @@ function restorePreviewPanel(result) {
       <div class="settings-grid">
         ${compactCardMetric(uiLabel("Companies"), preview.companyCount ?? 0)}
         ${compactCardMetric(uiLabel("Analyses"), preview.externalReportCount ?? 0)}
+        ${compactCardMetric(uiLabel("Historical Requirements"), preview.historicalRequirementSets ?? 0)}
         ${compactCardMetric(uiLabel("Evaluated Companies"), preview.evaluatedCompanies ?? 0)}
         ${compactCardMetric(uiLabel("Watchlist"), preview.watchListItems ?? 0)}
       </div>
@@ -3762,6 +3874,9 @@ function bind(root, store, actions) {
     store.parseExternalSupplement(text);
   });
   root.querySelector("[data-action='apply-external-supplement']")?.addEventListener("click", store.applyExternalSupplement);
+  root.querySelectorAll("[data-requirement-set-select]").forEach((button) => {
+    button.addEventListener("click", () => store.selectHistoricalRequirementSet(button.dataset.requirementSetSelect));
+  });
   root.querySelector("[data-action='save-external-incomplete-draft']")?.addEventListener("click", () => store.saveExternalIncompleteDraft(false));
   root.querySelector("[data-action='open-missing-manual']")?.addEventListener("click", () => {
     store.set({ externalImport: { ...store.state.externalImport, missingManualOpen: true } });
@@ -4008,6 +4123,13 @@ function formatAnyValue(value) {
       .join(" / ") || "-";
   }
   return String(value);
+}
+
+function formatDateShort(value) {
+  if (!value) return "-";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return String(value).slice(0, 10);
+  return parsed.toISOString().slice(0, 10);
 }
 
 function localizedExternalText(value) {

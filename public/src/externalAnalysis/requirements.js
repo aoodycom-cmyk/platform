@@ -34,6 +34,11 @@ export function calculateRequirementsAssessment(requirementsInput = {}, supplied
 export function normalizePriceTargetRequirements(value = {}) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {
+      requirementSetId: null,
+      status: null,
+      createdFromAnalysisId: null,
+      evaluatedByAnalysisId: null,
+      evaluatedAt: null,
       currentJustifiedValue: null,
       targetValue: null,
       targetScenario: null,
@@ -44,13 +49,67 @@ export function normalizePriceTargetRequirements(value = {}) {
     };
   }
   return {
+    requirementSetId: normalizeText(value.requirementSetId),
+    status: normalizeRequirementSetStatus(value.status),
+    createdFromAnalysisId: normalizeText(value.createdFromAnalysisId),
+    evaluatedByAnalysisId: normalizeText(value.evaluatedByAnalysisId),
+    evaluatedAt: normalizeText(value.evaluatedAt),
     currentJustifiedValue: numberOrNull(value.currentJustifiedValue),
     targetValue: numberOrNull(value.targetValue),
     targetScenario: normalizeText(value.targetScenario),
     targetDescription: normalizeText(value.targetDescription),
     createdAt: normalizeText(value.createdAt),
     earningsPeriod: normalizeText(value.earningsPeriod),
-    requirements: normalizeRequirementList(value.requirements)
+    requirements: normalizeRequirementList(value.requirements),
+    requirementsAssessment: value.requirementsAssessment && typeof value.requirementsAssessment === "object"
+      ? {
+        weightedAchievement: numberOrNull(value.requirementsAssessment.weightedAchievement),
+        reportedRequirements: numberOrNull(value.requirementsAssessment.reportedRequirements),
+        totalRequirements: numberOrNull(value.requirementsAssessment.totalRequirements),
+        passed: numberOrNull(value.requirementsAssessment.passed),
+        failed: numberOrNull(value.requirementsAssessment.failed),
+        exceeded: numberOrNull(value.requirementsAssessment.exceeded),
+        partiallyPassed: numberOrNull(value.requirementsAssessment.partiallyPassed),
+        notReported: numberOrNull(value.requirementsAssessment.notReported),
+        overallStatus: normalizeStatusText(value.requirementsAssessment.overallStatus),
+        summary: normalizeText(value.requirementsAssessment.summary),
+        calculatedAt: normalizeText(value.requirementsAssessment.calculatedAt)
+      }
+      : null
+  };
+}
+
+export function normalizePreviousRequirementsEvaluation(value = {}) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {
+      requirementSetId: null,
+      ticker: null,
+      earningsPeriod: null,
+      createdAt: null,
+      createdFromAnalysisId: null,
+      targetValue: null,
+      targetScenario: null,
+      targetDescription: null,
+      matchType: null,
+      requirements: [],
+      requirementsAssessment: null
+    };
+  }
+  const requirements = normalizeRequirementList(value.requirements);
+  return {
+    requirementSetId: normalizeText(value.requirementSetId),
+    ticker: normalizeText(value.ticker)?.toUpperCase() || null,
+    earningsPeriod: normalizeText(value.earningsPeriod),
+    createdAt: normalizeText(value.createdAt),
+    createdFromAnalysisId: normalizeText(value.createdFromAnalysisId),
+    targetValue: numberOrNull(value.targetValue),
+    targetScenario: normalizeText(value.targetScenario),
+    targetDescription: normalizeText(value.targetDescription),
+    matchType: normalizeText(value.matchType),
+    requirements,
+    requirementsAssessment: value.requirementsAssessment && typeof value.requirementsAssessment === "object"
+      ? calculateRequirementsAssessment({ requirements }, value.requirementsAssessment)
+      : null
   };
 }
 
@@ -191,6 +250,11 @@ function normalizeScenario(value = {}) {
 function normalizeRequirementStatus(value) {
   const clean = String(value || "NOT_REPORTED").trim().toUpperCase();
   return REQUIREMENT_STATUSES.includes(clean) ? clean : "NOT_REPORTED";
+}
+
+function normalizeRequirementSetStatus(value) {
+  const clean = String(value || "").trim().toUpperCase();
+  return ["OPEN", "EVALUATED", "SUPERSEDED", "CANCELLED"].includes(clean) ? clean : null;
 }
 
 function normalizeRecommendationAction(value) {
