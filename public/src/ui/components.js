@@ -50,7 +50,7 @@ const panels = [
   ["settings", "Settings"]
 ];
 
-const visiblePanels = new Set(["home", "external-import", "external-report", "history", "settings"]);
+const visiblePanels = new Set(["home", "external-import", "external-report", "company-profile", "history", "settings"]);
 
 function visiblePanel(panel) {
   return visiblePanels.has(panel) ? panel : "home";
@@ -207,7 +207,10 @@ function externalHomeCard(report) {
       ${libraryCompletionRow(report.completionStatus)}
       <div class="company-card-footer library-card-footer">
         <span>${uiLabel("Open saved report")}</span>
-        <small>${uiLabel("Open report")}</small>
+        <div class="library-card-actions">
+          ${report.hasCompanyProfile ? `<button class="profile-pill" data-profile-ticker="${escapeHtml(report.ticker)}" data-profile-report-id="${escapeHtml(report.id)}">${uiLabel("Company Profile")}</button>` : ""}
+          <small>${uiLabel("Open report")}</small>
+        </div>
       </div>
     </article>
   `;
@@ -946,6 +949,7 @@ function executiveSummary(state) {
 function panelContent(state) {
   if (state.activePanel === "external-import") return externalImportPanel(state);
   if (state.activePanel === "external-report") return externalAnalysisReportView(state);
+  if (state.activePanel === "company-profile") return companyProfileView(state);
   if (state.activePanel === "history") return externalHistoryPanel(state);
   if (state.activePanel === "settings") return settingsPanel(state);
   return externalAnalysesHomeSection(state);
@@ -1356,6 +1360,121 @@ function externalHistoryPanel(state) {
   `;
 }
 
+function companyProfileView(state) {
+  const selection = state.externalReportSelection || {};
+  const report = getExternalAnalysis(state.externalAnalyses || {}, selection.ticker, selection.reportId);
+  const profile = report?.companyProfile;
+  if (!report) {
+    return `
+      <section class="panel empty-home-state">
+        <strong>${uiLabel("No imported report selected.")}</strong>
+        <button class="primary-btn" data-panel="home">${uiLabel("Back to My Stocks")}</button>
+      </section>
+    `;
+  }
+  if (!hasReadableCompanyProfile(profile)) {
+    return `
+      <section class="panel empty-home-state company-profile-empty">
+        <p class="eyebrow">${uiLabel("Company Profile")}</p>
+        <strong>${uiLabel("Company profile unavailable")}</strong>
+        <p>${uiLabel("This saved analysis does not include an educational company profile.")}</p>
+        <button class="primary-btn" data-action="copy-full-analysis-prompt">${uiLabel("نسخ برومبت تحليل السهم")}</button>
+        <button class="icon-btn" data-panel="home">${uiLabel("Back to My Stocks")}</button>
+      </section>
+    `;
+  }
+  const ticker = report.company?.ticker || "-";
+  const companyName = report.company?.name || ticker;
+  return `
+    <section class="external-report-shell company-profile-shell">
+      <header class="panel company-profile-header">
+        <div>
+          <p class="eyebrow">${uiLabel("Company Profile")}</p>
+          <h2>${escapeHtml(companyName)}</h2>
+          <strong dir="ltr">${escapeHtml(ticker)}</strong>
+        </div>
+        <button class="icon-btn" data-action="open-profile-report" data-profile-report-ticker="${escapeHtml(ticker)}" data-profile-report-id="${escapeHtml(report.id)}">${uiLabel("Open report")}</button>
+      </header>
+      <section class="company-profile-grid">
+        ${companyProfileSection(uiLabel("What does the company do?"), profile.summary)}
+        ${companyProfileSection(uiLabel("How does the company make money?"), profile.businessModel)}
+        ${companyActivitiesSection(profile.activities)}
+        ${companyProfileSection(uiLabel("Who are its customers?"), profile.customers)}
+        ${companyGrowthDriversSection(profile.mainGrowthDrivers)}
+      </section>
+    </section>
+  `;
+}
+
+function hasReadableCompanyProfile(profile = null) {
+  if (!profile || typeof profile !== "object") return false;
+  return Boolean(
+    localizedExternalText(profile.summary).trim()
+    || localizedExternalText(profile.businessModel).trim()
+    || localizedExternalText(profile.customers).trim()
+    || (Array.isArray(profile.activities) && profile.activities.length)
+    || (Array.isArray(profile.mainGrowthDrivers) && profile.mainGrowthDrivers.length)
+  );
+}
+
+function companyProfileSection(title, value) {
+  const text = localizedExternalText(value);
+  if (!text.trim()) return "";
+  return `
+    <article class="panel company-profile-section">
+      <h3>${escapeHtml(title)}</h3>
+      <p>${escapeHtml(text)}</p>
+    </article>
+  `;
+}
+
+function companyActivitiesSection(activities = []) {
+  if (!Array.isArray(activities) || !activities.length) return "";
+  return `
+    <article class="panel company-profile-section company-activities-section">
+      <h3>${uiLabel("Company Activities")}</h3>
+      <div class="company-activity-list">
+        ${activities.map((activity) => `
+          <section class="company-activity-card">
+            <div>
+              <strong>${escapeHtml(companyActivityTitle(activity))}</strong>
+              ${companyActivitySubtitle(activity) ? `<span>${escapeHtml(companyActivitySubtitle(activity))}</span>` : ""}
+            </div>
+            ${localizedExternalText(activity.description).trim() ? `
+              <p><b>${uiLabel("What is it?")}</b> ${escapeHtml(localizedExternalText(activity.description))}</p>
+            ` : ""}
+            ${localizedExternalText(activity.importance).trim() ? `
+              <p><b>${uiLabel("Why does it matter?")}</b> ${escapeHtml(localizedExternalText(activity.importance))}</p>
+            ` : ""}
+          </section>
+        `).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function companyActivityTitle(activity = {}) {
+  const title = localizedExternalText({ ar: activity.arabicName, en: activity.name, text: activity.name || activity.arabicName });
+  return title || "-";
+}
+
+function companyActivitySubtitle(activity = {}) {
+  const title = companyActivityTitle(activity);
+  const alternate = localizedExternalText(isArabicUi() ? activity.name : activity.arabicName);
+  return alternate && alternate !== title ? alternate : "";
+}
+
+function companyGrowthDriversSection(drivers = []) {
+  const visible = Array.isArray(drivers) ? drivers.map((item) => localizedExternalText(item)).filter((item) => item.trim()) : [];
+  if (!visible.length) return "";
+  return `
+    <article class="panel company-profile-section">
+      <h3>${uiLabel("Main Growth Drivers")}</h3>
+      <ul>${visible.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+    </article>
+  `;
+}
+
 function externalAnalysisReportView(state) {
   const selection = state.externalReportSelection || {};
   const report = getExternalAnalysis(state.externalAnalyses || {}, selection.ticker, selection.reportId);
@@ -1445,7 +1564,7 @@ function externalAnalysisReportView(state) {
           ${reportSection(uiLabel("Historical Analyses"), externalVersionHistory(report, history))}
           ${reportSection(uiLabel("Requirement Delivery Timeline"), requirementLifecycleTimeline(requirementSets, history))}
           ${reportDataHealthCard(reportWithCompletion, completion)}
-          ${reportSection(uiLabel("Sources"), itemList(report.sources, ["url", "sourceType"]))}
+          ${reportSection(uiLabel("Sources"), sourcesView(report.sources))}
           ${externalDetail(uiLabel("Raw Analysis"), `<pre class="raw-analysis">${escapeHtml(report.rawAnalysisOriginal || report.rawAnalysis || "")}</pre>`)}
         `, uiLabel("Section 8"), "report-group-technical")}
       </section>
@@ -1663,18 +1782,183 @@ function externalDetail(title, body, open = false) {
 }
 
 function valuationMethodsView(methods = {}) {
-  const rows = Object.entries(methods || {}).filter(([, value]) => value !== null && value !== undefined && value !== "");
+  const rows = Object.entries(methods || {})
+    .map(([key, value]) => normalizeValuationMethodForDisplay(key, value))
+    .filter(Boolean);
   if (!rows.length) return "";
   return `
-    <div class="external-method-grid">
-      ${rows.map(([key, value]) => `
-        <div>
-          <span>${escapeHtml(methodLabel(key))}</span>
-          <strong>${escapeHtml(localizedExternalText(formatAnyValue(value)))}</strong>
-        </div>
-      `).join("")}
+    <div class="valuation-methods-readable">
+      <div class="valuation-methods-title">
+        <h4>${uiLabel("Valuation Methods Used")}</h4>
+        <span dir="ltr">Valuation Methods</span>
+      </div>
+      <div class="valuation-method-card-grid">
+        ${rows.map(valuationMethodCard).join("")}
+      </div>
     </div>
   `;
+}
+
+function normalizeValuationMethodForDisplay(key, value) {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value !== "object" || Array.isArray(value)) {
+    return {
+      key,
+      method: methodLabel(key),
+      role: null,
+      fairValue: value,
+      weight: null,
+      confidence: null,
+      explanation: null,
+      limitation: null,
+      assumptions: {},
+      technical: {}
+    };
+  }
+  const method = value.method || value.valuationMethod || methodLabel(key);
+  const assumptions = value.assumptions && typeof value.assumptions === "object" ? value.assumptions : {};
+  const inputs = value.inputs && typeof value.inputs === "object" ? value.inputs : {};
+  const { visible, technical } = splitAssumptionRows({ ...inputs, ...assumptions });
+  return {
+    key,
+    method,
+    role: value.role || value.type || null,
+    fairValue: value.fairValue ?? value.value ?? value.output ?? null,
+    weight: value.weight ?? value.modelWeight ?? null,
+    confidence: value.confidence ?? value.confidenceLevel ?? null,
+    explanation: value.explanation || value.whySuitable || value.selectionReason || value.reason || null,
+    limitation: value.limitation || value.limitations || null,
+    assumptions: visible,
+    technical
+  };
+}
+
+function valuationMethodCard(method = {}) {
+  return `
+    <article class="valuation-method-readable-card">
+      <div class="valuation-method-readable-head">
+        <span>${uiLabel("طريقة التقييم")}</span>
+        <strong>${escapeHtml(humanValuationMethodLabel(method.method || method.key))}</strong>
+      </div>
+      <div class="valuation-method-readable-metrics">
+        ${readableMetric(uiLabel("Role"), valuationRoleLabel(method.role))}
+        ${readableMetric(uiLabel("Output Value"), formatValuationFairValue(method.fairValue))}
+        ${readableMetric(uiLabel("Weight"), formatNullablePercent(method.weight))}
+        ${readableMetric(uiLabel("Confidence"), formatNullablePercent(method.confidence))}
+      </div>
+      ${localizedExternalText(method.explanation).trim() ? `
+        <section>
+          <h5>${uiLabel("Why did we use this method?")}</h5>
+          <p>${escapeHtml(localizedExternalText(method.explanation))}</p>
+        </section>
+      ` : ""}
+      ${method.assumptions.length ? `
+        <section>
+          <h5>${uiLabel("Key Assumptions")}</h5>
+          <div class="valuation-assumption-list">
+            ${method.assumptions.map(([label, value]) => readableMetric(label, formatAnyValue(value))).join("")}
+          </div>
+        </section>
+      ` : ""}
+      ${localizedExternalText(method.limitation).trim() ? `
+        <section>
+          <h5>${uiLabel("Method Limitation")}</h5>
+          <p>${escapeHtml(localizedExternalText(method.limitation))}</p>
+        </section>
+      ` : ""}
+      ${method.technical.length ? externalDetail(uiLabel("Technical Details"), technicalRows(method.technical)) : ""}
+    </article>
+  `;
+}
+
+function readableMetric(label, value) {
+  const visibleValue = value === null || value === undefined || value === "" ? "—" : value;
+  return `<div class="readable-metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(visibleValue))}</strong></div>`;
+}
+
+function splitAssumptionRows(object = {}) {
+  const visible = [];
+  const technical = [];
+  for (const [key, value] of Object.entries(object || {})) {
+    if (value === null || value === undefined || value === "") continue;
+    const label = friendlyAssumptionLabel(key);
+    if (label) visible.push([label, value]);
+    else technical.push([key, value]);
+  }
+  return { visible, technical };
+}
+
+function friendlyAssumptionLabel(key) {
+  const labels = {
+    normalizedEPS: "ربحية السهم الطبيعية",
+    epsNormalized: "ربحية السهم الطبيعية",
+    selectedMultiple: "المكرر المستخدم",
+    multipleUsed: "المكرر المستخدم",
+    valuationMultiple: "المكرر المستخدم",
+    historicalAnchorRange: "نطاق المكرر التاريخي",
+    currentPrice: uiLabel("Current Price"),
+    priceAtAnalysis: uiLabel("Price at Analysis"),
+    currentRevenue: financialTerm("Revenue"),
+    revenue: financialTerm("Revenue"),
+    revenueGrowth: financialTerm("Revenue Growth"),
+    revenueGrowthPct: financialTerm("Revenue Growth"),
+    grossMargin: financialTerm("Gross Margin"),
+    grossMarginPct: financialTerm("Gross Margin"),
+    operatingMargin: financialTerm("Operating Margin"),
+    operatingMarginPct: financialTerm("Operating Margin"),
+    ebitda: "EBITDA",
+    evEbitda: "EV/EBITDA",
+    eps: financialTerm("EPS"),
+    freeCashFlow: financialTerm("Free Cash Flow"),
+    fcf: financialTerm("FCF"),
+    wacc: "WACC",
+    terminalGrowth: "Terminal Growth",
+    discountRate: "Discount Rate",
+    netDebt: "Net Debt",
+    shareCount: "Share Count",
+    dilutedShares: "Diluted Shares",
+    taxRate: "Tax Rate",
+    capex: "CapEx"
+  };
+  return labels[key] || null;
+}
+
+function technicalRows(rows = []) {
+  return `
+    <div class="technical-row-list">
+      ${rows.map(([key, value]) => `<p><span dir="ltr">${escapeHtml(key)}</span><strong>${escapeHtml(formatAnyValue(value))}</strong></p>`).join("")}
+    </div>
+  `;
+}
+
+function humanValuationMethodLabel(value) {
+  const text = String(value || "").trim();
+  const lower = text.toLowerCase();
+  if (lower === "pe" || lower.includes("p/e")) return "مكرر الربحية (P/E)";
+  if (lower.includes("dcf")) return "التدفقات النقدية المخصومة (DCF)";
+  if (lower.includes("ev/ebitda") || lower.includes("ebitda")) return "مضاعف EV/EBITDA";
+  if (lower.includes("peg")) return "PEG";
+  if (lower.includes("sotp")) return "تقييم مجموع الأجزاء (SOTP)";
+  if (lower.includes("sales") || lower.includes("p/s")) return "مضاعف المبيعات (P/S)";
+  return localizedExternalText(text) || "-";
+}
+
+function valuationRoleLabel(value) {
+  const clean = String(value || "").toLowerCase();
+  if (clean.includes("primary") || clean.includes("أساس")) return uiLabel("Primary");
+  if (clean.includes("secondary") || clean.includes("support") || clean.includes("مسان")) return uiLabel("Supporting");
+  return localizedExternalText(value) || "—";
+}
+
+function formatNullablePercent(value) {
+  const number = numericValue(value);
+  return Number.isFinite(number) ? `${Math.round(number * 10) / 10}%` : "—";
+}
+
+function formatValuationFairValue(value) {
+  const number = numericValue(value);
+  if (Number.isFinite(number)) return money(number, 0);
+  return localizedExternalText(value) || "—";
 }
 
 function externalRecommendationView(report = {}) {
@@ -1854,21 +2138,8 @@ function priceTargetRequirementsView(requirementsBlock = {}) {
         </article>
       </div>
       ${requirementsBlock.targetDescription ? `<p>${escapeHtml(localizedExternalText(requirementsBlock.targetDescription))}</p>` : ""}
-      <div class="requirements-table-wrap">
-        <table class="requirements-table">
-          <thead>
-            <tr>
-              <th>${uiLabel("Requirement")}</th>
-              <th>${uiLabel("Required")}</th>
-              <th>${uiLabel("Actual")}</th>
-              <th>${uiLabel("Status")}</th>
-              <th>${uiLabel("Weight")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${requirements.map(requirementRow).join("")}
-          </tbody>
-        </table>
+      <div class="requirement-card-list pending-requirements">
+        ${requirements.map((item) => pendingRequirementCard(item, requirementsBlock.earningsPeriod)).join("")}
       </div>
     </div>
   `;
@@ -1927,19 +2198,8 @@ function previousRequirementExecutionView(evaluation = {}) {
         ${compactCardMetric(uiLabel("Reported Requirements"), assessmentCountText(assessment.reportedRequirements, assessment.totalRequirements))}
         ${compactCardMetric(uiLabel("Earnings Period"), evaluation.earningsPeriod || "-")}
       </div>
-      <div class="requirements-table-wrap">
-        <table class="requirements-table">
-          <thead>
-            <tr>
-              <th>${uiLabel("Requirement")}</th>
-              <th>${uiLabel("Required")}</th>
-              <th>${uiLabel("Actual")}</th>
-              <th>${uiLabel("Status")}</th>
-              <th>${uiLabel("Weight")}</th>
-            </tr>
-          </thead>
-          <tbody>${requirements.map(requirementRow).join("")}</tbody>
-        </table>
+      <div class="requirement-card-list evaluated-requirements">
+        ${requirements.map((item) => evaluatedRequirementCard(item, evaluation.earningsPeriod)).join("")}
       </div>
       ${assessment.overallStatus ? `<p><b>${uiLabel("Overall")}:</b> ${escapeHtml(requirementsStatusLabel(assessment.overallStatus))}</p>` : ""}
       ${assessment.summary ? `<p>${escapeHtml(localizedExternalText(assessment.summary))}</p>` : ""}
@@ -1994,6 +2254,56 @@ function requirementRow(item = {}) {
     </tr>
     ${item.evaluationNote ? `<tr class="requirement-note-row"><td colspan="5">${escapeHtml(localizedExternalText(item.evaluationNote))}</td></tr>` : ""}
   `;
+}
+
+function pendingRequirementCard(item = {}, targetQuarter = "") {
+  return `
+    <article class="requirement-readable-card">
+      <header>
+        <span>${uiLabel("Metric")}</span>
+        <strong>${escapeHtml(requirementName(item))}</strong>
+      </header>
+      <div class="requirement-readable-grid">
+        ${readableMetric(uiLabel("Current"), formatRequirementValue(item.currentLevel, item.unit))}
+        ${readableMetric(uiLabel("Required"), formatRequirementThreshold(item))}
+        ${readableMetric(uiLabel("Target Quarter"), targetQuarter || item.earningsPeriod || "—")}
+        ${Number.isFinite(numericValue(item.weight)) ? readableMetric(uiLabel("Weight"), `${numericValue(item.weight)}%`) : ""}
+      </div>
+      ${item.whyItMatters ? `<p>${escapeHtml(localizedExternalText(item.whyItMatters))}</p>` : ""}
+    </article>
+  `;
+}
+
+function evaluatedRequirementCard(item = {}, targetQuarter = "") {
+  return `
+    <article class="requirement-readable-card evaluated ${requirementStatusClass(String(item.status || "NOT_REPORTED").toUpperCase())}">
+      <header>
+        <span>${uiLabel("Metric")}</span>
+        <strong>${escapeHtml(requirementName(item))}</strong>
+        ${requirementStatusBadge(item.status)}
+      </header>
+      <div class="requirement-readable-grid">
+        ${readableMetric(uiLabel("Previous"), formatRequirementValue(item.currentLevel, item.unit))}
+        ${readableMetric(uiLabel("Required"), formatRequirementThreshold(item))}
+        ${readableMetric(uiLabel("Actual"), formatRequirementValue(item.actualValue ?? item.actualRaw, item.unit))}
+        ${targetQuarter || item.earningsPeriod ? readableMetric(uiLabel("Target Quarter"), targetQuarter || item.earningsPeriod) : ""}
+      </div>
+      ${item.evaluationNote ? `<p>${escapeHtml(localizedExternalText(item.evaluationNote))}</p>` : ""}
+    </article>
+  `;
+}
+
+function requirementName(item = {}) {
+  const english = item.name || item.metric || "";
+  const arabic = item.arabicName || "";
+  if (arabic && english && arabic !== english) return `${english} / ${arabic}`;
+  return arabic || english || "-";
+}
+
+function formatRequirementThreshold(item = {}) {
+  const type = String(item.type || "").toLowerCase();
+  const prefix = type.includes("minimum") ? ">= " : type.includes("maximum") ? "<= " : "";
+  return `${prefix}${formatRequirementValue(item.requiredValue, item.unit)}`;
 }
 
 function assessmentNumberText(value) {
@@ -2109,6 +2419,28 @@ function itemList(items = [], detailKeys = []) {
         const title = item.title || item.name || item.sourceType || "-";
         const details = detailKeys.map((key) => localizedExternalText(item[key])).filter((value) => value.trim());
         return `<article><strong>${escapeHtml(localizedExternalText(title))}</strong>${details.map((detail) => `<span>${escapeHtml(localizedExternalText(detail))}</span>`).join("")}</article>`;
+      }).join("")}
+    </div>
+  `;
+}
+
+function sourcesView(items = []) {
+  if (!Array.isArray(items) || !items.length) return "";
+  return `
+    <div class="source-card-list">
+      ${items.map((item) => {
+        const title = localizedExternalText(item.title || item.name || item.sourceTitle || item.publisher || uiLabel("Sources"));
+        const publisher = localizedExternalText(item.publisher || item.sourceType || item.type || item.date || "");
+        const url = item.url ? String(item.url) : "";
+        return `
+          <article class="source-readable-card">
+            <div>
+              <strong>${escapeHtml(title || uiLabel("Sources"))}</strong>
+              ${publisher ? `<span>${escapeHtml(publisher)}</span>` : ""}
+            </div>
+            ${/^https?:\/\//i.test(url) ? `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer noopener">${uiLabel("Open Source")}</a>` : ""}
+          </article>
+        `;
       }).join("")}
     </div>
   `;
@@ -4047,6 +4379,16 @@ function bind(root, store, actions) {
   });
   root.querySelectorAll("[data-external-history-id]").forEach((button) => {
     button.addEventListener("click", () => store.openExternalReport(button.dataset.externalHistoryTicker, button.dataset.externalHistoryId));
+  });
+  root.querySelectorAll("[data-profile-ticker]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      store.openCompanyProfile(button.dataset.profileTicker, button.dataset.profileReportId);
+    });
+  });
+  root.querySelector("[data-action='open-profile-report']")?.addEventListener("click", (event) => {
+    const button = event.currentTarget;
+    store.openExternalReport(button.dataset.profileReportTicker, button.dataset.profileReportId);
   });
   root.querySelector("[data-action='save-run']")?.addEventListener("click", store.saveRun);
   root.querySelectorAll("[data-action='new-analysis']").forEach((button) => {

@@ -28,6 +28,7 @@ export function externalAnalysisToHomeCard(report = {}) {
     kpiCount: Array.isArray(report.companySpecificKpis) ? report.companySpecificKpis.length : 0,
     requirementsAchievement: report.requirementsAssessment?.weightedAchievement ?? null,
     thesisStatus: report.requirementsAssessment?.overallStatus || "",
+    hasCompanyProfile: hasCompanyProfile(report.companyProfile),
     completionStatus
   };
 }
@@ -53,4 +54,15 @@ export function externalReportWithCompletionStatus(report = {}) {
 
 export function externalReportCompletionStatus(report = {}) {
   return analyzeExternalAnalysisCompletion(report);
+}
+
+function hasCompanyProfile(profile = null) {
+  if (!profile || typeof profile !== "object") return false;
+  return Boolean(
+    profile.summary
+    || profile.businessModel
+    || profile.customers
+    || (Array.isArray(profile.activities) && profile.activities.length)
+    || (Array.isArray(profile.mainGrowthDrivers) && profile.mainGrowthDrivers.length)
+  );
 }

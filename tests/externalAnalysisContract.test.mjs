@@ -9,6 +9,8 @@ import {
 const prompt = buildFullAnalysisPrompt({ tickerHint: "aaoi" });
 assert.ok(prompt.includes("Fair value"), "Prompt must identify the Fair value ChatGPT system.");
 assert.ok(prompt.includes("company.ticker"), "Prompt must name required schema paths.");
+assert.ok(prompt.includes("companyProfile"), "Prompt must require the educational company profile object.");
+assert.ok(prompt.includes("للمستثمر الذكي"), "Prompt must ask for simple Arabic company-profile explanations.");
 assert.ok(prompt.includes("fairValueSummary"), "Prompt must include Fair value summary fields.");
 assert.ok(prompt.includes("Conservative"), "Prompt must document Fair value scenarios.");
 assert.ok(prompt.includes('"ticker": "AAOI"'), "Prompt template must carry the entered ticker.");
@@ -20,6 +22,8 @@ assert.equal(template.schemaVersion, "fair-value-analysis/v1");
 assert.equal(template.methodologyVersion, "fair-value-system/v1");
 assert.equal(template.company.ticker, "MSFT");
 assert.equal(template.company.currentPrice, null);
+assert.equal(template.companyProfile.summary, null);
+assert.deepEqual(Object.keys(template.companyProfile.activities[0]), ["name", "arabicName", "description", "importance"]);
 assert.equal(template.businessQuality.score, null);
 assert.equal(template.fairValueSummary.fairValueBase, null);
 assert.deepEqual(template.risks, []);

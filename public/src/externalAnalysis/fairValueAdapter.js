@@ -24,6 +24,20 @@ export function buildFairValueAnalysisJsonObject(options = {}) {
       currentPrice: null,
       priceTimestamp: null
     },
+    companyProfile: {
+      summary: null,
+      businessModel: null,
+      activities: [
+        {
+          name: null,
+          arabicName: null,
+          description: null,
+          importance: null
+        }
+      ],
+      customers: null,
+      mainGrowthDrivers: []
+    },
     dataQuality: {
       score: null,
       confidence: null,
@@ -349,6 +363,7 @@ export function fairValueAnalysisToExternalReport(input = {}) {
       industry: company.industry || classification.companyType,
       currency: company.currency || "USD"
     },
+    companyProfile: input.companyProfile || null,
     market: {
       priceAtAnalysis: currentPrice,
       userAverageCost: null

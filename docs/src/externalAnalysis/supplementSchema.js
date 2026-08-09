@@ -2,6 +2,7 @@ export const EXTERNAL_ANALYSIS_SUPPLEMENT_SCHEMA_VERSION = "external-analysis-su
 
 const PATH_OBJECT_KEYS = new Set([
   "company",
+  "companyProfile",
   "market",
   "scores",
   "fairValue",
@@ -42,6 +43,7 @@ export function normalizeSupplementFieldValue(path, value) {
   if (path === "risks") return normalizeRiskItems(value);
   if (path === "catalysts") return normalizeTitledItems(value, ["title", "explanation"]);
   if (path === "sources") return normalizeSources(value);
+  if (path === "companyProfile") return value && typeof value === "object" && !Array.isArray(value) ? preserveNulls(value) : null;
   if (arrayPath(path)) return Array.isArray(value) ? value : [value].filter((item) => item !== null && item !== undefined && item !== "");
   if (typeof value === "object") return preserveNulls(value);
   return nullableString(value);

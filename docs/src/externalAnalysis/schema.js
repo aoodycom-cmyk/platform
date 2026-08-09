@@ -32,6 +32,7 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
       industry: null,
       currency: "USD"
     },
+    companyProfile: null,
     market: {
       priceAtAnalysis: null,
       userAverageCost: null
@@ -228,6 +229,7 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
       industry: nullableString(companyInput.industry ?? input.industry),
       currency: nullableString(companyInput.currency ?? input.currency) || "USD"
     },
+    companyProfile: normalizeCompanyProfile(input.companyProfile),
     market: {
       priceAtAnalysis: toNullableNumber(marketInput.priceAtAnalysis ?? input.priceAtAnalysis ?? input.currentPrice),
       userAverageCost: toNullableNumber(marketInput.userAverageCost ?? input.userAverageCost)
@@ -365,6 +367,31 @@ function normalizeItems(value, keys) {
   }).filter(Boolean);
 }
 
+function normalizeCompanyProfile(value = null) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const activities = Array.isArray(value.activities)
+    ? value.activities.map((activity) => {
+      if (typeof activity === "string") {
+        return { name: activity, arabicName: null, description: null, importance: null };
+      }
+      if (!activity || typeof activity !== "object") return null;
+      return {
+        name: narrativeValue(activity.name),
+        arabicName: narrativeValue(activity.arabicName),
+        description: narrativeValue(activity.description),
+        importance: narrativeValue(activity.importance)
+      };
+    }).filter(Boolean)
+    : [];
+  return preserveNulls({
+    summary: narrativeValue(value.summary),
+    businessModel: narrativeValue(value.businessModel),
+    activities,
+    customers: narrativeValue(value.customers),
+    mainGrowthDrivers: normalizeNarrativeArray(value.mainGrowthDrivers)
+  });
+}
+
 function aliasValue(item, key) {
   if (key === "title") return item.title ?? item.name ?? item.topic;
   if (key === "sourceType") return item.sourceType ?? item.type;
@@ -379,6 +406,17 @@ function normalizeSupplements(value) {
 function normalizeStringArray(value) {
   if (!Array.isArray(value)) return [];
   return value.map((item) => nullableString(item)).filter((item) => item !== null);
+}
+
+function normalizeNarrativeArray(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => narrativeValue(item)).filter((item) => item !== null);
+}
+
+function narrativeValue(value) {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "object") return preserveNulls(value);
+  return nullableString(value);
 }
 
 function preserveNulls(value) {

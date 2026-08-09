@@ -17,6 +17,20 @@ const validReport = {
   analysisDate: "2026-07-31",
   reportPeriod: "Q2 2026",
   company: { ticker: "AMZN", name: "Amazon.com, Inc.", sector: "Consumer Discretionary", industry: "Internet Retail", currency: "USD" },
+  companyProfile: {
+    summary: "Amazon is a commerce, cloud, advertising, and logistics platform.",
+    businessModel: "تربح Amazon من التجارة الإلكترونية، AWS، الإعلانات، والاشتراكات.",
+    activities: [
+      {
+        name: "AWS",
+        arabicName: "خدمات الحوسبة السحابية",
+        description: "توفر خوادم وخدمات تقنية للشركات.",
+        importance: "أهم مصدر للربحية التشغيلية."
+      }
+    ],
+    customers: "المستهلكون، البائعون، الشركات، والمعلنون.",
+    mainGrowthDrivers: ["AWS", "Advertising", "Prime"]
+  },
   market: { priceAtAnalysis: 264, userAverageCost: null },
   scores: { quality: 9.3, growth: 9.5, valuation: 7.5, risk: 5, overall: 8.7, moat: null, management: null },
   fairValue: { bear: 215, base: 290, bull: 350, weightedFairValue: null, analystFairValue: 290, upsideToBasePct: 9.8, downsideToBearPct: -18.6, upsideToBullPct: 32.6 },
@@ -33,6 +47,9 @@ const parsedJson = await parseExternalAnalysisInput(rawJson, { now });
 assert.equal(parsedJson.usedAi, false);
 assert.equal(parsedJson.report.company.ticker, "AMZN");
 assert.equal(parsedJson.report.analysisOrigin, "external_chatgpt");
+assert.equal(parsedJson.report.companyProfile.businessModel, "تربح Amazon من التجارة الإلكترونية، AWS، الإعلانات، والاشتراكات.");
+assert.equal(parsedJson.report.companyProfile.activities[0].arabicName, "خدمات الحوسبة السحابية");
+assert.deepEqual(parsedJson.report.companyProfile.mainGrowthDrivers, ["AWS", "Advertising", "Prime"]);
 assert.equal(parsedJson.report.fairValue.base, 290);
 assert.equal(parsedJson.report.decision.verdict, "HOLD / ACCUMULATE ON WEAKNESS");
 
@@ -92,6 +109,20 @@ const fairValueJson = JSON.stringify({
     currency: "USD",
     currentPrice: 451,
     priceTimestamp: "2026-08-01"
+  },
+  companyProfile: {
+    summary: "Microsoft develops software, cloud infrastructure, productivity tools, gaming, and AI services.",
+    businessModel: "تربح Microsoft من اشتراكات البرمجيات، Azure، Windows، LinkedIn، الألعاب، وخدمات الذكاء الاصطناعي.",
+    activities: [
+      {
+        name: "Azure",
+        arabicName: "منصة Azure السحابية",
+        description: "توفر للشركات بنية تحتية وخدمات بيانات وذكاء اصطناعي عبر السحابة.",
+        importance: "محرك النمو الأهم في القيمة العادلة."
+      }
+    ],
+    customers: "الشركات، الحكومات، المطورون، والمستهلكون.",
+    mainGrowthDrivers: ["Azure", "Copilot", "Microsoft 365"]
   },
   dataQuality: {
     score: 92,
@@ -184,6 +215,8 @@ assert.equal(parsedFairValue.report.schemaVersion, "external-analysis-report/v1"
 assert.equal(parsedFairValue.report.metadata.nativeSchemaVersion, "fair-value-analysis/v1");
 assert.equal(parsedFairValue.report.metadata.nativeMethodologyVersion, "fair-value-system/v1");
 assert.equal(parsedFairValue.report.company.ticker, "MSFT");
+assert.equal(parsedFairValue.report.companyProfile.activities[0].name, "Azure");
+assert.equal(parsedFairValue.report.companyProfile.customers, "الشركات، الحكومات، المطورون، والمستهلكون.");
 assert.equal(parsedFairValue.report.market.priceAtAnalysis, 451);
 assert.equal(parsedFairValue.report.scores.quality, 9.9);
 assert.equal(parsedFairValue.report.scores.growth, 9.8);

@@ -51,10 +51,16 @@ assert.ok(components.includes("function externalHistoryPanel"), "History page mu
 assert.ok(components.includes("function externalAnalysisReportView"), "Company Report page must exist.");
 assert.ok(components.includes("data-action=\"copy-new-earnings-prompt\""), "Company Report must expose Analyze New Earnings prompt copy.");
 assert.ok(components.includes("currentNewEarningsAnalysisPrompt"), "Analyze New Earnings must copy from the saved stock report.");
+assert.ok(components.includes("function companyProfileView"), "Company Profile page must exist for imported company profiles.");
+assert.ok(components.includes("data-profile-ticker"), "Saved stock cards must expose a compact Company Profile action.");
+assert.ok(components.includes("event.stopPropagation();"), "Company Profile action must not trigger the stock-report card navigation.");
 assert.ok(components.includes("function reportDataHealthCard"), "Company Report must always show data health/completion.");
 assert.ok(components.includes("libraryCompletionRow"), "Home report cards must show completion state.");
 assert.ok(components.includes("reportDecisionStrip"), "Company Report must show a concise decision strip.");
 assert.ok(components.includes("valuation-card-bear"), "Bear/Base/Bull valuation cards must be explicitly classified.");
+assert.ok(components.includes("valuation-method-readable-card"), "Valuation methods must render as readable investor cards.");
+assert.ok(components.includes("requirement-readable-card"), "Price target requirements must render as readable mobile cards.");
+assert.ok(components.includes("sourcesView(report.sources)"), "Sources must render as clean source cards without raw long URLs.");
 assert.ok(components.includes("score-visual-card"), "Score cards must include visual bars.");
 assert.ok(components.includes("report-v2-header"), "Company Report must use the V2 report-first header.");
 assert.ok(components.includes("Investment Verdict"), "Report must contain the investment verdict section.");
@@ -102,8 +108,14 @@ assert.ok(styles.includes(".report-v2-section"), "Report reading section styles 
 assert.ok(styles.includes(".quick-summary-card"), "Quick summary card styles must exist.");
 assert.ok(styles.includes(".fair-value-track"), "Fair Value Range visual styles must exist.");
 assert.ok(styles.includes(".forecast-bars"), "Forecast chart styles must exist.");
+assert.ok(styles.includes(".profile-pill"), "Company Profile pill styles must exist.");
+assert.ok(styles.includes(".company-profile-shell"), "Company Profile page styles must exist.");
+assert.ok(styles.includes(".valuation-method-readable-card"), "Readable valuation-method card styles must exist.");
+assert.ok(styles.includes(".requirement-readable-card"), "Readable requirement card styles must exist.");
+assert.ok(styles.includes(".source-readable-card"), "Clean source card styles must exist.");
 
 assert.ok(language.includes("أسهمي"), "Arabic My Stocks positioning must be localized.");
+assert.ok(language.includes("عن الشركة"), "Company Profile label must be localized in Arabic.");
 assert.ok(language.includes("اكتمال البيانات"), "Arabic data completion label must be localized.");
 assert.ok(language.includes("صحة البيانات"), "Arabic data health label must be localized.");
 assert.ok(language.includes("السيناريو المتحفظ"), "Arabic Bear case helper label must be localized.");

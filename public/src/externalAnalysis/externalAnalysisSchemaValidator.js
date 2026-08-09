@@ -78,7 +78,7 @@ function validateOptionalPositiveFairValues(report, errors) {
 }
 
 function validateArrays(report, errors) {
-  const arrayPaths = ["risks", "catalysts", "watchItems", "sources", "quality.strengths", "quality.weaknesses", "earningsQuality.oneOffItems", "guidance", "companySpecificKpis", "priceTargetRequirements.requirements", "recommendation.whatWouldUpgrade", "recommendation.whatWouldDowngrade"];
+  const arrayPaths = ["risks", "catalysts", "watchItems", "sources", "quality.strengths", "quality.weaknesses", "earningsQuality.oneOffItems", "guidance", "companySpecificKpis", "companyProfile.activities", "companyProfile.mainGrowthDrivers", "priceTargetRequirements.requirements", "recommendation.whatWouldUpgrade", "recommendation.whatWouldDowngrade"];
   for (const path of arrayPaths) {
     const value = getPath(report, path);
     if (value !== undefined && value !== null && !Array.isArray(value)) {

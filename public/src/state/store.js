@@ -703,6 +703,18 @@ export function createStore() {
     });
   }
 
+  function openCompanyProfile(ticker, reportId = "latest") {
+    const report = ensureExternalCompletionStatus(getExternalAnalysis(state.externalAnalyses, ticker, reportId));
+    if (!report?.companyProfile) return;
+    set({
+      externalReportSelection: { ticker: report.company.ticker, reportId: report.id },
+      company: externalReportCompanyShell(report),
+      activePanel: "company-profile",
+      notice: "",
+      searchResults: []
+    });
+  }
+
   function editExternalReport(ticker, reportId) {
     const report = ensureExternalCompletionStatus(getExternalAnalysis(state.externalAnalyses, ticker, reportId));
     if (!report) return;
@@ -1138,6 +1150,7 @@ export function createStore() {
     applyExternalSupplement,
     selectHistoricalRequirementSet,
     openExternalReport,
+    openCompanyProfile,
     editExternalReport,
     startExternalReportCompletion,
     removeExternalReport,
