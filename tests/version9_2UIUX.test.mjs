@@ -61,7 +61,7 @@ assert.ok(components.includes("libraryCompletionRow"), "Home report cards must s
 assert.ok(components.includes("reportDecisionStrip"), "Company Report must show a concise decision strip.");
 assert.ok(components.includes("valuation-card-bear"), "Bear/Base/Bull valuation cards must be explicitly classified.");
 assert.ok(components.includes("valuation-method-readable-card"), "Valuation methods must render as readable investor cards.");
-assert.ok(components.includes("requirement-readable-card"), "Price target requirements must render as readable mobile cards.");
+assert.ok(components.includes("requirementsComparisonView"), "Price target requirements must render as a structured comparison table/dashboard.");
 assert.ok(components.includes("sourcesView(report.sources)"), "Sources must render as clean source cards without raw long URLs.");
 assert.ok(components.includes("score-visual-card"), "Score cards must include visual bars.");
 assert.ok(components.includes("report-v2-header"), "Company Report must use the V2 report-first header.");
@@ -113,7 +113,7 @@ assert.ok(styles.includes(".forecast-bars"), "Forecast chart styles must exist."
 assert.ok(styles.includes(".profile-pill"), "Company Profile pill styles must exist.");
 assert.ok(styles.includes(".company-profile-shell"), "Company Profile page styles must exist.");
 assert.ok(styles.includes(".valuation-method-readable-card"), "Readable valuation-method card styles must exist.");
-assert.ok(styles.includes(".requirement-readable-card"), "Readable requirement card styles must exist.");
+assert.ok(styles.includes(".requirements-comparison-mobile"), "Mobile requirement comparison rows must exist.");
 assert.ok(styles.includes(".source-readable-card"), "Clean source card styles must exist.");
 
 assert.ok(language.includes("أسهمي"), "Arabic My Stocks positioning must be localized.");

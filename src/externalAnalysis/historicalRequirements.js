@@ -64,10 +64,14 @@ export function createRequirementSetFromReport(report = {}, now = new Date()) {
     createdAt,
     createdFromAnalysisId: block.createdFromAnalysisId || report.id || null,
     earningsPeriod: block.earningsPeriod || report.reportPeriod || null,
+    previousQuarter: block.previousQuarter || null,
+    targetQuarter: block.targetQuarter || block.earningsPeriod || report.reportPeriod || null,
     currentJustifiedValue: block.currentJustifiedValue,
     targetValue: block.targetValue,
+    nextTargetValue: block.nextTargetValue || block.targetValue,
     targetScenario: block.targetScenario,
     targetDescription: block.targetDescription,
+    summary: block.summary,
     status,
     evaluatedByAnalysisId: block.evaluatedByAnalysisId || null,
     evaluatedAt: block.evaluatedAt || null,
@@ -159,12 +163,16 @@ export function buildRequirementEvaluation(requirementSet = {}, report = {}, mat
   const requirements = (requirementSet.requirements || []).map((requirement) => {
     const actual = findActualForRequirement(requirement, actualItems);
     const actualValue = actualValueFrom(actual);
+    const actualDisplay = actual?.actualDisplay ?? actual?.displayValue ?? actual?.reportedDisplay ?? null;
     const actualRaw = actual?.actualRaw ?? actual?.raw ?? actual?.commentary ?? null;
     const status = actual ? normalizeRequirementStatus(actual.status) || "NOT_REPORTED" : "NOT_REPORTED";
     return {
       ...requirement,
       actualValue,
+      actualDisplay,
       actualRaw,
+      direction: actual?.direction || "unknown",
+      impact: actual?.impact || "unknown",
       status,
       evaluationNote: actual?.evaluationNote || actual?.note || null
     };
@@ -175,11 +183,14 @@ export function buildRequirementEvaluation(requirementSet = {}, report = {}, mat
     requirementSetId: requirementSet.requirementSetId,
     ticker: requirementSet.ticker,
     earningsPeriod: requirementSet.earningsPeriod,
+    previousQuarter: requirementSet.previousQuarter || null,
+    targetQuarter: requirementSet.targetQuarter || requirementSet.earningsPeriod || null,
     createdAt: requirementSet.createdAt,
     createdFromAnalysisId: requirementSet.createdFromAnalysisId,
     targetValue: requirementSet.targetValue,
     targetScenario: requirementSet.targetScenario,
     targetDescription: requirementSet.targetDescription,
+    summary: requirementSet.summary,
     matchType: match.matchType || null,
     requirements,
     requirementsAssessment
@@ -251,10 +262,14 @@ function normalizeRequirementSet(input = {}) {
     createdAt,
     createdFromAnalysisId: input.createdFromAnalysisId || null,
     earningsPeriod: input.earningsPeriod || null,
+    previousQuarter: textOrNull(input.previousQuarter),
+    targetQuarter: textOrNull(input.targetQuarter || input.earningsPeriod),
     currentJustifiedValue: numberOrNull(input.currentJustifiedValue),
     targetValue: numberOrNull(input.targetValue),
+    nextTargetValue: numberOrNull(input.nextTargetValue ?? input.targetValue),
     targetScenario: textOrNull(input.targetScenario),
     targetDescription: textOrNull(input.targetDescription),
+    summary: textOrNull(input.summary),
     status,
     evaluatedByAnalysisId: input.evaluatedByAnalysisId || null,
     evaluatedAt: input.evaluatedAt || null,
@@ -270,7 +285,10 @@ function freezeRequirementSetRequirements(requirements = [], status = "OPEN") {
       return {
         ...requirement,
         actualValue: null,
+        actualDisplay: null,
         actualRaw: null,
+        direction: "unknown",
+        impact: "unknown",
         status: "NOT_REPORTED",
         evaluationNote: null
       };
@@ -286,7 +304,10 @@ function mergeEvaluatedRequirements(original = [], evaluated = []) {
     return {
       ...requirement,
       actualValue: result.actualValue,
+      actualDisplay: result.actualDisplay || null,
       actualRaw: result.actualRaw,
+      direction: result.direction || "unknown",
+      impact: result.impact || "unknown",
       status: result.status,
       evaluationNote: result.evaluationNote || null
     };

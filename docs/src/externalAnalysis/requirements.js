@@ -1,5 +1,7 @@
 export const REQUIREMENT_STATUSES = ["NOT_REPORTED", "PASSED", "PARTIALLY_PASSED", "FAILED", "EXCEEDED"];
 export const RECOMMENDATION_ACTIONS = ["BUY", "ADD", "HOLD", "WATCH", "REDUCE", "SELL"];
+export const REQUIREMENT_DIRECTIONS = ["up", "down", "flat", "unknown"];
+export const REQUIREMENT_IMPACTS = ["positive", "negative", "mixed", "neutral", "unknown"];
 
 export function calculateRequirementsAssessment(requirementsInput = {}, suppliedAssessment = {}) {
   return normalizeRequirementsAssessment(suppliedAssessment);
@@ -32,13 +34,18 @@ export function normalizePriceTargetRequirements(value = {}) {
       evaluatedAt: null,
       currentJustifiedValue: null,
       targetValue: null,
+      nextTargetValue: null,
       targetScenario: null,
       targetDescription: null,
+      summary: null,
       createdAt: null,
+      previousQuarter: null,
+      targetQuarter: null,
       earningsPeriod: null,
       requirements: []
     };
   }
+  const targetQuarter = normalizeText(value.targetQuarter ?? value.earningsPeriod);
   return {
     requirementSetId: normalizeText(value.requirementSetId),
     status: normalizeRequirementSetStatus(value.status),
@@ -46,11 +53,15 @@ export function normalizePriceTargetRequirements(value = {}) {
     evaluatedByAnalysisId: normalizeText(value.evaluatedByAnalysisId),
     evaluatedAt: normalizeText(value.evaluatedAt),
     currentJustifiedValue: numberOrNull(value.currentJustifiedValue),
-    targetValue: numberOrNull(value.targetValue),
+    targetValue: numberOrNull(value.targetValue ?? value.nextTargetValue),
+    nextTargetValue: numberOrNull(value.nextTargetValue ?? value.targetValue),
     targetScenario: normalizeText(value.targetScenario),
     targetDescription: normalizeText(value.targetDescription),
+    summary: normalizeText(value.summary),
     createdAt: normalizeText(value.createdAt),
-    earningsPeriod: normalizeText(value.earningsPeriod),
+    previousQuarter: normalizeText(value.previousQuarter ?? value.currentQuarter),
+    targetQuarter,
+    earningsPeriod: targetQuarter,
     requirements: normalizeRequirementList(value.requirements),
     requirementsAssessment: value.requirementsAssessment && typeof value.requirementsAssessment === "object"
       ? normalizeRequirementsAssessment(value.requirementsAssessment)
@@ -69,22 +80,29 @@ export function normalizePreviousRequirementsEvaluation(value = {}) {
       targetValue: null,
       targetScenario: null,
       targetDescription: null,
+      summary: null,
       matchType: null,
+      previousQuarter: null,
+      targetQuarter: null,
       requirements: [],
       requirementsAssessment: null
     };
   }
   const requirements = normalizeRequirementList(value.requirements);
+  const targetQuarter = normalizeText(value.targetQuarter ?? value.earningsPeriod);
   return {
     requirementSetId: normalizeText(value.requirementSetId),
     ticker: normalizeText(value.ticker)?.toUpperCase() || null,
-    earningsPeriod: normalizeText(value.earningsPeriod),
     createdAt: normalizeText(value.createdAt),
     createdFromAnalysisId: normalizeText(value.createdFromAnalysisId),
     targetValue: numberOrNull(value.targetValue),
     targetScenario: normalizeText(value.targetScenario),
     targetDescription: normalizeText(value.targetDescription),
+    summary: normalizeText(value.summary),
     matchType: normalizeText(value.matchType),
+    previousQuarter: normalizeText(value.previousQuarter ?? value.currentQuarter),
+    targetQuarter,
+    earningsPeriod: targetQuarter,
     requirements,
     requirementsAssessment: value.requirementsAssessment && typeof value.requirementsAssessment === "object"
       ? normalizeRequirementsAssessment(value.requirementsAssessment)
@@ -106,16 +124,61 @@ export function normalizeRequirement(item, index = 0) {
     arabicName: normalizeText(item.arabicName),
     metric: normalizeText(item.metric) || normalizeText(item.name),
     type: normalizeText(item.type) || "text",
-    currentLevel: valueOrNull(item.currentLevel),
+    previousValue: valueOrNull(item.previousValue ?? item.currentLevel),
+    previousDisplay: normalizeText(item.previousDisplay ?? item.currentDisplay),
+    currentLevel: valueOrNull(item.currentLevel ?? item.previousValue),
     requiredValue: valueOrNull(item.requiredValue),
+    requiredDisplay: normalizeText(item.requiredDisplay),
     unit: normalizeText(item.unit),
     importance: normalizeImportance(item.importance),
     weight: Number.isFinite(weight) ? weight : null,
     whyItMatters: normalizeText(item.whyItMatters),
     actualValue: valueOrNull(item.actualValue),
+    actualDisplay: normalizeText(item.actualDisplay),
     actualRaw: valueOrNull(item.actualRaw),
+    direction: normalizeRequirementDirection(item.direction),
+    impact: normalizeRequirementImpact(item.impact),
     status: normalizeRequirementStatus(item.status),
     evaluationNote: normalizeText(item.evaluationNote)
+  };
+}
+
+export function normalizeNextQuarterGuidance(value = null) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {
+      quarter: null,
+      items: []
+    };
+  }
+  return {
+    quarter: normalizeText(value.quarter),
+    items: Array.isArray(value.items)
+      ? value.items.map(normalizeNextQuarterGuidanceItem).filter(Boolean)
+      : []
+  };
+}
+
+function normalizeNextQuarterGuidanceItem(item) {
+  if (typeof item === "string") {
+    return {
+      topic: item,
+      arabicTopic: null,
+      guidance: item,
+      previousGuidance: null,
+      direction: "not_applicable",
+      interpretation: item,
+      importance: "medium"
+    };
+  }
+  if (!item || typeof item !== "object") return null;
+  return {
+    topic: normalizeText(item.topic),
+    arabicTopic: normalizeText(item.arabicTopic),
+    guidance: valueOrNull(item.guidance ?? item.currentGuidance),
+    previousGuidance: valueOrNull(item.previousGuidance),
+    direction: normalizeGuidanceDirection(item.direction),
+    interpretation: normalizeText(item.interpretation),
+    importance: normalizeImportance(item.importance)
   };
 }
 
@@ -229,6 +292,16 @@ function normalizeScenario(value = {}) {
 function normalizeRequirementStatus(value) {
   const clean = String(value || "NOT_REPORTED").trim().toUpperCase();
   return REQUIREMENT_STATUSES.includes(clean) ? clean : "NOT_REPORTED";
+}
+
+function normalizeRequirementDirection(value) {
+  const clean = String(value || "unknown").trim().toLowerCase();
+  return REQUIREMENT_DIRECTIONS.includes(clean) ? clean : "unknown";
+}
+
+function normalizeRequirementImpact(value) {
+  const clean = String(value || "unknown").trim().toLowerCase();
+  return REQUIREMENT_IMPACTS.includes(clean) ? clean : "unknown";
 }
 
 function normalizeRequirementSetStatus(value) {

@@ -172,6 +172,8 @@ export const DEMO_PRE_EARNINGS_ANALYSIS = {
     targetScenario: "bull",
     targetDescription: "متطلبات Q4 2026 اللازمة لتبرير Bull Case عند 100 دولار.",
     createdAt: "2026-08-08T10:00:00.000Z",
+    previousQuarter: "Q3 2026",
+    targetQuarter: "Q4 2026",
     earningsPeriod: "Q4 2026",
     requirements: DEMO_REQUIREMENTS_Q4
   },
@@ -235,11 +237,13 @@ export const DEMO_EARNINGS_ANALYSIS = {
     rationale: "التحليل الجديد يقيّم متطلبات Q4 السابقة ويخلق متطلبات Q1 منفصلة، مع بقاء عتبات Q4 الأصلية محفوظة."
   },
   previousRequirementsEvaluation: {
+    previousQuarter: "Q3 2026",
+    targetQuarter: "Q4 2026",
     requirements: [
-      { id: "revenue_growth", actualValue: 34, actualRaw: "Revenue Growth reached 34%.", status: "EXCEEDED" },
-      { id: "gross_margin", actualValue: 43, actualRaw: "Gross Margin reached 43%.", status: "FAILED" },
-      { id: "eps", actualValue: 3.2, actualRaw: "EPS reached $3.20.", status: "PASSED" },
-      { id: "guidance", actualValue: "Raised", actualRaw: "Management raised Q1 guidance.", status: "PASSED" }
+      { id: "revenue_growth", actualValue: 34, actualDisplay: "34%", actualRaw: "Revenue Growth reached 34%.", direction: "up", impact: "positive", status: "EXCEEDED", evaluationNote: "النمو تجاوز المستوى المطلوب وكان داعمًا للفرضية." },
+      { id: "gross_margin", actualValue: 43, actualDisplay: "43%", actualRaw: "Gross Margin reached 43%.", direction: "up", impact: "mixed", status: "FAILED", evaluationNote: "الهامش تحسن رقميًا لكنه لم يصل إلى عتبة 45%." },
+      { id: "eps", actualValue: 3.2, actualDisplay: "$3.20", actualRaw: "EPS reached $3.20.", direction: "up", impact: "positive", status: "PASSED", evaluationNote: "EPS حقق العتبة المطلوبة." },
+      { id: "guidance", actualValue: "Raised", actualDisplay: "Raised", actualRaw: "Management raised Q1 guidance.", direction: "up", impact: "positive", status: "PASSED", evaluationNote: "رفع Guidance يدعم استمرار الطلب." }
     ],
     requirementsAssessment: {
       weightedAchievement: 70,
@@ -277,6 +281,29 @@ export const DEMO_EARNINGS_ANALYSIS = {
       importance: "high"
     }
   ],
+  nextQuarterGuidance: {
+    quarter: "Q1 2027",
+    items: [
+      {
+        topic: "Revenue",
+        arabicTopic: "الإيرادات",
+        guidance: "$1.20B-$1.28B",
+        previousGuidance: "$1.05B-$1.12B",
+        direction: "raised",
+        interpretation: "الإدارة تتوقع استمرار نمو الإيرادات في الربع القادم.",
+        importance: "critical"
+      },
+      {
+        topic: "Gross Margin",
+        arabicTopic: "Gross Margin",
+        guidance: "44%-46%",
+        previousGuidance: "42%-44%",
+        direction: "raised",
+        interpretation: "الإدارة تتوقع تحسن الهوامش، لكن الوصول إلى أعلى النطاق مهم لتبرير الهدف التالي.",
+        importance: "high"
+      }
+    ]
+  },
   companySpecificKpis: [
     {
       name: "HBM Revenue Growth",
@@ -305,6 +332,8 @@ export const DEMO_EARNINGS_ANALYSIS = {
     targetScenario: "bull",
     targetDescription: "متطلبات Q1 2027 الجديدة لتبرير Bull Case عند 115 دولار.",
     createdAt: "2026-11-08T10:00:00.000Z",
+    previousQuarter: "Q4 2026",
+    targetQuarter: "Q1 2027",
     earningsPeriod: "Q1 2027",
     requirements: [
       { id: "revenue_growth_q1", name: "Revenue Growth", arabicName: "نمو الإيرادات", metric: "Revenue Growth", type: "minimum", currentLevel: "34%", requiredValue: 28, unit: "%", importance: "critical", weight: 35, whyItMatters: "استمرار النمو يحافظ على مضاعف Bull Case.", actualValue: null, actualRaw: null, status: "NOT_REPORTED", evaluationNote: null },
@@ -444,6 +473,8 @@ export const DEMO_EXTERNAL_ANALYSIS = {
     targetScenario: "bull",
     targetDescription: "المتطلبات اللازمة لتبرير Bull Case عند 100 دولار.",
     createdAt: "2026-08-08T10:00:00.000Z",
+    previousQuarter: "Q2 FY2026",
+    targetQuarter: "Q3 FY2026",
     earningsPeriod: "Q3 2026",
     requirements: [
       {
@@ -452,14 +483,20 @@ export const DEMO_EXTERNAL_ANALYSIS = {
         arabicName: "نمو الإيرادات",
         metric: "Revenue Growth",
         type: "minimum",
-        currentLevel: "25%",
-        requiredValue: 30,
-        unit: "%",
+        previousValue: 51,
+        previousDisplay: "$51M",
+        currentLevel: "$51M",
+        requiredValue: 57.5,
+        requiredDisplay: ">= $57.5M",
+        unit: "USD",
         importance: "critical",
         weight: 25,
         whyItMatters: "Bull Case يفترض استمرار النمو العالي.",
-        actualValue: 34,
-        actualRaw: "Revenue grew 34% year over year.",
+        actualValue: 60,
+        actualDisplay: "$60M",
+        actualRaw: "Revenue reached $60M.",
+        direction: "up",
+        impact: "positive",
         status: "EXCEEDED",
         evaluationNote: "النمو تجاوز العتبة المطلوبة."
       },
@@ -469,16 +506,22 @@ export const DEMO_EXTERNAL_ANALYSIS = {
         arabicName: "Gross Margin",
         metric: "Gross Margin",
         type: "minimum",
-        currentLevel: "41%",
+        previousValue: 48,
+        previousDisplay: "48%",
+        currentLevel: "48%",
         requiredValue: 45,
+        requiredDisplay: ">= 45%",
         unit: "%",
         importance: "critical",
         weight: 25,
         whyItMatters: "التقييم الأعلى يتطلب توسعًا واضحًا في الهوامش.",
-        actualValue: 43,
-        actualRaw: "Gross margin reached 43%.",
-        status: "FAILED",
-        evaluationNote: "الهامش تحسن لكنه لم يصل إلى 45%."
+        actualValue: 49,
+        actualDisplay: "49%",
+        actualRaw: "Gross margin reached 49%.",
+        direction: "up",
+        impact: "positive",
+        status: "PASSED",
+        evaluationNote: "الهامش تجاوز المستوى المطلوب وكان داعمًا للتقييم الأعلى."
       },
       {
         id: "guidance_01",
@@ -488,12 +531,16 @@ export const DEMO_EXTERNAL_ANALYSIS = {
         type: "qualitative",
         currentLevel: "Maintained",
         requiredValue: "Raised",
+        requiredDisplay: "Raised",
         unit: "text",
         importance: "high",
         weight: 20,
         whyItMatters: "رفع Guidance يؤكد أن الطلب مستمر بعد الربع الحالي.",
         actualValue: "Raised",
+        actualDisplay: "Raised",
         actualRaw: "Management raised next-quarter revenue guidance.",
+        direction: "up",
+        impact: "positive",
         status: "PASSED",
         evaluationNote: "الإدارة رفعت التوجيهات."
       },
@@ -510,9 +557,35 @@ export const DEMO_EXTERNAL_ANALYSIS = {
         weight: 20,
         whyItMatters: "HBM هو أهم محرك للتوسع في المضاعف.",
         actualValue: "Strong growth",
+        actualDisplay: "Strong growth",
         actualRaw: "HBM revenue grew strongly sequentially.",
+        direction: "up",
+        impact: "positive",
         status: "PASSED",
         evaluationNote: "النمو التسلسلي بقي قويًا."
+      },
+      {
+        id: "share_count_01",
+        name: "Dilution",
+        arabicName: "زيادة عدد الأسهم",
+        metric: "Share Count",
+        type: "maximum",
+        previousValue: 75,
+        previousDisplay: "75M",
+        currentLevel: "75M",
+        requiredValue: 74,
+        requiredDisplay: "<= 74M",
+        unit: "shares",
+        importance: "medium",
+        weight: 10,
+        whyItMatters: "ارتفاع عدد الأسهم يخفف ملكية المساهمين ويضغط القيمة لكل سهم.",
+        actualValue: 80,
+        actualDisplay: "80M",
+        actualRaw: "Diluted shares rose to 80M.",
+        direction: "up",
+        impact: "negative",
+        status: "FAILED",
+        evaluationNote: "عدد الأسهم ارتفع؛ السهم الاتجاهي للأعلى، لكن الأثر الاستثماري سلبي."
       },
       {
         id: "fcf_01",
@@ -528,6 +601,8 @@ export const DEMO_EXTERNAL_ANALYSIS = {
         whyItMatters: "التقييم الأعلى يحتاج نموًا لا يستهلك كل النقد.",
         actualValue: null,
         actualRaw: null,
+        direction: "unknown",
+        impact: "unknown",
         status: "NOT_REPORTED",
         evaluationNote: null
       }

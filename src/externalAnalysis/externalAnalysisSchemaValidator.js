@@ -80,7 +80,7 @@ function validateOptionalPositiveFairValues(report, errors) {
 }
 
 function validateArrays(report, errors) {
-  const arrayPaths = ["risks", "catalysts", "watchItems", "sources", "quality.strengths", "quality.weaknesses", "earningsQuality.oneOffItems", "guidance", "companySpecificKpis", "companyProfile.activities", "companyProfile.mainGrowthDrivers", "priceTargetRequirements.requirements", "recommendation.whatWouldUpgrade", "recommendation.whatWouldDowngrade"];
+  const arrayPaths = ["risks", "catalysts", "watchItems", "sources", "quality.strengths", "quality.weaknesses", "earningsQuality.oneOffItems", "guidance", "nextQuarterGuidance.items", "companySpecificKpis", "companyProfile.activities", "companyProfile.mainGrowthDrivers", "priceTargetRequirements.requirements", "recommendation.whatWouldUpgrade", "recommendation.whatWouldDowngrade"];
   for (const path of arrayPaths) {
     const value = getByPath(report, path);
     if (value !== undefined && value !== null && !Array.isArray(value)) {
@@ -113,9 +113,18 @@ function validateCompanySpecificKpis(report, errors) {
 function validatePriceTargetRequirements(report, errors) {
   const requirements = report.priceTargetRequirements?.requirements || [];
   const statuses = new Set(["NOT_REPORTED", "PASSED", "PARTIALLY_PASSED", "FAILED", "EXCEEDED"]);
+  const directions = new Set(["up", "down", "flat", "unknown"]);
+  const impacts = new Set(["positive", "negative", "mixed", "neutral", "unknown"]);
   for (const [index, item] of requirements.entries()) {
     if (!statuses.has(item.status)) errors.push(fieldError(`priceTargetRequirements.requirements.${index}.status`, "Requirement status is not supported."));
     if (!Number.isFinite(item.weight) || item.weight < 0) errors.push(fieldError(`priceTargetRequirements.requirements.${index}.weight`, "Requirement weight must be zero or greater."));
+    if (item.direction && !directions.has(item.direction)) errors.push(fieldError(`priceTargetRequirements.requirements.${index}.direction`, "Requirement direction is not supported."));
+    if (item.impact && !impacts.has(item.impact)) errors.push(fieldError(`priceTargetRequirements.requirements.${index}.impact`, "Requirement impact is not supported."));
+  }
+  for (const [index, item] of (report.previousRequirementsEvaluation?.requirements || []).entries()) {
+    if (!statuses.has(item.status)) errors.push(fieldError(`previousRequirementsEvaluation.requirements.${index}.status`, "Requirement status is not supported."));
+    if (item.direction && !directions.has(item.direction)) errors.push(fieldError(`previousRequirementsEvaluation.requirements.${index}.direction`, "Requirement direction is not supported."));
+    if (item.impact && !impacts.has(item.impact)) errors.push(fieldError(`previousRequirementsEvaluation.requirements.${index}.impact`, "Requirement impact is not supported."));
   }
 }
 

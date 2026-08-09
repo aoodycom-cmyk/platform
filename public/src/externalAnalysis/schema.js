@@ -5,6 +5,7 @@ import {
   normalizeExternalRecommendation,
   normalizeExternalScenarios,
   normalizeGuidance,
+  normalizeNextQuarterGuidance,
   normalizePriceTargetRequirements,
   normalizePreviousRequirementsEvaluation,
   normalizeRequirementsAssessment
@@ -126,6 +127,10 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
       whatWouldDowngrade: []
     },
     guidance: [],
+    nextQuarterGuidance: {
+      quarter: null,
+      items: []
+    },
     companySpecificKpis: [],
     priceTargetRequirements: {
       requirementSetId: null,
@@ -135,9 +140,13 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
       evaluatedAt: null,
       currentJustifiedValue: null,
       targetValue: null,
+      nextTargetValue: null,
       targetScenario: null,
       targetDescription: null,
+      summary: null,
       createdAt: null,
+      previousQuarter: null,
+      targetQuarter: null,
       earningsPeriod: null,
       requirements: []
     },
@@ -150,7 +159,10 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
       targetValue: null,
       targetScenario: null,
       targetDescription: null,
+      summary: null,
       matchType: null,
+      previousQuarter: null,
+      targetQuarter: null,
       requirements: [],
       requirementsAssessment: null
     },
@@ -209,7 +221,7 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
   const marketInput = input.market || {};
   const scoresInput = input.scores || {};
   const fairValueInput = input.fairValue || input.fairValues || {};
-  const priceTargetRequirements = normalizePriceTargetRequirements(input.priceTargetRequirements);
+  const priceTargetRequirements = normalizePriceTargetRequirements(input.priceTargetRequirements ?? input.priceTargetMonitoring);
   const requirementsAssessment = normalizeRequirementsAssessment(input.requirementsAssessment || {});
   const recommendation = normalizeExternalRecommendation(input.recommendation, input.decision?.verdict ?? input.verdict ?? input.recommendation, input.decision?.rationale ?? input.rationale);
   const recommendationVerdict = recommendation.action || (typeof input.recommendation === "string" ? input.recommendation : null);
@@ -284,6 +296,7 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
     },
     recommendation,
     guidance: normalizeGuidance(input.guidance),
+    nextQuarterGuidance: normalizeNextQuarterGuidance(input.nextQuarterGuidance),
     companySpecificKpis: normalizeCompanySpecificKpis(input.companySpecificKpis),
     priceTargetRequirements,
     previousRequirementsEvaluation: normalizePreviousRequirementsEvaluation(input.previousRequirementsEvaluation),

@@ -199,6 +199,20 @@ export function buildFairValueAnalysisJsonObject(options = {}) {
         importance: "medium"
       }
     ],
+    nextQuarterGuidance: {
+      quarter: null,
+      items: [
+        {
+          topic: null,
+          arabicTopic: null,
+          guidance: null,
+          previousGuidance: null,
+          direction: "not_applicable",
+          interpretation: null,
+          importance: "medium"
+        }
+      ]
+    },
     companySpecificKpis: [
       {
         name: null,
@@ -214,9 +228,13 @@ export function buildFairValueAnalysisJsonObject(options = {}) {
     priceTargetRequirements: {
       currentJustifiedValue: null,
       targetValue: null,
+      nextTargetValue: null,
       targetScenario: null,
       targetDescription: null,
+      summary: null,
       createdAt: null,
+      previousQuarter: null,
+      targetQuarter: null,
       earningsPeriod: null,
       requirements: [
         {
@@ -225,14 +243,20 @@ export function buildFairValueAnalysisJsonObject(options = {}) {
           arabicName: null,
           metric: null,
           type: "minimum",
+          previousValue: null,
+          previousDisplay: null,
           currentLevel: null,
           requiredValue: null,
+          requiredDisplay: null,
           unit: null,
           importance: "medium",
           weight: null,
           whyItMatters: null,
           actualValue: null,
+          actualDisplay: null,
           actualRaw: null,
+          direction: "unknown",
+          impact: "unknown",
           status: "NOT_REPORTED",
           evaluationNote: null
         }
@@ -247,7 +271,10 @@ export function buildFairValueAnalysisJsonObject(options = {}) {
       targetValue: null,
       targetScenario: null,
       targetDescription: null,
+      summary: null,
       matchType: null,
+      previousQuarter: null,
+      targetQuarter: null,
       requirements: [
         {
           id: null,
@@ -255,14 +282,20 @@ export function buildFairValueAnalysisJsonObject(options = {}) {
           arabicName: null,
           metric: null,
           type: "minimum",
+          previousValue: null,
+          previousDisplay: null,
           currentLevel: null,
           requiredValue: null,
+          requiredDisplay: null,
           unit: null,
           importance: "medium",
           weight: null,
           whyItMatters: null,
           actualValue: null,
+          actualDisplay: null,
           actualRaw: null,
+          direction: "unknown",
+          impact: "unknown",
           status: "NOT_REPORTED",
           evaluationNote: null
         }
@@ -447,8 +480,9 @@ export function fairValueAnalysisToExternalReport(input = {}) {
       whatWouldDowngrade: Array.isArray(recommendation.whatWouldDowngrade) ? recommendation.whatWouldDowngrade : []
     },
     guidance: Array.isArray(input.guidance) ? input.guidance : [],
+    nextQuarterGuidance: input.nextQuarterGuidance || null,
     companySpecificKpis: Array.isArray(input.companySpecificKpis) ? input.companySpecificKpis : [],
-    priceTargetRequirements: input.priceTargetRequirements || {},
+    priceTargetRequirements: input.priceTargetRequirements || input.priceTargetMonitoring || {},
     previousRequirementsEvaluation: input.previousRequirementsEvaluation || {},
     requirementsAssessment: input.requirementsAssessment || {},
     scenarios: {

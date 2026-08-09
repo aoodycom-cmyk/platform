@@ -1542,6 +1542,7 @@ function externalAnalysisReportView(state) {
           ${hasPreviousEvaluation
             ? reportSection(uiLabel("Latest Earnings Execution"), previousRequirementExecutionView(report.previousRequirementsEvaluation))
             : reportSection(uiLabel("Latest Earnings Execution"), requirementsAssessmentView(report.requirementsAssessment, report.priceTargetRequirements))}
+          ${reportSection(uiLabel("Next Quarter Guidance"), nextQuarterGuidanceView(report.nextQuarterGuidance))}
         `, uiLabel("Section 3"))}
         ${reportGroup(uiLabel("Forward View"), `
           ${reportSection(uiLabel("Guidance Next"), guidanceView(report.guidance))}
@@ -2098,6 +2099,32 @@ function guidanceView(guidance = []) {
   `;
 }
 
+function nextQuarterGuidanceView(guidance = {}) {
+  const items = Array.isArray(guidance?.items) ? guidance.items : [];
+  if (!items.length) return "";
+  return `
+    <div class="next-quarter-guidance-block">
+      <div class="requirements-cycle-copy">
+        <strong>${uiLabel("Next Quarter Guidance")} — ${escapeHtml(guidance.quarter || uiLabel("Next Quarter"))}</strong>
+      </div>
+      <div class="guidance-grid next-quarter-guidance-grid">
+        ${items.map((item) => `
+          <article class="guidance-card ${guidanceDirectionClass(item.direction)}">
+            <div>
+              <span>${escapeHtml(item.arabicTopic || item.topic || uiLabel("Guidance"))}</span>
+              <em>${escapeHtml(guidanceDirectionLabel(item.direction))}</em>
+            </div>
+            <strong>${escapeHtml(formatAnyValue(item.guidance))}</strong>
+            ${item.previousGuidance ? `<small>${uiLabel("Previous Guidance")}: ${escapeHtml(formatAnyValue(item.previousGuidance))}</small>` : ""}
+            ${item.interpretation ? `<p>${escapeHtml(localizedExternalText(item.interpretation))}</p>` : ""}
+            <b>${escapeHtml(importanceLabel(item.importance))}</b>
+          </article>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
 function companyKpisView(kpis = []) {
   if (!Array.isArray(kpis) || !kpis.length) return "";
   return `
@@ -2120,6 +2147,9 @@ function companyKpisView(kpis = []) {
 function priceTargetRequirementsView(requirementsBlock = {}) {
   const requirements = requirementsBlock?.requirements || [];
   if (!Array.isArray(requirements) || !requirements.length) return "";
+  const targetValue = requirementsBlock.targetValue ?? requirementsBlock.nextTargetValue;
+  const previousQuarter = requirementsBlock.previousQuarter || uiLabel("Previous Quarter");
+  const targetQuarter = requirementsBlock.targetQuarter || requirementsBlock.earningsPeriod || uiLabel("Target Quarter");
   return `
     <div class="price-requirements-block">
       <div class="next-target-bridge">
@@ -2130,7 +2160,7 @@ function priceTargetRequirementsView(requirementsBlock = {}) {
         <b aria-hidden="true">→</b>
         <article class="target">
           <span>${uiLabel("Next Target")}</span>
-          <strong>${money(requirementsBlock.targetValue, 0)}</strong>
+          <strong>${money(targetValue, 0)}</strong>
         </article>
         <article>
           <span>${uiLabel("Target Scenario")}</span>
@@ -2141,10 +2171,16 @@ function priceTargetRequirementsView(requirementsBlock = {}) {
           <strong>${escapeHtml(requirementsBlock.earningsPeriod || "-")}</strong>
         </article>
       </div>
-      ${requirementsBlock.targetDescription ? `<p>${escapeHtml(localizedExternalText(requirementsBlock.targetDescription))}</p>` : ""}
-      <div class="requirement-card-list pending-requirements">
-        ${requirements.map((item) => pendingRequirementCard(item, requirementsBlock.earningsPeriod)).join("")}
+      <div class="requirements-cycle-copy">
+        <strong>${uiLabel("What must the company deliver to justify")} ${money(targetValue, 0)}?</strong>
+        ${requirementsBlock.summary || requirementsBlock.targetDescription ? `<p>${escapeHtml(localizedExternalText(requirementsBlock.summary || requirementsBlock.targetDescription))}</p>` : ""}
       </div>
+      ${requirementsComparisonView(requirements, {
+        previousQuarter,
+        targetQuarter,
+        targetValue,
+        pending: true
+      })}
     </div>
   `;
 }
@@ -2194,17 +2230,22 @@ function previousRequirementExecutionView(evaluation = {}) {
   const requirements = evaluation.requirements || [];
   if (!requirements.length) return "";
   const assessment = evaluation.requirementsAssessment || {};
+  const previousQuarter = evaluation.previousQuarter || uiLabel("Previous Quarter");
+  const targetQuarter = evaluation.targetQuarter || evaluation.earningsPeriod || uiLabel("Target Quarter");
   return `
     <div class="previous-execution-block">
       <div class="requirements-summary">
         ${compactCardMetric(uiLabel("Target being tested"), `${money(evaluation.targetValue, 0)} ${localizedExternalText(evaluation.targetScenario || "")}`)}
         ${compactCardMetric(uiLabel("Requirement achievement"), Number.isFinite(numericValue(assessment.weightedAchievement)) ? `${Math.round(numericValue(assessment.weightedAchievement))}%` : "—")}
         ${compactCardMetric(uiLabel("Reported Requirements"), assessmentCountText(assessment.reportedRequirements, assessment.totalRequirements))}
-        ${compactCardMetric(uiLabel("Earnings Period"), evaluation.earningsPeriod || "-")}
+        ${compactCardMetric(uiLabel("Earnings Period"), targetQuarter || "-")}
       </div>
-      <div class="requirement-card-list evaluated-requirements">
-        ${requirements.map((item) => evaluatedRequirementCard(item, evaluation.earningsPeriod)).join("")}
-      </div>
+      ${requirementsComparisonView(requirements, {
+        previousQuarter,
+        targetQuarter,
+        targetValue: evaluation.targetValue,
+        pending: false
+      })}
       ${assessment.overallStatus ? `<p><b>${uiLabel("Overall")}:</b> ${escapeHtml(requirementsStatusLabel(assessment.overallStatus))}</p>` : ""}
       ${assessment.summary ? `<p>${escapeHtml(localizedExternalText(assessment.summary))}</p>` : ""}
     </div>
@@ -2244,64 +2285,143 @@ function requirementLifecycleTimeline(requirementSets = [], reports = []) {
   `;
 }
 
-function requirementRow(item = {}) {
+function requirementsComparisonView(requirements = [], options = {}) {
+  if (!Array.isArray(requirements) || !requirements.length) return "";
+  const previousHeader = `${uiLabel("Figures")} ${options.previousQuarter || uiLabel("Previous Quarter")}`;
+  const targetHeader = `${uiLabel("Required To Justify")} ${money(options.targetValue, 0)}`;
+  const actualHeader = `${uiLabel("Figures")} ${options.targetQuarter || uiLabel("Target Quarter")}`;
+  return `
+    <div class="requirements-comparison">
+      <div class="requirements-table-wrap requirements-comparison-desktop">
+        <table class="requirements-table">
+          <thead>
+            <tr>
+              <th>${uiLabel("Weight")}</th>
+              <th>${uiLabel("What We Monitor")}</th>
+              <th>${escapeHtml(previousHeader)}</th>
+              <th>${escapeHtml(targetHeader)}</th>
+              <th>${escapeHtml(actualHeader)}</th>
+              <th>${uiLabel("Status")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${requirements.map((item) => requirementComparisonRow(item, options)).join("")}
+          </tbody>
+        </table>
+      </div>
+      <div class="requirements-comparison-mobile">
+        ${requirements.map((item) => requirementComparisonMobileRow(item, {
+          ...options,
+          previousHeader,
+          targetHeader,
+          actualHeader
+        })).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function requirementComparisonRow(item = {}, options = {}) {
   return `
     <tr>
-      <td>
-        <strong>${escapeHtml(item.arabicName || item.name || item.metric || "-")}</strong>
-        ${item.whyItMatters ? `<small>${escapeHtml(localizedExternalText(item.whyItMatters))}</small>` : ""}
-      </td>
-      <td dir="ltr">${escapeHtml(formatRequirementValue(item.requiredValue, item.unit))}</td>
-      <td dir="ltr">${escapeHtml(formatRequirementValue(item.actualValue ?? item.actualRaw, item.unit))}</td>
+      <td dir="ltr">${requirementWeightText(item.weight)}</td>
+      <td>${requirementMetricCell(item)}</td>
+      <td dir="ltr">${escapeHtml(requirementPreviousText(item))}</td>
+      <td dir="ltr">${escapeHtml(requirementRequiredText(item))}</td>
+      <td dir="ltr">${requirementActualCell(item, options.pending)}</td>
       <td>${requirementStatusBadge(item.status)}</td>
-      <td dir="ltr">${Number.isFinite(numericValue(item.weight)) ? `${numericValue(item.weight)}%` : "—"}</td>
     </tr>
-    ${item.evaluationNote ? `<tr class="requirement-note-row"><td colspan="5">${escapeHtml(localizedExternalText(item.evaluationNote))}</td></tr>` : ""}
+    ${item.evaluationNote ? `<tr class="requirement-note-row"><td colspan="6">${escapeHtml(localizedExternalText(item.evaluationNote))}</td></tr>` : ""}
   `;
 }
 
-function pendingRequirementCard(item = {}, targetQuarter = "") {
+function requirementComparisonMobileRow(item = {}, options = {}) {
   return `
-    <article class="requirement-readable-card">
+    <article class="requirement-comparison-row">
       <header>
-        <span>${uiLabel("Metric")}</span>
-        <strong>${escapeHtml(requirementName(item))}</strong>
-      </header>
-      <div class="requirement-readable-grid">
-        ${readableMetric(uiLabel("Current"), formatRequirementValue(item.currentLevel, item.unit))}
-        ${readableMetric(uiLabel("Required"), formatRequirementThreshold(item))}
-        ${readableMetric(uiLabel("Target Quarter"), targetQuarter || item.earningsPeriod || "—")}
-        ${Number.isFinite(numericValue(item.weight)) ? readableMetric(uiLabel("Weight"), `${numericValue(item.weight)}%`) : ""}
-      </div>
-      ${item.whyItMatters ? `<p>${escapeHtml(localizedExternalText(item.whyItMatters))}</p>` : ""}
-    </article>
-  `;
-}
-
-function evaluatedRequirementCard(item = {}, targetQuarter = "") {
-  return `
-    <article class="requirement-readable-card evaluated ${requirementStatusClass(String(item.status || "NOT_REPORTED").toUpperCase())}">
-      <header>
-        <span>${uiLabel("Metric")}</span>
-        <strong>${escapeHtml(requirementName(item))}</strong>
+        <div>
+          <span>${uiLabel("Metric")}</span>
+          ${requirementMetricCell(item)}
+        </div>
+        <strong dir="ltr">${requirementWeightText(item.weight)}</strong>
         ${requirementStatusBadge(item.status)}
       </header>
-      <div class="requirement-readable-grid">
-        ${readableMetric(uiLabel("Previous"), formatRequirementValue(item.currentLevel, item.unit))}
-        ${readableMetric(uiLabel("Required"), formatRequirementThreshold(item))}
-        ${readableMetric(uiLabel("Actual"), formatRequirementValue(item.actualValue ?? item.actualRaw, item.unit))}
-        ${targetQuarter || item.earningsPeriod ? readableMetric(uiLabel("Target Quarter"), targetQuarter || item.earningsPeriod) : ""}
+      <div class="requirement-comparison-grid">
+        ${comparisonCell(options.previousHeader || uiLabel("Previous"), requirementPreviousText(item), "ltr")}
+        ${comparisonCell(options.targetHeader || uiLabel("Required"), requirementRequiredText(item), "ltr")}
+        ${comparisonCell(options.actualHeader || uiLabel("Actual"), requirementActualCell(item, options.pending), "ltr", true)}
       </div>
-      ${item.evaluationNote ? `<p>${escapeHtml(localizedExternalText(item.evaluationNote))}</p>` : ""}
+      ${item.whyItMatters ? `<p>${escapeHtml(localizedExternalText(item.whyItMatters))}</p>` : ""}
+      ${item.evaluationNote ? `<p class="requirement-evaluation-note">${escapeHtml(localizedExternalText(item.evaluationNote))}</p>` : ""}
     </article>
   `;
 }
 
-function requirementName(item = {}) {
+function comparisonCell(label, value, direction = "auto", valueIsHtml = false) {
+  return `
+    <div class="comparison-cell">
+      <span>${escapeHtml(label)}</span>
+      <strong dir="${escapeHtml(direction)}">${valueIsHtml ? value : escapeHtml(String(value))}</strong>
+    </div>
+  `;
+}
+
+function requirementMetricCell(item = {}) {
   const english = item.name || item.metric || "";
   const arabic = item.arabicName || "";
-  if (arabic && english && arabic !== english) return `${english} / ${arabic}`;
-  return arabic || english || "-";
+  const primary = arabic || english || "-";
+  const secondary = arabic && english && arabic !== english ? english : "";
+  return `
+    <div class="requirement-metric-name">
+      <strong>${escapeHtml(primary)}</strong>
+      ${secondary ? `<small dir="ltr">${escapeHtml(secondary)}</small>` : ""}
+      ${item.whyItMatters ? `<small>${escapeHtml(localizedExternalText(item.whyItMatters))}</small>` : ""}
+    </div>
+  `;
+}
+
+function requirementWeightText(value) {
+  return Number.isFinite(numericValue(value)) ? `${numericValue(value)}%` : "—";
+}
+
+function requirementPreviousText(item = {}) {
+  return item.previousDisplay || formatRequirementValue(item.previousValue ?? item.currentLevel, item.unit);
+}
+
+function requirementRequiredText(item = {}) {
+  return item.requiredDisplay || formatRequirementThreshold(item);
+}
+
+function requirementActualText(item = {}) {
+  if (item.actualDisplay) return item.actualDisplay;
+  if (item.actualValue !== null && item.actualValue !== undefined && item.actualValue !== "") {
+    return formatRequirementValue(item.actualValue, item.unit);
+  }
+  return "";
+}
+
+function requirementActualCell(item = {}, pending = false) {
+  const actual = requirementActualText(item);
+  if (!actual) {
+    const waiting = pending || String(item.status || "NOT_REPORTED").toUpperCase() === "NOT_REPORTED";
+    return `<span class="requirement-actual missing">${waiting ? uiLabel("Waiting for announcement") : "—"}</span>`;
+  }
+  const impact = requirementImpactClass(item.impact);
+  return `<span class="requirement-actual ${impact}">${escapeHtml(actual)}</span>${directionIndicator(item.direction)}`;
+}
+
+function directionIndicator(direction) {
+  const clean = String(direction || "unknown").toLowerCase();
+  if (clean === "up") return `<span class="direction-arrow direction-up" aria-label="${uiLabel("Direction Up")}">▲</span>`;
+  if (clean === "down") return `<span class="direction-arrow direction-down" aria-label="${uiLabel("Direction Down")}">▼</span>`;
+  if (clean === "flat") return `<span class="direction-arrow direction-flat" aria-label="${uiLabel("Direction Flat")}">—</span>`;
+  return "";
+}
+
+function requirementImpactClass(impact) {
+  const clean = String(impact || "unknown").toLowerCase();
+  if (["positive", "negative", "mixed", "neutral"].includes(clean)) return `impact-${clean}`;
+  return "impact-unknown";
 }
 
 function formatRequirementThreshold(item = {}) {
