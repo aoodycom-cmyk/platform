@@ -13,7 +13,7 @@ import { parseExternalAnalysisBlock, parseExternalAnalysisSupplementBlock, parse
 import { parseExternalAnalysisInput } from "../externalAnalysis/parser.js";
 import { normalizeExternalAnalysisReport, updateExternalAnalysisField } from "../externalAnalysis/schema.js";
 import { validateExternalAnalysisReport } from "../externalAnalysis/externalAnalysisSchemaValidator.js";
-import { attachCompletionStatus, buildMissingRequirementsPrompt } from "../externalAnalysis/missingFields.js";
+import { analyzeExternalAnalysisCompletion, attachCompletionStatus, buildMissingRequirementsPrompt } from "../externalAnalysis/missingFields.js";
 import { buildExternalAnalysisJsonTemplate, buildFullAnalysisPrompt, buildNewEarningsAnalysisPrompt } from "../externalAnalysis/chatgptContract.js";
 import {
   createInvestmentDataBackup,
@@ -479,7 +479,9 @@ export function createStore() {
   function currentMissingRequirementsPrompt() {
     const report = state.externalImport?.draftReport || selectedExternalReportFromState();
     if (!report) return { text: "", count: 0, fields: [] };
-    return buildMissingRequirementsPrompt(report, report.completionStatus);
+    const validation = validateExternalAnalysisReport(report);
+    const completion = analyzeExternalAnalysisCompletion(report, validation);
+    return buildMissingRequirementsPrompt(report, completion);
   }
 
   function currentFullAnalysisPrompt(tickerHint = "") {
@@ -541,9 +543,10 @@ export function createStore() {
       notice: state.language === "ar" ? "جاري قراءة البيانات المكملة فقط..." : "Parsing supplementary fields only..."
     });
     try {
+      const currentCompletion = analyzeExternalAnalysisCompletion(existingReport, validateExternalAnalysisReport(existingReport));
       const missingFields = [
-        ...(existingReport.completionStatus?.details?.criticalRequired || []),
-        ...(existingReport.completionStatus?.details?.recommended || [])
+        ...(currentCompletion.details?.criticalRequired || []),
+        ...(currentCompletion.details?.recommended || [])
       ];
       const parsed = await parseExternalAnalysisSupplement(rawText, {
         existingReport,
@@ -579,7 +582,7 @@ export function createStore() {
           }
         },
         notice: supplementValidation.valid
-          ? (state.language === "ar" ? "تم تجهيز Preview للحقول المكملة." : "Supplement preview is ready.")
+          ? (mergePreview?.summary?.[state.language === "ar" ? "messageAr" : "messageEn"] || (state.language === "ar" ? "تم تجهيز Preview للحقول المكملة." : "Supplement preview is ready."))
           : (state.language === "ar" ? "الرد التكميلي غير صالح." : "Supplement is not valid.")
       });
     } catch (error) {

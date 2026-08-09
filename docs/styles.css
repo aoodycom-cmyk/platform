@@ -856,6 +856,16 @@ select {
   white-space: nowrap;
 }
 
+.supplement-preview-message {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(94, 136, 184, 0.08);
+  color: var(--ink);
+  line-height: 1.7;
+}
+
 @media (max-width: 700px) {
   .valuation-method-card-grid,
   .requirement-card-list {

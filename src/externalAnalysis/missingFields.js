@@ -1,4 +1,7 @@
 import { validateExternalAnalysisReport } from "./externalAnalysisSchemaValidator.js";
+import { diagnosticRowsForPaths, getByPath, isMissing, valuePresent } from "./fieldPaths.js";
+
+export { isMissing, valuePresent } from "./fieldPaths.js";
 
 export const FIELD_PRIORITY = {
   CRITICAL: "critical",
@@ -93,7 +96,20 @@ export function buildMissingRequirementsPrompt(report = {}, completionStatus = a
     ...(details.criticalRequired || []),
     ...(options.includeRecommended === false ? [] : (details.recommended || []))
   ];
-  const targetFields = fields.length ? fields : [...(details.optional || [])];
+  const candidateFields = fields;
+  const targetFields = candidateFields.filter((item) => !requirementSatisfied(report, item));
+  if (options.debug) {
+    console.table(diagnosticRowsForPaths(report, candidateFields));
+  }
+  if (!targetFields.length) {
+    return {
+      text: "",
+      count: 0,
+      fields: [],
+      reason: "no_missing_fields",
+      message: "لا توجد بيانات ناقصة في هذه المجموعة."
+    };
+  }
   const knownTicker = valuePresent(report.company?.ticker, "company.ticker") ? report.company.ticker : null;
   const ticker = knownTicker || null;
   const companyName = report.company?.name || knownTicker || "الشركة محل التقرير";
@@ -168,30 +184,11 @@ export function missingByPriority(report, priority) {
 
 export function requirementSatisfied(report, item) {
   const paths = [item.path, ...(item.alternatives || [])];
-  return paths.some((path) => valuePresent(getPath(report, path), path));
+  return paths.some((path) => !isMissing(getByPath(report, path), path));
 }
 
 export function getPath(object, path) {
-  return String(path || "").split(".").filter(Boolean).reduce((cursor, key) => cursor?.[key], object);
-}
-
-export function valuePresent(value, path = "") {
-  if (value === null || value === undefined || value === "") return false;
-  if (typeof value === "number") return Number.isFinite(value);
-  if (typeof value === "string") {
-    const clean = value.trim();
-    if (!clean) return false;
-    if (path === "company.ticker") return !["TICKER", "SYMBOL"].includes(clean.toUpperCase());
-    return true;
-  }
-  if (Array.isArray(value)) {
-    if (path === "risks") return value.some((item) => item && (hasText(item.title) || hasText(item.explanation) || hasText(item)));
-    return value.length > 0;
-  }
-  if (typeof value === "object") {
-    return Object.values(value).some((item) => valuePresent(item));
-  }
-  return true;
+  return getByPath(object, path);
 }
 
 function requirement(path, labelAr, labelEn, priority, expectedType, reasonAr, alternatives = []) {
@@ -227,8 +224,4 @@ function displayCurrentValue(value) {
   if (Array.isArray(value)) return value.length ? `${value.length} item(s)` : null;
   if (typeof value === "object") return valuePresent(value) ? "Object" : null;
   return String(value);
-}
-
-function hasText(value) {
-  return typeof value === "string" && value.trim().length > 0;
 }

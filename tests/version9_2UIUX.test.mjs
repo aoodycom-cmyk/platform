@@ -14,6 +14,7 @@ const styles = readFileSync(new URL("../public/styles.css", import.meta.url), "u
 const language = readFileSync(new URL("../public/src/i18n/language.js", import.meta.url), "utf8");
 const storeSource = readFileSync(new URL("../public/src/state/store.js", import.meta.url), "utf8");
 const chatgptContract = readFileSync(new URL("../public/src/externalAnalysis/chatgptContract.js", import.meta.url), "utf8");
+const supplementMergeSource = readFileSync(new URL("../public/src/externalAnalysis/supplementMerge.js", import.meta.url), "utf8");
 
 const homeStart = components.indexOf("function homeDashboard");
 const homeEnd = components.indexOf("function languageToggle", homeStart);
@@ -45,7 +46,8 @@ assert.ok(components.includes("copy-missing-requirements"), "Missing data card m
 assert.ok(components.includes("parse-external-supplement"), "Supplement paste flow must be wired.");
 assert.ok(components.includes("function supplementPreviewPanel"), "Supplement preview must exist before safe merge.");
 assert.ok(components.includes("function conflictRow"), "Conflict Review UI must exist.");
-assert.ok(components.includes("الرد لا يحتوي على أي قيمة جديدة قابلة للدمج"), "All-null supplement error must be shown in Arabic.");
+assert.ok(components.includes("لم يُرجع ChatGPT أي قيم غير فارغة للحقول المطلوبة"), "All-null supplement error must be shown in Arabic.");
+assert.ok(supplementMergeSource.includes("موجودة مسبقًا"), "Already-present supplement result must be separated from all-null errors.");
 assert.ok(components.includes("لا تستخدم TICKER أو SYMBOL"), "Placeholder ticker supplement error must be shown in Arabic.");
 assert.ok(components.includes("function externalHistoryPanel"), "History page must exist for prior saved analyses.");
 assert.ok(components.includes("function externalAnalysisReportView"), "Company Report page must exist.");

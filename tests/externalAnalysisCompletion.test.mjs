@@ -7,11 +7,43 @@ import { parseExternalAnalysisSupplement } from "../src/externalAnalysis/supplem
 import { validateExternalAnalysisSupplement } from "../src/externalAnalysis/supplementValidator.js";
 import { mergeExternalAnalysisSupplement } from "../src/externalAnalysis/supplementMerge.js";
 import { copyableExternalAnalysisJson, externalAnalysisToHomeCard } from "../src/externalAnalysis/reportAdapter.js";
+import { getByPath, isMissing, setByPath } from "../src/externalAnalysis/fieldPaths.js";
 
 const now = new Date("2026-07-31T10:00:00.000Z");
 
+assert.equal(isMissing(getByPath({ earningsQuality: { status: "جيدة" } }, "earningsQuality.status"), "earningsQuality.status"), false, "Existing nested text must not be missing.");
+assert.equal(isMissing(getByPath({ risks: ["مخاطرة"] }, "risks"), "risks"), false, "Existing array must not be missing.");
+assert.equal(isMissing(getByPath({ financialHighlights: { revenue: 100 } }, "financialHighlights"), "financialHighlights"), false, "Existing object with data must not be missing.");
+assert.equal(isMissing(getByPath({ earningsQuality: { status: null } }, "earningsQuality.status"), "earningsQuality.status"), true, "Null nested value must be missing.");
+assert.equal(isMissing(getByPath({ risks: [] }, "risks"), "risks"), true, "Empty array must be missing.");
+assert.equal(isMissing(getByPath({ financialHighlights: {} }, "financialHighlights"), "financialHighlights"), true, "Empty object must be missing.");
+assert.equal(isMissing(getByPath({ earningsQuality: { status: "" } }, "earningsQuality.status"), "earningsQuality.status"), true, "Empty string must be missing.");
+const nestedWriteTarget = { earningsQuality: { status: null } };
+setByPath(nestedWriteTarget, "earningsQuality.status", "جيدة");
+assert.equal(nestedWriteTarget.earningsQuality.status, "جيدة", "setByPath must write nested fields.");
+
 function report(input, raw = "ORIGINAL RAW") {
   return normalizeExternalAnalysisReport(input, raw, { now });
+}
+
+function completeReport() {
+  return report({
+    analysisDate: "2026-07-31",
+    reportPeriod: "Q2 2026",
+    company: { ticker: "DONE", name: "Complete Co" },
+    market: { priceAtAnalysis: 100 },
+    scores: { quality: 8, growth: 8, valuation: 7, risk: 4, overall: 8 },
+    fairValue: { bear: 80, base: 120, bull: 150 },
+    valuationMethods: { dcf: { fairValue: 120 } },
+    earningsQuality: { status: "جيدة" },
+    catalysts: ["Catalyst"],
+    watchItems: ["Revenue"],
+    financialHighlights: { revenue: 100 },
+    sources: [{ title: "Investor Relations", sourceType: "official" }],
+    thesis: { shortSummary: "Complete report." },
+    risks: [{ title: "Risk" }],
+    decision: { verdict: "HOLD", rationale: "Fairly valued." }
+  });
 }
 
 const incomplete = report({
@@ -43,6 +75,12 @@ assert.ok(prompt.text.includes("fairValue.base"));
 assert.ok(prompt.text.includes("decision.verdict"));
 assert.ok(prompt.text.includes('"schemaVersion": "external-analysis-supplement/v1"'));
 assert.equal(prompt.text.includes("company.sector"), false, "Optional fields must not be included in the default missing prompt.");
+
+const fullyComplete = completeReport();
+const noMissingPrompt = buildMissingRequirementsPrompt(fullyComplete, analyzeExternalAnalysisCompletion(fullyComplete, validateExternalAnalysisReport(fullyComplete), { now }));
+assert.equal(noMissingPrompt.count, 0);
+assert.equal(noMissingPrompt.reason, "no_missing_fields");
+assert.equal(noMissingPrompt.text, "");
 
 const noTickerReport = report({
   id: null,
@@ -190,6 +228,70 @@ assert.equal(homeCardWithCompletion.completionStatus.completionPct, 100);
 const exportedWithoutStoredCompletion = JSON.parse(copyableExternalAnalysisJson({ ...merged.report, completionStatus: undefined }));
 assert.equal(exportedWithoutStoredCompletion.completionStatus.status, "complete");
 assert.equal(exportedWithoutStoredCompletion.completionStatus.requiredComplete, exportedWithoutStoredCompletion.completionStatus.requiredTotal);
+
+const nestedMissingReport = report({
+  analysisDate: "2026-07-31",
+  company: { ticker: "NEST", name: "Nested Co" },
+  market: { priceAtAnalysis: 50 },
+  scores: { quality: 8, growth: 8, valuation: 8, risk: 4 },
+  fairValue: { bear: 40, base: 60, bull: 80 },
+  thesis: { shortSummary: "Nested missing." },
+  risks: [{ title: "Risk" }],
+  decision: { verdict: "HOLD" },
+  earningsQuality: { status: null },
+  financialHighlights: {}
+});
+assert.ok(analyzeExternalAnalysisCompletion(nestedMissingReport, validateExternalAnalysisReport(nestedMissingReport), { now }).missingRecommendedPaths.includes("earningsQuality.status"));
+assert.ok(analyzeExternalAnalysisCompletion(nestedMissingReport, validateExternalAnalysisReport(nestedMissingReport), { now }).missingRecommendedPaths.includes("financialHighlights"));
+const nestedSupplement = (await parseExternalAnalysisSupplement(JSON.stringify({
+  schemaVersion: "external-analysis-supplement/v1",
+  ticker: "NEST",
+  fields: {
+    "earningsQuality.status": "جيدة",
+    financialHighlights: { revenue: 100 }
+  }
+}), { existingReport: nestedMissingReport, now })).supplement;
+const nestedMerge = mergeExternalAnalysisSupplement(nestedMissingReport, nestedSupplement, { now });
+assert.equal(nestedMerge.report.earningsQuality.status, "جيدة");
+assert.equal(nestedMerge.report.financialHighlights.revenue, 100);
+assert.equal(nestedMerge.summary.status, "merged");
+
+const alreadyPresentSupplement = (await parseExternalAnalysisSupplement(JSON.stringify({
+  schemaVersion: "external-analysis-supplement/v1",
+  ticker: "DONE",
+  fields: {
+    "earningsQuality.status": "جيدة",
+    "decision.rationale": "Fairly valued."
+  }
+}), { existingReport: fullyComplete, now })).supplement;
+const alreadyPresentMerge = mergeExternalAnalysisSupplement(fullyComplete, alreadyPresentSupplement, { now });
+assert.equal(alreadyPresentMerge.appliedFields.length, 0);
+assert.equal(alreadyPresentMerge.conflicts.length, 0);
+assert.equal(alreadyPresentMerge.summary.status, "already_present");
+assert.equal(alreadyPresentMerge.summary.messageAr.includes("موجودة مسبقًا"), true);
+
+const emptySupplement = (await parseExternalAnalysisSupplement(JSON.stringify({
+  schemaVersion: "external-analysis-supplement/v1",
+  ticker: "AMZN",
+  fields: {
+    "fairValue.base": null,
+    "decision.verdict": ""
+  }
+}), { existingReport: incomplete, now })).supplement;
+assert.equal(validateExternalAnalysisSupplement(emptySupplement, incomplete).valid, false);
+const emptyMerge = mergeExternalAnalysisSupplement(incomplete, emptySupplement, { now });
+assert.equal(emptyMerge.summary.status, "all_empty");
+
+const unknownPathSupplement = (await parseExternalAnalysisSupplement(JSON.stringify({
+  schemaVersion: "external-analysis-supplement/v1",
+  ticker: "AMZN",
+  fields: {
+    "unknownRoot.value": "x"
+  }
+}), { existingReport: incomplete, now })).supplement;
+const unknownValidation = validateExternalAnalysisSupplement(unknownPathSupplement, incomplete);
+assert.equal(unknownValidation.valid, false);
+assert.ok(unknownValidation.errors.some((item) => item.message.includes("Unknown supplement field path")));
 
 const conflictingSupplement = (await parseExternalAnalysisSupplement(JSON.stringify({
   schemaVersion: "external-analysis-supplement/v1",

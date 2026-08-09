@@ -1156,8 +1156,10 @@ function supplementaryInputPanel(report, completion, state) {
 }
 
 function supplementPreviewPanel(preview) {
+  const canApply = preview.appliedFields.length || preview.conflicts.length;
   return `
     <section class="supplement-preview">
+      ${preview.summary ? `<p class="supplement-preview-message">${escapeHtml(isArabicUi() ? preview.summary.messageAr : preview.summary.messageEn)}</p>` : ""}
       <div class="missing-data-stats">
         ${missingStat(uiLabel("Applied fields"), preview.appliedFields.length)}
         ${missingStat(uiLabel("Conflicts"), preview.conflicts.length)}
@@ -1165,7 +1167,7 @@ function supplementPreviewPanel(preview) {
       </div>
       ${preview.appliedFields.length ? `<div class="supplement-applied-list">${preview.appliedFields.map((item) => `<p><b dir="ltr">${escapeHtml(item.path)}</b> ${escapeHtml(formatAnyValue(item.newValue))}</p>`).join("")}</div>` : ""}
       ${preview.conflicts.length ? `<div class="conflict-review"><h4>${uiLabel("Conflict Review")}</h4>${preview.conflicts.map(conflictRow).join("")}</div>` : ""}
-      <button class="primary-btn" data-action="apply-external-supplement">${uiLabel("Merge Supplement")}</button>
+      ${canApply ? `<button class="primary-btn" data-action="apply-external-supplement">${uiLabel("Merge Supplement")}</button>` : ""}
     </section>
   `;
 }
@@ -1318,12 +1320,14 @@ function localizedValidationMessage(item = {}) {
     schemaVersion: "صيغة الرد غير صحيحة. يجب أن يكون schemaVersion مطابقًا لمسار الاستكمال.",
     ticker: "رمز السهم في الرد التكميلي غير صحيح أو لا يطابق التقرير الحالي. لا تستخدم TICKER أو SYMBOL.",
     targetAnalysisId: "الرد التكميلي لا يخص هذا التقرير الحالي.",
-    fields: "الرد لا يحتوي على أي قيمة جديدة قابلة للدمج. يبدو أن ChatGPT أعاد القالب فارغًا.",
+    fields: "لم يُرجع ChatGPT أي قيم غير فارغة للحقول المطلوبة.",
     supplement: "تعذر قراءة الرد التكميلي. الصق JSON فقط أو ردًا يحتوي على JSON واضح.",
     source: "المصدر ليس ChatGPT. احتفظ بهذا فقط إذا كان التحليل الملصوق يذكر مصدرًا آخر صراحة.",
     analysisOrigin: "تقارير الاستيراد الخارجي يجب أن تبقى مرتبطة بمسار ChatGPT الخارجي.",
     fairValue: "ترتيب Fair Value يجب أن يكون: Bear <= Base <= Bull."
   };
+  if (field === "fields" && message.includes("Unknown supplement field path")) return "بعض الحقول لا تطابق مسارات معروفة في Schema التحليل.";
+  if (field === "fields" && message.includes("non-empty values")) return "لم يُرجع ChatGPT أي قيم غير فارغة للحقول المطلوبة.";
   if (messages[field]) return messages[field];
   if (message.includes("must be between 0 and 10")) return "القيمة يجب أن تكون بين 0 و10.";
   if (message.includes("must be an array")) return "القيمة يجب أن تكون قائمة عناصر.";
@@ -4840,7 +4844,12 @@ async function copySelectedExternalReport(store) {
 
 async function copyMissingRequirements(store) {
   const result = store.currentMissingRequirementsPrompt?.() || { text: "", count: 0 };
-  if (!result.text) return;
+  if (!result.text) {
+    store.set({
+      notice: result.message || (store.state.language === "ar" ? "لا توجد بيانات ناقصة في هذه المجموعة." : "There are no missing fields in this group.")
+    });
+    return;
+  }
   try {
     if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
     await navigator.clipboard.writeText(result.text);

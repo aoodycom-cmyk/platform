@@ -1,4 +1,4 @@
-import { getPath, valuePresent } from "./missingFields.js";
+import { getByPath, isKnownAnalysisPath, isMissing, valuePresent } from "./fieldPaths.js";
 import { EXTERNAL_ANALYSIS_SUPPLEMENT_SCHEMA_VERSION } from "./supplementSchema.js";
 
 export const PROTECTED_SUPPLEMENT_PATHS = new Set([
@@ -32,14 +32,18 @@ export function validateExternalAnalysisSupplement(supplement = {}, existingRepo
 
   const fields = effectiveSupplementFields(supplement, existingReport);
   for (const [path, value] of Object.entries(fields)) {
-    if (value !== null && value !== undefined && PROTECTED_SUPPLEMENT_PATHS.has(path) && !canUseProtectedField(path, value, existingReport)) {
+    if (!isKnownAnalysisPath(path)) {
+      errors.push(fieldError("fields", `Unknown supplement field path: ${path}.`));
+      continue;
+    }
+    if (!isMissing(value, path) && PROTECTED_SUPPLEMENT_PATHS.has(path) && !canUseProtectedField(path, value, existingReport)) {
       errors.push(fieldError(path, "This protected field cannot be changed by a supplement."));
       continue;
     }
     validateFieldValue(path, value, errors);
   }
   if (!hasUsableField(fields)) {
-    errors.push(fieldError("fields", "Supplement did not include any usable non-null values."));
+    errors.push(fieldError("fields", "Supplement did not include any non-empty values for the requested fields."));
   }
 
   validateCombinedFairValueOrdering(existingReport, fields, errors);
@@ -108,7 +112,7 @@ function validateCombinedFairValueOrdering(existingReport, fields, errors) {
 }
 
 function valueFor(path, report, fields) {
-  return fields[path] !== undefined ? fields[path] : getPath(report, path);
+  return fields[path] !== undefined ? fields[path] : getByPath(report, path);
 }
 
 function isScore(value) {

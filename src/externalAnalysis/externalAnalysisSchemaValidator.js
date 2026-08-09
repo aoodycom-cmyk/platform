@@ -1,3 +1,5 @@
+import { getByPath } from "./fieldPaths.js";
+
 export function validateExternalAnalysisReport(report = {}) {
   const errors = [];
   const warnings = [];
@@ -80,7 +82,7 @@ function validateOptionalPositiveFairValues(report, errors) {
 function validateArrays(report, errors) {
   const arrayPaths = ["risks", "catalysts", "watchItems", "sources", "quality.strengths", "quality.weaknesses", "earningsQuality.oneOffItems", "guidance", "companySpecificKpis", "companyProfile.activities", "companyProfile.mainGrowthDrivers", "priceTargetRequirements.requirements", "recommendation.whatWouldUpgrade", "recommendation.whatWouldDowngrade"];
   for (const path of arrayPaths) {
-    const value = getPath(report, path);
+    const value = getByPath(report, path);
     if (value !== undefined && value !== null && !Array.isArray(value)) {
       errors.push(fieldError(path, `${path} must be an array when present.`));
     }
@@ -148,10 +150,6 @@ function isScore(value) {
 
 function hasText(value) {
   return typeof value === "string" && value.trim().length > 0;
-}
-
-function getPath(object, path) {
-  return String(path).split(".").reduce((cursor, key) => cursor?.[key], object);
 }
 
 function fieldError(field, message) {

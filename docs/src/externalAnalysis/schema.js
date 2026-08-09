@@ -1,4 +1,5 @@
 import { fairValueAnalysisToExternalReport, isFairValueAnalysisReport } from "./fairValueAdapter.js";
+import { setByPath } from "./fieldPaths.js";
 import {
   normalizeCompanySpecificKpis,
   normalizeExternalRecommendation,
@@ -316,7 +317,7 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
 
 export function updateExternalAnalysisField(report, path, value, now = new Date()) {
   const next = structuredCloneSafe(report);
-  setPath(next, path, coercePathValue(path, value));
+  setByPath(next, path, coercePathValue(path, value));
   next.userEditedFields = {
     ...(next.userEditedFields || {}),
     [path]: true
@@ -457,17 +458,6 @@ function normalizeDate(value) {
   const parsed = new Date(clean);
   if (!Number.isNaN(parsed.getTime())) return clean.slice(0, 10);
   return clean;
-}
-
-function setPath(object, path, value) {
-  const parts = String(path || "").split(".").filter(Boolean);
-  let cursor = object;
-  for (let index = 0; index < parts.length - 1; index += 1) {
-    const part = parts[index];
-    if (!cursor[part] || typeof cursor[part] !== "object") cursor[part] = {};
-    cursor = cursor[part];
-  }
-  cursor[parts[parts.length - 1]] = value;
 }
 
 function coercePathValue(path, value) {

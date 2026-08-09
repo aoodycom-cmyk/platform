@@ -1,4 +1,5 @@
-import { attachCompletionStatus, getPath, valuePresent } from "./missingFields.js";
+import { attachCompletionStatus } from "./missingFields.js";
+import { diagnosticRowsForSupplement, getByPath, isKnownAnalysisPath, isMissing, setByPath } from "./fieldPaths.js";
 import { validateExternalAnalysisReport } from "./externalAnalysisSchemaValidator.js";
 import { canUseProtectedField, effectiveSupplementFields, PROTECTED_SUPPLEMENT_PATHS } from "./supplementValidator.js";
 
@@ -13,20 +14,25 @@ export function mergeExternalAnalysisSupplement(existingReport = {}, supplement 
   const unchangedFields = [];
 
   const supplementFields = effectiveSupplementFields(supplement, existingReport);
+  const diagnostics = diagnosticRowsForSupplement(existingReport, supplementFields);
+  if (options.debug) console.table(diagnostics);
   for (const [path, incomingValue] of Object.entries(supplementFields)) {
-    if (incomingValue === null || incomingValue === undefined) {
-      rejectedFields.push(rejection(path, incomingValue, getPath(existingReport, path), "null_supplement_value"));
+    const currentValue = getByPath(existingReport, path);
+    if (!isKnownAnalysisPath(path)) {
+      rejectedFields.push(rejection(path, incomingValue, currentValue, "unknown_path"));
+      continue;
+    }
+    if (isMissing(incomingValue, path)) {
+      rejectedFields.push(rejection(path, incomingValue, currentValue, "empty_supplement_value"));
       continue;
     }
     if (PROTECTED_SUPPLEMENT_PATHS.has(path) && !canUseProtectedField(path, incomingValue, existingReport)) {
-      rejectedFields.push(rejection(path, incomingValue, getPath(existingReport, path), "protected_field"));
+      rejectedFields.push(rejection(path, incomingValue, currentValue, "protected_field"));
       continue;
     }
 
-    const currentValue = getPath(existingReport, path);
-    const hasCurrent = valuePresent(currentValue, path);
-    if (!hasCurrent) {
-      setPath(mergedReport, path, incomingValue);
+    if (isMissing(currentValue, path)) {
+      setByPath(mergedReport, path, incomingValue);
       appliedFields.push(applied(path, null, incomingValue, "filled_missing"));
       continue;
     }
@@ -37,14 +43,14 @@ export function mergeExternalAnalysisSupplement(existingReport = {}, supplement 
 
     const resolution = resolutions[path];
     if (resolution === "use-new") {
-      setPath(mergedReport, path, incomingValue);
+      setByPath(mergedReport, path, incomingValue);
       appliedFields.push(applied(path, currentValue, incomingValue, "user_approved_new_value"));
       continue;
     }
     if (resolution === "manual") {
       const manualValue = manualValues[path];
       if (manualValue !== undefined && manualValue !== "") {
-        setPath(mergedReport, path, manualValue);
+        setByPath(mergedReport, path, manualValue);
         appliedFields.push(applied(path, currentValue, manualValue, "user_manual_value"));
         continue;
       }
@@ -98,21 +104,13 @@ export function mergeExternalAnalysisSupplement(existingReport = {}, supplement 
     appliedFields,
     rejectedFields,
     conflicts,
-    unchangedFields
+    unchangedFields,
+    diagnostics,
+    summary: mergeSummary({ appliedFields, rejectedFields, conflicts, unchangedFields, supplementFields })
   };
 }
 
-export function setPath(object, path, value) {
-  const parts = String(path || "").split(".").filter(Boolean);
-  if (!parts.length) return;
-  let cursor = object;
-  for (let index = 0; index < parts.length - 1; index += 1) {
-    const key = parts[index];
-    if (!cursor[key] || typeof cursor[key] !== "object" || Array.isArray(cursor[key])) cursor[key] = {};
-    cursor = cursor[key];
-  }
-  cursor[parts[parts.length - 1]] = value;
-}
+export { setByPath as setPath } from "./fieldPaths.js";
 
 function sameValue(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
@@ -129,6 +127,52 @@ function rejection(path, newValue, currentValue, reason) {
 function createSupplementAuditId(report, now) {
   const ticker = report.company?.ticker || "EXT";
   return `supplement-${ticker}-${now.toISOString().replace(/[^0-9]/g, "").slice(0, 14)}`;
+}
+
+function mergeSummary({ appliedFields, rejectedFields, conflicts, unchangedFields, supplementFields }) {
+  if (appliedFields.length) {
+    return {
+      status: "merged",
+      messageAr: `تم تحديث ${appliedFields.length} من الحقول الناقصة بنجاح.`,
+      messageEn: `Updated ${appliedFields.length} missing field(s).`
+    };
+  }
+  if (conflicts.length) {
+    return {
+      status: "conflicts",
+      messageAr: "بعض القيم المستلمة تختلف عن قيم موجودة وتحتاج مراجعة قبل الدمج.",
+      messageEn: "Some incoming values conflict with existing values and need review."
+    };
+  }
+  const totalFields = Object.keys(supplementFields || {}).length;
+  const emptyRejected = rejectedFields.filter((item) => item.reason === "empty_supplement_value").length;
+  const unknownRejected = rejectedFields.filter((item) => item.reason === "unknown_path").length;
+  if (totalFields > 0 && emptyRejected === totalFields) {
+    return {
+      status: "all_empty",
+      messageAr: "لم يُرجع ChatGPT أي قيم غير فارغة للحقول المطلوبة.",
+      messageEn: "ChatGPT did not return any non-empty values for the requested fields."
+    };
+  }
+  if (unknownRejected > 0 && unknownRejected === rejectedFields.length) {
+    return {
+      status: "unknown_paths",
+      messageAr: "بعض الحقول لا تطابق مسارات معروفة في Schema التحليل.",
+      messageEn: "Some fields do not match known analysis schema paths."
+    };
+  }
+  if (unchangedFields.length && unchangedFields.length + rejectedFields.length === totalFields) {
+    return {
+      status: "already_present",
+      messageAr: "جميع القيم التي أرجعها ChatGPT موجودة مسبقًا في التحليل، لذلك لم يلزم إجراء أي تحديث.",
+      messageEn: "All values returned by ChatGPT already exist in the analysis, so no update was needed."
+    };
+  }
+  return {
+    status: "no_changes",
+    messageAr: "لم يتم إجراء أي تحديث على التقرير.",
+    messageEn: "No report updates were applied."
+  };
 }
 
 function clone(value) {
