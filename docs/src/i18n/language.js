@@ -186,6 +186,7 @@ const UI_LABELS = {
   "View Report": "عرض التقرير",
   "Back to My Stocks": "العودة إلى أسهمي",
   "Add New Analysis": "إضافة تحليل جديد",
+  "Analyze New Earnings": "تحليل إعلان الأرباح الجديد",
   "Edit Current Report": "تعديل هذا التقرير",
   "is saved in My Stocks.": "محفوظ في أسهمي.",
   "Advanced Options": "خيارات متقدمة",

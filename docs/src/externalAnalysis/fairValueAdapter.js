@@ -224,10 +224,57 @@ export function buildFairValueAnalysisJsonObject(options = {}) {
         }
       ]
     },
+    previousRequirementsEvaluation: {
+      requirementSetId: null,
+      ticker: ticker || null,
+      earningsPeriod: null,
+      createdAt: null,
+      createdFromAnalysisId: null,
+      targetValue: null,
+      targetScenario: null,
+      targetDescription: null,
+      matchType: null,
+      requirements: [
+        {
+          id: null,
+          name: null,
+          arabicName: null,
+          metric: null,
+          type: "minimum",
+          currentLevel: null,
+          requiredValue: null,
+          unit: null,
+          importance: "medium",
+          weight: null,
+          whyItMatters: null,
+          actualValue: null,
+          actualRaw: null,
+          status: "NOT_REPORTED",
+          evaluationNote: null
+        }
+      ],
+      requirementsAssessment: {
+        weightedAchievement: null,
+        reportedRequirements: null,
+        totalRequirements: null,
+        passed: null,
+        failed: null,
+        exceeded: null,
+        partiallyPassed: null,
+        notReported: null,
+        overallStatus: null,
+        summary: null
+      }
+    },
     requirementsAssessment: {
       weightedAchievement: null,
       reportedRequirements: null,
       totalRequirements: null,
+      passed: null,
+      failed: null,
+      exceeded: null,
+      partiallyPassed: null,
+      notReported: null,
       overallStatus: null,
       summary: null
     },
@@ -387,6 +434,7 @@ export function fairValueAnalysisToExternalReport(input = {}) {
     guidance: Array.isArray(input.guidance) ? input.guidance : [],
     companySpecificKpis: Array.isArray(input.companySpecificKpis) ? input.companySpecificKpis : [],
     priceTargetRequirements: input.priceTargetRequirements || {},
+    previousRequirementsEvaluation: input.previousRequirementsEvaluation || {},
     requirementsAssessment: input.requirementsAssessment || {},
     scenarios: {
       Bear: scenarioForExternal(scenarios.Conservative),

@@ -1451,6 +1451,7 @@ function externalAnalysisReportView(state) {
       </section>
       <section class="panel external-report-actions">
         <button class="primary-btn" data-action="add-external-analysis-for-ticker" data-external-ticker="${escapeHtml(ticker)}">${uiLabel("Add New Analysis")}</button>
+        <button class="primary-btn" data-action="copy-new-earnings-prompt">${uiLabel("Analyze New Earnings")}</button>
         <button class="icon-btn" data-panel="home">${uiLabel("Back to My Stocks")}</button>
         <button class="icon-btn" data-action="export-external-json">${uiLabel("Export JSON")}</button>
         <button class="icon-btn" data-action="print-external-report">${uiLabel("Print Report")}</button>
@@ -2089,8 +2090,8 @@ function earningsQualityBlock(quality = {}) {
 }
 
 function paragraphBlock(items = []) {
-  const visible = items.filter((item) => item !== null && item !== undefined && String(item).trim());
-  return visible.map((item) => `<p>${escapeHtml(localizedExternalText(item))}</p>`).join("");
+  const visible = items.map((item) => localizedExternalText(item)).filter((item) => item.trim());
+  return visible.map((item) => `<p>${escapeHtml(item)}</p>`).join("");
 }
 
 function objectBlock(object = {}) {
@@ -2106,7 +2107,7 @@ function itemList(items = [], detailKeys = []) {
       ${items.map((item) => {
         if (typeof item === "string") return `<p>${escapeHtml(localizedExternalText(item))}</p>`;
         const title = item.title || item.name || item.sourceType || "-";
-        const details = detailKeys.map((key) => item[key]).filter((value) => value !== null && value !== undefined && String(value).trim());
+        const details = detailKeys.map((key) => localizedExternalText(item[key])).filter((value) => value.trim());
         return `<article><strong>${escapeHtml(localizedExternalText(title))}</strong>${details.map((detail) => `<span>${escapeHtml(localizedExternalText(detail))}</span>`).join("")}</article>`;
       }).join("")}
     </div>
@@ -2114,7 +2115,8 @@ function itemList(items = [], detailKeys = []) {
 }
 
 function simpleList(items = []) {
-  return Array.isArray(items) && items.length ? `<ul>${items.map((item) => `<li>${escapeHtml(localizedExternalText(item))}</li>`).join("")}</ul>` : "";
+  const visible = Array.isArray(items) ? items.map((item) => localizedExternalText(item)).filter((item) => item.trim()) : [];
+  return visible.length ? `<ul>${visible.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : "";
 }
 
 function externalVersionHistory(currentReport, history = []) {
@@ -4083,6 +4085,7 @@ function bind(root, store, actions) {
     const tickerHint = root.querySelector("[data-external-ticker-hint]")?.value || "";
     copyExternalAnalysisPrep(store, "template", tickerHint);
   });
+  root.querySelector("[data-action='copy-new-earnings-prompt']")?.addEventListener("click", () => copyNewEarningsAnalysisPrompt(store));
   root.querySelector("[data-action='copy-missing-requirements']")?.addEventListener("click", () => copyMissingRequirements(store));
   root.querySelector("[data-action='select-copy-fallback']")?.addEventListener("click", () => {
     const textArea = root.querySelector("[data-copy-fallback-text]");
@@ -4356,6 +4359,8 @@ function formatDateShort(value) {
 
 function localizedExternalText(value) {
   if (value === null || value === undefined) return "";
+  if (Array.isArray(value)) return value.map((item) => localizedExternalText(item)).filter(Boolean).join(" / ");
+  if (typeof value === "object") return localizedObjectText(value);
   const textValue = String(value).trim();
   if (!textValue) return "";
   if (/^https?:\/\//i.test(textValue)) return textValue;
@@ -4403,6 +4408,74 @@ function localizedExternalText(value) {
     .replace(/\bnews\b/gi, uiLabel("News source"));
 }
 
+function localizedObjectText(value = {}) {
+  const arabicKeys = [
+    "ar",
+    "arabic",
+    "arabicText",
+    "textAr",
+    "summaryAr",
+    "explanationAr",
+    "interpretationAr",
+    "noteAr",
+    "rationaleAr",
+    "reasonAr",
+    "titleAr",
+    "nameAr"
+  ];
+  const englishKeys = [
+    "en",
+    "english",
+    "englishText",
+    "textEn",
+    "summaryEn",
+    "explanationEn",
+    "interpretationEn",
+    "noteEn",
+    "rationaleEn",
+    "reasonEn",
+    "titleEn",
+    "nameEn"
+  ];
+  const neutralKeys = [
+    "text",
+    "summary",
+    "explanation",
+    "interpretation",
+    "note",
+    "rationale",
+    "reason",
+    "title",
+    "name",
+    "value"
+  ];
+  const arabicText = firstObjectText(value, arabicKeys);
+  const englishText = firstObjectText(value, englishKeys);
+  const neutralText = firstObjectText(value, neutralKeys);
+  const preferred = isArabicUi() ? (arabicText || neutralText || englishText) : (englishText || neutralText || arabicText);
+  if (preferred) return localizedExternalText(preferred);
+  return formatAnyValue(value);
+}
+
+function firstObjectText(value = {}, keys = []) {
+  for (const key of keys) {
+    const item = value[key];
+    if (item === null || item === undefined) continue;
+    if (typeof item === "object") {
+      const nested = localizedExternalText(item);
+      if (nested.trim()) return nested;
+      continue;
+    }
+    const text = String(item).trim();
+    if (text) return text;
+  }
+  return "";
+}
+
+function isArabicUi() {
+  return document.documentElement.dir === "rtl" || document.documentElement.lang?.toLowerCase().startsWith("ar");
+}
+
 function labelFromKey(key) {
   return String(key || "")
     .replace(/([a-z])([A-Z])/g, "$1 $2")
@@ -4438,6 +4511,32 @@ async function copyMissingRequirements(store) {
   } catch {
     store.set({
       externalImport: { ...store.state.externalImport, missingPromptFallback: result.text },
+      notice: store.state.language === "ar"
+        ? "تعذر النسخ تلقائيًا. استخدم النص الظاهر للنسخ اليدوي."
+        : "Automatic copy failed. Use the visible text area to copy manually."
+    });
+  }
+}
+
+async function copyNewEarningsAnalysisPrompt(store) {
+  const text = store.currentNewEarningsAnalysisPrompt?.() || "";
+  if (!text) return;
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+    await navigator.clipboard.writeText(text);
+    store.set({
+      notice: store.state.language === "ar"
+        ? "تم نسخ برومبت تحليل إعلان الأرباح"
+        : "Analyze New Earnings prompt copied."
+    });
+  } catch {
+    store.set({
+      externalImport: {
+        ...store.state.externalImport,
+        copyFallbackText: text,
+        copyFallbackTitle: store.state.language === "ar" ? "انسخ برومبت إعلان الأرباح يدويًا" : "Copy earnings prompt manually",
+        copyFallbackAction: "copy-new-earnings-prompt"
+      },
       notice: store.state.language === "ar"
         ? "تعذر النسخ تلقائيًا. استخدم النص الظاهر للنسخ اليدوي."
         : "Automatic copy failed. Use the visible text area to copy manually."

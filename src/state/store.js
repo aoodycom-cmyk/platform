@@ -14,7 +14,7 @@ import { parseExternalAnalysisInput } from "../externalAnalysis/parser.js";
 import { normalizeExternalAnalysisReport, updateExternalAnalysisField } from "../externalAnalysis/schema.js";
 import { validateExternalAnalysisReport } from "../externalAnalysis/externalAnalysisSchemaValidator.js";
 import { attachCompletionStatus, buildMissingRequirementsPrompt } from "../externalAnalysis/missingFields.js";
-import { buildExternalAnalysisJsonTemplate, buildFullAnalysisPrompt } from "../externalAnalysis/chatgptContract.js";
+import { buildExternalAnalysisJsonTemplate, buildFullAnalysisPrompt, buildNewEarningsAnalysisPrompt } from "../externalAnalysis/chatgptContract.js";
 import {
   createInvestmentDataBackup,
   mergeInvestmentDataBackup,
@@ -488,6 +488,11 @@ export function createStore() {
 
   function currentExternalAnalysisJsonTemplate(tickerHint = "") {
     return buildExternalAnalysisJsonTemplate({ tickerHint: tickerHint || state.externalImport?.tickerHint });
+  }
+
+  function currentNewEarningsAnalysisPrompt() {
+    const report = selectedExternalReportFromState();
+    return report ? buildNewEarningsAnalysisPrompt(report) : "";
   }
 
   function openSupplementInput() {
@@ -1125,6 +1130,7 @@ export function createStore() {
     currentMissingRequirementsPrompt,
     currentFullAnalysisPrompt,
     currentExternalAnalysisJsonTemplate,
+    currentNewEarningsAnalysisPrompt,
     openSupplementInput,
     cancelExternalSupplement,
     parseExternalSupplement,

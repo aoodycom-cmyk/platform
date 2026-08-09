@@ -49,6 +49,8 @@ assert.ok(components.includes("الرد لا يحتوي على أي قيمة ج�
 assert.ok(components.includes("لا تستخدم TICKER أو SYMBOL"), "Placeholder ticker supplement error must be shown in Arabic.");
 assert.ok(components.includes("function externalHistoryPanel"), "History page must exist for prior saved analyses.");
 assert.ok(components.includes("function externalAnalysisReportView"), "Company Report page must exist.");
+assert.ok(components.includes("data-action=\"copy-new-earnings-prompt\""), "Company Report must expose Analyze New Earnings prompt copy.");
+assert.ok(components.includes("currentNewEarningsAnalysisPrompt"), "Analyze New Earnings must copy from the saved stock report.");
 assert.ok(components.includes("function reportDataHealthCard"), "Company Report must always show data health/completion.");
 assert.ok(components.includes("libraryCompletionRow"), "Home report cards must show completion state.");
 assert.ok(components.includes("reportDecisionStrip"), "Company Report must show a concise decision strip.");
@@ -108,6 +110,7 @@ assert.ok(language.includes("السيناريو المتحفظ"), "Arabic Bear c
 assert.ok(language.includes("السيناريو المتفائل"), "Arabic Bull case helper label must be localized.");
 assert.ok(language.includes("اكتب الرمز هنا إذا كان التقرير الملصوق لا يذكر رمز السهم بوضوح."), "Ticker fallback helper text must be localized.");
 assert.ok(language.includes("انسخ برومبت Fair value الرسمي، أرسله إلى ChatGPT، ثم الصق رد JSON هنا."), "ChatGPT prep copy must be localized.");
+assert.ok(language.includes("تحليل إعلان الأرباح الجديد"), "Analyze New Earnings action must be localized in Arabic.");
 assert.ok(language.includes("التوافق الشرعي"), "Arabic Shariah label must be localized.");
 assert.ok(storeSource.includes("tickerHint: \"\""), "External import state must persist the ticker hint.");
 assert.ok(storeSource.includes("applyImportContextHints(parsed.report, { tickerHint })"), "Parsed external reports must receive context hints before validation.");
@@ -116,6 +119,7 @@ assert.ok(storeSource.includes("currentFullAnalysisPrompt"), "Store must expose 
 assert.ok(storeSource.includes("currentExternalAnalysisJsonTemplate"), "Store must expose the blank JSON Template.");
 assert.ok(chatgptContract.includes("buildFullAnalysisPrompt"), "ChatGPT contract prompt builder must exist.");
 assert.ok(chatgptContract.includes("buildExternalAnalysisJsonTemplate"), "ChatGPT contract JSON template builder must exist.");
+assert.ok(chatgptContract.includes("buildNewEarningsAnalysisPrompt"), "ChatGPT contract must build the new earnings prompt locally.");
 
 let workspace = createValuationWorkspace(DEMO_ANALYSIS_FIXTURE.company);
 workspace = updateAnalystBrainPaste(workspace, DEMO_ANALYSIS_FIXTURE.pasteText);

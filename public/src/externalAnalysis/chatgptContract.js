@@ -126,6 +126,75 @@ export function buildExternalAnalysisJsonTemplate(options = {}) {
   return JSON.stringify(buildFairValueAnalysisJsonObject(options), null, 2);
 }
 
+export function buildNewEarningsAnalysisPrompt(report = {}) {
+  const ticker = normalizeTicker(report.company?.ticker);
+  const companyName = report.company?.name || ticker || "-";
+  const requirementsBlock = report.priceTargetRequirements || {};
+  const requirements = Array.isArray(requirementsBlock.requirements) ? requirementsBlock.requirements : [];
+  const template = buildNewEarningsOutputTemplate(report, requirements);
+
+  return [
+    "أنت تعمل داخل مشروع Fair value لتحليل إعلان أرباح جديد بناءً على تقرير محفوظ سابقًا في Franklin.",
+    "",
+    "مهم جدًا:",
+    "- ChatGPT هو المسؤول عن التحليل الاستثماري وقراءة مواد الأرباح الجديدة.",
+    "- Franklin لا يحسب ولا يفسر النتائج؛ Franklin سيستورد JSON النهائي فقط.",
+    "- لا تغيّر المتطلبات الأصلية المحفوظة أدناه.",
+    "- قارِن النتائج الفعلية مع المتطلبات السابقة فقط.",
+    "- إذا لم تُفصح الشركة عن معلومة، استخدم status = NOT_REPORTED وضع actualValue = null.",
+    "- لا تخترع أرقامًا أو توجيهات.",
+    "- اجعل كل الشروحات والسرد باللغة العربية، مع إبقاء المصطلحات المالية القياسية بالإنجليزية عند الحاجة.",
+    "",
+    "بيانات التقرير الحالي المحفوظ في Franklin:",
+    `- الشركة: ${companyName}`,
+    `- الرمز: ${ticker || "-"}`,
+    `- تاريخ التحليل الحالي: ${formatPromptValue(report.analysisDate)}`,
+    `- فترة التقرير الحالية: ${formatPromptValue(report.reportPeriod)}`,
+    `- التوصية الحالية: ${formatPromptValue(report.recommendation?.action || report.decision?.verdict)}`,
+    `- Bear Fair Value الحالي: ${formatPromptValue(report.fairValue?.bear)}`,
+    `- Base Fair Value الحالي: ${formatPromptValue(report.fairValue?.base)}`,
+    `- Bull Fair Value الحالي: ${formatPromptValue(report.fairValue?.bull)}`,
+    `- القيمة المبررة الحالية: ${formatPromptValue(requirementsBlock.currentJustifiedValue)}`,
+    `- الهدف التالي: ${formatPromptValue(requirementsBlock.targetValue)}`,
+    `- السيناريو المستهدف: ${formatPromptValue(requirementsBlock.targetScenario)}`,
+    `- فترة الأرباح المطلوب تقييمها: ${formatPromptValue(requirementsBlock.earningsPeriod)}`,
+    "",
+    "فرضية الاستثمار المحفوظة:",
+    report.thesis?.shortSummary || report.thesis?.fullSummary ? textForPrompt(report.thesis?.shortSummary || report.thesis?.fullSummary) : "- غير متوفرة.",
+    "",
+    "المخاطر المحفوظة المفيدة للمقارنة:",
+    listForPrompt(report.risks, riskForPrompt),
+    "",
+    "Requirements to Justify Next Price Target المحفوظة سابقًا:",
+    requirements.length ? requirements.map(requirementForPrompt).join("\n\n") : "- لا توجد متطلبات محفوظة في هذا التقرير.",
+    "",
+    "المطلوب منك بعد أن يزوّدك المستخدم بمواد الأرباح الجديدة / 10-Q / مكالمة الإدارة:",
+    "1. اقرأ مواد الأرباح الجديدة.",
+    "2. قارن النتائج الفعلية ضد PREVIOUSLY SAVED requirements أعلاه.",
+    "3. لا تعدّل requiredValue أو وزن المتطلب القديم.",
+    "4. لكل requirement أعد:",
+    "   - requirement ID",
+    "   - actual result",
+    "   - status: NOT_REPORTED أو PASSED أو PARTIALLY_PASSED أو FAILED أو EXCEEDED",
+    "   - Arabic evaluation note",
+    "5. أعد weightedAchievement وoverallStatus وsummary كما تراها أنت بناءً على التحليل.",
+    "6. أعد earnings summary باللغة العربية.",
+    "7. أعد updated guidance إذا تغيرت التوجيهات.",
+    "8. أعد updated recommendation.",
+    "9. أعد Bear/Base/Bull valuation فقط إذا كانت نتائج الأرباح تبرر تغييرًا جوهريًا؛ وإلا اشرح لماذا بقيت كما هي.",
+    "",
+    "صيغة JSON النهائية التي يعرف Franklin استيرادها:",
+    "- أخرج JSON صالحًا فقط داخل كائن واحد.",
+    "- لا تستخدم Markdown داخل JSON.",
+    "- لا تضف نصًا خارج JSON النهائي.",
+    "- املأ previousRequirementsEvaluation بنتائج تقييم المتطلبات السابقة.",
+    "- املأ priceTargetRequirements فقط إذا كان هناك متطلبات جديدة للفترة القادمة.",
+    "- استخدم null لأي معلومة غير متوفرة.",
+    "",
+    JSON.stringify(template, null, 2)
+  ].join("\n");
+}
+
 export function analysisContractRequiredFields() {
   return fieldsByPriority(FIELD_PRIORITY.CRITICAL);
 }
@@ -142,4 +211,125 @@ function normalizeTicker(value) {
   const clean = String(value || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "");
   if (!clean || ["TICKER", "SYMBOL"].includes(clean)) return "";
   return clean.slice(0, 12);
+}
+
+function buildNewEarningsOutputTemplate(report = {}, requirements = []) {
+  const ticker = normalizeTicker(report.company?.ticker);
+  const requirementsBlock = report.priceTargetRequirements || {};
+  const template = buildFairValueAnalysisJsonObject({ tickerHint: ticker });
+  template.analysisDate = "YYYY-MM-DD";
+  template.company.name = report.company?.name || null;
+  template.company.currency = report.company?.currency || "USD";
+  template.company.currentPrice = null;
+  template.fairValueSummary.fairValueLow = numberOrNull(report.fairValue?.bear);
+  template.fairValueSummary.fairValueBase = numberOrNull(report.fairValue?.base);
+  template.fairValueSummary.fairValueHigh = numberOrNull(report.fairValue?.bull);
+  template.recommendation.action = report.recommendation?.action || report.decision?.verdict || null;
+  template.previousRequirementsEvaluation = {
+    requirementSetId: requirementsBlock.requirementSetId || null,
+    ticker: ticker || null,
+    earningsPeriod: requirementsBlock.earningsPeriod || null,
+    createdAt: requirementsBlock.createdAt || null,
+    createdFromAnalysisId: requirementsBlock.createdFromAnalysisId || report.id || null,
+    targetValue: numberOrNull(requirementsBlock.targetValue),
+    targetScenario: requirementsBlock.targetScenario || null,
+    targetDescription: requirementsBlock.targetDescription || null,
+    matchType: "external_chatgpt_supplied",
+    requirements: requirements.map((item, index) => ({
+      id: item.id || `requirement_${index + 1}`,
+      name: item.name || item.metric || null,
+      arabicName: item.arabicName || null,
+      metric: item.metric || item.name || null,
+      type: item.type || "text",
+      currentLevel: item.currentLevel ?? null,
+      requiredValue: item.requiredValue ?? null,
+      unit: item.unit || null,
+      importance: item.importance || "medium",
+      weight: numberOrNull(item.weight),
+      whyItMatters: item.whyItMatters || null,
+      actualValue: null,
+      actualRaw: null,
+      status: "NOT_REPORTED",
+      evaluationNote: null
+    })),
+    requirementsAssessment: {
+      weightedAchievement: null,
+      reportedRequirements: null,
+      totalRequirements: requirements.length || null,
+      passed: null,
+      failed: null,
+      exceeded: null,
+      partiallyPassed: null,
+      notReported: null,
+      overallStatus: null,
+      summary: null
+    }
+  };
+  template.priceTargetRequirements = {
+    currentJustifiedValue: null,
+    targetValue: null,
+    targetScenario: null,
+    targetDescription: null,
+    createdAt: null,
+    earningsPeriod: null,
+    requirements: []
+  };
+  template.requirementsAssessment = {
+    weightedAchievement: null,
+    reportedRequirements: null,
+    totalRequirements: null,
+    passed: null,
+    failed: null,
+    exceeded: null,
+    partiallyPassed: null,
+    notReported: null,
+    overallStatus: null,
+    summary: null
+  };
+  return template;
+}
+
+function requirementForPrompt(item = {}, index = 0) {
+  return [
+    `${index + 1}. ${item.arabicName || item.name || item.metric || "Requirement"}`,
+    `   - requirement ID: ${formatPromptValue(item.id || `requirement_${index + 1}`)}`,
+    `   - metric: ${formatPromptValue(item.metric || item.name)}`,
+    `   - requiredValue: ${formatPromptValue(item.requiredValue)}`,
+    `   - currentLevel: ${formatPromptValue(item.currentLevel)}`,
+    `   - unit: ${formatPromptValue(item.unit)}`,
+    `   - type: ${formatPromptValue(item.type)}`,
+    `   - importance: ${formatPromptValue(item.importance)}`,
+    `   - weight: ${formatPromptValue(item.weight)}`,
+    `   - why it matters: ${textForPrompt(item.whyItMatters) || "-"}`
+  ].join("\n");
+}
+
+function riskForPrompt(item = {}) {
+  if (typeof item === "string") return `- ${item}`;
+  return `- ${textForPrompt(item.title || item.name || item.explanation || item.whatToMonitor || item.thesisBreaker) || "-"}`;
+}
+
+function listForPrompt(items = [], mapper = (item) => `- ${textForPrompt(item)}`) {
+  return Array.isArray(items) && items.length ? items.map(mapper).join("\n") : "- غير متوفر.";
+}
+
+function textForPrompt(value) {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "object") {
+    return value.ar || value.arabic || value.arabicText || value.textAr || value.summaryAr || value.explanationAr || value.interpretationAr || value.noteAr || value.rationaleAr || value.reasonAr
+      || value.text || value.summary || value.explanation || value.interpretation || value.note || value.rationale || value.reason
+      || value.en || value.english || value.englishText || value.textEn || value.summaryEn || value.explanationEn || value.interpretationEn || value.noteEn || "";
+  }
+  return String(value).trim();
+}
+
+function formatPromptValue(value) {
+  if (value === null || value === undefined || value === "") return "-";
+  if (typeof value === "object") return textForPrompt(value) || JSON.stringify(value);
+  return String(value);
+}
+
+function numberOrNull(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
 }

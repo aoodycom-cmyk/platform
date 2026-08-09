@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import {
   analysisContractRequiredFields,
   buildExternalAnalysisJsonTemplate,
-  buildFullAnalysisPrompt
+  buildFullAnalysisPrompt,
+  buildNewEarningsAnalysisPrompt
 } from "../src/externalAnalysis/chatgptContract.js";
 
 const prompt = buildFullAnalysisPrompt({ tickerHint: "aaoi" });
@@ -26,6 +27,33 @@ assert.equal(template.dashboardExport.ticker, "MSFT");
 
 const blankTemplate = JSON.parse(buildExternalAnalysisJsonTemplate({ tickerHint: "TICKER" }));
 assert.equal(blankTemplate.company.ticker, null, "Placeholder ticker must normalize to null.");
+
+const earningsPrompt = buildNewEarningsAnalysisPrompt({
+  id: "MSFT-2026-08-01",
+  analysisDate: "2026-08-01",
+  reportPeriod: "Q4 2026",
+  company: { ticker: "MSFT", name: "Microsoft", currency: "USD" },
+  fairValue: { bear: 380, base: 435, bull: 500 },
+  recommendation: { action: "BUY" },
+  thesis: { shortSummary: "فرضية عربية محفوظة." },
+  risks: [{ title: "مخاطر التقييم" }],
+  priceTargetRequirements: {
+    requirementSetId: "MSFT_Q4_2026",
+    currentJustifiedValue: 435,
+    targetValue: 500,
+    targetScenario: "bull",
+    earningsPeriod: "Q4 2026",
+    requirements: [
+      { id: "azure_growth", name: "Revenue Growth", arabicName: "نمو Azure", requiredValue: 30, unit: "%", weight: 40, whyItMatters: "يدعم Bull Case." }
+    ]
+  }
+});
+assert.ok(earningsPrompt.includes("تحليل إعلان أرباح جديد") || earningsPrompt.includes("إعلان أرباح جديد"), "Earnings prompt must be purpose-specific.");
+assert.ok(earningsPrompt.includes("azure_growth"), "Earnings prompt must include saved requirement IDs.");
+assert.ok(earningsPrompt.includes("MSFT_Q4_2026"), "Earnings prompt must include the historical requirement set ID.");
+assert.ok(earningsPrompt.includes("previousRequirementsEvaluation"), "Earnings prompt must include the importable previousRequirementsEvaluation template.");
+assert.ok(earningsPrompt.includes('"ticker": "MSFT"'), "Earnings prompt template must carry the selected ticker.");
+assert.equal(/OPENAI_API|api\/|fetch\(/i.test(earningsPrompt), false, "Earnings prompt must not require an API call.");
 
 const requiredFields = analysisContractRequiredFields().map((field) => field.path);
 for (const field of [
