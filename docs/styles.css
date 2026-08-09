@@ -8072,10 +8072,43 @@ a.primary-btn {
 }
 
 @media (max-width: 620px) {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  #app,
+  main,
+  .library-home,
+  .product-shell,
+  .library-hero,
+  .library-search-panel,
+  .library-panel,
+  .external-report-shell,
+  .external-import-panel,
+  .report-section-group,
+  .panel {
+    max-width: 100%;
+    min-width: 0;
+  }
+
   .library-home,
   .product-shell {
     width: 100%;
-    padding: 10px 10px calc(84px + env(safe-area-inset-bottom));
+    padding: 10px max(10px, env(safe-area-inset-left)) calc(84px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-right));
+    margin: 0;
+    overflow-x: clip;
+  }
+
+  .library-hero,
+  .library-search-panel,
+  .library-panel,
+  .external-report-v2 .panel,
+  .report-section-group,
+  .save-confirmation-banner {
+    width: 100%;
+    margin-inline: 0;
   }
 
   .library-hero h1 {
@@ -8090,6 +8123,31 @@ a.primary-btn {
     display: grid;
     grid-template-columns: 1fr;
     align-items: stretch;
+  }
+
+  .home-actions > *,
+  .prep-actions > *,
+  .external-report-actions > *,
+  .save-confirmation-banner button,
+  .save-confirmation-banner a,
+  .primary-btn,
+  .icon-btn {
+    width: 100%;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .search-line {
+    grid-template-columns: 1fr;
+  }
+
+  .search-line input,
+  .search-line button,
+  input,
+  textarea {
+    min-width: 0;
+    max-width: 100%;
   }
 
   .investment-library-summary,
