@@ -7049,15 +7049,15 @@ button.danger-action {
 
 .report-decision-strip {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
 }
 
 .decision-strip-card {
-  min-height: 96px;
+  min-height: 76px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 14px;
+  padding: 11px;
   background: color-mix(in srgb, var(--surface) 88%, var(--surface-2));
   display: grid;
   align-content: center;
@@ -7073,7 +7073,7 @@ button.danger-action {
 
 .decision-strip-card strong {
   color: var(--ink);
-  font-size: clamp(22px, 4vw, 34px);
+  font-size: clamp(18px, 3.4vw, 28px);
   line-height: 1;
 }
 
@@ -7116,8 +7116,8 @@ button.danger-action {
 .report-v2-score-grid .scenario-card,
 .report-v2-fair-grid .scenario-card {
   border-radius: 8px;
-  min-height: 90px;
-  padding: 14px;
+  min-height: 78px;
+  padding: 12px;
   background: color-mix(in srgb, var(--surface) 86%, var(--surface-2) 14%);
   border: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
 }
@@ -7685,7 +7685,7 @@ button.danger-action {
 
 .investment-data-head {
   display: flex;
-  align-items: end;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
@@ -7696,11 +7696,31 @@ button.danger-action {
   font-size: 18px;
 }
 
-.data-view-tabs {
-  display: flex;
-  gap: 7px;
-  flex-wrap: wrap;
+.compact-data-select-label {
+  display: inline-flex;
   align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.compact-data-select {
+  min-height: 36px;
+  max-width: min(240px, 48vw);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 30px 7px 10px;
+  background: color-mix(in srgb, var(--surface) 88%, var(--surface-2));
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.data-view-tabs {
+  display: block;
+  min-width: 0;
 }
 
 .data-view-tabs > input {
@@ -7739,6 +7759,10 @@ button.danger-action {
 
 .data-view-panel {
   display: none;
+}
+
+.data-view-panel.active {
+  display: block;
 }
 
 .data-view-tabs > input:nth-of-type(1):checked ~ .data-view-panels .data-view-panel:nth-of-type(1),
@@ -8323,6 +8347,40 @@ button.danger-action {
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
+}
+
+.compact-inline-action {
+  min-height: 34px;
+  width: fit-content;
+  border: 1px solid color-mix(in srgb, var(--accent) 44%, var(--line));
+  border-radius: 8px;
+  padding: 7px 11px;
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  color: var(--ink);
+  font-weight: 900;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.latest-earnings-card {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--surface) 86%, var(--surface-2));
+}
+
+.latest-earnings-card > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.latest-earnings-card > header strong {
+  color: var(--ink);
+  font-size: 13px;
 }
 
 .missing-data-stats strong {

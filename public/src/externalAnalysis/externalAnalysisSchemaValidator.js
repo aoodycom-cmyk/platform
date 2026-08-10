@@ -34,6 +34,7 @@ export function validateExternalAnalysisReport(report = {}) {
   validateCompanySpecificKpis(report, errors);
   validatePriceTargetRequirements(report, errors);
   validateFiniteNumbers(report, errors);
+  warnings.push(...detectCrossCompanyContamination(report));
 
   if (report.analysisOrigin && report.analysisOrigin !== "external_chatgpt") {
     errors.push(fieldError("analysisOrigin", "External reports must keep analysisOrigin = external_chatgpt."));
@@ -47,6 +48,64 @@ export function validateExternalAnalysisReport(report = {}) {
     errors,
     warnings
   };
+}
+
+function detectCrossCompanyContamination(report = {}) {
+  const ticker = String(report.company?.ticker || "").trim().toUpperCase();
+  const company = String(report.company?.name || "").trim().toLowerCase();
+  if (!ticker) return [];
+  const fields = [
+    ...contaminationFields("companySpecificKpis", report.companySpecificKpis, ["name", "arabicName", "category", "interpretation", "source", "sourceName", "sourceUrl"]),
+    ...contaminationFields("companyProfile.activities", report.companyProfile?.activities, ["name", "arabicName", "description", "importance"]),
+    ...contaminationFields("priceTargetRequirements.requirements", report.priceTargetRequirements?.requirements, ["name", "arabicName", "metric", "whyItMatters", "evaluationNote"]),
+    ...contaminationFields("guidance", report.guidance, ["topic", "arabicTopic", "title", "name", "interpretation", "commentary", "explanation"]),
+    ...contaminationFields("nextQuarterGuidance.items", report.nextQuarterGuidance?.items, ["topic", "arabicTopic", "interpretation"])
+  ];
+  const warnings = [];
+  for (const field of fields) {
+    const match = knownCompanies().find((known) => {
+      if (known.tickers.includes(ticker)) return false;
+      if (company && known.names.some((name) => company.includes(name.toLowerCase()))) return false;
+      return known.tokens.some((token) => tokenMatches(field.text, token));
+    });
+    if (match) {
+      warnings.push(fieldError(
+        field.path,
+        `تحذير: توجد بيانات قد تخص شركة أخرى (${match.label}). راجع هذا الحقل قبل الحفظ.`
+      ));
+    }
+  }
+  return warnings;
+}
+
+function contaminationFields(basePath, items, keys = []) {
+  if (!Array.isArray(items)) return [];
+  return items.flatMap((item, index) => {
+    if (!item || typeof item !== "object") return [];
+    return keys
+      .map((key) => ({ path: `${basePath}.${index}.${key}`, text: String(item[key] || "") }))
+      .filter((entry) => entry.text.trim());
+  });
+}
+
+function knownCompanies() {
+  return [
+    { label: "Micron / MU", tickers: ["MU"], names: ["Micron"], tokens: ["Micron", "MU", "DRAM", "NAND", "HBM"] },
+    { label: "AST SpaceMobile / ASTS", tickers: ["ASTS"], names: ["AST SpaceMobile"], tokens: ["AST SpaceMobile", "ASTS", "BlueBird", "satellite deployment"] },
+    { label: "Microsoft / MSFT", tickers: ["MSFT"], names: ["Microsoft"], tokens: ["Microsoft", "MSFT", "Azure", "Copilot"] },
+    { label: "Apple / AAPL", tickers: ["AAPL"], names: ["Apple"], tokens: ["Apple", "AAPL", "iPhone", "App Store"] },
+    { label: "NVIDIA / NVDA", tickers: ["NVDA"], names: ["NVIDIA"], tokens: ["NVIDIA", "NVDA", "CUDA", "Blackwell"] },
+    { label: "Amazon / AMZN", tickers: ["AMZN"], names: ["Amazon"], tokens: ["Amazon", "AMZN", "AWS"] },
+    { label: "Alphabet / GOOGL", tickers: ["GOOGL", "GOOG"], names: ["Alphabet", "Google"], tokens: ["Alphabet", "Google", "GOOGL", "GOOG", "YouTube"] },
+    { label: "Meta / META", tickers: ["META"], names: ["Meta"], tokens: ["Meta", "META", "Facebook", "Instagram"] },
+    { label: "Tesla / TSLA", tickers: ["TSLA"], names: ["Tesla"], tokens: ["Tesla", "TSLA", "Model Y", "Cybertruck"] }
+  ];
+}
+
+function tokenMatches(text, token) {
+  if (!text || !token) return false;
+  const escaped = String(token).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^A-Za-z0-9])${escaped}([^A-Za-z0-9]|$)`, "i").test(text);
 }
 
 function validateExternalDecisionFields(report, errors) {

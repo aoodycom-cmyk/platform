@@ -96,6 +96,16 @@ assert.ok(invalidScore.errors.some((error) => error.field === "scores.quality"))
 const valid = validateExternalAnalysisReport(parsedJson.report);
 assert.equal(valid.valid, true);
 
+const contaminatedAsts = validateExternalAnalysisReport(normalizeExternalAnalysisReport({
+  ...validReport,
+  company: { ticker: "ASTS", name: "AST SpaceMobile", sector: "Communication Services", industry: "Satellite Communications", currency: "USD" },
+  companySpecificKpis: [
+    { name: "HBM capacity", arabicName: "طاقة HBM", interpretation: "Micron DRAM demand is improving." }
+  ]
+}, rawJson, { now }));
+assert.equal(contaminatedAsts.valid, true, "Cross-company contamination must warn without blocking import.");
+assert.ok(contaminatedAsts.warnings.some((warning) => warning.message.includes("قد تخص شركة أخرى") && warning.message.includes("Micron")));
+
 const fairValueJson = JSON.stringify({
   schemaVersion: "fair-value-analysis/v1",
   methodologyVersion: "fair-value-system/v1",

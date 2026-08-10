@@ -223,7 +223,12 @@ export function normalizeCompanySpecificKpis(value) {
         unit: "text",
         trend: "unknown",
         importance: "medium",
-        interpretation: null
+        interpretation: null,
+        source: null,
+        sourceName: null,
+        sourceUrl: null,
+        sourceType: null,
+        sourceDate: null
       };
     }
     if (!item || typeof item !== "object") return null;
@@ -235,7 +240,12 @@ export function normalizeCompanySpecificKpis(value) {
       unit: normalizeText(item.unit) || "text",
       trend: normalizeTrend(item.trend),
       importance: normalizeImportance(item.importance),
-      interpretation: normalizeText(item.interpretation)
+      interpretation: normalizeText(item.interpretation),
+      source: normalizeText(item.source),
+      sourceName: normalizeText(item.sourceName),
+      sourceUrl: normalizeText(item.sourceUrl),
+      sourceType: normalizeText(item.sourceType),
+      sourceDate: normalizeText(item.sourceDate)
     };
   }).filter((item) => item && (item.name || item.arabicName));
 }

@@ -836,7 +836,7 @@ function moneySignal(value, digits = 0) {
 
 function valuationSummaryItem(label, value, currentPrice) {
   const className = `valuation-card ${valuationScenarioClass(label)}`;
-  const subtitle = label === "Bear" ? uiLabel("Bear Case") : label === "Bull" ? uiLabel("Bull Case") : uiLabel("Base Case");
+  const subtitle = `${label} Case`;
   const primaryLabel = label === "Bear" ? uiLabel("Bear Scenario Label") : label === "Bull" ? uiLabel("Bull Scenario Label") : uiLabel("Base Scenario Label");
   const delta = Number.isFinite(value) && Number.isFinite(currentPrice) && currentPrice > 0 ? (value - currentPrice) / currentPrice : null;
   return `
@@ -1526,14 +1526,13 @@ function externalAnalysisReportView(state) {
             ${valuationSummaryItem("Bear", report.fairValue?.bear, report.market?.priceAtAnalysis)}
             ${valuationSummaryItem("Base", report.fairValue?.base, report.market?.priceAtAnalysis)}
             ${valuationSummaryItem("Bull", report.fairValue?.bull, report.market?.priceAtAnalysis)}
-            ${externalFairValueMetric(uiLabel("Upside"), report.fairValue?.upsideToBasePct)}
           </section>
           ${compactThesisView(report)}
           ${compactScoreRowsView(report)}
         `, uiLabel("Decision Dashboard"))}
         ${reportGroup(uiLabel("Investment Data"), `
           ${investmentDataTableArea(report)}
-          ${hasPreviousEvaluation ? externalDetail(uiLabel("Latest Earnings Execution"), previousRequirementExecutionView(report.previousRequirementsEvaluation)) : externalDetail(uiLabel("Latest Earnings Execution"), requirementsAssessmentView(report.requirementsAssessment, report.priceTargetRequirements))}
+          ${hasPreviousEvaluation ? latestEarningsExecutionCard(previousRequirementExecutionView(report.previousRequirementsEvaluation)) : externalDetail(uiLabel("Latest Earnings Execution"), requirementsAssessmentView(report.requirementsAssessment, report.priceTargetRequirements))}
         `, uiLabel("Compare / Monitor / Decide"), "report-group-target")}
         ${reportGroup(uiLabel("Evidence"), `
           ${compactEvidenceNavigator(report)}
@@ -1576,15 +1575,13 @@ function reportSavedBanner(notice, report = {}) {
 
 function reportDecisionStrip(report, completion = {}) {
   const action = externalRecommendationAction(report);
-  const averageCost = numericValue(report.market?.userAverageCost);
+  const upside = numericValue(report.fairValue?.upsideToBasePct);
   return `
     <section class="report-decision-strip">
       ${decisionStripMetric(uiLabel("Recommendation"), localizedExternalText(action) || "-", recommendationColorCategory(action))}
-      ${decisionStripMetric(uiLabel("Confidence"), externalRecommendationConfidence(report), "neutral")}
       ${decisionStripMetric(uiLabel("Current Price"), money(report.market?.currentPrice ?? report.market?.priceAtAnalysis, 2), "neutral")}
-      ${Number.isFinite(averageCost) ? decisionStripMetric(uiLabel("Average Cost"), money(averageCost, 2), "neutral") : ""}
-      ${decisionStripMetric(uiLabel("Base Fair Value"), money(report.fairValue?.base, 0), "neutral")}
-      ${decisionStripMetric(uiLabel("Upside"), formatExternalPercent(report.fairValue?.upsideToBasePct), upsideColorCategory(numericValue(report.fairValue?.upsideToBasePct)))}
+      ${decisionStripMetric(uiLabel("Upside"), formatExternalPercent(report.fairValue?.upsideToBasePct), upsideColorCategory(upside))}
+      ${decisionStripMetric(uiLabel("Confidence"), externalRecommendationConfidence(report), "neutral")}
     </section>
   `;
 }
@@ -1662,10 +1659,10 @@ function compactThesisView(report = {}) {
 
 function compactScoreRowsView(report = {}) {
   const rows = [
-    [financialTerm("Quality"), scoreText(report.scores?.quality, 1), report.quality?.summary || report.quality?.profitability],
-    [financialTerm("Growth"), scoreText(report.scores?.growth, 1), report.growthHighlights?.marginTrend || report.growthHighlights?.revenueGrowth],
-    [financialTerm("Risk"), scoreText(report.scores?.risk, 1), firstReportItemText(report.risks)],
-    [uiLabel("Investment Score"), scoreText(report.scores?.overall, 1), report.decision?.rationale]
+    [financialTerm("Quality"), scoreText(report.scores?.quality, 1), qualityCompactSummary(report)],
+    [financialTerm("Growth"), scoreText(report.scores?.growth, 1), growthCompactSummary(report)],
+    [financialTerm("Risk"), scoreText(report.scores?.risk, 1), riskCompactSummary(report)],
+    [uiLabel("Investment Score"), scoreText(report.scores?.overall, 1), investmentCompactSummary(report)]
   ].filter(([, value, detail]) => value !== "—" || localizedExternalText(detail).trim());
   if (!rows.length) return "";
   return `
@@ -1677,11 +1674,62 @@ function compactScoreRowsView(report = {}) {
             <strong dir="ltr">${escapeHtml(value)}</strong>
             <em>›</em>
           </summary>
-          <p>${escapeHtml(localizedExternalText(detail) || uiLabel("Not provided in the imported analysis."))}</p>
+          <p>${escapeHtml(localizedExternalText(detail) || "لا توجد تفاصيل إضافية محفوظة.")}</p>
         </details>
       `).join("")}
     </section>
   `;
+}
+
+function qualityCompactSummary(report = {}) {
+  return firstUsefulText([
+    report.quality?.summary,
+    report.quality?.profitability,
+    report.quality?.balanceSheet,
+    report.businessQuality?.summary,
+    report.moat?.summary,
+    firstReportItemText(report.quality?.strengths),
+    firstReportItemText(report.strengths)
+  ]);
+}
+
+function growthCompactSummary(report = {}) {
+  return firstUsefulText([
+    report.growthHighlights?.summary,
+    report.growthHighlights?.revenueGrowth,
+    report.growthHighlights?.epsGrowth,
+    report.growthHighlights?.fcfGrowth,
+    report.growthHighlights?.marginTrend,
+    firstReportItemText(report.companySpecificKpis),
+    firstReportItemText(report.catalysts)
+  ]);
+}
+
+function riskCompactSummary(report = {}) {
+  const firstRisk = Array.isArray(report.risks) ? report.risks[0] : null;
+  return firstUsefulText([
+    report.risk?.summary,
+    report.riskSummary,
+    firstRisk ? [reportItemTitle(firstRisk), reportItemDetail(firstRisk), firstRisk.severity, firstRisk.whatToMonitor, firstRisk.thesisBreaker].filter(Boolean).join(" — ") : "",
+    report.decision?.exitThesis
+  ]);
+}
+
+function investmentCompactSummary(report = {}) {
+  return firstUsefulText([
+    report.decision?.rationale,
+    report.recommendation?.rationale,
+    report.recommendation?.reason,
+    report.valuationSelectionReason
+  ]);
+}
+
+function firstUsefulText(values = []) {
+  for (const value of values.flat()) {
+    const text = localizedExternalText(value).trim();
+    if (text) return text;
+  }
+  return "";
 }
 
 function compactEvidenceNavigator(report = {}) {
@@ -1794,7 +1842,7 @@ function compactEvidenceList(items = [], emptyLabel = "") {
 
 function reportItemTitle(item) {
   if (typeof item === "string") return localizedExternalText(item);
-  return localizedExternalText(item.title || item.name || item.metric || item.summary || item.text || uiLabel("Item"));
+  return localizedExternalText(item?.title || item?.arabicName || item?.name || item?.metric || item?.summary || item?.text || "");
 }
 
 function reportItemDetail(item) {
@@ -1912,6 +1960,21 @@ function externalDetail(title, body, open = false) {
       <summary>${escapeHtml(title)}</summary>
       <div>${body || `<p class="muted">${uiLabel("Not provided in the imported analysis.")}</p>`}</div>
     </details>
+  `;
+}
+
+function latestEarningsExecutionCard(body = "") {
+  return `
+    <section class="latest-earnings-card">
+      <header>
+        <strong>${uiLabel("Latest Earnings Execution")}</strong>
+        <button class="compact-inline-action" data-action="copy-new-earnings-prompt">${uiLabel("تحليل إعلان جديد")}</button>
+      </header>
+      <details class="report-detail">
+        <summary>${uiLabel("Show details")}</summary>
+        <div>${body || `<p class="muted">${uiLabel("Not provided in the imported analysis.")}</p>`}</div>
+      </details>
+    </section>
   `;
 }
 
@@ -2252,7 +2315,6 @@ function investmentDataTableArea(report = {}) {
     }
   ];
   if (!panels.length) return "";
-  const name = `investment-data-${String(report.id || report.company?.ticker || "report").replace(/[^a-z0-9_-]/gi, "-")}`;
   return `
     <section class="investment-data-area">
       <header class="investment-data-head">
@@ -2260,15 +2322,17 @@ function investmentDataTableArea(report = {}) {
           <p class="eyebrow">${uiLabel("Investment Data")}</p>
           <h3>${uiLabel("Compare / Monitor / Decide")}</h3>
         </div>
+        <label class="compact-data-select-label">
+          <span>${uiLabel("View")}</span>
+          <select class="compact-data-select" data-investment-data-select aria-label="${uiLabel("Investment Data")}">
+            ${panels.map((panel, index) => `<option value="${escapeHtml(panel.key)}" ${index === 0 ? "selected" : ""}>${escapeHtml(panel.label)}</option>`).join("")}
+          </select>
+        </label>
       </header>
-      <div class="data-view-tabs" role="tablist" aria-label="${uiLabel("Investment Data")}">
-        ${panels.map((panel, index) => `
-          <input type="radio" name="${escapeHtml(name)}" id="${escapeHtml(name)}-${panel.key}" ${index === 0 ? "checked" : ""}>
-          <label for="${escapeHtml(name)}-${panel.key}">${escapeHtml(panel.label)}</label>
-        `).join("")}
+      <div class="data-view-tabs compact-data-selector" aria-label="${uiLabel("Investment Data")}">
         <div class="data-view-panels">
-          ${panels.map((panel) => `
-            <section class="data-view-panel data-view-panel-${panel.key}">
+          ${panels.map((panel, index) => `
+            <section class="data-view-panel data-view-panel-${panel.key} ${index === 0 ? "active" : ""}" data-data-view-panel="${escapeHtml(panel.key)}">
               ${panel.body}
             </section>
           `).join("")}
@@ -2364,13 +2428,26 @@ function companyKpisTableView(kpis = []) {
       { value: importanceLabel(item.importance), dir: "auto" },
       { value: kpiCategoryLabel(item.category), dir: "auto" }
     ],
-    detail: paragraphBlock([item.interpretation])
+    detail: paragraphBlock([item.interpretation, kpiSourceText(item)])
   }));
   return compactFinancialTable({
     caption: uiLabel("Company KPIs"),
     columns: [uiLabel("Current"), uiLabel("Trend"), uiLabel("Importance"), uiLabel("Category")],
     rows
   });
+}
+
+function kpiSourceText(item = {}) {
+  const source = item.sourceName || item.source;
+  const url = item.sourceUrl;
+  const date = item.sourceDate;
+  if (!source && !url && !date) return "";
+  return [
+    source ? `${uiLabel("Source")}: ${source}` : "",
+    item.sourceType ? `${uiLabel("Type")}: ${item.sourceType}` : "",
+    date ? `${uiLabel("Updated")}: ${date}` : "",
+    url ? `${uiLabel("URL")}: ${url}` : ""
+  ].filter(Boolean).join(" — ");
 }
 
 function compactFinancialTable({ caption, columns = [], rows = [] } = {}) {
@@ -4903,7 +4980,17 @@ function bind(root, store, actions) {
     const tickerHint = root.querySelector("[data-external-ticker-hint]")?.value || "";
     copyExternalAnalysisPrep(store, "template", tickerHint);
   });
-  root.querySelector("[data-action='copy-new-earnings-prompt']")?.addEventListener("click", () => copyNewEarningsAnalysisPrompt(store));
+  root.querySelectorAll("[data-action='copy-new-earnings-prompt']").forEach((button) => {
+    button.addEventListener("click", () => copyNewEarningsAnalysisPrompt(store));
+  });
+  root.querySelectorAll("[data-investment-data-select]").forEach((select) => {
+    select.addEventListener("change", () => {
+      const area = select.closest(".investment-data-area");
+      area?.querySelectorAll("[data-data-view-panel]").forEach((panel) => {
+        panel.classList.toggle("active", panel.dataset.dataViewPanel === select.value);
+      });
+    });
+  });
   root.querySelector("[data-action='copy-missing-requirements']")?.addEventListener("click", () => copyMissingRequirements(store));
   root.querySelector("[data-action='select-copy-fallback']")?.addEventListener("click", () => {
     const textArea = root.querySelector("[data-copy-fallback-text]");
