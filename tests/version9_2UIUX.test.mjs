@@ -53,6 +53,14 @@ assert.ok(components.includes("function externalHistoryPanel"), "History page mu
 assert.ok(components.includes("function externalAnalysisReportView"), "Company Report page must exist.");
 assert.ok(components.includes("data-action=\"copy-new-earnings-prompt\""), "Company Report must expose Analyze New Earnings prompt copy.");
 assert.ok(components.includes("currentNewEarningsAnalysisPrompt"), "Analyze New Earnings must copy from the saved stock report.");
+assert.ok(components.includes("stock-decision-workspace"), "Company Report must use the compact stock-decision workspace.");
+assert.ok(components.includes("function stockDecisionHeader"), "Company Report must start with a compact stock header.");
+assert.ok(components.includes("function latestEarningsWorkspace"), "Company Report must prioritize a Latest Earnings workspace.");
+assert.ok(components.includes("data-action=\"open-earnings-update\""), "Saved reports must expose the earnings update workflow drawer.");
+assert.ok(components.includes("function earningsUpdateDrawer"), "Earnings update workflow drawer must exist.");
+assert.ok(components.includes("data-action=\"prepare-earnings-prompt\""), "Earnings workflow must generate a ChatGPT prompt after pasted earnings text.");
+assert.ok(components.includes("data-action=\"parse-earnings-update-json\""), "Earnings workflow must validate returned JSON locally.");
+assert.ok(components.includes("data-action=\"save-earnings-update\""), "Earnings workflow must save the updated stock report after validation.");
 assert.ok(components.includes("function companyProfileView"), "Company Profile page must exist for imported company profiles.");
 assert.ok(components.includes("data-profile-ticker"), "Saved stock cards must expose a compact Company Profile action.");
 assert.ok(components.includes("event.stopPropagation();"), "Company Profile action must not trigger the stock-report card navigation.");
@@ -64,7 +72,7 @@ assert.ok(components.includes("valuation-method-readable-card"), "Valuation meth
 assert.ok(components.includes("requirementsComparisonView"), "Price target requirements must render as a structured comparison table/dashboard.");
 assert.ok(components.includes("sourcesView(report.sources)"), "Sources must render as clean source cards without raw long URLs.");
 assert.ok(components.includes("score-visual-card"), "Score cards must include visual bars.");
-assert.ok(components.includes("report-v2-header"), "Company Report must use the V2 report-first header.");
+assert.ok(components.includes("stock-decision-header"), "Company Report must use the compact decision-first header.");
 assert.ok(components.includes("Investment Verdict"), "Report must contain the investment verdict section.");
 assert.ok(components.includes("Raw Analysis"), "Report must keep raw analysis available but secondary.");
 assert.ok(components.includes("function analystBrainPastePanel"), "Paste Input screen must exist.");
@@ -115,6 +123,11 @@ assert.ok(styles.includes(".company-profile-shell"), "Company Profile page style
 assert.ok(styles.includes(".valuation-method-readable-card"), "Readable valuation-method card styles must exist.");
 assert.ok(styles.includes(".requirements-comparison-mobile"), "Mobile requirement comparison rows must exist.");
 assert.ok(styles.includes(".source-readable-card"), "Clean source card styles must exist.");
+assert.ok(styles.includes("--font-xs: 11px"), "Report design tokens must define a fixed typography scale.");
+assert.ok(styles.includes(".stock-decision-header"), "Compact stock-decision header styles must exist.");
+assert.ok(styles.includes(".stock-score-bar"), "Compact investment score bar styles must exist.");
+assert.ok(styles.includes(".earnings-update-sheet"), "Earnings update drawer styles must exist.");
+assert.ok(styles.includes(".fair-value-scenarios"), "Fair Value scenarios must use compact prominent layout styles.");
 
 assert.ok(language.includes("أسهمي"), "Arabic My Stocks positioning must be localized.");
 assert.ok(language.includes("عن الشركة"), "Company Profile label must be localized in Arabic.");
@@ -131,6 +144,10 @@ assert.ok(storeSource.includes("applyImportContextHints(parsed.report, { tickerH
 assert.ok(storeSource.includes("if (!tickerHint || report.company?.ticker) return report;"), "Ticker hint must never overwrite a ticker already present in the report.");
 assert.ok(storeSource.includes("currentFullAnalysisPrompt"), "Store must expose the official full-analysis prompt.");
 assert.ok(storeSource.includes("currentExternalAnalysisJsonTemplate"), "Store must expose the blank JSON Template.");
+assert.ok(storeSource.includes("createEarningsUpdateState"), "Store must keep local-only earnings update workflow state.");
+assert.ok(storeSource.includes("prepareEarningsUpdatePrompt"), "Store must build the local ChatGPT earnings update prompt.");
+assert.ok(storeSource.includes("parseExternalAnalysisInput(rawText)"), "Structured earnings JSON import must work locally without an OpenAI call.");
+assert.ok(storeSource.includes("saveEarningsUpdate"), "Store must save the validated earnings update report.");
 assert.ok(chatgptContract.includes("buildFullAnalysisPrompt"), "ChatGPT contract prompt builder must exist.");
 assert.ok(chatgptContract.includes("buildExternalAnalysisJsonTemplate"), "ChatGPT contract JSON template builder must exist.");
 assert.ok(chatgptContract.includes("buildNewEarningsAnalysisPrompt"), "ChatGPT contract must build the new earnings prompt locally.");

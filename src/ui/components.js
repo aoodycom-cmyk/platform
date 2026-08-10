@@ -1494,57 +1494,34 @@ function externalAnalysisReportView(state) {
   const history = state.externalAnalyses?.[report.company?.ticker] || [];
   const requirementSets = state.historicalRequirementSets?.[report.company?.ticker] || [];
   const completion = reportWithCompletion.completionStatus;
-  const hasPreviousEvaluation = (report.previousRequirementsEvaluation?.requirements || []).length > 0;
-  const averageCost = numericValue(report.market?.userAverageCost);
   const ticker = report.company?.ticker || "-";
-  const companyName = report.company?.name || ticker;
   return `
-    <section class="external-report-shell external-report-v2">
+    <section class="external-report-shell external-report-v2 stock-decision-workspace">
       ${reportSavedBanner(state.notice, report)}
-      <header id="stock-report-top" class="external-report-hero panel report-v2-header">
-        <div>
-          <p class="eyebrow">${uiLabel("Company Report")}</p>
-          <h2 dir="ltr">${escapeHtml(ticker)}</h2>
-          <strong class="report-company-name">${escapeHtml(companyName)}</strong>
-          <p>${uiLabel("Analysis Date")}: ${escapeHtml(report.analysisDate || "-")} / ${uiLabel("Report Period")}: ${escapeHtml(report.reportPeriod || "-")}</p>
-          <div class="report-meta-line">
-            <span>${uiLabel("Price at Analysis")}: ${money(report.market?.priceAtAnalysis, 2)}</span>
-            <span>${uiLabel("Current Price")}: ${money(report.market?.currentPrice ?? report.market?.priceAtAnalysis, 2)}</span>
-            ${Number.isFinite(averageCost) ? `<span>${uiLabel("Average Cost")}: ${money(averageCost, 2)}</span>` : ""}
-          </div>
-        </div>
-        <div class="external-verdict-card report-verdict-card ${completionStatusClass(completion.status)}">
-          <span>${uiLabel("Verdict")}</span>
-          <strong>${escapeHtml(localizedExternalText(externalRecommendationAction(report)) || "-")}</strong>
-          <small>${externalRecommendationConfidence(report)}</small>
-        </div>
-      </header>
-      <section class="report-v2-stack report-dashboard-stack">
-        ${reportGroup(uiLabel("Investment Decision Section"), `
-          ${reportDecisionStrip(reportWithCompletion, completion)}
-          <section class="valuation-summary-grid report-v2-fair-grid">
-            ${valuationSummaryItem("Bear", report.fairValue?.bear, report.market?.priceAtAnalysis)}
-            ${valuationSummaryItem("Base", report.fairValue?.base, report.market?.priceAtAnalysis)}
-            ${valuationSummaryItem("Bull", report.fairValue?.bull, report.market?.priceAtAnalysis)}
-          </section>
-          ${compactThesisView(report)}
-          ${compactScoreRowsView(report)}
-        `, uiLabel("Decision Dashboard"))}
-        ${reportGroup(uiLabel("Investment Data"), `
-          ${investmentDataTableArea(report)}
-          ${hasPreviousEvaluation ? latestEarningsExecutionCard(previousRequirementExecutionView(report.previousRequirementsEvaluation)) : externalDetail(uiLabel("Latest Earnings Execution"), requirementsAssessmentView(report.requirementsAssessment, report.priceTargetRequirements))}
-        `, uiLabel("Compare / Monitor / Decide"), "report-group-target")}
-        ${reportGroup(uiLabel("Evidence"), `
-          ${compactEvidenceNavigator(report)}
-        `, uiLabel("Evidence"), "report-group-evidence")}
-        ${reportGroup(uiLabel("History and Sources"), `
+      ${stockDecisionHeader(reportWithCompletion, completion)}
+      <section class="stock-decision-flow">
+        ${stockSection(uiLabel("الخلاصة الاستثمارية"), investmentSummaryWorkspace(report))}
+        ${stockScoreBar(report)}
+        ${latestEarningsWorkspace(report)}
+        ${stockSection(uiLabel("Quality"), compactQualityWorkspace(report))}
+        ${stockSection(uiLabel("Growth"), compactGrowthWorkspace(report))}
+        ${stockSection(uiLabel("Financial Highlights"), financialHighlightsDashboard(report))}
+        ${stockSection(uiLabel("Fair Value and Next Target"), fairValueDashboard(report))}
+        ${stockSection(uiLabel("Valuation Methods"), valuationMethodsDashboard(report))}
+        ${stockSection(uiLabel("Scenarios"), scenariosDashboard(report))}
+        ${stockSection(uiLabel("Strengths & Risks"), strengthsRisksDashboard(report))}
+        ${stockSection(uiLabel("Catalysts"), catalystsDashboard(report))}
+        ${stockSection(uiLabel("Requirements to Justify Next Price Target"), priceTargetRequirementsView(report.priceTargetRequirements, { compact: true }) || emptyDashboardState(uiLabel("No saved price target requirements.")))}
+        ${stockSection(uiLabel("Monitoring Checklist"), monitoringChecklistDashboard(report))}
+        ${stockSection(uiLabel("Investment Verdict"), finalDecisionDashboard(report))}
+        ${stockSection(uiLabel("History and Sources"), `
           ${compactTechnicalDetails(reportWithCompletion, completion, history, requirementSets)}
           ${externalDetail(uiLabel("Raw Analysis"), `<pre class="raw-analysis">${escapeHtml(report.rawAnalysisOriginal || report.rawAnalysis || "")}</pre>`)}
-        `, uiLabel("Section 8"), "report-group-technical")}
+        `)}
       </section>
       <section class="panel external-report-actions">
         <button class="primary-btn" data-action="add-external-analysis-for-ticker" data-external-ticker="${escapeHtml(ticker)}">${uiLabel("Add New Analysis")}</button>
-        <button class="primary-btn" data-action="copy-new-earnings-prompt">${uiLabel("Analyze New Earnings")}</button>
+        <button class="primary-btn" data-action="open-earnings-update">${uiLabel("Analyze New Earnings")}</button>
         <button class="icon-btn" data-panel="home">${uiLabel("Back to My Stocks")}</button>
         <button class="icon-btn" data-action="export-external-json">${uiLabel("Export JSON")}</button>
         <button class="icon-btn" data-action="print-external-report">${uiLabel("Print Report")}</button>
@@ -1552,7 +1529,474 @@ function externalAnalysisReportView(state) {
         <button class="icon-btn danger-action" data-action="delete-external-report" data-external-ticker="${escapeHtml(ticker)}" data-external-report-id="${escapeHtml(report.id)}">${uiLabel("Delete version")}</button>
         <button class="icon-btn danger-action" data-action="delete-external-ticker" data-external-ticker="${escapeHtml(ticker)}">${uiLabel("Delete all analyses for ticker")}</button>
       </section>
+      ${earningsUpdateDrawer(state)}
     </section>
+  `;
+}
+
+function stockDecisionHeader(report = {}, completion = {}) {
+  const ticker = report.company?.ticker || "-";
+  const companyName = report.company?.name || ticker;
+  const action = externalRecommendationAction(report);
+  const base = report.fairValue?.base;
+  const current = report.market?.currentPrice ?? report.market?.priceAtAnalysis;
+  const upside = report.fairValue?.upsideToBasePct;
+  const averageCost = numericValue(report.market?.userAverageCost);
+  return `
+    <header id="stock-report-top" class="panel stock-decision-header">
+      <div class="stock-title-block">
+        <p class="eyebrow">${uiLabel("Company Report")}</p>
+        <h2 dir="ltr">${escapeHtml(ticker)}</h2>
+        <strong>${escapeHtml(companyName)}</strong>
+        <span>${uiLabel("Analysis Date")}: ${escapeHtml(report.analysisDate || "-")} / ${uiLabel("Report Period")}: ${escapeHtml(report.reportPeriod || "-")}</span>
+      </div>
+      <div class="stock-decision-badge ${colorClass(recommendationColorCategory(action), "tone")}">
+        <span>${uiLabel("Recommendation")}</span>
+        <strong>${escapeHtml(localizedExternalText(action) || "-")}</strong>
+        <em>${externalRecommendationConfidence(report)}</em>
+      </div>
+      <div class="stock-summary-strip">
+        ${stockSummaryMetric(uiLabel("Price at Analysis"), money(report.market?.priceAtAnalysis, 2))}
+        ${stockSummaryMetric(uiLabel("Current Price"), money(current, 2))}
+        ${Number.isFinite(averageCost) ? stockSummaryMetric(uiLabel("Average Cost"), money(averageCost, 2)) : ""}
+        ${stockSummaryMetric(uiLabel("Base Fair Value"), money(base, 0), "featured")}
+        ${stockSummaryMetric(uiLabel("Upside"), formatExternalPercent(upside), upsideColorCategory(numericValue(upside)))}
+        ${stockSummaryMetric(uiLabel("Data Health"), `${boundedPercent(completion.completionPct)}%`, completionStatusClass(completion.status))}
+      </div>
+    </header>
+  `;
+}
+
+function stockSummaryMetric(label, value, tone = "neutral") {
+  return `<article class="stock-summary-metric ${escapeHtml(tone)}"><span>${escapeHtml(label)}</span><strong dir="ltr">${escapeHtml(String(value || "—"))}</strong></article>`;
+}
+
+function stockSection(title, body) {
+  if (!hasRenderableContent(body)) return "";
+  return `
+    <section class="panel stock-report-section">
+      <header><h3>${escapeHtml(title)}</h3></header>
+      <div>${body}</div>
+    </section>
+  `;
+}
+
+function investmentSummaryWorkspace(report = {}) {
+  const thesis = firstUsefulText([
+    report.thesis?.shortSummary,
+    report.decision?.rationale,
+    report.recommendation?.reason,
+    report.thesis?.fullSummary
+  ]);
+  return `
+    <div class="investment-summary-workspace">
+      <p>${escapeHtml(shortText(thesis || uiLabel("Not provided in the imported analysis."), 520))}</p>
+      <div class="summary-evidence-row">
+        ${miniEvidence(uiLabel("Decision"), localizedExternalText(externalRecommendationAction(report)) || "-")}
+        ${miniEvidence(uiLabel("Base Fair Value"), money(report.fairValue?.base, 0))}
+        ${miniEvidence(uiLabel("Risk"), scoreText(report.scores?.risk, 1))}
+      </div>
+    </div>
+  `;
+}
+
+function stockScoreBar(report = {}) {
+  const metrics = [
+    [financialTerm("Quality"), report.scores?.quality],
+    [financialTerm("Growth"), report.scores?.growth],
+    [uiLabel("Valuation"), report.scores?.valuation],
+    [financialTerm("Risk"), report.scores?.risk],
+    [uiLabel("Investment Score"), report.scores?.overall]
+  ];
+  return `
+    <section class="stock-score-bar" aria-label="${uiLabel("Investment Score")}">
+      ${metrics.map(([label, value]) => scoreBarItem(label, value)).join("")}
+    </section>
+  `;
+}
+
+function scoreBarItem(label, value) {
+  const score = numericValue(value);
+  const pct = Number.isFinite(score) ? Math.max(0, Math.min(100, score * 10)) : 0;
+  return `
+    <article class="${scoreToneClass(score)}">
+      <span>${escapeHtml(label)}</span>
+      <strong dir="ltr">${scoreText(value, 1)}</strong>
+      <i><b style="width:${pct}%"></b></i>
+    </article>
+  `;
+}
+
+function latestEarningsWorkspace(report = {}) {
+  const previous = report.previousRequirementsEvaluation;
+  const hasPreviousEvaluation = (previous?.requirements || []).length > 0;
+  const rows = earningsSnapshotRows(report);
+  const hasGuidance = hasRenderableContent(guidanceTableView(report));
+  if (!hasPreviousEvaluation && !rows.length && !hasGuidance) {
+    return stockSection(uiLabel("Latest Earnings Execution"), `
+      <div class="earnings-empty-state">
+        <strong>${uiLabel("لم يتم تحديث السهم بعد آخر إعلان أرباح.")}</strong>
+        <p>${uiLabel("استخدم هذا المسار لإرسال المتطلبات المحفوظة ومواد الأرباح إلى ChatGPT ثم استيراد JSON الناتج.")}</p>
+        <button class="primary-btn" data-action="open-earnings-update">${uiLabel("تحديث من إعلان أرباح جديد")}</button>
+      </div>
+    `);
+  }
+  return stockSection(uiLabel("Latest Earnings Execution"), `
+    <div class="earnings-dashboard">
+      <div class="earnings-dashboard-head">
+        <div>
+          <p class="eyebrow">${escapeHtml(report.reportPeriod || report.analysisDate || "")}</p>
+          <h3>${uiLabel("ماذا تغير بعد آخر إعلان؟")}</h3>
+        </div>
+        <button class="compact-inline-action" data-action="open-earnings-update">${uiLabel("تحديث من إعلان أرباح جديد")}</button>
+      </div>
+      ${rows.length ? metricRows(rows) : ""}
+      ${hasPreviousEvaluation ? externalDetail(uiLabel("Earnings Requirement Results"), previousRequirementExecutionView(previous), true) : ""}
+      ${hasGuidance ? externalDetail(uiLabel("Guidance"), guidanceTableView(report)) : ""}
+    </div>
+  `);
+}
+
+function earningsSnapshotRows(report = {}) {
+  const highlights = report.financialHighlights || {};
+  const growth = report.growthHighlights || {};
+  return [
+    [financialTerm("Revenue"), highlights.revenue],
+    [uiLabel("Revenue Growth"), highlights.revenueGrowthPct ?? growth.revenueGrowth],
+    [financialTerm("EPS"), highlights.epsNormalized ?? highlights.epsReported ?? growth.epsGrowth],
+    [financialTerm("Operating Margin"), highlights.operatingMarginPct ?? growth.marginTrend],
+    [financialTerm("Free Cash Flow"), highlights.freeCashFlow],
+    [uiLabel("Guidance"), firstGuidanceValue(report)]
+  ].filter(([, value]) => value !== null && value !== undefined && value !== "");
+}
+
+function firstGuidanceValue(report = {}) {
+  const next = report.nextQuarterGuidance?.items?.[0];
+  if (next) return `${next.arabicTopic || next.topic || uiLabel("Guidance")}: ${formatAnyValue(next.guidance)}`;
+  const current = Array.isArray(report.guidance) ? report.guidance[0] : null;
+  if (!current) return "";
+  if (typeof current === "string") return current;
+  return `${current.arabicTopic || current.topic || current.title || uiLabel("Guidance")}: ${formatAnyValue(current.currentGuidance || current.guidance || current.value)}`;
+}
+
+function metricRows(rows = []) {
+  return `
+    <div class="compact-metric-rows">
+      ${rows.map(([label, value]) => `
+        <div>
+          <span>${escapeHtml(label)}</span>
+          <strong dir="ltr">${escapeHtml(formatAnyValue(value))}</strong>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function compactQualityWorkspace(report = {}) {
+  const rows = [
+    [financialTerm("Quality"), scoreText(report.scores?.quality, 1)],
+    [uiLabel("Economic Moat"), report.quality?.moat],
+    [uiLabel("Profitability"), report.quality?.profitability],
+    [uiLabel("Balance Sheet"), report.quality?.balanceSheet],
+    [uiLabel("Earnings Quality"), report.earningsQuality?.status || report.quality?.earningsQuality]
+  ].filter(([, value]) => !isEmptyDisplayValue(value));
+  return `
+    ${metricRows(rows)}
+    ${paragraphBlock([qualityCompactSummary(report)])}
+    ${report.quality?.strengths?.length ? externalDetail(uiLabel("Key Strengths"), compactEvidenceList(report.quality.strengths)) : ""}
+  `;
+}
+
+function compactGrowthWorkspace(report = {}) {
+  const growth = report.growthHighlights || {};
+  const rows = [
+    [financialTerm("Growth"), scoreText(report.scores?.growth, 1)],
+    [uiLabel("Revenue Growth"), growth.revenueGrowth || report.financialHighlights?.revenueGrowthPct],
+    [uiLabel("EPS Growth"), growth.epsGrowth],
+    [uiLabel("FCF Growth"), growth.fcfGrowth],
+    [uiLabel("Margin Trend"), growth.marginTrend]
+  ].filter(([, value]) => !isEmptyDisplayValue(value));
+  return `
+    ${metricRows(rows)}
+    ${paragraphBlock([growthCompactSummary(report)])}
+    ${report.companySpecificKpis?.length ? externalDetail(uiLabel("Company KPIs"), companyKpisTableView(report.companySpecificKpis)) : ""}
+  `;
+}
+
+function financialHighlightsDashboard(report = {}) {
+  return financialPerformanceTableView(report) || emptyDashboardState(uiLabel("Not provided in the imported analysis."));
+}
+
+function fairValueDashboard(report = {}) {
+  const current = report.market?.currentPrice ?? report.market?.priceAtAnalysis;
+  return `
+    <div class="fair-value-dashboard">
+      <div class="fair-value-scenarios">
+        ${fairValueScenario("Bear", report.fairValue?.bear, current)}
+        ${fairValueScenario("Base", report.fairValue?.base, current, true)}
+        ${fairValueScenario("Bull", report.fairValue?.bull, current)}
+      </div>
+      <div class="fair-value-context">
+        ${miniEvidence(uiLabel("Current Price"), money(current, 2))}
+        ${miniEvidence(uiLabel("Weighted Fair Value"), money(report.fairValue?.weightedFairValue, 0))}
+        ${miniEvidence(uiLabel("Upside"), formatExternalPercent(report.fairValue?.upsideToBasePct))}
+      </div>
+    </div>
+  `;
+}
+
+function fairValueScenario(label, value, currentPrice, featured = false) {
+  const upside = Number.isFinite(numericValue(value)) && Number.isFinite(numericValue(currentPrice))
+    ? ((numericValue(value) - numericValue(currentPrice)) / numericValue(currentPrice)) * 100
+    : null;
+  return `
+    <article class="fair-value-scenario ${featured ? "featured" : ""} valuation-card-${label.toLowerCase()}">
+      <span>${escapeHtml(uiLabel(`${label} Scenario Label`))}</span>
+      <strong dir="ltr">${money(value, 0)}</strong>
+      <em dir="ltr">${Number.isFinite(upside) ? formatExternalPercent(upside) : "—"}</em>
+    </article>
+  `;
+}
+
+function valuationMethodsDashboard(report = {}) {
+  const rows = Object.entries(report.valuationMethods || {})
+    .map(([key, value]) => normalizeValuationMethodForDisplay(key, value))
+    .filter(Boolean);
+  if (!rows.length) return valuationMethodSummaryView(report) || emptyDashboardState(uiLabel("Not provided in the imported analysis."));
+  return compactFinancialTable({
+    caption: uiLabel("Valuation Methods Used"),
+    columns: [uiLabel("Role"), uiLabel("Output Value"), uiLabel("Weight"), uiLabel("Confidence")],
+    rows: rows.map((row) => ({
+      label: humanValuationMethodLabel(row.method || row.key),
+      cells: [
+        { value: valuationRoleLabel(row.role) },
+        { value: formatValuationFairValue(row.fairValue), dir: "ltr" },
+        { value: formatNullablePercent(row.weight), dir: "ltr" },
+        { value: formatNullablePercent(row.confidence), dir: "ltr" }
+      ],
+      detail: paragraphBlock([row.explanation, row.limitation])
+    }))
+  });
+}
+
+function scenariosDashboard(report = {}) {
+  const scenarios = normalizeScenarioRows(report);
+  if (!scenarios.length) return emptyDashboardState(uiLabel("Not provided in the imported analysis."));
+  return compactFinancialTable({
+    caption: "Bear / Base / Bull",
+    columns: [uiLabel("Fair Value"), uiLabel("Upside"), uiLabel("Probability"), uiLabel("Thesis Status")],
+    rows: scenarios.map((scenario) => ({
+      label: scenario.label,
+      cells: [
+        { value: money(scenario.fairValue, 0), dir: "ltr" },
+        { value: formatExternalPercent(scenario.upside), dir: "ltr" },
+        { value: formatNullablePercent(scenario.probability), dir: "ltr" },
+        { value: scenario.status || "—" }
+      ],
+      detail: paragraphBlock([scenario.thesis, scenario.assumptions, scenario.keyRisks])
+    }))
+  });
+}
+
+function normalizeScenarioRows(report = {}) {
+  const raw = report.scenarios || {};
+  const fallback = [
+    ["Bear", report.fairValue?.bear, report.fairValue?.downsideToBearPct],
+    ["Base", report.fairValue?.base, report.fairValue?.upsideToBasePct],
+    ["Bull", report.fairValue?.bull, report.fairValue?.upsideToBullPct]
+  ];
+  const rows = Object.entries(raw || {}).map(([key, scenario]) => ({
+    label: humanValuationMethodLabel(key).replace("تقييم ", "") || key,
+    fairValue: scenario?.fairValue ?? scenario?.value,
+    upside: scenario?.upsideDownsidePercent ?? scenario?.upside,
+    probability: scenario?.probability,
+    status: scenario?.enabled === false ? uiLabel("Not Applicable") : "",
+    thesis: scenario?.thesis,
+    assumptions: scenario?.assumptions || scenario?.requiredOutcomes,
+    keyRisks: scenario?.keyRisks
+  })).filter((item) => !isEmptyDisplayValue(item.fairValue) || !isEmptyDisplayValue(item.thesis));
+  return rows.length ? rows : fallback
+    .filter(([, value]) => Number.isFinite(numericValue(value)))
+    .map(([label, fairValue, upside]) => ({ label, fairValue, upside, probability: null }));
+}
+
+function strengthsRisksDashboard(report = {}) {
+  return strengthsRisksSummaryView(report) || emptyDashboardState(uiLabel("Not provided in the imported analysis."));
+}
+
+function catalystsDashboard(report = {}) {
+  const catalysts = Array.isArray(report.catalysts) ? report.catalysts : [];
+  if (!catalysts.length) return emptyDashboardState(uiLabel("Not provided in the imported analysis."));
+  return compactEvidenceList(catalysts);
+}
+
+function monitoringChecklistDashboard(report = {}) {
+  const items = Array.isArray(report.monitoringChecklist) && report.monitoringChecklist.length
+    ? report.monitoringChecklist
+    : report.watchItems || [];
+  if (!items.length) return emptyDashboardState(uiLabel("Not provided in the imported analysis."));
+  return compactEvidenceList(items);
+}
+
+function finalDecisionDashboard(report = {}) {
+  return `
+    ${externalRecommendationView(report)}
+    ${recommendationConditionsView(report) ? externalDetail(uiLabel("Recommendation Upgrade / Downgrade Conditions"), recommendationConditionsView(report)) : ""}
+  `;
+}
+
+function miniEvidence(label, value) {
+  return `<span><b>${escapeHtml(label)}</b><strong dir="ltr">${escapeHtml(formatAnyValue(value))}</strong></span>`;
+}
+
+function emptyDashboardState(text) {
+  return `<p class="compact-empty-state">${escapeHtml(text)}</p>`;
+}
+
+function isEmptyDisplayValue(value) {
+  if (value === null || value === undefined) return true;
+  if (typeof value === "string") return value.trim() === "" || value === "—" || value === "-";
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return false;
+}
+
+function earningsUpdateDrawer(state) {
+  const workflow = state.earningsUpdate || {};
+  if (!workflow.open) return "";
+  const report = getExternalAnalysis(state.externalAnalyses || {}, state.externalReportSelection?.ticker, state.externalReportSelection?.reportId);
+  const ticker = report?.company?.ticker || workflow.ticker || "-";
+  return `
+    <section class="earnings-update-overlay" role="dialog" aria-modal="true" aria-label="${uiLabel("Analyze New Earnings")}">
+      <div class="earnings-update-sheet">
+        <header class="earnings-update-head">
+          <div>
+            <p class="eyebrow" dir="ltr">${escapeHtml(ticker)}</p>
+            <h3>${uiLabel("Analyze New Earnings")}</h3>
+            <span>${uiLabel("Franklin يجهّز النقل فقط. ChatGPT يحلل، وFranklin يحفظ JSON الناتج.")}</span>
+          </div>
+          <button class="icon-btn" data-action="close-earnings-update">${uiLabel("Cancel")}</button>
+        </header>
+        <div class="earnings-update-steps">
+          ${earningsStepPill("1", uiLabel("Paste"), workflow.step === 1)}
+          ${earningsStepPill("2", uiLabel("Prompt"), workflow.step === 2)}
+          ${earningsStepPill("3", uiLabel("JSON"), workflow.step === 3 || workflow.step === "preview")}
+          ${earningsStepPill("4", uiLabel("Save"), workflow.step === "success")}
+        </div>
+        ${earningsUpdateStepBody(workflow, report, state)}
+      </div>
+    </section>
+  `;
+}
+
+function earningsStepPill(number, label, active) {
+  return `<span class="${active ? "active" : ""}"><b>${escapeHtml(number)}</b>${escapeHtml(label)}</span>`;
+}
+
+function earningsUpdateStepBody(workflow = {}, report = {}, state = {}) {
+  if (workflow.step === "success") return earningsUpdateSuccess(workflow);
+  if (workflow.step === "preview") return earningsUpdatePreview(workflow, state);
+  if (workflow.step === 2) return earningsPromptStep(workflow);
+  return workflow.step === 3 ? earningsJsonStep(workflow, state) : earningsPasteStep(workflow, report);
+}
+
+function earningsPasteStep(workflow = {}, report = {}) {
+  return `
+    <div class="earnings-update-body">
+      <h4>${uiLabel("أضف تقرير الأرباح")}</h4>
+      <p>${uiLabel("الصق نص إعلان الأرباح أو أهم مقتطفات 10-Q أو مكالمة الإدارة. Franklin سيضعها داخل برومبت جاهز لـ ChatGPT.")}</p>
+      <textarea class="paste-box earnings-paste-box" data-earnings-field="earningsText" placeholder="${uiLabel("الصق مواد إعلان الأرباح هنا.")}">${escapeHtml(workflow.earningsText || "")}</textarea>
+      <div class="earnings-context-strip">
+        ${miniEvidence(uiLabel("Recommendation"), localizedExternalText(externalRecommendationAction(report)) || "-")}
+        ${miniEvidence(uiLabel("Base Fair Value"), money(report?.fairValue?.base, 0))}
+        ${miniEvidence(uiLabel("Requirements"), String(report?.priceTargetRequirements?.requirements?.length || 0))}
+      </div>
+      <div class="earnings-update-actions">
+        <button class="primary-btn" data-action="prepare-earnings-prompt">${uiLabel("Next")}</button>
+        <button class="icon-btn" data-action="close-earnings-update">${uiLabel("Cancel")}</button>
+      </div>
+    </div>
+  `;
+}
+
+function earningsPromptStep(workflow = {}) {
+  const prompt = workflow.generatedPrompt || "";
+  return `
+    <div class="earnings-update-body">
+      <h4>${uiLabel("أرسل التقرير إلى ChatGPT")}</h4>
+      <p>${uiLabel("انسخ هذا البرومبت وأرسله إلى ChatGPT. يحتوي على المتطلبات القديمة وقالب JSON الذي يعرف Franklin استيراده.")}</p>
+      <textarea class="paste-box earnings-prompt-box" readonly data-earnings-generated-prompt>${escapeHtml(prompt)}</textarea>
+      <div class="earnings-update-actions">
+        <button class="primary-btn" data-action="copy-earnings-update-prompt">${uiLabel("نسخ برومبت تحديث الأرباح")}</button>
+        <button class="icon-btn" data-earnings-step="3">${uiLabel("الصق نتيجة ChatGPT")}</button>
+      </div>
+    </div>
+  `;
+}
+
+function earningsJsonStep(workflow = {}, state = {}) {
+  return `
+    <div class="earnings-update-body">
+      <h4>${uiLabel("الصق نتيجة ChatGPT")}</h4>
+      <p>${uiLabel("الصق JSON الناتج كما هو. Franklin سيفحصه محليًا ثم يعرض ملخص التحديث قبل الحفظ.")}</p>
+      <textarea class="paste-box earnings-json-box" data-earnings-field="responseText" placeholder="${uiLabel("Paste completed ChatGPT analysis or ExternalAnalysisReport JSON here.")}">${escapeHtml(workflow.responseText || "")}</textarea>
+      ${workflow.validation?.errors?.length ? validationList(uiLabel("Validation Errors"), workflow.validation.errors, "negative") : ""}
+      <div class="earnings-update-actions">
+        <button class="primary-btn" data-action="parse-earnings-update-json" ${state.loading ? "disabled" : ""}>${state.loading ? uiLabel("Parsing") : uiLabel("فحص JSON")}</button>
+        <button class="icon-btn" data-earnings-step="2">${uiLabel("Back")}</button>
+      </div>
+    </div>
+  `;
+}
+
+function earningsUpdatePreview(workflow = {}, state = {}) {
+  const preview = workflow.preview || {};
+  const changes = preview.changes || [];
+  return `
+    <div class="earnings-update-body">
+      <h4>${uiLabel("معاينة تحديث السهم")}</h4>
+      <div class="preview-summary earnings-preview-summary">
+        ${missingStat(uiLabel("fields to update"), preview.fieldsToUpdate || 0)}
+        ${missingStat(uiLabel("new fields"), preview.newFields || 0)}
+        ${missingStat(uiLabel("updated fields"), preview.updatedFields || 0)}
+        ${missingStat(uiLabel("missing/non-existing fields"), preview.missingOrInvalidFields || 0)}
+      </div>
+      ${changes.length ? `
+        <div class="earnings-change-list">
+          ${changes.map((item) => `
+            <article>
+              <span>${escapeHtml(item.label)}</span>
+              <small dir="ltr">${escapeHtml(item.path)}</small>
+              <div><em>${escapeHtml(formatAnyValue(item.before))}</em><b>→</b><strong>${escapeHtml(formatAnyValue(item.after))}</strong></div>
+            </article>
+          `).join("")}
+        </div>
+      ` : `<p class="compact-empty-state">${uiLabel("لم تظهر تغييرات مهمة في الحقول الرئيسية. يمكنك الحفظ إذا كان JSON يمثل نسخة أرباح جديدة.")}</p>`}
+      ${workflow.validation?.errors?.length ? validationList(uiLabel("Validation Errors"), workflow.validation.errors, "negative") : ""}
+      <div class="earnings-update-actions">
+        <button class="primary-btn" data-action="save-earnings-update" ${workflow.validation?.valid ? "" : "disabled"}>${uiLabel("تحديث السهم")}</button>
+        <button class="icon-btn" data-earnings-step="3">${uiLabel("Back")}</button>
+      </div>
+    </div>
+  `;
+}
+
+function earningsUpdateSuccess(workflow = {}) {
+  const report = workflow.parsedReport || {};
+  const preview = workflow.preview || {};
+  return `
+    <div class="earnings-update-body success">
+      <h4>${uiLabel("تم تحديث السهم بنجاح")}</h4>
+      <p>${escapeHtml(report.company?.ticker || "")} ${uiLabel("تم حفظ نسخة أرباح جديدة وفتح التقرير المحدّث.")}</p>
+      <div class="preview-summary earnings-preview-summary">
+        ${missingStat(uiLabel("fields to update"), preview.fieldsToUpdate || 0)}
+        ${missingStat(uiLabel("new fields"), preview.newFields || 0)}
+        ${missingStat(uiLabel("updated fields"), preview.updatedFields || 0)}
+      </div>
+      <div class="earnings-update-actions">
+        <button class="primary-btn" data-action="close-earnings-update">${uiLabel("Open Report")}</button>
+      </div>
+    </div>
   `;
 }
 
@@ -4983,6 +5427,29 @@ function bind(root, store, actions) {
   root.querySelectorAll("[data-action='copy-new-earnings-prompt']").forEach((button) => {
     button.addEventListener("click", () => copyNewEarningsAnalysisPrompt(store));
   });
+  root.querySelectorAll("[data-action='open-earnings-update']").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      store.openEarningsUpdate();
+    });
+  });
+  root.querySelector("[data-action='close-earnings-update']")?.addEventListener("click", store.closeEarningsUpdate);
+  root.querySelectorAll("[data-earnings-step]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const step = button.dataset.earningsStep;
+      store.set({ earningsUpdate: { ...store.state.earningsUpdate, step: /^\d+$/.test(step) ? Number(step) : step } });
+    });
+  });
+  root.querySelectorAll("[data-earnings-field]").forEach((input) => {
+    input.addEventListener("input", () => store.updateEarningsUpdateField(input.dataset.earningsField, input.value));
+  });
+  root.querySelector("[data-action='prepare-earnings-prompt']")?.addEventListener("click", store.prepareEarningsUpdatePrompt);
+  root.querySelector("[data-action='copy-earnings-update-prompt']")?.addEventListener("click", () => copyEarningsUpdatePrompt(store));
+  root.querySelector("[data-action='parse-earnings-update-json']")?.addEventListener("click", () => {
+    const text = root.querySelector("[data-earnings-field='responseText']")?.value || "";
+    store.parseEarningsUpdateJson(text);
+  });
+  root.querySelector("[data-action='save-earnings-update']")?.addEventListener("click", store.saveEarningsUpdate);
   root.querySelectorAll("[data-investment-data-select]").forEach((select) => {
     select.addEventListener("change", () => {
       const area = select.closest(".investment-data-area");
@@ -5446,6 +5913,32 @@ async function copyNewEarningsAnalysisPrompt(store) {
         copyFallbackText: text,
         copyFallbackTitle: store.state.language === "ar" ? "انسخ برومبت إعلان الأرباح يدويًا" : "Copy earnings prompt manually",
         copyFallbackAction: "copy-new-earnings-prompt"
+      },
+      notice: store.state.language === "ar"
+        ? "تعذر النسخ تلقائيًا. استخدم النص الظاهر للنسخ اليدوي."
+        : "Automatic copy failed. Use the visible text area to copy manually."
+    });
+  }
+}
+
+async function copyEarningsUpdatePrompt(store) {
+  const text = store.currentEarningsUpdatePrompt?.() || "";
+  if (!text) return;
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+    await navigator.clipboard.writeText(text);
+    store.set({
+      notice: store.state.language === "ar"
+        ? "تم نسخ برومبت تحديث إعلان الأرباح"
+        : "Earnings update prompt copied."
+    });
+  } catch {
+    store.set({
+      externalImport: {
+        ...store.state.externalImport,
+        copyFallbackText: text,
+        copyFallbackTitle: store.state.language === "ar" ? "انسخ برومبت تحديث الأرباح يدويًا" : "Copy earnings update prompt manually",
+        copyFallbackAction: "copy-earnings-update-prompt"
       },
       notice: store.state.language === "ar"
         ? "تعذر النسخ تلقائيًا. استخدم النص الظاهر للنسخ اليدوي."

@@ -94,6 +94,7 @@ export function createStore() {
     externalAnalyses: initialExternalAnalyses,
     historicalRequirementSets: initialHistoricalRequirementSets,
     externalImport: createExternalImportState(),
+    earningsUpdate: createEarningsUpdateState(),
     externalReportSelection: saved.externalReportSelection || null,
     restorePreview: null,
     valuationWorkspace: saved.valuationWorkspace || null,
@@ -495,6 +496,171 @@ export function createStore() {
   function currentNewEarningsAnalysisPrompt() {
     const report = selectedExternalReportFromState();
     return report ? buildNewEarningsAnalysisPrompt(report) : "";
+  }
+
+  function openEarningsUpdate() {
+    const report = selectedExternalReportFromState();
+    if (!report) return;
+    set({
+      earningsUpdate: {
+        ...createEarningsUpdateState(),
+        open: true,
+        step: 1,
+        ticker: report.company?.ticker || "",
+        reportId: report.id || "",
+        generatedPrompt: buildNewEarningsAnalysisPrompt(report)
+      },
+      notice: ""
+    });
+  }
+
+  function closeEarningsUpdate() {
+    set({ earningsUpdate: createEarningsUpdateState(), notice: "" });
+  }
+
+  function updateEarningsUpdateField(field, value) {
+    set({
+      earningsUpdate: {
+        ...state.earningsUpdate,
+        [field]: value
+      }
+    });
+  }
+
+  function prepareEarningsUpdatePrompt() {
+    const report = selectedExternalReportFromState();
+    if (!report) return "";
+    const earningsText = String(state.earningsUpdate?.earningsText || "").trim();
+    const prompt = [
+      buildNewEarningsAnalysisPrompt(report),
+      "",
+      "مواد إعلان الأرباح الجديدة التي ألصقها المستخدم:",
+      earningsText || "- لم يتم لصق مواد أرباح بعد. اطلب من المستخدم تزويدك بتقرير الأرباح أو 10-Q أو نص مكالمة الإدارة قبل إخراج JSON.",
+      "",
+      "تعليمات إضافية لـ Franklin:",
+      "- أخرج JSON واحدًا فقط مطابقًا للقالب أعلاه.",
+      "- لا تضع شرحًا خارج JSON.",
+      "- اجعل كل التفسيرات والسرد باللغة العربية.",
+      "- حافظ على status وweightedAchievement وsummary كما ترى تحليليًا؛ Franklin سيحفظها ويعرضها فقط ولن يعيد حسابها."
+    ].join("\n");
+    set({
+      earningsUpdate: {
+        ...state.earningsUpdate,
+        open: true,
+        step: 2,
+        generatedPrompt: prompt
+      }
+    });
+    return prompt;
+  }
+
+  function currentEarningsUpdatePrompt() {
+    if (state.earningsUpdate?.generatedPrompt) return state.earningsUpdate.generatedPrompt;
+    return prepareEarningsUpdatePrompt();
+  }
+
+  async function parseEarningsUpdateJson(text) {
+    const rawText = String(text || "").trim();
+    const currentReport = selectedExternalReportFromState();
+    if (!currentReport || !rawText) {
+      set({ notice: state.language === "ar" ? "ألصق JSON تحديث الأرباح أولًا." : "Paste the earnings update JSON first." });
+      return;
+    }
+    set({
+      loading: true,
+      processingStage: "parsing-earnings-update",
+      earningsUpdate: {
+        ...state.earningsUpdate,
+        responseText: rawText,
+        preview: null,
+        validation: { valid: false, errors: [], warnings: [] },
+        error: "",
+        step: 3
+      },
+      notice: state.language === "ar" ? "جاري فحص JSON بدون أي إعادة تحليل..." : "Validating JSON without recalculating analysis..."
+    });
+    try {
+      const parsed = await parseExternalAnalysisInput(rawText);
+      const report = parsed.report;
+      const currentTicker = normalizeTickerHint(currentReport.company?.ticker);
+      const incomingTicker = normalizeTickerHint(report.company?.ticker);
+      const validation = validateExternalAnalysisReport(report);
+      const errors = [...(validation.errors || [])];
+      if (currentTicker && incomingTicker && currentTicker !== incomingTicker) {
+        errors.push({ field: "company.ticker", message: `Ticker mismatch. Expected ${currentTicker}, received ${incomingTicker}.` });
+      }
+      const finalValidation = { ...validation, valid: validation.valid && errors.length === 0, errors };
+      const preview = createEarningsUpdatePreview(currentReport, report, finalValidation);
+      set({
+        loading: false,
+        processingStage: "idle",
+        earningsUpdate: {
+          ...state.earningsUpdate,
+          responseText: rawText,
+          parsedReport: report,
+          validation: finalValidation,
+          preview,
+          error: "",
+          step: "preview"
+        },
+        notice: finalValidation.valid
+          ? (state.language === "ar" ? "تم فحص JSON. راجع ملخص التغييرات ثم حدّث السهم." : "JSON validated. Review the change summary, then update the stock.")
+          : (state.language === "ar" ? "JSON يحتاج مراجعة قبل تحديث السهم." : "JSON needs review before updating the stock.")
+      });
+    } catch (error) {
+      set({
+        loading: false,
+        processingStage: "idle",
+        earningsUpdate: {
+          ...state.earningsUpdate,
+          responseText: rawText,
+          validation: { valid: false, errors: [{ field: "json", message: error.message || "Invalid earnings update JSON." }], warnings: [] },
+          preview: null,
+          error: error.message || "Invalid earnings update JSON.",
+          step: 3
+        },
+        notice: error.message || (state.language === "ar" ? "تعذر قراءة JSON." : "Could not read the JSON.")
+      });
+    }
+  }
+
+  function saveEarningsUpdate() {
+    const parsedReport = state.earningsUpdate?.parsedReport;
+    if (!parsedReport) return;
+    const validation = validateExternalAnalysisReport(parsedReport);
+    if (!validation.valid) {
+      set({
+        earningsUpdate: { ...state.earningsUpdate, validation },
+        notice: state.language === "ar" ? "أصلح أخطاء JSON قبل تحديث السهم." : "Fix JSON errors before updating the stock."
+      });
+      return;
+    }
+    const prepared = prepareExternalDraftReport(parsedReport, validation, state.historicalRequirementSets);
+    const reportForSave = prepareExternalReportForSave(prepared.report);
+    const result = saveExternalAnalysis(state.externalAnalyses, reportForSave, { allowDuplicate: true });
+    const historicalRequirementSets = applyHistoricalRequirementLifecycle(
+      state.historicalRequirementSets,
+      result.report,
+      prepared.requirementMatch
+    );
+    const preview = state.earningsUpdate?.preview || createEarningsUpdatePreview(selectedExternalReportFromState(), result.report, validation);
+    set({
+      externalAnalyses: result.collection,
+      historicalRequirementSets,
+      earningsUpdate: {
+        ...state.earningsUpdate,
+        open: true,
+        step: "success",
+        parsedReport: result.report,
+        preview
+      },
+      externalReportSelection: { ticker: result.report.company.ticker, reportId: result.report.id },
+      company: externalReportCompanyShell(result.report),
+      activePanel: "external-report",
+      loading: false,
+      processingStage: "idle",
+      notice: state.language === "ar" ? `تم تحديث ${result.report.company.ticker} بنجاح.` : `${result.report.company.ticker} updated successfully.`
+    });
   }
 
   function openSupplementInput() {
@@ -1146,6 +1312,13 @@ export function createStore() {
     currentFullAnalysisPrompt,
     currentExternalAnalysisJsonTemplate,
     currentNewEarningsAnalysisPrompt,
+    openEarningsUpdate,
+    closeEarningsUpdate,
+    updateEarningsUpdateField,
+    prepareEarningsUpdatePrompt,
+    currentEarningsUpdatePrompt,
+    parseEarningsUpdateJson,
+    saveEarningsUpdate,
     openSupplementInput,
     cancelExternalSupplement,
     parseExternalSupplement,
@@ -1286,6 +1459,111 @@ function createSupplementState() {
     manualValues: {},
     stage: "idle"
   };
+}
+
+function createEarningsUpdateState() {
+  return {
+    open: false,
+    step: 1,
+    ticker: "",
+    reportId: "",
+    earningsText: "",
+    generatedPrompt: "",
+    responseText: "",
+    parsedReport: null,
+    preview: null,
+    validation: { valid: false, errors: [], warnings: [] },
+    error: ""
+  };
+}
+
+function createEarningsUpdatePreview(currentReport = {}, incomingReport = {}, validation = {}) {
+  const paths = [
+    ["analysisDate", "Analysis Date"],
+    ["reportPeriod", "Report Period"],
+    ["market.priceAtAnalysis", "Price at Analysis"],
+    ["market.currentPrice", "Current Price"],
+    ["fairValue.bear", "Bear Fair Value"],
+    ["fairValue.base", "Base Fair Value"],
+    ["fairValue.bull", "Bull Fair Value"],
+    ["fairValue.weightedFairValue", "Weighted Fair Value"],
+    ["fairValue.upsideToBasePct", "Base Upside"],
+    ["scores.quality", "Quality"],
+    ["scores.growth", "Growth"],
+    ["scores.valuation", "Valuation"],
+    ["scores.risk", "Risk"],
+    ["scores.overall", "Overall"],
+    ["recommendation.action", "Recommendation"],
+    ["recommendation.confidence", "Confidence"],
+    ["decision.verdict", "Decision"],
+    ["thesis.shortSummary", "Thesis"],
+    ["earningsQuality.status", "Earnings Quality"],
+    ["previousRequirementsEvaluation.requirementsAssessment.weightedAchievement", "Requirement Achievement"],
+    ["previousRequirementsEvaluation.requirementsAssessment.overallStatus", "Requirement Status"],
+    ["priceTargetRequirements.targetValue", "Next Target"]
+  ];
+  const changes = [];
+  let newFields = 0;
+  let updatedFields = 0;
+  for (const [path, label] of paths) {
+    const before = getPathValue(currentReport, path);
+    const after = getPathValue(incomingReport, path);
+    if (isDisplayMissing(after)) continue;
+    if (isDisplayMissing(before)) {
+      newFields += 1;
+      changes.push({ path, label, type: "new", before, after });
+      continue;
+    }
+    if (!sameDisplayValue(before, after)) {
+      updatedFields += 1;
+      changes.push({ path, label, type: "changed", before, after });
+    }
+  }
+  const collectionFields = [
+    ["risks", "Risks"],
+    ["catalysts", "Catalysts"],
+    ["watchItems", "Watch Items"],
+    ["guidance", "Guidance"],
+    ["nextQuarterGuidance.items", "Next Guidance"],
+    ["companySpecificKpis", "Company KPIs"],
+    ["previousRequirementsEvaluation.requirements", "Previous Requirements Results"],
+    ["priceTargetRequirements.requirements", "Next Requirements"]
+  ];
+  for (const [path, label] of collectionFields) {
+    const before = getPathValue(currentReport, path);
+    const after = getPathValue(incomingReport, path);
+    const beforeCount = Array.isArray(before) ? before.length : isDisplayMissing(before) ? 0 : 1;
+    const afterCount = Array.isArray(after) ? after.length : isDisplayMissing(after) ? 0 : 1;
+    if (afterCount > 0 && afterCount !== beforeCount) {
+      if (beforeCount === 0) newFields += 1;
+      else updatedFields += 1;
+      changes.push({ path, label, type: beforeCount === 0 ? "new" : "changed", before: beforeCount, after: afterCount });
+    }
+  }
+  return {
+    fieldsToUpdate: changes.length,
+    newFields,
+    updatedFields,
+    missingOrInvalidFields: (validation.errors || []).length,
+    warningFields: (validation.warnings || []).length,
+    changes: changes.slice(0, 12)
+  };
+}
+
+function getPathValue(object = {}, path = "") {
+  return String(path || "").split(".").reduce((current, key) => current == null ? undefined : current[key], object);
+}
+
+function isDisplayMissing(value) {
+  if (value === null || value === undefined) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return false;
+}
+
+function sameDisplayValue(left, right) {
+  return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
 }
 
 function prepareExternalDraftReport(report, validation, historicalRequirementSets = {}, options = {}) {
