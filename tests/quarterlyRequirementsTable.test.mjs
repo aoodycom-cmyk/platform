@@ -120,11 +120,14 @@ const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
 assert.ok(components.includes("requirementsComparisonView"), "Requirements must render through the comparison table/dashboard.");
 assert.ok(components.includes("requirementActualCell"), "Actual values must render with separate direction and impact styling.");
-assert.ok(components.includes("nextQuarterGuidanceView"), "Next-quarter management guidance must have a dedicated display.");
+assert.ok(components.includes("investmentDataTableArea"), "Investment data must be consolidated into one compact table area.");
+assert.ok(components.includes("guidanceTableView"), "Guidance must render in the same compact table area.");
+assert.ok(components.includes("compactFinancialTable"), "Reusable compact financial table component must exist.");
 assert.ok(components.includes("directionIndicator(item.direction)"), "Direction arrows must use supplied direction.");
 assert.ok(components.includes("requirementImpactClass(item.impact)"), "Number color must use supplied investment impact.");
-assert.ok(styles.includes(".requirements-comparison-desktop"), "Desktop comparison table styles must exist.");
-assert.ok(styles.includes(".requirements-comparison-mobile"), "Mobile comparison rows must exist.");
+assert.ok(styles.includes(".compact-financial-table"), "Compact financial table styles must exist.");
+assert.ok(styles.includes(".sticky-metric-col"), "Mobile tables must keep the metric column sticky.");
+assert.ok(styles.includes(".data-view-tabs"), "Selector-driven data table area must be styled.");
 assert.ok(styles.includes(".requirement-actual.impact-negative"), "Negative investment impact must color the number red.");
 assert.ok(styles.includes(".direction-up"), "Up direction arrow must be styled independently.");
 assert.ok(styles.includes(".direction-down"), "Down direction arrow must be styled independently.");

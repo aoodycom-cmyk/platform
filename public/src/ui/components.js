@@ -1519,57 +1519,27 @@ function externalAnalysisReportView(state) {
           <small>${externalRecommendationConfidence(report)}</small>
         </div>
       </header>
-      <section class="report-v2-stack">
+      <section class="report-v2-stack report-dashboard-stack">
         ${reportGroup(uiLabel("Investment Decision Section"), `
           ${reportDecisionStrip(reportWithCompletion, completion)}
-          <section class="scenario-grid external-score-grid report-v2-score-grid">
-            ${externalScoreCard(financialTerm("Quality"), report.scores?.quality)}
-            ${externalScoreCard(financialTerm("Growth"), report.scores?.growth)}
-            ${externalScoreCard(financialTerm("Risk"), report.scores?.risk)}
-            ${externalScoreCard(uiLabel("Investment Score"), report.scores?.overall)}
-          </section>
-        `, uiLabel("Section 1"))}
-        ${reportGroup(uiLabel("Fair Value and Next Target"), `
           <section class="valuation-summary-grid report-v2-fair-grid">
             ${valuationSummaryItem("Bear", report.fairValue?.bear, report.market?.priceAtAnalysis)}
             ${valuationSummaryItem("Base", report.fairValue?.base, report.market?.priceAtAnalysis)}
             ${valuationSummaryItem("Bull", report.fairValue?.bull, report.market?.priceAtAnalysis)}
             ${externalFairValueMetric(uiLabel("Upside"), report.fairValue?.upsideToBasePct)}
           </section>
-          ${reportSection(hasPreviousEvaluation ? uiLabel("NEXT EARNINGS REQUIREMENTS") : uiLabel("Requirements to Justify Next Price Target"), priceTargetRequirementsView(report.priceTargetRequirements))}
-        `, uiLabel("Section 2"), "report-group-target")}
-        ${reportGroup(uiLabel("Company Execution"), `
-          ${hasPreviousEvaluation
-            ? reportSection(uiLabel("Latest Earnings Execution"), previousRequirementExecutionView(report.previousRequirementsEvaluation))
-            : reportSection(uiLabel("Latest Earnings Execution"), requirementsAssessmentView(report.requirementsAssessment, report.priceTargetRequirements))}
-          ${reportSection(uiLabel("Next Quarter Guidance"), nextQuarterGuidanceView(report.nextQuarterGuidance))}
-        `, uiLabel("Section 3"))}
-        ${reportGroup(uiLabel("Forward View"), `
-          ${reportSection(uiLabel("Guidance Next"), guidanceView(report.guidance))}
-          ${reportSection(uiLabel("Company-Specific KPIs"), companyKpisView(report.companySpecificKpis))}
-          ${reportSection(uiLabel("Catalysts"), itemList(report.catalysts, ["explanation"]))}
-          ${reportSection(uiLabel("Watch List"), simpleList(report.watchItems))}
-        `, uiLabel("Section 4"))}
-        ${reportGroup(uiLabel("Investment Foundation"), `
-          ${reportSection(uiLabel("Why We Own or Watch This Stock"), paragraphBlock([report.thesis?.shortSummary, report.thesis?.fullSummary]))}
-          ${reportSection(uiLabel("Company Quality"), companyQualityView(report))}
-          ${reportSection(uiLabel("Growth Section"), growthView(report))}
-        `, uiLabel("Section 5"))}
-        ${reportGroup(uiLabel("Risks Section"), `
-          ${reportSection(uiLabel("Risks"), riskList(report.risks))}
-        `, uiLabel("Section 6"))}
-        ${reportGroup(uiLabel("Valuation Section"), `
-          ${reportSection(uiLabel("Valuation Method Used"), valuationMethodSummaryView(report))}
-          ${reportSection(uiLabel("Investment Verdict"), externalRecommendationView(report))}
-          ${reportSection(uiLabel("Recommendation Upgrade / Downgrade Conditions"), recommendationConditionsView(report))}
-          ${reportSection(uiLabel("Valuation Methods"), valuationMethodsView(report.valuationMethods))}
-          ${reportSection(uiLabel("Financial Highlights"), financialHighlightsView(report.financialHighlights || report.growthHighlights))}
-        `, uiLabel("Section 7"))}
+          ${compactThesisView(report)}
+          ${compactScoreRowsView(report)}
+        `, uiLabel("Decision Dashboard"))}
+        ${reportGroup(uiLabel("Investment Data"), `
+          ${investmentDataTableArea(report)}
+          ${hasPreviousEvaluation ? externalDetail(uiLabel("Latest Earnings Execution"), previousRequirementExecutionView(report.previousRequirementsEvaluation)) : externalDetail(uiLabel("Latest Earnings Execution"), requirementsAssessmentView(report.requirementsAssessment, report.priceTargetRequirements))}
+        `, uiLabel("Compare / Monitor / Decide"), "report-group-target")}
+        ${reportGroup(uiLabel("Evidence"), `
+          ${compactEvidenceNavigator(report)}
+        `, uiLabel("Evidence"), "report-group-evidence")}
         ${reportGroup(uiLabel("History and Sources"), `
-          ${reportSection(uiLabel("Historical Analyses"), externalVersionHistory(report, history))}
-          ${reportSection(uiLabel("Requirement Delivery Timeline"), requirementLifecycleTimeline(requirementSets, history))}
-          ${reportDataHealthCard(reportWithCompletion, completion)}
-          ${reportSection(uiLabel("Sources"), sourcesView(report.sources))}
+          ${compactTechnicalDetails(reportWithCompletion, completion, history, requirementSets)}
           ${externalDetail(uiLabel("Raw Analysis"), `<pre class="raw-analysis">${escapeHtml(report.rawAnalysisOriginal || report.rawAnalysis || "")}</pre>`)}
         `, uiLabel("Section 8"), "report-group-technical")}
       </section>
@@ -1676,6 +1646,165 @@ function reportDataHealthCard(report, completion = {}) {
       ${needsCompletion ? `<button class="primary-btn" data-action="start-report-supplement" data-external-ticker="${escapeHtml(report.company?.ticker || "")}" data-external-report-id="${escapeHtml(report.id || "")}">${uiLabel("إكمال البيانات الناقصة")}</button>` : ""}
     </section>
   `;
+}
+
+function compactThesisView(report = {}) {
+  const thesis = localizedExternalText(report.thesis?.shortSummary || report.thesis?.fullSummary);
+  if (!thesis.trim()) return "";
+  return `
+    <section class="compact-thesis-card">
+      <span>${uiLabel("Investment Thesis")}</span>
+      <p>${escapeHtml(shortText(thesis, 210))}</p>
+      ${thesis.length > 210 ? externalDetail(uiLabel("Full thesis"), paragraphBlock([report.thesis?.fullSummary || report.thesis?.shortSummary])) : ""}
+    </section>
+  `;
+}
+
+function compactScoreRowsView(report = {}) {
+  const rows = [
+    [financialTerm("Quality"), scoreText(report.scores?.quality, 1), report.quality?.summary || report.quality?.profitability],
+    [financialTerm("Growth"), scoreText(report.scores?.growth, 1), report.growthHighlights?.marginTrend || report.growthHighlights?.revenueGrowth],
+    [financialTerm("Risk"), scoreText(report.scores?.risk, 1), firstReportItemText(report.risks)],
+    [uiLabel("Investment Score"), scoreText(report.scores?.overall, 1), report.decision?.rationale]
+  ].filter(([, value, detail]) => value !== "—" || localizedExternalText(detail).trim());
+  if (!rows.length) return "";
+  return `
+    <section class="compact-score-list">
+      ${rows.map(([label, value, detail]) => `
+        <details class="compact-drill-row">
+          <summary>
+            <span>${escapeHtml(label)}</span>
+            <strong dir="ltr">${escapeHtml(value)}</strong>
+            <em>›</em>
+          </summary>
+          <p>${escapeHtml(localizedExternalText(detail) || uiLabel("Not provided in the imported analysis."))}</p>
+        </details>
+      `).join("")}
+    </section>
+  `;
+}
+
+function compactEvidenceNavigator(report = {}) {
+  const sections = [
+    strengthsRisksSummaryView(report),
+    compactValuationMethodsSummary(report),
+    compactMoreEvidenceView(report)
+  ].filter(Boolean).join("");
+  return sections ? `<section class="compact-evidence-list">${sections}</section>` : "";
+}
+
+function strengthsRisksSummaryView(report = {}) {
+  const strengths = report.quality?.strengths || report.businessQuality?.strengths || [];
+  const risks = Array.isArray(report.risks) ? report.risks : [];
+  if (!strengths.length && !risks.length) return "";
+  return `
+    <details class="compact-drill-row strengths-risks-drill">
+      <summary>
+        <span>${uiLabel("Strengths & Risks")}</span>
+        <strong>${strengths.length} / ${risks.length}</strong>
+        <em>›</em>
+      </summary>
+      <div class="strength-risk-compare">
+        <section>
+          <h4>${uiLabel("Strengths")}</h4>
+          ${compactEvidenceList(strengths, uiLabel("No verified strengths were provided."))}
+        </section>
+        <section>
+          <h4>${uiLabel("Risks")}</h4>
+          ${compactEvidenceList(risks, uiLabel("No verified risks were provided."))}
+        </section>
+      </div>
+    </details>
+  `;
+}
+
+function compactValuationMethodsSummary(report = {}) {
+  const rows = Object.entries(report.valuationMethods || {})
+    .map(([key, value]) => normalizeValuationMethodForDisplay(key, value))
+    .filter(Boolean);
+  const method = report.primaryValuationMethod || report.metadata?.primaryValuationMethod || rows[0]?.method;
+  const summary = rows.slice(0, 3).map((row) => {
+    const role = valuationRoleLabel(row.role);
+    const weight = formatNullablePercent(row.weight);
+    return `${humanValuationMethodLabel(row.method || row.key)}${role !== "—" ? ` — ${role}` : ""}${weight !== "—" ? ` — ${weight}` : ""}`;
+  });
+  if (!method && !summary.length && !hasRenderableContent(valuationMethodSummaryView(report))) return "";
+  return `
+    <details class="compact-drill-row valuation-methods-drill">
+      <summary>
+        <span>${uiLabel("Valuation Methods")}</span>
+        <strong>${escapeHtml(shortText(summary.join(" / ") || humanValuationMethodLabel(method), 54))}</strong>
+        <em>›</em>
+      </summary>
+      <div class="compact-detail-stack">
+        ${valuationMethodSummaryView(report)}
+        ${valuationMethodsView(report.valuationMethods)}
+        ${financialHighlightsView(report.financialHighlights || report.growthHighlights)}
+      </div>
+    </details>
+  `;
+}
+
+function compactMoreEvidenceView(report = {}) {
+  const blocks = [
+    report.catalysts?.length ? externalDetail(uiLabel("Catalysts"), itemList(report.catalysts, ["explanation"])) : "",
+    report.watchItems?.length ? externalDetail(uiLabel("Watch List"), simpleList(report.watchItems)) : "",
+    hasRenderableContent(companyQualityView(report)) ? externalDetail(uiLabel("Company Quality"), companyQualityView(report)) : "",
+    hasRenderableContent(growthView(report)) ? externalDetail(uiLabel("Growth Section"), growthView(report)) : "",
+    hasRenderableContent(externalRecommendationView(report)) ? externalDetail(uiLabel("Investment Verdict"), externalRecommendationView(report)) : "",
+    hasRenderableContent(recommendationConditionsView(report)) ? externalDetail(uiLabel("Recommendation Upgrade / Downgrade Conditions"), recommendationConditionsView(report)) : ""
+  ].filter(Boolean).join("");
+  if (!blocks) return "";
+  return `
+    <details class="compact-drill-row more-evidence-drill">
+      <summary>
+        <span>${uiLabel("More Evidence")}</span>
+        <strong>${uiLabel("Details")}</strong>
+        <em>›</em>
+      </summary>
+      <div class="compact-detail-stack">${blocks}</div>
+    </details>
+  `;
+}
+
+function compactTechnicalDetails(report = {}, completion = {}, history = [], requirementSets = []) {
+  const blocks = [
+    externalVersionHistory(report, history) ? externalDetail(uiLabel("Historical Analyses"), externalVersionHistory(report, history)) : "",
+    requirementLifecycleTimeline(requirementSets, history) ? externalDetail(uiLabel("Requirement Delivery Timeline"), requirementLifecycleTimeline(requirementSets, history)) : "",
+    externalDetail(uiLabel("Data Health"), reportDataHealthCard(report, completion)),
+    sourcesView(report.sources) ? externalDetail(uiLabel("Sources"), sourcesView(report.sources)) : ""
+  ].filter(Boolean).join("");
+  return blocks ? `<div class="compact-detail-stack">${blocks}</div>` : "";
+}
+
+function compactEvidenceList(items = [], emptyLabel = "") {
+  const visible = Array.isArray(items) ? items.slice(0, 8) : [];
+  if (!visible.length) return `<p class="muted">${escapeHtml(emptyLabel)}</p>`;
+  return `
+    <ul class="compact-evidence-items">
+      ${visible.map((item) => `
+        <li>
+          <strong>${escapeHtml(shortText(reportItemTitle(item), 64))}</strong>
+          ${reportItemDetail(item) ? `<details><summary>${uiLabel("Show details")}</summary><p>${escapeHtml(reportItemDetail(item))}</p></details>` : ""}
+        </li>
+      `).join("")}
+    </ul>
+  `;
+}
+
+function reportItemTitle(item) {
+  if (typeof item === "string") return localizedExternalText(item);
+  return localizedExternalText(item.title || item.name || item.metric || item.summary || item.text || uiLabel("Item"));
+}
+
+function reportItemDetail(item) {
+  if (!item || typeof item === "string") return "";
+  return localizedExternalText(item.explanation || item.whyItMatters || item.evidence || item.whatToMonitor || item.thesisBreaker || item.detail || "");
+}
+
+function firstReportItemText(items = []) {
+  if (!Array.isArray(items) || !items.length) return "";
+  return reportItemTitle(items[0]);
 }
 
 function completionStatusSentence(completion = {}) {
@@ -2099,6 +2228,210 @@ function guidanceView(guidance = []) {
   `;
 }
 
+function investmentDataTableArea(report = {}) {
+  const panels = [
+    {
+      key: "requirements",
+      label: uiLabel("Price Target Requirements"),
+      body: priceTargetRequirementsView(report.priceTargetRequirements, { compact: true }) || emptyCompactDataView(uiLabel("Price Target Requirements"))
+    },
+    {
+      key: "guidance",
+      label: uiLabel("Guidance"),
+      body: guidanceTableView(report) || emptyCompactDataView(uiLabel("Guidance"))
+    },
+    {
+      key: "financials",
+      label: uiLabel("Financial Performance"),
+      body: financialPerformanceTableView(report) || emptyCompactDataView(uiLabel("Financial Performance"))
+    },
+    {
+      key: "kpis",
+      label: uiLabel("Company KPIs"),
+      body: companyKpisTableView(report.companySpecificKpis) || emptyCompactDataView(uiLabel("Company KPIs"))
+    }
+  ];
+  if (!panels.length) return "";
+  const name = `investment-data-${String(report.id || report.company?.ticker || "report").replace(/[^a-z0-9_-]/gi, "-")}`;
+  return `
+    <section class="investment-data-area">
+      <header class="investment-data-head">
+        <div>
+          <p class="eyebrow">${uiLabel("Investment Data")}</p>
+          <h3>${uiLabel("Compare / Monitor / Decide")}</h3>
+        </div>
+      </header>
+      <div class="data-view-tabs" role="tablist" aria-label="${uiLabel("Investment Data")}">
+        ${panels.map((panel, index) => `
+          <input type="radio" name="${escapeHtml(name)}" id="${escapeHtml(name)}-${panel.key}" ${index === 0 ? "checked" : ""}>
+          <label for="${escapeHtml(name)}-${panel.key}">${escapeHtml(panel.label)}</label>
+        `).join("")}
+        <div class="data-view-panels">
+          ${panels.map((panel) => `
+            <section class="data-view-panel data-view-panel-${panel.key}">
+              ${panel.body}
+            </section>
+          `).join("")}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function emptyCompactDataView(label) {
+  return `<p class="compact-empty-state">${escapeHtml(label)}: ${uiLabel("Not provided in the imported analysis.")}</p>`;
+}
+
+function guidanceTableView(report = {}) {
+  const rows = [];
+  const nextGuidance = Array.isArray(report.nextQuarterGuidance?.items) ? report.nextQuarterGuidance.items : [];
+  for (const item of nextGuidance) {
+    rows.push({
+      label: item.arabicTopic || item.topic || uiLabel("Guidance"),
+      secondary: item.arabicTopic && item.topic ? item.topic : "",
+      cells: [
+        { value: item.previousGuidance || "—", dir: "ltr" },
+        { value: item.guidance || "—", dir: "ltr", className: guidanceDirectionClass(item.direction) },
+        { value: report.nextQuarterGuidance?.quarter || uiLabel("Next Quarter"), dir: "ltr" },
+        { value: guidanceDirectionLabel(item.direction), dir: "auto" }
+      ],
+      detail: paragraphBlock([item.interpretation, item.importance ? `${uiLabel("Importance")}: ${importanceLabel(item.importance)}` : null])
+    });
+  }
+  for (const item of Array.isArray(report.guidance) ? report.guidance : []) {
+    if (typeof item === "string") {
+      rows.push({
+        label: uiLabel("Guidance"),
+        cells: [
+          { value: "—" },
+          { value: shortText(localizedExternalText(item), 48), dir: "auto" },
+          { value: report.reportPeriod || "—", dir: "ltr" },
+          { value: "—" }
+        ],
+        detail: paragraphBlock([item])
+      });
+      continue;
+    }
+    rows.push({
+      label: item.arabicTopic || item.topic || item.title || item.name || uiLabel("Guidance"),
+      secondary: item.arabicTopic && item.topic ? item.topic : "",
+      cells: [
+        { value: item.previousGuidance || item.previous || "—", dir: "ltr" },
+        { value: item.currentGuidance || item.guidance || item.current || item.value || "—", dir: "ltr", className: guidanceDirectionClass(item.direction) },
+        { value: item.quarter || item.period || report.reportPeriod || "—", dir: "ltr" },
+        { value: guidanceDirectionLabel(item.direction), dir: "auto" }
+      ],
+      detail: paragraphBlock([item.interpretation, item.commentary, item.explanation])
+    });
+  }
+  if (!rows.length) return "";
+  return compactFinancialTable({
+    caption: report.nextQuarterGuidance?.quarter ? `${uiLabel("Next Quarter Guidance")} — ${report.nextQuarterGuidance.quarter}` : uiLabel("Guidance"),
+    columns: [uiLabel("Previous"), uiLabel("Current"), uiLabel("Period"), uiLabel("Direction")],
+    rows
+  });
+}
+
+function financialPerformanceTableView(report = {}) {
+  const source = report.financialHighlights || report.growthHighlights || {};
+  const rows = Object.entries(source || {})
+    .filter(([, value]) => value !== null && value !== undefined && value !== "")
+    .slice(0, 12)
+    .map(([key, value]) => ({
+      label: labelFromKey(key),
+      cells: [
+        { value: formatAnyValue(value), dir: "ltr" },
+        { value: report.reportPeriod || report.analysisDate || "—", dir: "ltr" },
+        { value: "—", dir: "ltr" }
+      ]
+    }));
+  if (!rows.length) return "";
+  return compactFinancialTable({
+    caption: uiLabel("Financial Performance"),
+    columns: [uiLabel("Value"), uiLabel("Period"), uiLabel("Change")],
+    rows
+  });
+}
+
+function companyKpisTableView(kpis = []) {
+  if (!Array.isArray(kpis) || !kpis.length) return "";
+  const rows = kpis.map((item) => ({
+    label: item.arabicName || item.name || uiLabel("KPI"),
+    secondary: item.arabicName && item.name ? item.name : "",
+    cells: [
+      { value: formatRequirementValue(item.currentValue, item.unit), dir: "ltr", className: trendClass(item.trend) },
+      { value: trendLabel(item.trend), dir: "auto" },
+      { value: importanceLabel(item.importance), dir: "auto" },
+      { value: kpiCategoryLabel(item.category), dir: "auto" }
+    ],
+    detail: paragraphBlock([item.interpretation])
+  }));
+  return compactFinancialTable({
+    caption: uiLabel("Company KPIs"),
+    columns: [uiLabel("Current"), uiLabel("Trend"), uiLabel("Importance"), uiLabel("Category")],
+    rows
+  });
+}
+
+function compactFinancialTable({ caption, columns = [], rows = [] } = {}) {
+  if (!rows.length) return "";
+  return `
+    <div class="compact-table-shell">
+      ${caption ? `<div class="compact-table-caption">${escapeHtml(caption)}</div>` : ""}
+      <div class="compact-table-scroll">
+        <table class="compact-financial-table">
+          <thead>
+            <tr>
+              <th class="sticky-metric-col">${uiLabel("Metric")}</th>
+              ${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((row) => compactFinancialRow(row, columns.length)).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function compactFinancialRow(row = {}, columnCount = 0) {
+  const detail = localizedExternalText(row.detail).trim() ? row.detail : "";
+  return `
+    <tr class="${detail ? "has-row-detail" : ""}">
+      <th class="sticky-metric-col" scope="row">${compactMetricLabel(row.label, row.secondary)}</th>
+      ${Array.from({ length: columnCount }).map((_, index) => compactFinancialCell(row.cells?.[index])).join("")}
+    </tr>
+    ${detail ? `
+      <tr class="compact-row-detail">
+        <td colspan="${columnCount + 1}">
+          <details>
+            <summary>${uiLabel("Show details")}</summary>
+            <div>${detail}</div>
+          </details>
+        </td>
+      </tr>
+    ` : ""}
+  `;
+}
+
+function compactFinancialCell(cell = {}) {
+  const config = typeof cell === "object" && !Array.isArray(cell) ? cell : { value: cell };
+  const value = config.html ? config.value : escapeHtml(formatAnyValue(config.value ?? "—"));
+  const dir = config.dir || "auto";
+  const className = config.className ? ` ${escapeHtml(config.className)}` : "";
+  return `<td class="compact-value-cell${className}" dir="${escapeHtml(dir)}">${value}</td>`;
+}
+
+function compactMetricLabel(primary, secondary = "") {
+  return `
+    <span class="compact-metric-label">
+      <strong>${escapeHtml(primary || "-")}</strong>
+      ${secondary ? `<small dir="ltr">${escapeHtml(secondary)}</small>` : ""}
+    </span>
+  `;
+}
+
 function nextQuarterGuidanceView(guidance = {}) {
   const items = Array.isArray(guidance?.items) ? guidance.items : [];
   if (!items.length) return "";
@@ -2292,33 +2625,36 @@ function requirementsComparisonView(requirements = [], options = {}) {
   const actualHeader = `${uiLabel("Figures")} ${options.targetQuarter || uiLabel("Target Quarter")}`;
   return `
     <div class="requirements-comparison">
-      <div class="requirements-table-wrap requirements-comparison-desktop">
-        <table class="requirements-table">
-          <thead>
-            <tr>
-              <th>${uiLabel("Weight")}</th>
-              <th>${uiLabel("What We Monitor")}</th>
-              <th>${escapeHtml(previousHeader)}</th>
-              <th>${escapeHtml(targetHeader)}</th>
-              <th>${escapeHtml(actualHeader)}</th>
-              <th>${uiLabel("Status")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${requirements.map((item) => requirementComparisonRow(item, options)).join("")}
-          </tbody>
-        </table>
-      </div>
-      <div class="requirements-comparison-mobile">
-        ${requirements.map((item) => requirementComparisonMobileRow(item, {
-          ...options,
-          previousHeader,
-          targetHeader,
-          actualHeader
-        })).join("")}
-      </div>
+      ${compactFinancialTable({
+        caption: uiLabel("Price Target Requirements"),
+        columns: [uiLabel("Weight"), previousHeader, targetHeader, actualHeader, uiLabel("Status")],
+        rows: requirements.map((item) => requirementComparisonTableRow(item, options))
+      })}
     </div>
   `;
+}
+
+function requirementComparisonTableRow(item = {}, options = {}) {
+  const english = item.name || item.metric || "";
+  const arabic = item.arabicName || "";
+  const detail = [
+    item.whyItMatters ? `<p><b>${uiLabel("Why does it matter?")}</b>: ${escapeHtml(localizedExternalText(item.whyItMatters))}</p>` : "",
+    item.evaluationNote ? `<p><b>${uiLabel("Result explanation")}</b>: ${escapeHtml(localizedExternalText(item.evaluationNote))}</p>` : "",
+    item.direction ? `<p><b>${uiLabel("Direction")}</b>: ${escapeHtml(directionLabel(item.direction))}</p>` : "",
+    item.impact ? `<p><b>${uiLabel("Investment Impact")}</b>: ${escapeHtml(impactLabel(item.impact))}</p>` : ""
+  ].filter(Boolean).join("");
+  return {
+    label: arabic || english || "-",
+    secondary: arabic && english && arabic !== english ? english : "",
+    cells: [
+      { value: requirementWeightText(item.weight), dir: "ltr" },
+      { value: requirementPreviousText(item), dir: "ltr" },
+      { value: requirementRequiredText(item), dir: "ltr" },
+      { value: requirementActualCell(item, options.pending), dir: "ltr", html: true },
+      { value: requirementStatusBadge(item.status), html: true }
+    ],
+    detail
+  };
 }
 
 function requirementComparisonRow(item = {}, options = {}) {
@@ -2375,7 +2711,6 @@ function requirementMetricCell(item = {}) {
     <div class="requirement-metric-name">
       <strong>${escapeHtml(primary)}</strong>
       ${secondary ? `<small dir="ltr">${escapeHtml(secondary)}</small>` : ""}
-      ${item.whyItMatters ? `<small>${escapeHtml(localizedExternalText(item.whyItMatters))}</small>` : ""}
     </div>
   `;
 }
@@ -2418,10 +2753,27 @@ function directionIndicator(direction) {
   return "";
 }
 
+function directionLabel(direction) {
+  const clean = String(direction || "unknown").toLowerCase();
+  if (clean === "up") return uiLabel("Direction Up");
+  if (clean === "down") return uiLabel("Direction Down");
+  if (clean === "flat") return uiLabel("Direction Flat");
+  return uiLabel("Unknown");
+}
+
 function requirementImpactClass(impact) {
   const clean = String(impact || "unknown").toLowerCase();
   if (["positive", "negative", "mixed", "neutral"].includes(clean)) return `impact-${clean}`;
   return "impact-unknown";
+}
+
+function impactLabel(impact) {
+  const clean = String(impact || "unknown").toLowerCase();
+  if (clean === "positive") return uiLabel("Positive");
+  if (clean === "negative") return uiLabel("Negative");
+  if (clean === "mixed") return uiLabel("Mixed");
+  if (clean === "neutral") return uiLabel("Neutral");
+  return uiLabel("Unknown");
 }
 
 function formatRequirementThreshold(item = {}) {
