@@ -172,7 +172,7 @@ try {
 
   const serviceWorker = await inject(server, { path: "/service-worker.js", headers: { cookie } });
   assert.equal(serviceWorker.status, 200);
-  assert.ok(serviceWorker.text.includes("franklin-research-v10-high-impact-final-fixes-20260810"));
+  assert.ok(serviceWorker.text.includes("franklin-research-v10-ux-pilot-terminal-20260816"));
   assert.ok(serviceWorker.text.includes("isVersionedAppAsset"));
   assert.ok(serviceWorker.text.includes("fairValueAdapter.js"));
   assert.ok(serviceWorker.text.includes("offline.html"));

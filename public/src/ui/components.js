@@ -231,7 +231,7 @@ function externalHomeCard(report) {
     : uiLabel("Price at Analysis");
   const lastUpdate = report.reportPeriod || report.analysisDate || "-";
   return `
-    <article class="company-card external-company-card library-company-card" data-external-ticker="${escapeHtml(report.ticker)}" data-external-report-id="${escapeHtml(report.id)}" data-library-card data-search-text="${escapeHtml(`${report.ticker} ${report.companyName}`.toLowerCase())}">
+    <article class="company-card external-company-card library-company-card terminal-watchlist-row" data-external-ticker="${escapeHtml(report.ticker)}" data-external-report-id="${escapeHtml(report.id)}" data-library-card data-search-text="${escapeHtml(`${report.ticker} ${report.companyName}`.toLowerCase())}">
       <div class="company-card-top library-card-top">
         <div>
           <strong>${escapeHtml(report.ticker)}</strong>
@@ -580,21 +580,38 @@ function emptyHomeState(state) {
 }
 
 function topBar(state) {
+  const panelLabel = activePanelLabel(state.activePanel);
+  const isReport = state.activePanel === "external-report";
   return `
-    <header class="topbar compact product-topbar">
-      <div>
-        <p class="eyebrow">${uiLabel("Version 10.0.0")}</p>
-        <h2>${uiLabel("Franklin Research")}</h2>
+    <header class="topbar compact product-topbar terminal-command-bar">
+      <div class="terminal-breadcrumb">
+        <span>Terminal</span>
+        <b>›</b>
+        <span>Franklin</span>
+        <b>›</b>
+        <strong>${escapeHtml(panelLabel)}</strong>
       </div>
-      <div class="top-actions">
-        ${languageToggle(state)}
+      <div class="top-actions terminal-command-actions">
+        <label class="terminal-global-search">
+          <span>⌕</span>
+          <input id="searchInput" value="${escapeHtml(state.query)}" placeholder="${uiLabel("Search saved reports by ticker or company")}" autocomplete="off">
+        </label>
         <button class="icon-btn" data-panel="home">${uiLabel("Home")}</button>
         <button class="icon-btn" data-action="open-external-import">${uiLabel("Import")}</button>
-        <button class="icon-btn" data-action="toggle-theme" title="${uiLabel("Toggle theme")}">${state.theme === "dark" ? uiLabel("Light") : uiLabel("Dark")}</button>
-        <button class="icon-btn" data-panel="settings">${uiLabel("Settings")}</button>
+        ${isReport ? `<button class="primary-btn command-export" data-action="export-external-json">${uiLabel("Export Report")}</button>` : ""}
+        ${languageToggle(state)}
       </div>
     </header>
   `;
+}
+
+function activePanelLabel(panel) {
+  if (panel === "external-report") return uiLabel("Investment Report");
+  if (panel === "external-import") return uiLabel("Import Analysis");
+  if (panel === "history") return uiLabel("History");
+  if (panel === "settings") return uiLabel("Settings");
+  if (panel === "company-profile") return uiLabel("Company Profile");
+  return uiLabel("Investment Watchlist");
 }
 
 function searchBlock(state) {
@@ -1588,18 +1605,19 @@ function externalAnalysisReportView(state) {
     <section class="external-report-shell external-report-v2 stock-decision-workspace">
       ${reportSavedBanner(state.notice, report)}
       ${stockDecisionHeader(reportWithCompletion, completion)}
+      ${dataHealthTerminalGuard(reportWithCompletion, completion)}
       <section class="stock-decision-flow">
         ${scenarioTerminalCards(report)}
         ${stockSection(uiLabel("فرصة الاستثمار"), investmentSummaryWorkspace(report))}
         ${qualityGrowthRiskPanel(report)}
         ${latestEarningsWorkspace(report)}
         ${stockSection(uiLabel("بيانات الاستثمار"), investmentDataTableArea(report))}
-        ${stockSection(uiLabel("Valuation Methods"), valuationMethodsDashboard(report))}
-        ${stockSection(uiLabel("Strengths & Risks"), strengthsRisksDashboard(report))}
-        ${stockSection(uiLabel("Catalysts"), catalystsDashboard(report))}
-        ${stockSection(uiLabel("Monitoring Checklist"), monitoringChecklistDashboard(report))}
-        ${stockSection(uiLabel("Investment Verdict"), finalDecisionDashboard(report))}
-        ${stockSection(uiLabel("History and Sources"), `
+        ${stockSection(uiLabel("طرق التقييم"), valuationMethodsDashboard(report))}
+        ${stockSection(uiLabel("المزايا والمخاطر"), strengthsRisksDashboard(report))}
+        ${stockSection(uiLabel("المحفزات"), catalystsDashboard(report))}
+        ${stockSection(uiLabel("قائمة المتابعة"), monitoringChecklistDashboard(report))}
+        ${stockSection(uiLabel("الحكم الاستثماري"), finalDecisionDashboard(report))}
+        ${stockSection(uiLabel("السجل والمصادر"), `
           ${compactTechnicalDetails(reportWithCompletion, completion, history, requirementSets)}
           ${externalDetail(uiLabel("Raw Analysis"), `<pre class="raw-analysis">${escapeHtml(report.rawAnalysisOriginal || report.rawAnalysis || "")}</pre>`)}
         `)}
@@ -1635,16 +1653,20 @@ function stockDecisionHeader(report = {}, completion = {}) {
   const potential = report.fairValue?.upsideToBullPct ?? report.fairValue?.maxUpsidePct ?? report.fairValue?.upsideToBasePct;
   return `
     <header id="stock-report-top" class="panel stock-decision-header terminal-stock-header">
-      <div class="stock-title-block">
+      <div class="stock-title-block terminal-stock-identity">
+        <span class="terminal-stock-icon" aria-hidden="true">↗</span>
+        <div>
         <p class="eyebrow">${uiLabel("Investment Terminal")}</p>
         <div class="stock-title-row">
           <h2 dir="ltr">${escapeHtml(ticker)}</h2>
           ${report.companyProfile ? `<button class="ticker-profile-button" data-profile-ticker="${escapeHtml(ticker)}" data-profile-report-id="${escapeHtml(report.id || "latest")}">${escapeHtml(ticker)}</button>` : ""}
+          <em class="terminal-inline-verdict ${colorClass(recommendationColorCategory(action), "badge")}">${escapeHtml(localizedExternalText(action) || "-")}</em>
         </div>
         <strong>${escapeHtml(companyName)}</strong>
         <span>${uiLabel("Analysis Date")}: ${escapeHtml(report.analysisDate || "-")} / ${uiLabel("Report Period")}: ${escapeHtml(report.reportPeriod || "-")}</span>
+        </div>
       </div>
-      <div class="stock-decision-badge ${colorClass(recommendationColorCategory(action), "tone")}">
+      <div class="stock-decision-badge terminal-decision-pill ${colorClass(recommendationColorCategory(action), "tone")}">
         <span>${uiLabel("Recommendation")}</span>
         <strong>${escapeHtml(localizedExternalText(action) || "-")}</strong>
         <em>${externalRecommendationConfidence(report)}</em>
@@ -1658,6 +1680,28 @@ function stockDecisionHeader(report = {}, completion = {}) {
         ${stockSummaryMetric(uiLabel("Data Health"), `${boundedPercent(completion.completionPct)}%`, completionStatusClass(completion.status))}
       </div>
     </header>
+  `;
+}
+
+function dataHealthTerminalGuard(report = {}, completion = {}) {
+  if (!completion || completion.status === "complete") return "";
+  const missingRequired = completion.missingRequiredPaths?.length || completion.details?.criticalRequired?.length || 0;
+  const missingRecommended = completion.missingRecommendedPaths?.length || completion.details?.recommended?.length || 0;
+  return `
+    <section class="data-health-terminal-guard">
+      <div>
+        <span class="guard-icon">!</span>
+        <div>
+          <strong>${uiLabel("Data Integrity Guard Active")}</strong>
+          <p>${uiLabel("This saved analysis is reviewable, but some imported fields still need completion.")}</p>
+        </div>
+      </div>
+      <div class="guard-stats">
+        <span>${uiLabel("Required")}: <b>${escapeHtml(String(missingRequired))}</b></span>
+        <span>${uiLabel("Recommended")}: <b>${escapeHtml(String(missingRecommended))}</b></span>
+        <button class="icon-btn" data-action="start-report-supplement" data-external-ticker="${escapeHtml(report.company?.ticker || "")}" data-external-report-id="${escapeHtml(report.id || "")}">${uiLabel("إكمال البيانات")}</button>
+      </div>
+    </section>
   `;
 }
 
@@ -1912,7 +1956,7 @@ function qualityGrowthRiskPanel(report = {}) {
   if (!rows.length) return "";
   return `
     <section class="panel stock-report-section qgr-performance-panel">
-      <header><h3>${uiLabel("Quality / Growth / Risk Performance")}</h3></header>
+      <header><h3>${uiLabel("جودة الشركة / النمو / المخاطر")}</h3></header>
       <div class="qgr-row-list">
         ${rows.map((row) => `
           <details class="qgr-row">

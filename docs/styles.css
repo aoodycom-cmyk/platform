@@ -1427,6 +1427,654 @@ a.primary-btn {
   direction: rtl !important;
 }
 
+/* UX Pilot terminal refinement: presentation-only overrides. */
+:root {
+  --pilot-bg: #070a12;
+  --pilot-sidebar: #060811;
+  --pilot-main: #0b111d;
+  --pilot-panel: #101827;
+  --pilot-panel-2: #0d1422;
+  --pilot-panel-3: #090e18;
+  --pilot-line: #1d2a3b;
+  --pilot-line-strong: #2a394e;
+  --pilot-text: #edf3fa;
+  --pilot-muted: #8794a7;
+  --pilot-soft: #b8c2cf;
+  --pilot-red: #e24d72;
+  --pilot-red-bg: rgba(226, 77, 114, 0.09);
+  --pilot-amber: #f2c84b;
+  --pilot-amber-bg: rgba(242, 200, 75, 0.11);
+  --pilot-teal: #41d6c3;
+  --pilot-teal-bg: rgba(65, 214, 195, 0.11);
+  --pilot-green: #52d39b;
+  --pilot-shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+  --pilot-radius: 10px;
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  background:
+    radial-gradient(circle at 78% 0%, rgba(65, 214, 195, 0.08), transparent 24rem),
+    linear-gradient(180deg, #070a12 0%, #09111d 52%, #060811 100%) !important;
+  color: var(--pilot-text) !important;
+}
+
+.terminal-shell {
+  min-height: 100svh;
+  background: transparent !important;
+  color: var(--pilot-text);
+}
+
+.terminal-sidebar {
+  width: 244px;
+  background: linear-gradient(180deg, #070913 0%, #060811 100%) !important;
+  border-left: 0 !important;
+  border-right: 1px solid rgba(184, 194, 207, 0.12) !important;
+  padding: 22px 14px !important;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.03);
+}
+
+.terminal-sidebar-brand {
+  align-items: center;
+  border-bottom: 1px solid rgba(184, 194, 207, 0.12);
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+}
+
+.terminal-sidebar-brand .app-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(242, 200, 75, 0.28);
+  box-shadow: 0 0 0 3px rgba(242, 200, 75, 0.04);
+}
+
+.terminal-sidebar-brand strong {
+  color: var(--pilot-text);
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+.terminal-sidebar-brand span,
+.terminal-sidebar-foot small {
+  color: var(--pilot-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.terminal-sidebar nav {
+  display: grid;
+  gap: 8px;
+}
+
+.terminal-sidebar nav button {
+  justify-content: flex-start;
+  min-height: 42px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--pilot-soft);
+  font-size: 13px;
+  padding: 0 12px;
+}
+
+.terminal-sidebar nav button span {
+  width: 6px;
+  height: 18px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.terminal-sidebar nav button.active {
+  background: linear-gradient(90deg, rgba(65, 214, 195, 0.13), rgba(65, 214, 195, 0.03));
+  border-color: rgba(65, 214, 195, 0.12);
+  color: var(--pilot-text);
+}
+
+.terminal-sidebar nav button.active span {
+  background: var(--pilot-teal);
+  box-shadow: 0 0 18px rgba(65, 214, 195, 0.4);
+}
+
+.terminal-main {
+  min-width: 0;
+  background:
+    linear-gradient(rgba(29, 42, 59, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(29, 42, 59, 0.18) 1px, transparent 1px),
+    var(--pilot-main) !important;
+  background-size: 22px 22px, 22px 22px, auto !important;
+}
+
+.terminal-command-bar {
+  align-items: center;
+  min-height: 66px;
+  padding: 16px 24px !important;
+  background: rgba(6, 8, 17, 0.78) !important;
+  border: 1px solid rgba(184, 194, 207, 0.11) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(14px);
+}
+
+.terminal-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--pilot-muted);
+  direction: ltr;
+  font-size: 12px;
+}
+
+.terminal-breadcrumb strong {
+  color: var(--pilot-soft);
+  font-weight: 600;
+}
+
+.terminal-command-actions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.terminal-global-search {
+  align-items: center;
+  background: #080c15;
+  border: 1px solid rgba(184, 194, 207, 0.13);
+  border-radius: 6px;
+  color: var(--pilot-muted);
+  display: flex;
+  gap: 8px;
+  height: 34px;
+  min-width: 260px;
+  padding: 0 10px;
+}
+
+.terminal-global-search input {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: var(--pilot-text) !important;
+  height: 100%;
+  outline: 0;
+  padding: 0 !important;
+}
+
+.terminal-command-bar .icon-btn,
+.terminal-command-bar .primary-btn {
+  min-height: 34px;
+  border-radius: 6px;
+  font-size: 12px;
+  padding: 0 12px;
+}
+
+.terminal-command-bar .command-export {
+  background: rgba(65, 214, 195, 0.14) !important;
+  border-color: rgba(65, 214, 195, 0.42) !important;
+  color: var(--pilot-teal) !important;
+}
+
+.panel,
+.stock-report-section,
+.terminal-stock-header,
+.scenario-terminal-card,
+.quality-growth-risk-panel,
+.latest-earnings-workspace,
+.investment-data-workspace,
+.library-company-card,
+.evaluated-panel {
+  background: linear-gradient(180deg, rgba(16, 24, 39, 0.98), rgba(13, 20, 34, 0.98)) !important;
+  border: 1px solid rgba(184, 194, 207, 0.12) !important;
+  border-radius: var(--pilot-radius) !important;
+  box-shadow: var(--pilot-shadow);
+}
+
+.external-report-shell,
+.external-report-v2 {
+  display: grid;
+  gap: 14px;
+  max-width: 1180px;
+  padding: 20px !important;
+  width: min(100%, 1180px);
+}
+
+.terminal-stock-header {
+  align-items: center;
+  display: grid !important;
+  grid-template-columns: minmax(250px, 1fr) auto minmax(520px, 1.6fr);
+  gap: 16px;
+  min-height: 84px;
+  padding: 14px 16px !important;
+}
+
+.terminal-stock-identity {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 42px minmax(0, 1fr);
+}
+
+.terminal-stock-icon {
+  align-items: center;
+  background: linear-gradient(145deg, rgba(65, 214, 195, 0.14), rgba(242, 200, 75, 0.06));
+  border: 1px solid rgba(65, 214, 195, 0.18);
+  border-radius: 9px;
+  color: var(--pilot-teal);
+  display: flex;
+  font-size: 20px;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.terminal-stock-header .eyebrow {
+  color: var(--pilot-muted);
+  font-size: 10px;
+  margin: 0 0 4px;
+  text-transform: uppercase;
+}
+
+.terminal-stock-header .stock-title-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.terminal-stock-header h2 {
+  color: var(--pilot-text);
+  font-size: 18px;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.terminal-stock-header .stock-title-block strong {
+  color: var(--pilot-soft);
+  display: block;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.terminal-stock-header .stock-title-block span:not(.terminal-stock-icon) {
+  color: var(--pilot-muted);
+  display: block;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.terminal-inline-verdict {
+  border-radius: 999px;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+.terminal-decision-pill {
+  min-width: 110px;
+  padding: 9px 12px !important;
+  text-align: center;
+}
+
+.terminal-decision-pill span,
+.terminal-decision-pill em {
+  color: var(--pilot-muted);
+  display: block;
+  font-size: 10px;
+  font-style: normal;
+}
+
+.terminal-decision-pill strong {
+  color: var(--pilot-teal);
+  display: block;
+  font-size: 14px;
+  line-height: 1.2;
+  margin: 4px 0;
+}
+
+.terminal-header-strip {
+  align-items: stretch;
+  display: grid !important;
+  gap: 0;
+  grid-template-columns: repeat(6, minmax(72px, 1fr));
+  overflow: hidden;
+}
+
+.terminal-header-strip .stock-summary-metric {
+  background: transparent !important;
+  border: 0 !important;
+  border-left: 1px solid rgba(184, 194, 207, 0.12) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  min-height: 46px;
+  padding: 4px 12px !important;
+}
+
+.terminal-header-strip .stock-summary-metric span {
+  color: var(--pilot-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.terminal-header-strip .stock-summary-metric strong {
+  color: var(--pilot-text);
+  font-size: 16px;
+}
+
+.terminal-header-strip .stock-summary-metric.bear strong,
+.scenario-terminal-card.bear strong {
+  color: var(--pilot-red) !important;
+}
+
+.terminal-header-strip .stock-summary-metric.base strong,
+.scenario-terminal-card.base strong {
+  color: var(--pilot-amber) !important;
+}
+
+.terminal-header-strip .stock-summary-metric.bull strong,
+.scenario-terminal-card.bull strong {
+  color: var(--pilot-teal) !important;
+}
+
+.terminal-header-strip .stock-summary-metric.positive strong,
+.terminal-header-strip .stock-summary-metric.complete strong {
+  color: var(--pilot-green) !important;
+}
+
+.data-health-terminal-guard {
+  align-items: center;
+  background: linear-gradient(90deg, rgba(226, 77, 114, 0.16), rgba(226, 77, 114, 0.06)) !important;
+  border: 1px solid rgba(226, 77, 114, 0.28);
+  border-radius: var(--pilot-radius);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.2);
+  color: var(--pilot-soft);
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 12px 14px;
+}
+
+.data-health-terminal-guard > div:first-child {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.guard-icon {
+  align-items: center;
+  background: var(--pilot-red-bg);
+  border: 1px solid rgba(226, 77, 114, 0.3);
+  border-radius: 999px;
+  color: var(--pilot-red);
+  display: flex;
+  flex: 0 0 28px;
+  font-weight: 900;
+  height: 28px;
+  justify-content: center;
+}
+
+.data-health-terminal-guard strong {
+  color: var(--pilot-red);
+  font-size: 12px;
+}
+
+.data-health-terminal-guard p {
+  color: var(--pilot-muted);
+  font-size: 12px;
+  margin: 2px 0 0;
+}
+
+.guard-stats {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.guard-stats span {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(184, 194, 207, 0.11);
+  border-radius: 999px;
+  color: var(--pilot-soft);
+  font-size: 11px;
+  padding: 6px 9px;
+}
+
+.scenario-terminal-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.scenario-terminal-card {
+  min-height: 128px;
+  padding: 18px !important;
+}
+
+.scenario-terminal-card.bear {
+  background: linear-gradient(180deg, rgba(226, 77, 114, 0.07), rgba(16, 24, 39, 0.96)) !important;
+}
+
+.scenario-terminal-card.base {
+  background: linear-gradient(180deg, rgba(242, 200, 75, 0.1), rgba(16, 24, 39, 0.96)) !important;
+  border-color: rgba(242, 200, 75, 0.38) !important;
+}
+
+.scenario-terminal-card.bull {
+  background: linear-gradient(180deg, rgba(65, 214, 195, 0.08), rgba(16, 24, 39, 0.96)) !important;
+}
+
+.quality-growth-risk-panel {
+  padding: 16px !important;
+}
+
+.qgr-row {
+  min-height: 50px;
+  padding: 10px 12px !important;
+}
+
+.library-card-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.terminal-watchlist-row {
+  cursor: pointer;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(190px, 1fr) minmax(420px, 1.8fr) minmax(130px, 0.6fr);
+  padding: 12px 14px !important;
+}
+
+.terminal-watchlist-row .library-card-top,
+.terminal-watchlist-row .library-card-footer {
+  margin: 0;
+}
+
+.terminal-watchlist-row .library-card-metrics {
+  align-items: center;
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(5, minmax(70px, 1fr));
+}
+
+.terminal-watchlist-row .compact-card-metric {
+  border-left: 1px solid rgba(184, 194, 207, 0.1);
+  padding: 0 10px;
+}
+
+.terminal-watchlist-row .library-completion-row {
+  align-self: center;
+  margin: 0;
+}
+
+.watchlist-toolbar,
+.investment-library-summary,
+.library-search-panel {
+  background: rgba(16, 24, 39, 0.72) !important;
+  border: 1px solid rgba(184, 194, 207, 0.11) !important;
+  border-radius: var(--pilot-radius) !important;
+}
+
+.investment-data-workspace .compact-financial-table,
+.requirements-table-shell,
+.compact-table-shell {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.compact-financial-table table,
+.requirements-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.compact-financial-table th,
+.compact-financial-table td,
+.requirements-table th,
+.requirements-table td {
+  border-bottom: 1px solid rgba(184, 194, 207, 0.08) !important;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.compact-financial-table th:first-child,
+.compact-financial-table td:first-child,
+.requirements-table th:first-child,
+.requirements-table td:first-child {
+  background: #0c1421 !important;
+  box-shadow: -1px 0 0 rgba(184, 194, 207, 0.12);
+  position: sticky;
+  right: 0;
+  z-index: 2;
+}
+
+@media (max-width: 960px) {
+  .terminal-shell {
+    display: block !important;
+  }
+
+  .terminal-sidebar,
+  .terminal-command-bar {
+    display: none !important;
+  }
+
+  .terminal-main {
+    width: 100%;
+  }
+
+  .external-report-shell,
+  .external-report-v2 {
+    gap: 10px;
+    padding: 10px !important;
+    width: 100%;
+  }
+
+  .terminal-stock-header {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px !important;
+  }
+
+  .terminal-stock-identity {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .terminal-stock-icon {
+    height: 38px;
+    width: 38px;
+  }
+
+  .terminal-decision-pill {
+    align-items: center;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    min-width: 0;
+    text-align: right;
+  }
+
+  .terminal-decision-pill strong {
+    font-size: 28px;
+    justify-self: end;
+    margin: 0;
+  }
+
+  .terminal-header-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    row-gap: 10px;
+  }
+
+  .terminal-header-strip .stock-summary-metric {
+    border-left: 0 !important;
+    border-top: 1px solid rgba(184, 194, 207, 0.1) !important;
+    min-width: 0;
+    padding: 9px 6px !important;
+  }
+
+  .terminal-header-strip .stock-summary-metric strong {
+    font-size: 15px;
+    overflow-wrap: anywhere;
+  }
+
+  .data-health-terminal-guard {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .guard-stats {
+    justify-content: stretch;
+  }
+
+  .guard-stats .icon-btn {
+    width: 100%;
+  }
+
+  .scenario-terminal-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .scenario-terminal-card {
+    min-height: 92px;
+    padding: 13px !important;
+  }
+
+  .terminal-watchlist-row {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 12px !important;
+  }
+
+  .terminal-watchlist-row .library-card-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    row-gap: 10px;
+  }
+
+  .terminal-watchlist-row .compact-card-metric {
+    border-left: 0;
+    min-width: 0;
+    padding: 0;
+  }
+
+  .stock-report-section {
+    padding: 13px !important;
+  }
+
+  .stock-report-section > header h3,
+  .panel h3 {
+    font-size: 15px !important;
+  }
+}
+
 .terminal-shell {
   direction: ltr !important;
   grid-template-areas: "sidebar main" !important;
