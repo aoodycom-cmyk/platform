@@ -85,6 +85,8 @@ export function createStore() {
     language: initialLanguage,
     theme: saved.theme || "dark",
     activePanel: "home",
+    libraryFilter: saved.libraryFilter || "all",
+    librarySort: saved.librarySort || "latest",
     evaluatedSort: initialEvaluatedSort,
     rankingFilter: saved.rankingFilter || "all",
     sectorFilter: saved.sectorFilter || "all",
@@ -1292,6 +1294,14 @@ export function createStore() {
     set({ watchList: state.watchList.filter((item) => item.id !== id) });
   }
 
+  function setLibraryFilter(value) {
+    set({ libraryFilter: value || "all" });
+  }
+
+  function setLibrarySort(value) {
+    set({ librarySort: value || "latest" });
+  }
+
   return {
     state,
     set,
@@ -1352,6 +1362,8 @@ export function createStore() {
     previewInvestmentRestore,
     cancelInvestmentRestore,
     restoreInvestmentBackup,
+    setLibraryFilter,
+    setLibrarySort,
     setLanguage,
     setEvaluatedSort,
     setRankingFilter,
@@ -1393,6 +1405,8 @@ function persist(state) {
     language: state.language,
     theme: state.theme,
     activePanel: state.activePanel,
+    libraryFilter: state.libraryFilter,
+    librarySort: state.librarySort,
     evaluatedSort: state.evaluatedSort,
     rankingFilter: state.rankingFilter,
     sectorFilter: state.sectorFilter,
