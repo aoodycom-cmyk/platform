@@ -14,6 +14,7 @@ const GENERATED_DIRS = [
 const GENERATED_FILES = [
   "index.html",
   "styles.css",
+  "styles-mobile2.css",
   "service-worker.js",
   "manifest.webmanifest",
   "offline.html",
