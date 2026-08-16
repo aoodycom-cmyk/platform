@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-mobile2-20260817";
+const CACHE_NAME = "franklin-research-v10-mobile-only-release-20260816";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
