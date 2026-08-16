@@ -73,12 +73,11 @@ function render(root, store, actions) {
     return;
   }
   root.innerHTML = `
-    <main class="workspace product-shell terminal-shell">
-      ${terminalSidebar(state)}
-      <section class="terminal-main">
-        ${topBar(state)}
+    <main class="mobile-app-shell">
+      <section class="mobile-app-frame">
+        ${mobileAppHeader(state)}
         ${state.notice ? `<div class="notice">${escapeHtml(state.notice)}</div>` : ""}
-        ${panelContent(state)}
+        <div class="mobile-page-content">${panelContent(state)}</div>
       </section>
     </main>
     <nav class="mobile-nav">
@@ -90,26 +89,13 @@ function render(root, store, actions) {
 
 function homeDashboard(state) {
   return `
-    <main class="home-workspace polished-home product-home library-home terminal-shell">
-      ${terminalSidebar(state)}
-      <section class="terminal-main">
-        <header class="home-topbar home-hero-polish product-hero library-hero terminal-page-head">
-          <div class="home-brand-line">
-            <img class="app-logo" src="./assets/icon-192.png" alt="">
-            <div>
-              <p class="eyebrow">${uiLabel("Version 10.0.0")}</p>
-              <h1>${uiLabel("Franklin Research")}</h1>
-              <small>${uiLabel("My Stocks")} / ${uiLabel("Professional Equity Research Library")}</small>
-            </div>
-          </div>
-          <div class="home-actions">
-            ${languageToggle(state)}
-            <button class="primary-btn" data-action="open-external-import" aria-label="${uiLabel("Analyze / Add Stock")}">${uiLabel("إضافة سهم")}</button>
-            <button class="icon-btn" data-action="toggle-theme" title="${uiLabel("Toggle theme")}">${state.theme === "dark" ? uiLabel("Light") : uiLabel("Dark")}</button>
-          </div>
-        </header>
-        ${homePolishedSearch(state)}
-        ${externalAnalysesHomeSection(state)}
+    <main class="mobile-app-shell library-home">
+      <section class="mobile-app-frame">
+        ${mobileAppHeader(state, true)}
+        <div class="mobile-page-content">
+          ${homePolishedSearch(state)}
+          ${externalAnalysesHomeSection(state)}
+        </div>
       </section>
     </main>
     <nav class="mobile-nav">
@@ -118,34 +104,28 @@ function homeDashboard(state) {
   `;
 }
 
-function terminalSidebar(state) {
-  const links = [
-    ["home", uiLabel("Investment Watchlist")],
-    ["external-import", uiLabel("Import Analysis")],
-    ["history", uiLabel("History")],
-    ["settings", uiLabel("Settings")]
-  ];
+function mobileAppHeader(state, isHome = false) {
+  const title = isHome ? uiLabel("My Stocks") : activePanelLabel(state.activePanel);
   return `
-    <aside class="terminal-sidebar" aria-label="${uiLabel("Navigation")}">
-      <div class="terminal-sidebar-brand">
+    <header class="mobile-app-header">
+      <div class="mobile-brand">
         <img class="app-logo" src="./assets/icon-192.png" alt="">
         <div>
           <strong>Franklin</strong>
-          <span>${uiLabel("Research Library")}</span>
+          <span>${escapeHtml(title)}</span>
         </div>
       </div>
-      <nav>
-        ${links.map(([key, label]) => `
-          <button class="${state.activePanel === key ? "active" : ""}" data-panel="${key}">
-            <span></span>
-            ${escapeHtml(label)}
-          </button>
-        `).join("")}
-      </nav>
-      <div class="terminal-sidebar-foot">
-        <small>${uiLabel("ChatGPT analyzes. Franklin stores and reviews.")}</small>
+      <div class="mobile-header-actions">
+        ${isHome ? `<button class="primary-btn compact-primary" data-action="open-external-import">${uiLabel("إضافة سهم")}</button>` : `<button class="icon-btn back-home" data-panel="home">${uiLabel("Home")}</button>`}
+        <details class="mobile-app-menu">
+          <summary aria-label="${uiLabel("More")}">•••</summary>
+          <div>
+            ${languageToggle(state)}
+            <button class="icon-btn" data-action="toggle-theme">${state.theme === "dark" ? uiLabel("Light") : uiLabel("Dark")}</button>
+          </div>
+        </details>
       </div>
-    </aside>
+    </header>
   `;
 }
 
@@ -162,10 +142,6 @@ function languageToggle(state) {
 function homePolishedSearch(state) {
   return `
     <section class="home-search home-search-premium library-search-panel">
-      <div class="search-signature">
-        <span>${uiLabel("Investment Library")}</span>
-        <strong>${uiLabel("Browse saved investment decisions")}</strong>
-      </div>
       <div class="search-line">
         <input id="searchInput" data-library-search value="${escapeHtml(state.query)}" placeholder="${uiLabel("Search saved reports by ticker or company")}" autocomplete="off">
       </div>
@@ -205,9 +181,7 @@ function externalAnalysesHomeSection(state) {
     <section class="evaluated-panel external-home-panel library-panel">
       <div class="table-title">
         <div>
-          <p class="eyebrow">${uiLabel("Investment Library")}</p>
           <h2>${uiLabel("My Stocks")}</h2>
-          <p>${uiLabel("Franklin is where saved investment decisions live.")}</p>
         </div>
         <div class="library-stats">
           <span>${allReports.length} ${uiLabel("Stocks")}</span>
@@ -215,7 +189,6 @@ function externalAnalysesHomeSection(state) {
         </div>
       </div>
       ${watchlistToolbar(state)}
-      ${investmentLibrarySummary(allReports)}
       ${reports.length ? `
         <div class="library-card-grid">
           ${reports.map((report) => externalHomeCard(report)).join("")}
@@ -276,7 +249,7 @@ function watchlistToolbar(state) {
         <select data-library-sort>
           ${watchlistFilterOption("latest", uiLabel("Latest Update"), state.librarySort)}
           ${watchlistFilterOption("upside", uiLabel("Highest Upside"), state.librarySort)}
-          ${watchlistFilterOption("ticker", "Ticker", state.librarySort)}
+          ${watchlistFilterOption("ticker", uiLabel("Ticker"), state.librarySort)}
         </select>
       </label>
       <button class="primary-btn compact-primary" data-action="open-external-import">${uiLabel("إضافة سهم")}</button>
@@ -576,32 +549,6 @@ function emptyHomeState(state) {
         <button class="icon-btn" data-action="load-demo-analysis">${uiLabel("Load Demo Data")}</button>
       </div>
     </div>
-  `;
-}
-
-function topBar(state) {
-  const panelLabel = activePanelLabel(state.activePanel);
-  const isReport = state.activePanel === "external-report";
-  return `
-    <header class="topbar compact product-topbar terminal-command-bar">
-      <div class="terminal-breadcrumb">
-        <span>Terminal</span>
-        <b>›</b>
-        <span>Franklin</span>
-        <b>›</b>
-        <strong>${escapeHtml(panelLabel)}</strong>
-      </div>
-      <div class="top-actions terminal-command-actions">
-        <label class="terminal-global-search">
-          <span>⌕</span>
-          <input id="searchInput" value="${escapeHtml(state.query)}" placeholder="${uiLabel("Search saved reports by ticker or company")}" autocomplete="off">
-        </label>
-        <button class="icon-btn" data-panel="home">${uiLabel("Home")}</button>
-        <button class="icon-btn" data-action="open-external-import">${uiLabel("Import")}</button>
-        ${isReport ? `<button class="primary-btn command-export" data-action="export-external-json">${uiLabel("Export Report")}</button>` : ""}
-        ${languageToggle(state)}
-      </div>
-    </header>
   `;
 }
 
@@ -1607,7 +1554,6 @@ function externalAnalysisReportView(state) {
       ${stockDecisionHeader(reportWithCompletion, completion)}
       ${dataHealthTerminalGuard(reportWithCompletion, completion)}
       <section class="stock-decision-flow">
-        ${scenarioTerminalCards(report)}
         ${stockSection(uiLabel("فرصة الاستثمار"), investmentSummaryWorkspace(report))}
         ${qualityGrowthRiskPanel(report)}
         ${latestEarningsWorkspace(report)}
@@ -1623,7 +1569,7 @@ function externalAnalysisReportView(state) {
         `)}
       </section>
       <section class="panel external-report-actions">
-        <button class="primary-btn" data-action="add-external-analysis-for-ticker" data-external-ticker="${escapeHtml(ticker)}">${uiLabel("Add New Analysis")}</button>
+        <button class="primary-btn" data-action="add-external-analysis-for-ticker" data-external-ticker="${escapeHtml(ticker)}">${uiLabel("تحديث التحليل")}</button>
         <button class="primary-btn" data-action="open-earnings-update">${uiLabel("Analyze New Earnings")}</button>
         <button class="icon-btn" data-panel="home">${uiLabel("Back to My Stocks")}</button>
         <details class="report-actions-menu">
@@ -1654,59 +1600,69 @@ function stockDecisionHeader(report = {}, completion = {}) {
   return `
     <header id="stock-report-top" class="panel stock-decision-header terminal-stock-header">
       <div class="stock-title-block terminal-stock-identity">
-        <span class="terminal-stock-icon" aria-hidden="true">↗</span>
         <div>
-        <p class="eyebrow">${uiLabel("Investment Terminal")}</p>
-        <div class="stock-title-row">
-          <h2 dir="ltr">${escapeHtml(ticker)}</h2>
-          ${report.companyProfile ? `<button class="ticker-profile-button" data-profile-ticker="${escapeHtml(ticker)}" data-profile-report-id="${escapeHtml(report.id || "latest")}">${escapeHtml(ticker)}</button>` : ""}
-          <em class="terminal-inline-verdict ${colorClass(recommendationColorCategory(action), "badge")}">${escapeHtml(localizedExternalText(action) || "-")}</em>
-        </div>
-        <strong>${escapeHtml(companyName)}</strong>
-        <span>${uiLabel("Analysis Date")}: ${escapeHtml(report.analysisDate || "-")} / ${uiLabel("Report Period")}: ${escapeHtml(report.reportPeriod || "-")}</span>
+          <div class="stock-title-row">
+            <h2><bdi>${escapeHtml(ticker)}</bdi></h2>
+            ${report.companyProfile ? `<button class="ticker-profile-button" data-profile-ticker="${escapeHtml(ticker)}" data-profile-report-id="${escapeHtml(report.id || "latest")}">${uiLabel("Company Profile")}</button>` : ""}
+          </div>
+          <strong>${escapeHtml(companyName)}</strong>
         </div>
       </div>
-      <div class="stock-decision-badge terminal-decision-pill ${colorClass(recommendationColorCategory(action), "tone")}">
-        <span>${uiLabel("Recommendation")}</span>
-        <strong>${escapeHtml(localizedExternalText(action) || "-")}</strong>
-        <em>${externalRecommendationConfidence(report)}</em>
+      <div class="mobile-report-facts">
+        <article class="recommendation-fact ${colorClass(recommendationColorCategory(action), "tone")}">
+          <span>${uiLabel("Recommendation")}</span>
+          <strong>${escapeHtml(localizedExternalText(action) || "-")}</strong>
+        </article>
+        <article>
+          <span>${uiLabel("Current Price")}</span>
+          <strong><bdi>${money(current, 2)}</bdi></strong>
+        </article>
+        <article>
+          <span>${uiLabel("آخر تحديث")}</span>
+          <strong><bdi>${escapeHtml(report.reportPeriod || report.analysisDate || "—")}</bdi></strong>
+        </article>
       </div>
-      <div class="stock-summary-strip terminal-header-strip">
-        ${stockSummaryMetric(uiLabel("Current Price"), money(current, 2))}
+      <div class="mobile-scenario-grid terminal-header-strip">
         ${stockSummaryMetric("Bear", money(report.fairValue?.bear, 0), "bear")}
-        ${stockSummaryMetric("Base", money(report.fairValue?.base, 0), "base featured")}
+        ${stockSummaryMetric("Base", money(report.fairValue?.base, 0), "base")}
         ${stockSummaryMetric("Bull", money(report.fairValue?.bull, 0), "bull")}
-        ${stockSummaryMetric(uiLabel("Potential"), formatExternalPercent(potential), upsideColorCategory(numericValue(upside)))}
-        ${stockSummaryMetric(uiLabel("Data Health"), `${boundedPercent(completion.completionPct)}%`, completionStatusClass(completion.status))}
+        ${stockSummaryMetric(uiLabel("العائد المحتمل"), formatExternalPercent(potential), upsideColorCategory(numericValue(upside)))}
       </div>
     </header>
   `;
 }
 
 function dataHealthTerminalGuard(report = {}, completion = {}) {
-  if (!completion || completion.status === "complete") return "";
+  if (!completion) return "";
   const missingRequired = completion.missingRequiredPaths?.length || completion.details?.criticalRequired?.length || 0;
   const missingRecommended = completion.missingRecommendedPaths?.length || completion.details?.recommended?.length || 0;
+  const status = String(completion.status || "incomplete");
+  const tone = status === "complete" ? "complete" : status === "invalid" || status === "has_conflicts" ? "invalid" : "incomplete";
+  const statusText = status === "complete"
+    ? (isArabicUi() ? "البيانات مكتملة" : "Data complete")
+    : tone === "invalid"
+      ? (isArabicUi() ? "التحديث غير موثّق" : "Update not verified")
+      : (isArabicUi() ? "بيانات ناقصة" : "Missing data");
   return `
-    <section class="data-health-terminal-guard">
+    <section class="data-health-terminal-guard ${tone}">
       <div>
-        <span class="guard-icon">!</span>
+        <span class="guard-icon" aria-hidden="true"></span>
         <div>
-          <strong>${uiLabel("Data Integrity Guard Active")}</strong>
-          <p>${uiLabel("This saved analysis is reviewable, but some imported fields still need completion.")}</p>
+          <strong>${escapeHtml(statusText)}</strong>
+          <p>${boundedPercent(completion.completionPct)}% ${uiLabel("Data Completion")}</p>
         </div>
       </div>
-      <div class="guard-stats">
+      ${status === "complete" ? "" : `<div class="guard-stats">
         <span>${uiLabel("Required")}: <b>${escapeHtml(String(missingRequired))}</b></span>
         <span>${uiLabel("Recommended")}: <b>${escapeHtml(String(missingRecommended))}</b></span>
         <button class="icon-btn" data-action="start-report-supplement" data-external-ticker="${escapeHtml(report.company?.ticker || "")}" data-external-report-id="${escapeHtml(report.id || "")}">${uiLabel("إكمال البيانات")}</button>
-      </div>
+      </div>`}
     </section>
   `;
 }
 
 function stockSummaryMetric(label, value, tone = "neutral") {
-  return `<article class="stock-summary-metric ${escapeHtml(tone)}"><span>${escapeHtml(label)}</span><strong dir="ltr">${escapeHtml(String(value || "—"))}</strong></article>`;
+  return `<article class="stock-summary-metric ${escapeHtml(tone)}"><span>${escapeHtml(label)}</span><strong><bdi>${escapeHtml(String(value || "—"))}</bdi></strong></article>`;
 }
 
 function stockSection(title, body) {
@@ -1729,11 +1685,7 @@ function investmentSummaryWorkspace(report = {}) {
   return `
     <div class="investment-summary-workspace">
       <p>${escapeHtml(shortText(thesis || uiLabel("Not provided in the imported analysis."), 520))}</p>
-      <div class="summary-evidence-row">
-        ${miniEvidence(uiLabel("Decision"), localizedExternalText(externalRecommendationAction(report)) || "-")}
-        ${miniEvidence(uiLabel("Base Fair Value"), money(report.fairValue?.base, 0))}
-        ${miniEvidence(uiLabel("Risk"), scoreText(report.scores?.risk, 1))}
-      </div>
+      ${report.thesis?.fullSummary ? externalDetail(uiLabel("Full thesis"), `<p>${escapeHtml(localizedExternalText(report.thesis.fullSummary))}</p>`) : ""}
     </div>
   `;
 }
@@ -1768,24 +1720,22 @@ function scoreBarItem(label, value) {
 function latestEarningsWorkspace(report = {}) {
   const previous = report.previousRequirementsEvaluation;
   const hasPreviousEvaluation = (previous?.requirements || []).length > 0;
-  const rows = earningsSnapshotRows(report);
-  const hasGuidance = hasRenderableContent(guidanceTableView(report));
-  if (!hasPreviousEvaluation && !rows.length && !hasGuidance) {
+  if (!hasPreviousEvaluation) {
     return stockSection(uiLabel("Latest Earnings Execution"), `
       <div class="earnings-empty-state">
-        <strong>${uiLabel("لم يتم تحديث السهم بعد آخر إعلان أرباح.")}</strong>
-        <p>${uiLabel("استخدم هذا المسار لإرسال المتطلبات المحفوظة ومواد الأرباح إلى ChatGPT ثم استيراد JSON الناتج.")}</p>
-        <button class="primary-btn" data-action="open-earnings-update">${uiLabel("تحديث من إعلان أرباح جديد")}</button>
+        <strong>${uiLabel("لا توجد متطلبات سابقة للمقارنة مع هذا الإعلان.")}</strong>
+        <button class="primary-btn" data-action="open-earnings-update">${uiLabel("تحليل إعلان جديد")}</button>
       </div>
     `);
   }
+  const rows = earningsSnapshotRows(report);
+  const hasGuidance = hasRenderableContent(guidanceTableView(report));
   const assessment = previous?.requirementsAssessment || report.requirementsAssessment || {};
   return stockSection(uiLabel("Latest Earnings Execution"), `
     <div class="earnings-dashboard latest-earnings-terminal">
       <div class="earnings-dashboard-head">
         <div>
           <p class="eyebrow">${escapeHtml(report.reportPeriod || report.analysisDate || "")}</p>
-          <h3>${uiLabel("نتيجة الإعلان الأخير")}</h3>
         </div>
         <button class="compact-inline-action" data-action="open-earnings-update">${uiLabel("تحليل إعلان جديد")}</button>
       </div>
@@ -1900,34 +1850,6 @@ function fairValueScenario(label, value, currentPrice, featured = false) {
       <span>${escapeHtml(uiLabel(`${label} Scenario Label`))}</span>
       <strong dir="ltr">${money(value, 0)}</strong>
       <em dir="ltr">${Number.isFinite(upside) ? formatExternalPercent(upside) : "—"}</em>
-    </article>
-  `;
-}
-
-function scenarioTerminalCards(report = {}) {
-  const current = report.market?.currentPrice ?? report.market?.priceAtAnalysis;
-  return `
-    <section class="scenario-terminal-grid" aria-label="Bear Base Bull">
-      ${terminalScenarioCard("Bear", report.fairValue?.bear, current, report.scenarios?.bear)}
-      ${terminalScenarioCard("Base", report.fairValue?.base, current, report.scenarios?.base, true)}
-      ${terminalScenarioCard("Bull", report.fairValue?.bull, current, report.scenarios?.bull)}
-    </section>
-  `;
-}
-
-function terminalScenarioCard(label, value, currentPrice, scenario = {}, primary = false) {
-  const upside = Number.isFinite(numericValue(value)) && Number.isFinite(numericValue(currentPrice))
-    ? ((numericValue(value) - numericValue(currentPrice)) / numericValue(currentPrice)) * 100
-    : null;
-  const explanation = firstUsefulText([scenario?.thesis, scenario?.assumptions, scenario?.keyRisks]);
-  return `
-    <article class="terminal-scenario-card scenario-${label.toLowerCase()} ${primary ? "primary" : ""}">
-      <div>
-        <span>${escapeHtml(uiLabel(`${label} Scenario Label`))}</span>
-        <em dir="ltr">${Number.isFinite(upside) ? formatExternalPercent(upside) : "—"}</em>
-      </div>
-      <strong dir="ltr">${money(value, 0)}</strong>
-      ${explanation ? `<p>${escapeHtml(shortText(localizedExternalText(explanation), 120))}</p>` : ""}
     </article>
   `;
 }
@@ -2056,7 +1978,7 @@ function strengthsRisksDashboard(report = {}) {
 
 function catalystsDashboard(report = {}) {
   const catalysts = Array.isArray(report.catalysts) ? report.catalysts : [];
-  if (!catalysts.length) return emptyDashboardState(uiLabel("Not provided in the imported analysis."));
+  if (!catalysts.length) return "";
   return compactEvidenceList(catalysts);
 }
 
@@ -2064,7 +1986,7 @@ function monitoringChecklistDashboard(report = {}) {
   const items = Array.isArray(report.monitoringChecklist) && report.monitoringChecklist.length
     ? report.monitoringChecklist
     : report.watchItems || [];
-  if (!items.length) return emptyDashboardState(uiLabel("Not provided in the imported analysis."));
+  if (!items.length) return "";
   return compactEvidenceList(items);
 }
 
@@ -2076,7 +1998,7 @@ function finalDecisionDashboard(report = {}) {
 }
 
 function miniEvidence(label, value) {
-  return `<span><b>${escapeHtml(label)}</b><strong dir="ltr">${escapeHtml(formatAnyValue(value))}</strong></span>`;
+  return `<span class="mini-evidence"><b dir="auto">${escapeHtml(label)}</b><strong dir="auto"><bdi>${escapeHtml(formatAnyValue(value))}</bdi></strong></span>`;
 }
 
 function emptyDashboardState(text) {
@@ -2266,7 +2188,7 @@ function externalRecommendationAction(report = {}) {
 
 function externalRecommendationConfidence(report = {}) {
   const confidence = numericValue(report.recommendation?.confidence);
-  return Number.isFinite(confidence) ? `${Math.round(confidence)}% ${uiLabel("Confidence")}` : uiLabel("Stored external research");
+  return Number.isFinite(confidence) ? `${Math.round(confidence)}% ${uiLabel("Confidence")}` : "";
 }
 
 function decisionStripMetric(label, value, category = "neutral") {
@@ -2992,12 +2914,8 @@ function investmentDataTableArea(report = {}) {
   return `
     <section class="investment-data-area">
       <header class="investment-data-head">
-        <div>
-          <p class="eyebrow">${uiLabel("Investment Data")}</p>
-          <h3>${uiLabel("Compare / Monitor / Decide")}</h3>
-        </div>
         <label class="compact-data-select-label">
-          <span>${uiLabel("View")}</span>
+          <span>${uiLabel("العرض")}</span>
           <select class="compact-data-select" data-investment-data-select aria-label="${uiLabel("Investment Data")}">
             ${panels.map((panel, index) => `<option value="${escapeHtml(panel.key)}" ${index === 0 ? "selected" : ""}>${escapeHtml(panel.label)}</option>`).join("")}
           </select>
@@ -3022,8 +2940,11 @@ function emptyCompactDataView(label) {
 
 function guidanceTableView(report = {}) {
   const rows = [];
+  const renderedTopics = new Set();
   const nextGuidance = Array.isArray(report.nextQuarterGuidance?.items) ? report.nextQuarterGuidance.items : [];
   for (const item of nextGuidance) {
+    const topicKey = guidanceRowKey(item);
+    if (topicKey) renderedTopics.add(topicKey);
     rows.push({
       label: item.arabicTopic || item.topic || uiLabel("Guidance"),
       secondary: item.arabicTopic && item.topic ? item.topic : "",
@@ -3050,6 +2971,9 @@ function guidanceTableView(report = {}) {
       });
       continue;
     }
+    const topicKey = guidanceRowKey(item);
+    if (topicKey && renderedTopics.has(topicKey)) continue;
+    if (topicKey) renderedTopics.add(topicKey);
     rows.push({
       label: item.arabicTopic || item.topic || item.title || item.name || uiLabel("Guidance"),
       secondary: item.arabicTopic && item.topic ? item.topic : "",
@@ -3068,6 +2992,11 @@ function guidanceTableView(report = {}) {
     columns: [uiLabel("Previous"), uiLabel("Current"), uiLabel("Period"), uiLabel("Direction")],
     rows
   });
+}
+
+function guidanceRowKey(item) {
+  if (!item || typeof item === "string") return "";
+  return String(item.topic || item.arabicTopic || item.title || item.name || "").trim().toLowerCase();
 }
 
 function financialPerformanceTableView(report = {}) {
@@ -3127,51 +3056,36 @@ function kpiSourceText(item = {}) {
 function compactFinancialTable({ caption, columns = [], rows = [] } = {}) {
   if (!rows.length) return "";
   return `
-    <div class="compact-table-shell">
+    <div class="compact-table-shell mobile-data-group">
       ${caption ? `<div class="compact-table-caption">${escapeHtml(caption)}</div>` : ""}
-      <div class="compact-table-scroll">
-        <table class="compact-financial-table">
-          <thead>
-            <tr>
-              <th class="sticky-metric-col">${uiLabel("Metric")}</th>
-              ${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}
-            </tr>
-          </thead>
-          <tbody>
-            ${rows.map((row) => compactFinancialRow(row, columns.length)).join("")}
-          </tbody>
-        </table>
+      <div class="mobile-data-card-list">
+        ${rows.map((row) => compactFinancialCard(row, columns)).join("")}
       </div>
     </div>
   `;
 }
 
-function compactFinancialRow(row = {}, columnCount = 0) {
+function compactFinancialCard(row = {}, columns = []) {
   const detail = localizedExternalText(row.detail).trim() ? row.detail : "";
   return `
-    <tr class="${detail ? "has-row-detail" : ""}">
-      <th class="sticky-metric-col" scope="row">${compactMetricLabel(row.label, row.secondary)}</th>
-      ${Array.from({ length: columnCount }).map((_, index) => compactFinancialCell(row.cells?.[index])).join("")}
-    </tr>
-    ${detail ? `
-      <tr class="compact-row-detail">
-        <td colspan="${columnCount + 1}">
-          <details>
-            <summary>${uiLabel("Show details")}</summary>
-            <div>${detail}</div>
-          </details>
-        </td>
-      </tr>
-    ` : ""}
+    <article class="mobile-data-card">
+      <header>${compactMetricLabel(row.label, row.secondary)}</header>
+      <div class="mobile-data-values">
+        ${columns.map((column, index) => {
+          const cell = row.cells?.[index] || {};
+          const config = typeof cell === "object" && !Array.isArray(cell) ? cell : { value: cell };
+          const value = config.html ? config.value : escapeHtml(formatAnyValue(config.value ?? "—"));
+          return `
+            <div class="mobile-data-value ${escapeHtml(config.className || "")}">
+              <span>${escapeHtml(column)}</span>
+              <strong dir="${escapeHtml(config.dir || "auto")}">${config.html ? value : `<bdi>${value}</bdi>`}</strong>
+            </div>
+          `;
+        }).join("")}
+      </div>
+      ${detail ? `<details class="mobile-card-details"><summary>${uiLabel("Show details")}</summary><div>${detail}</div></details>` : ""}
+    </article>
   `;
-}
-
-function compactFinancialCell(cell = {}) {
-  const config = typeof cell === "object" && !Array.isArray(cell) ? cell : { value: cell };
-  const value = config.html ? config.value : escapeHtml(formatAnyValue(config.value ?? "—"));
-  const dir = config.dir || "auto";
-  const className = config.className ? ` ${escapeHtml(config.className)}` : "";
-  return `<td class="compact-value-cell${className}" dir="${escapeHtml(dir)}">${value}</td>`;
 }
 
 function compactMetricLabel(primary, secondary = "") {
@@ -3248,7 +3162,7 @@ function priceTargetRequirementsView(requirementsBlock = {}) {
         </article>
         <article>
           <span>${uiLabel("Target Scenario")}</span>
-          <strong>${escapeHtml(localizedExternalText(requirementsBlock.targetScenario || "-"))}</strong>
+          <strong dir="auto"><bdi>${escapeHtml(targetScenarioLabel(requirementsBlock.targetScenario))}</bdi></strong>
         </article>
         <article>
           <span>${uiLabel("Earnings Period")}</span>
@@ -3256,7 +3170,7 @@ function priceTargetRequirementsView(requirementsBlock = {}) {
         </article>
       </div>
       <div class="requirements-cycle-copy">
-        <strong>${uiLabel("What must the company deliver to justify")} ${money(targetValue, 0)}?</strong>
+        <strong>${uiLabel("What must the company deliver to justify")} <bdi dir="ltr">${isArabicUi() ? `${money(targetValue, 0).replace("$", "")} USD` : money(targetValue, 0)}</bdi>${isArabicUi() ? "؟" : "?"}</strong>
         ${requirementsBlock.summary || requirementsBlock.targetDescription ? `<p>${escapeHtml(localizedExternalText(requirementsBlock.summary || requirementsBlock.targetDescription))}</p>` : ""}
       </div>
       ${requirementsComparisonView(requirements, {
@@ -3319,7 +3233,7 @@ function previousRequirementExecutionView(evaluation = {}) {
   return `
     <div class="previous-execution-block">
       <div class="requirements-summary">
-        ${compactCardMetric(uiLabel("Target being tested"), `${money(evaluation.targetValue, 0)} ${localizedExternalText(evaluation.targetScenario || "")}`)}
+        ${Number.isFinite(numericValue(evaluation.targetValue)) ? compactCardMetric(uiLabel("Target being tested"), `${money(evaluation.targetValue, 0)} ${localizedExternalText(evaluation.targetScenario || "")}`) : ""}
         ${compactCardMetric(uiLabel("Requirement achievement"), Number.isFinite(numericValue(assessment.weightedAchievement)) ? `${Math.round(numericValue(assessment.weightedAchievement))}%` : "—")}
         ${compactCardMetric(uiLabel("Reported Requirements"), assessmentCountText(assessment.reportedRequirements, assessment.totalRequirements))}
         ${compactCardMetric(uiLabel("Earnings Period"), targetQuarter || "-")}
@@ -3372,65 +3286,30 @@ function requirementLifecycleTimeline(requirementSets = [], reports = []) {
 function requirementsComparisonView(requirements = [], options = {}) {
   if (!Array.isArray(requirements) || !requirements.length) return "";
   const previousHeader = `${uiLabel("Figures")} ${options.previousQuarter || uiLabel("Previous Quarter")}`;
-  const targetHeader = `${uiLabel("Required To Justify")} ${money(options.targetValue, 0)}`;
+  const targetHeader = `${uiLabel("Required To Justify")} \u2066${money(options.targetValue, 0)}\u2069`;
   const actualHeader = `${uiLabel("Figures")} ${options.targetQuarter || uiLabel("Target Quarter")}`;
   return `
     <div class="requirements-comparison">
-      ${compactFinancialTable({
-        caption: uiLabel("Price Target Requirements"),
-        columns: [uiLabel("Weight"), previousHeader, targetHeader, actualHeader, uiLabel("Status")],
-        rows: requirements.map((item) => requirementComparisonTableRow(item, options))
-      })}
+      <div class="compact-table-caption">${uiLabel("Price Target Requirements")}</div>
+      <div class="requirements-comparison-mobile">
+        ${requirements.map((item) => requirementComparisonMobileRow(item, {
+          ...options,
+          previousHeader,
+          targetHeader,
+          actualHeader
+        })).join("")}
+      </div>
     </div>
   `;
 }
 
-function requirementComparisonTableRow(item = {}, options = {}) {
-  const english = item.name || item.metric || "";
-  const arabic = item.arabicName || "";
-  const detail = [
-    item.whyItMatters ? `<p><b>${uiLabel("Why does it matter?")}</b>: ${escapeHtml(localizedExternalText(item.whyItMatters))}</p>` : "",
-    item.evaluationNote ? `<p><b>${uiLabel("Result explanation")}</b>: ${escapeHtml(localizedExternalText(item.evaluationNote))}</p>` : "",
-    item.direction ? `<p><b>${uiLabel("Direction")}</b>: ${escapeHtml(directionLabel(item.direction))}</p>` : "",
-    item.impact ? `<p><b>${uiLabel("Investment Impact")}</b>: ${escapeHtml(impactLabel(item.impact))}</p>` : ""
-  ].filter(Boolean).join("");
-  return {
-    label: arabic || english || "-",
-    secondary: arabic && english && arabic !== english ? english : "",
-    cells: [
-      { value: requirementWeightText(item.weight), dir: "ltr" },
-      { value: requirementPreviousText(item), dir: "ltr" },
-      { value: requirementRequiredText(item), dir: "ltr" },
-      { value: requirementActualCell(item, options.pending), dir: "ltr", html: true },
-      { value: requirementStatusBadge(item.status), html: true }
-    ],
-    detail
-  };
-}
-
-function requirementComparisonRow(item = {}, options = {}) {
-  return `
-    <tr>
-      <td dir="ltr">${requirementWeightText(item.weight)}</td>
-      <td>${requirementMetricCell(item)}</td>
-      <td dir="ltr">${escapeHtml(requirementPreviousText(item))}</td>
-      <td dir="ltr">${escapeHtml(requirementRequiredText(item))}</td>
-      <td dir="ltr">${requirementActualCell(item, options.pending)}</td>
-      <td>${requirementStatusBadge(item.status)}</td>
-    </tr>
-    ${item.evaluationNote ? `<tr class="requirement-note-row"><td colspan="6">${escapeHtml(localizedExternalText(item.evaluationNote))}</td></tr>` : ""}
-  `;
-}
-
 function requirementComparisonMobileRow(item = {}, options = {}) {
+  const hasDetails = Boolean(item.whyItMatters || item.evaluationNote || item.direction || item.impact);
   return `
     <article class="requirement-comparison-row">
       <header>
-        <div>
-          <span>${uiLabel("Metric")}</span>
-          ${requirementMetricCell(item)}
-        </div>
-        <strong dir="ltr">${requirementWeightText(item.weight)}</strong>
+        ${requirementMetricCell(item)}
+        <span class="requirement-weight">${uiLabel("Weight")}: <bdi>${requirementWeightText(item.weight)}</bdi></span>
         ${requirementStatusBadge(item.status)}
       </header>
       <div class="requirement-comparison-grid">
@@ -3438,8 +3317,17 @@ function requirementComparisonMobileRow(item = {}, options = {}) {
         ${comparisonCell(options.targetHeader || uiLabel("Required"), requirementRequiredText(item), "ltr")}
         ${comparisonCell(options.actualHeader || uiLabel("Actual"), requirementActualCell(item, options.pending), "ltr", true)}
       </div>
-      ${item.whyItMatters ? `<p>${escapeHtml(localizedExternalText(item.whyItMatters))}</p>` : ""}
-      ${item.evaluationNote ? `<p class="requirement-evaluation-note">${escapeHtml(localizedExternalText(item.evaluationNote))}</p>` : ""}
+      ${hasDetails ? `
+        <details class="mobile-card-details">
+          <summary>${uiLabel("Show details")}</summary>
+          <div>
+            ${item.whyItMatters ? `<p><b>${uiLabel("Why does it matter?")}</b> ${escapeHtml(localizedExternalText(item.whyItMatters))}</p>` : ""}
+            ${item.evaluationNote ? `<p><b>${uiLabel("Result explanation")}</b> ${escapeHtml(localizedExternalText(item.evaluationNote))}</p>` : ""}
+            ${item.direction ? `<p><b>${uiLabel("Direction")}</b> ${escapeHtml(directionLabel(item.direction))}</p>` : ""}
+            ${item.impact ? `<p><b>${uiLabel("Investment Impact")}</b> ${escapeHtml(impactLabel(item.impact))}</p>` : ""}
+          </div>
+        </details>
+      ` : ""}
     </article>
   `;
 }
@@ -3456,7 +3344,7 @@ function comparisonCell(label, value, direction = "auto", valueIsHtml = false) {
 function requirementMetricCell(item = {}) {
   const english = item.name || item.metric || "";
   const arabic = item.arabicName || "";
-  const primary = arabic || english || "-";
+  const primary = localizedRequirementName(arabic || english || "-");
   const secondary = arabic && english && arabic !== english ? english : "";
   return `
     <div class="requirement-metric-name">
@@ -3464,6 +3352,13 @@ function requirementMetricCell(item = {}) {
       ${secondary ? `<small dir="ltr">${escapeHtml(secondary)}</small>` : ""}
     </div>
   `;
+}
+
+function localizedRequirementName(value) {
+  const text = String(value || "-").trim();
+  const generic = text.match(/^Requirement\s+(\d+)$/i);
+  if (generic && isArabicUi()) return `المتطلب ${generic[1]}`;
+  return text;
 }
 
 function requirementWeightText(value) {
@@ -3802,9 +3697,18 @@ function requirementsStatusLabel(status) {
     bull_case_weakened: uiLabel("Bull Case Weakened"),
     thesis_strengthened: uiLabel("Thesis Strengthened"),
     thesis_weakened: uiLabel("Thesis Weakened"),
-    thesis_broken: uiLabel("Thesis Broken")
+    thesis_broken: uiLabel("Thesis Broken"),
+    NO_PRIOR_SET: uiLabel("لا توجد متطلبات سابقة للمقارنة.")
   };
   return labels[String(status || "")] || localizedExternalText(status || "-");
+}
+
+function targetScenarioLabel(value) {
+  const clean = String(value || "").trim().toLowerCase();
+  if (clean === "bear" || clean === "downside") return "Bear";
+  if (clean === "base" || clean === "base_case") return "Base";
+  if (clean === "bull" || clean === "optimistic") return clean === "bull" ? "Bull" : "Optimistic";
+  return localizedExternalText(value || "—").replaceAll("_", " ");
 }
 
 function formatRequirementValue(value, unit) {
