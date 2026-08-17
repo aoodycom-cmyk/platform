@@ -146,7 +146,6 @@ function homePolishedSearch(state) {
       <div class="search-line">
         <input id="searchInput" data-library-search value="${escapeHtml(state.query)}" placeholder="${uiLabel("Search saved reports by ticker or company")}" autocomplete="off">
       </div>
-      ${state.notice ? `<p class="home-note">${escapeHtml(state.notice)}</p>` : ""}
     </section>
   `;
 }
