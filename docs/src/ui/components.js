@@ -80,6 +80,7 @@ function render(root, store, actions) {
         <div class="mobile-page-content">${panelContent(state)}</div>
       </section>
     </main>
+    ${evidenceDetailDialog()}
     <nav class="mobile-nav">
       ${panels.map(([key, label]) => `<button class="${state.activePanel === key ? "active" : ""}" data-panel="${key}">${uiLabel(label)}</button>`).join("")}
     </nav>
@@ -1405,10 +1406,20 @@ function externalHistoryPanel(state) {
       ${reports.length ? `
         <div class="history-report-list">
           ${reports.map((report) => `
-            <button data-external-ticker="${escapeHtml(report.company?.ticker || "")}" data-external-report-id="${escapeHtml(report.id || "")}">
-              <strong>${escapeHtml(report.company?.ticker || "-")} / ${escapeHtml(report.company?.name || "-")}</strong>
-              <span>${escapeHtml(report.analysisDate || "-")} / ${escapeHtml(report.reportPeriod || "-")} / ${money(report.market?.priceAtAnalysis, 2)} / Base ${money(report.fairValue?.base, 0)}</span>
-              <em>${escapeHtml(report.decision?.verdict || "-")}</em>
+            <button class="history-analysis-card" data-external-ticker="${escapeHtml(report.company?.ticker || "")}" data-external-report-id="${escapeHtml(report.id || "")}" data-external-history-ticker="${escapeHtml(report.company?.ticker || "")}" data-external-history-id="${escapeHtml(report.id || "")}">
+              <span class="history-card-head">
+                <span class="history-company-title">
+                  <strong dir="ltr"><bdi>${escapeHtml(report.company?.ticker || "-")}</bdi></strong>
+                  <b dir="auto"><bdi>${escapeHtml(report.company?.name || "-")}</bdi></b>
+                </span>
+                <em>${escapeHtml(localizedExternalText(report.decision?.verdict) || "-")}</em>
+              </span>
+              <span class="history-card-date" dir="auto"><bdi>${escapeHtml(report.analysisDate || "-")}</bdi>${report.reportPeriod ? ` · <bdi>${escapeHtml(report.reportPeriod)}</bdi>` : ""}</span>
+              <span class="history-card-values">
+                <span><small>${uiLabel("Price at Analysis")}</small><strong dir="ltr"><bdi>${money(report.market?.priceAtAnalysis, 2)}</bdi></strong></span>
+                <span><small>${uiLabel("Base Fair Value")}</small><strong dir="ltr"><bdi>${money(report.fairValue?.base, 0)}</bdi></strong></span>
+              </span>
+              <span class="history-card-action">${uiLabel("Open saved report")} <b aria-hidden="true">›</b></span>
             </button>
           `).join("")}
         </div>
@@ -1979,7 +1990,7 @@ function strengthsRisksDashboard(report = {}) {
 function catalystsDashboard(report = {}) {
   const catalysts = Array.isArray(report.catalysts) ? report.catalysts : [];
   if (!catalysts.length) return "";
-  return compactEvidenceList(catalysts);
+  return compactEvidenceList(catalysts, "", "catalyst");
 }
 
 function monitoringChecklistDashboard(report = {}) {
@@ -1987,7 +1998,7 @@ function monitoringChecklistDashboard(report = {}) {
     ? report.monitoringChecklist
     : report.watchItems || [];
   if (!items.length) return "";
-  return compactEvidenceList(items);
+  return compactEvidenceList(items, "", "watch");
 }
 
 function finalDecisionDashboard(report = {}) {
@@ -2351,11 +2362,11 @@ function strengthsRisksSummaryView(report = {}) {
       <div class="strength-risk-compare">
         <section>
           <h4>${uiLabel("Strengths")}</h4>
-          ${compactEvidenceList(strengths, uiLabel("No verified strengths were provided."))}
+          ${compactEvidenceList(strengths, uiLabel("No verified strengths were provided."), "strength")}
         </section>
         <section>
           <h4>${uiLabel("Risks")}</h4>
-          ${compactEvidenceList(risks, uiLabel("No verified risks were provided."))}
+          ${compactEvidenceList(risks, uiLabel("No verified risks were provided."), "risk")}
         </section>
       </div>
     </details>
@@ -2391,8 +2402,8 @@ function compactValuationMethodsSummary(report = {}) {
 
 function compactMoreEvidenceView(report = {}) {
   const blocks = [
-    report.catalysts?.length ? externalDetail(uiLabel("Catalysts"), itemList(report.catalysts, ["explanation"])) : "",
-    report.watchItems?.length ? externalDetail(uiLabel("Watch List"), simpleList(report.watchItems)) : "",
+    report.catalysts?.length ? externalDetail(uiLabel("Catalysts"), compactEvidenceList(report.catalysts, "", "catalyst")) : "",
+    report.watchItems?.length ? externalDetail(uiLabel("Watch List"), compactEvidenceList(report.watchItems, "", "watch")) : "",
     hasRenderableContent(companyQualityView(report)) ? externalDetail(uiLabel("Company Quality"), companyQualityView(report)) : "",
     hasRenderableContent(growthView(report)) ? externalDetail(uiLabel("Growth Section"), growthView(report)) : "",
     hasRenderableContent(externalRecommendationView(report)) ? externalDetail(uiLabel("Investment Verdict"), externalRecommendationView(report)) : "",
@@ -2421,18 +2432,112 @@ function compactTechnicalDetails(report = {}, completion = {}, history = [], req
   return blocks ? `<div class="compact-detail-stack">${blocks}</div>` : "";
 }
 
-function compactEvidenceList(items = [], emptyLabel = "") {
-  const visible = Array.isArray(items) ? items.slice(0, 8) : [];
+export function compactEvidenceList(items = [], emptyLabel = "", type = "evidence") {
+  const visible = Array.isArray(items) ? items : [];
   if (!visible.length) return `<p class="muted">${escapeHtml(emptyLabel)}</p>`;
   return `
     <ul class="compact-evidence-items">
-      ${visible.map((item) => `
+      ${visible.map((item) => {
+        const isPlainText = typeof item === "string";
+        const title = reportItemTitle(item) || uiLabel("Details");
+        const preview = isPlainText ? "" : reportItemPreview(item);
+        const actionLabel = `${uiLabel("Open details for")}: ${title}`;
+        return `
         <li>
-          <strong>${escapeHtml(shortText(reportItemTitle(item), 64))}</strong>
-          ${reportItemDetail(item) ? `<details><summary>${uiLabel("Show details")}</summary><p>${escapeHtml(reportItemDetail(item))}</p></details>` : ""}
+          <button class="compact-evidence-row" type="button" data-evidence-detail aria-haspopup="dialog" aria-label="${escapeHtml(actionLabel)}">
+            <span>
+              <strong class="evidence-row-title${isPlainText ? " plain-text-preview" : ""}" dir="auto"><bdi>${escapeHtml(title)}</bdi></strong>
+              ${preview ? `<small dir="auto"><bdi>${escapeHtml(preview)}</bdi></small>` : ""}
+            </span>
+            <b class="evidence-row-chevron" aria-hidden="true">›</b>
+          </button>
+          <template data-evidence-template>
+            ${evidenceDetailContent(item, type)}
+          </template>
         </li>
-      `).join("")}
+      `;
+      }).join("")}
     </ul>
+  `;
+}
+
+function reportItemPreview(item) {
+  if (typeof item === "string") return "";
+  return firstUsefulText([
+    item?.focus,
+    item?.currentValue,
+    item?.explanation,
+    item?.whyItMatters,
+    item?.evidence,
+    item?.whatToMonitor,
+    item?.thesisBreaker,
+    item?.detail,
+    item?.notes
+  ]);
+}
+
+function evidenceDetailContent(item, type) {
+  const isPlainText = typeof item === "string";
+  const title = reportItemTitle(item) || uiLabel("Details");
+  const fields = evidenceDetailFields(item);
+  return `
+    <header class="evidence-detail-head">
+      <span>${escapeHtml(evidenceTypeLabel(type))}</span>
+      ${isPlainText ? "" : `<h3 dir="auto"><bdi>${escapeHtml(title)}</bdi></h3>`}
+    </header>
+    <div class="evidence-detail-fields">
+      ${fields.map(({ label, value }) => `
+        <section>
+          <strong>${escapeHtml(label)}</strong>
+          <p dir="auto"><bdi>${escapeHtml(value)}</bdi></p>
+        </section>
+      `).join("")}
+    </div>
+  `;
+}
+
+export function evidenceDetailFields(item) {
+  if (typeof item === "string") return [{ label: uiLabel("Full text"), value: localizedExternalText(item) }];
+  if (!item || typeof item !== "object") return [];
+  const candidates = [
+    ["currentValue", uiLabel("Current value")],
+    ["focus", uiLabel("Focus")],
+    ["explanation", uiLabel("Explanation")],
+    ["whyItMatters", uiLabel("Why it matters")],
+    ["evidence", uiLabel("Evidence")],
+    ["severity", uiLabel("Severity")],
+    ["importance", uiLabel("Importance")],
+    ["whatToMonitor", uiLabel("What to Monitor")],
+    ["thesisBreaker", uiLabel("Thesis Breaker")],
+    ["evaluationNote", uiLabel("Evaluation note")],
+    ["detail", uiLabel("Details")],
+    ["notes", uiLabel("Notes")]
+  ];
+  const seen = new Set();
+  return candidates.flatMap(([key, label]) => {
+    const value = localizedExternalText(item[key]).trim();
+    if (!value || seen.has(value)) return [];
+    seen.add(value);
+    return [{ label, value }];
+  });
+}
+
+function evidenceTypeLabel(type) {
+  if (type === "catalyst") return uiLabel("Catalyst");
+  if (type === "risk") return uiLabel("Risk item");
+  if (type === "watch") return uiLabel("Watch item");
+  if (type === "strength") return uiLabel("Strength");
+  return uiLabel("Evidence");
+}
+
+function evidenceDetailDialog() {
+  return `
+    <dialog class="evidence-detail-dialog" data-evidence-dialog aria-label="${uiLabel("Evidence details")}">
+      <article class="evidence-detail-sheet">
+        <button class="evidence-detail-close" type="button" data-action="close-evidence-detail" aria-label="${uiLabel("Close")}">×</button>
+        <div data-evidence-dialog-content></div>
+      </article>
+    </dialog>
   `;
 }
 
@@ -5467,6 +5572,84 @@ function factorList(title, factors) {
 }
 
 function bind(root, store, actions) {
+  const evidenceDialog = root.querySelector("[data-evidence-dialog]");
+  let evidenceDialogTrigger = null;
+  let fallbackInertState = [];
+  const releaseEvidenceFallback = () => {
+    fallbackInertState.forEach(({ element, inert }) => {
+      element.inert = inert;
+    });
+    fallbackInertState = [];
+    evidenceDialog?.removeAttribute("data-fallback-open");
+    evidenceDialog?.removeAttribute("aria-modal");
+  };
+  const closeEvidenceDialog = () => {
+    if (!evidenceDialog) return;
+    const trigger = evidenceDialogTrigger;
+    if (evidenceDialog.hasAttribute("data-fallback-open")) {
+      evidenceDialog.removeAttribute("open");
+      releaseEvidenceFallback();
+    } else if (typeof evidenceDialog.close === "function") {
+      evidenceDialog.close();
+    } else {
+      evidenceDialog.removeAttribute("open");
+    }
+    evidenceDialogTrigger = null;
+    trigger?.focus();
+  };
+  root.querySelectorAll("[data-evidence-detail]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const template = button.closest("li")?.querySelector("[data-evidence-template]");
+      const content = evidenceDialog?.querySelector("[data-evidence-dialog-content]");
+      if (!template || !content || !evidenceDialog) return;
+      evidenceDialogTrigger = button;
+      content.innerHTML = template.innerHTML;
+      if (typeof evidenceDialog.showModal === "function") evidenceDialog.showModal();
+      else {
+        fallbackInertState = [...root.children]
+          .filter((element) => element !== evidenceDialog)
+          .map((element) => ({ element, inert: element.inert }));
+        fallbackInertState.forEach(({ element }) => {
+          element.inert = true;
+        });
+        evidenceDialog.setAttribute("data-fallback-open", "true");
+        evidenceDialog.setAttribute("aria-modal", "true");
+        evidenceDialog.setAttribute("open", "");
+      }
+      evidenceDialog.querySelector("[data-action='close-evidence-detail']")?.focus();
+    });
+  });
+  evidenceDialog?.querySelector("[data-action='close-evidence-detail']")?.addEventListener("click", closeEvidenceDialog);
+  evidenceDialog?.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeEvidenceDialog();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = [...evidenceDialog.querySelectorAll("button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])")]
+      .filter((element) => !element.hidden);
+    if (!focusable.length) {
+      event.preventDefault();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+  evidenceDialog?.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeEvidenceDialog();
+  });
+  evidenceDialog?.addEventListener("click", (event) => {
+    if (event.target === evidenceDialog) closeEvidenceDialog();
+  });
   root.querySelectorAll("[data-panel]").forEach((button) => {
     button.addEventListener("click", () => store.set({ activePanel: button.dataset.panel }));
   });
@@ -5509,8 +5692,10 @@ function bind(root, store, actions) {
     });
   });
   root.querySelectorAll("[data-external-ticker]").forEach((card) => {
+    if (card.hasAttribute("data-external-history-id")) return;
     card.addEventListener("click", (event) => {
-      if (event.target.closest("button, input, select, a")) return;
+      const nestedInteractive = event.target.closest("button, input, select, a");
+      if (nestedInteractive && nestedInteractive !== card) return;
       store.openExternalReport(card.dataset.externalTicker, card.dataset.externalReportId);
     });
   });
