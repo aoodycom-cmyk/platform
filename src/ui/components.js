@@ -2442,9 +2442,10 @@ export function compactEvidenceList(items = [], emptyLabel = "", type = "evidenc
         const title = reportItemTitle(item) || uiLabel("Details");
         const preview = isPlainText ? "" : reportItemPreview(item);
         const actionLabel = `${uiLabel("Open details for")}: ${title}`;
+        const dialogLabel = `${evidenceTypeLabel(type)}: ${title}`;
         return `
         <li>
-          <button class="compact-evidence-row" type="button" data-evidence-detail aria-haspopup="dialog" aria-label="${escapeHtml(actionLabel)}">
+          <button class="compact-evidence-row" type="button" data-evidence-detail data-evidence-dialog-label="${escapeHtml(dialogLabel)}" aria-haspopup="dialog" aria-label="${escapeHtml(actionLabel)}">
             <span>
               <strong class="evidence-row-title${isPlainText ? " plain-text-preview" : ""}" dir="auto"><bdi>${escapeHtml(title)}</bdi></strong>
               ${preview ? `<small dir="auto"><bdi>${escapeHtml(preview)}</bdi></small>` : ""}
@@ -5573,6 +5574,7 @@ function factorList(title, factors) {
 
 function bind(root, store, actions) {
   const evidenceDialog = root.querySelector("[data-evidence-dialog]");
+  const genericEvidenceDialogLabel = evidenceDialog?.getAttribute("aria-label") || uiLabel("Evidence details");
   let evidenceDialogTrigger = null;
   let fallbackInertState = [];
   const releaseEvidenceFallback = () => {
@@ -5594,6 +5596,7 @@ function bind(root, store, actions) {
     } else {
       evidenceDialog.removeAttribute("open");
     }
+    evidenceDialog.setAttribute("aria-label", genericEvidenceDialogLabel);
     evidenceDialogTrigger = null;
     trigger?.focus();
   };
@@ -5604,6 +5607,7 @@ function bind(root, store, actions) {
       if (!template || !content || !evidenceDialog) return;
       evidenceDialogTrigger = button;
       content.innerHTML = template.innerHTML;
+      evidenceDialog.setAttribute("aria-label", button.dataset.evidenceDialogLabel || genericEvidenceDialogLabel);
       if (typeof evidenceDialog.showModal === "function") evidenceDialog.showModal();
       else {
         fallbackInertState = [...root.children]

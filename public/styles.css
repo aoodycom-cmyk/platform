@@ -664,7 +664,7 @@ label {
   margin-top: 5px;
   color: var(--ink-soft);
   font-size: 15px;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .ticker-profile-button {
@@ -1427,7 +1427,7 @@ label {
 .compact-evidence-row strong {
   font-size: 14px;
   line-height: 1.45;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 @media (max-width: 640px) {
@@ -1661,6 +1661,11 @@ label {
   overflow: hidden;
 }
 
+.history-report-list .history-analysis-card:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
 .history-card-head {
   min-width: 0;
   display: flex;
@@ -1686,7 +1691,7 @@ label {
   color: var(--ink-soft);
   font-size: 13px;
   line-height: 1.45;
-  font-weight: 650;
+  font-weight: 600;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -1756,7 +1761,7 @@ label {
   gap: 8px;
   color: var(--teal);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .history-card-action b {

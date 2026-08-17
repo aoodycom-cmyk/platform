@@ -9,6 +9,7 @@ const { compactEvidenceList, evidenceDetailFields } = await import("../src/ui/co
 assert.ok(components.includes("class=\"compact-evidence-row\""), "Catalysts, risks, and watch items must render as compact rows.");
 assert.ok(components.includes("data-evidence-detail"), "Evidence rows must expose a detail action.");
 assert.ok(components.includes('aria-label="${escapeHtml(actionLabel)}"'), "Evidence rows must announce that they open item details.");
+assert.ok(components.includes('data-evidence-dialog-label="${escapeHtml(dialogLabel)}"'), "Each evidence row must provide a specific accessible dialog name.");
 assert.ok(components.includes("data-evidence-template"), "Each evidence row must preserve its complete source detail.");
 assert.ok(components.includes("function evidenceDetailDialog"), "The shared evidence Bottom Sheet must exist.");
 assert.ok(components.includes("evidenceDialog.showModal()"), "Evidence details must open as a modal instead of navigating away.");
@@ -49,6 +50,8 @@ assert.ok(styles.includes(".evidence-detail-close:focus-visible"), "The programm
 assert.ok(components.includes("fallbackInertState"), "The non-modal fallback must make background surfaces inert.");
 assert.ok(components.includes("event.key !== \"Tab\""), "The dialog must trap keyboard focus while open.");
 assert.ok(components.includes("trigger?.focus()"), "Closing evidence details must restore focus to the triggering row.");
+assert.ok(components.includes('evidenceDialog.setAttribute("aria-label", button.dataset.evidenceDialogLabel || genericEvidenceDialogLabel)'), "Opening evidence details must identify the selected item in the dialog accessible name.");
+assert.ok(components.includes('evidenceDialog.setAttribute("aria-label", genericEvidenceDialogLabel)'), "Closing evidence details must restore the generic accessible name.");
 assert.ok(styles.includes("@media (min-width: 641px)"), "Desktop evidence and History behavior must have an explicit non-mobile presentation.");
 assert.equal(mobileStyles.includes("--m2-"), false, "Mobile 2.0 must reuse the canonical Franklin color tokens instead of maintaining a parallel palette.");
 
@@ -59,8 +62,10 @@ assert.ok(components.includes("data-external-ticker"), "History cards must prese
 assert.ok(components.includes("nestedInteractive !== card"), "A History button must open its saved report while still ignoring nested controls.");
 assert.ok(components.includes("data-external-history-id"), "History cards must use the dedicated saved-report handler.");
 assert.ok(styles.includes(".history-report-list .history-analysis-card"), "History card layout must be isolated from legacy grids.");
+assert.ok(styles.includes(".history-report-list .history-analysis-card:focus-visible"), "History cards must expose a visible keyboard focus state.");
 assert.ok(styles.includes("grid-template-columns: minmax(0, 1fr)"), "History cards must use one safe content column.");
 assert.ok(styles.includes("writing-mode: horizontal-tb"), "Long company names must never collapse into vertical text.");
 assert.ok(styles.includes("overflow-x: hidden"), "The page must continue preventing horizontal overflow.");
+assert.equal(/font-weight:\s*(650|750)\s*;/.test(styles), false, "New UI must use the established font-weight scale.");
 
 console.log("Issue #2 mobile QA regression tests passed.");

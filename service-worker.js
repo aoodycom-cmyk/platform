@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v10-issue-2-qa-followup-2-20260817";
+const CACHE_NAME = "franklin-research-v10-issue-2-final-cleanup-20260817";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
