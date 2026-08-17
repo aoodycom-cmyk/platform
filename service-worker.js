@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v10-figma-mobile-scorecard-20260818a";
+const CACHE_NAME = "franklin-research-v10-quarterly-scorecard-20260818-figma-mobile-a";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
