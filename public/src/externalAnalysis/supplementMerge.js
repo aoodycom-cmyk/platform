@@ -1,6 +1,7 @@
 import { attachCompletionStatus } from "./missingFields.js";
 import { diagnosticRowsForSupplement, getByPath, isKnownAnalysisPath, isMissing, setByPath } from "./fieldPaths.js";
 import { validateExternalAnalysisReport } from "./externalAnalysisSchemaValidator.js";
+import { normalizeExternalAnalysisReport } from "./schema.js";
 import { canUseProtectedField, effectiveSupplementFields, PROTECTED_SUPPLEMENT_PATHS } from "./supplementValidator.js";
 
 export function mergeExternalAnalysisSupplement(existingReport = {}, supplement = {}, options = {}) {
@@ -92,8 +93,9 @@ export function mergeExternalAnalysisSupplement(existingReport = {}, supplement 
     updatedAt: now.toISOString()
   };
 
-  const validation = validateExternalAnalysisReport(mergedReport);
-  const completedReport = attachCompletionStatus(mergedReport, validation, {
+  const normalizedReport = normalizeExternalAnalysisReport(mergedReport, mergedReport.rawAnalysisOriginal || mergedReport.rawAnalysis || "", { now });
+  const validation = validateExternalAnalysisReport(normalizedReport);
+  const completedReport = attachCompletionStatus(normalizedReport, validation, {
     now,
     conflictingPaths: conflicts.map((item) => item.path)
   });

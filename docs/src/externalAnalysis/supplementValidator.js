@@ -81,10 +81,10 @@ function validateFieldValue(path, value, errors) {
   if (/^scores\./.test(path) && !isScore(value)) {
     errors.push(fieldError(path, "Scores must be between 0 and 10."));
   }
-  if (/^fairValue\./.test(path) && ["fairValue.bear", "fairValue.base", "fairValue.bull", "fairValue.weightedFairValue", "fairValue.analystFairValue", "fairValue.finalFairValue"].includes(path) && !isPositiveNumber(value)) {
+  if (/^fairValueSummary\./.test(path) && ["fairValueSummary.fairValueLow", "fairValueSummary.fairValueBase", "fairValueSummary.fairValueHigh", "fairValueSummary.probabilityWeightedFairValue"].includes(path) && !isPositiveNumber(value)) {
     errors.push(fieldError(path, "Fair Value fields must be positive numbers when present."));
   }
-  if (path === "market.priceAtAnalysis" && !isPositiveNumber(value)) {
+  if (path === "fairValueSummary.currentPrice" && !isPositiveNumber(value)) {
     errors.push(fieldError(path, "Price at Analysis must be greater than zero."));
   }
   if (path === "analysisDate" && !isValidDate(value)) {
@@ -93,7 +93,7 @@ function validateFieldValue(path, value, errors) {
   if (path === "risks" && !Array.isArray(value)) {
     errors.push(fieldError(path, "Risks must be an array."));
   }
-  if (path === "decision.verdict" && typeof value === "string" && !value.trim()) {
+  if (path === "decision.action" && typeof value === "string" && !value.trim()) {
     errors.push(fieldError(path, "Verdict text cannot be empty."));
   }
   if (path === "company.ticker" && !validSupplementTicker(value)) {
@@ -102,12 +102,12 @@ function validateFieldValue(path, value, errors) {
 }
 
 function validateCombinedFairValueOrdering(existingReport, fields, errors) {
-  const bear = valueFor("fairValue.bear", existingReport, fields);
-  const base = valueFor("fairValue.base", existingReport, fields);
-  const bull = valueFor("fairValue.bull", existingReport, fields);
+  const bear = valueFor("fairValueSummary.fairValueLow", existingReport, fields);
+  const base = valueFor("fairValueSummary.fairValueBase", existingReport, fields);
+  const bull = valueFor("fairValueSummary.fairValueHigh", existingReport, fields);
   if (![bear, base, bull].every(Number.isFinite)) return;
   if (!(bear <= base && base <= bull)) {
-    errors.push(fieldError("fairValue", "Bear/Base/Bull Fair Value must be ordered as Bear <= Base <= Bull."));
+    errors.push(fieldError("fairValueSummary", "Bear/Base/Bull Fair Value must be ordered as Bear <= Base <= Bull."));
   }
 }
 

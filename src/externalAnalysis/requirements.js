@@ -187,6 +187,7 @@ export function normalizeGuidance(value) {
   return value.map((item) => {
     if (typeof item === "string") {
       return {
+        period: null,
         topic: item,
         arabicTopic: null,
         currentGuidance: null,
@@ -199,6 +200,7 @@ export function normalizeGuidance(value) {
     }
     if (!item || typeof item !== "object") return null;
     return {
+      period: normalizeText(item.period ?? item.quarter),
       topic: normalizeText(item.topic),
       arabicTopic: normalizeText(item.arabicTopic),
       currentGuidance: valueOrNull(item.currentGuidance),

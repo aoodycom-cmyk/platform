@@ -18,16 +18,20 @@ assert.equal(prompt.includes('"ticker": "TICKER"'), false, "Prompt must not use 
 assert.equal(prompt.includes("```"), false, "Prompt must not use Markdown fences.");
 
 const template = JSON.parse(buildExternalAnalysisJsonTemplate({ tickerHint: "msft" }));
-assert.equal(template.schemaVersion, "fair-value-analysis/v1");
+assert.equal(template.schemaVersion, "fair-value-analysis/v2");
 assert.equal(template.methodologyVersion, "fair-value-system/v1");
 assert.equal(template.company.ticker, "MSFT");
-assert.equal(template.company.currentPrice, null);
+assert.equal(Object.hasOwn(template.company, "currentPrice"), false);
+assert.equal(template.fairValueSummary.currentPrice, null);
 assert.equal(template.companyProfile.summary, null);
 assert.deepEqual(Object.keys(template.companyProfile.activities[0]), ["name", "arabicName", "description", "importance"]);
 assert.equal(template.businessQuality.score, null);
 assert.equal(template.fairValueSummary.fairValueBase, null);
 assert.deepEqual(template.risks, []);
-assert.equal(template.dashboardExport.ticker, "MSFT");
+assert.equal(template.decision.action, null);
+assert.equal(template.estimateRevisions.overallDirection, "unknown");
+assert.equal(Object.hasOwn(template, "dashboardExport"), false);
+assert.equal(Object.hasOwn(template, "recommendation"), false);
 
 const blankTemplate = JSON.parse(buildExternalAnalysisJsonTemplate({ tickerHint: "TICKER" }));
 assert.equal(blankTemplate.company.ticker, null, "Placeholder ticker must normalize to null.");
@@ -37,8 +41,8 @@ const earningsPrompt = buildNewEarningsAnalysisPrompt({
   analysisDate: "2026-08-01",
   reportPeriod: "Q4 2026",
   company: { ticker: "MSFT", name: "Microsoft", currency: "USD" },
-  fairValue: { bear: 380, base: 435, bull: 500 },
-  recommendation: { action: "BUY" },
+  fairValueSummary: { fairValueLow: 380, fairValueBase: 435, fairValueHigh: 500, currentPrice: 451 },
+  decision: { action: "BUY" },
   thesis: { shortSummary: "فرضية عربية محفوظة." },
   risks: [{ title: "مخاطر التقييم" }],
   priceTargetRequirements: {
@@ -63,13 +67,13 @@ const requiredFields = analysisContractRequiredFields().map((field) => field.pat
 for (const field of [
   "company.ticker",
   "analysisDate",
-  "market.priceAtAnalysis",
-  "fairValue.bear",
-  "fairValue.base",
-  "fairValue.bull",
+  "fairValueSummary.currentPrice",
+  "fairValueSummary.fairValueLow",
+  "fairValueSummary.fairValueBase",
+  "fairValueSummary.fairValueHigh",
   "thesis.shortSummary",
   "risks",
-  "decision.verdict"
+  "decision.action"
 ]) {
   assert.ok(requiredFields.includes(field), `${field} must be documented as required.`);
 }

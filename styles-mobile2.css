@@ -163,4 +163,20 @@
   .compact-evidence-row strong { font-size:var(--mobile-card-body-size); line-height:1.45; font-weight:600; }
   .compact-evidence-row small { font-size:var(--mobile-card-detail-size); line-height:1.5; font-weight:400; -webkit-line-clamp:1; }
   .evidence-row-chevron { color:var(--muted); font-size:17px; }
+
+  .estimate-revisions-card { display:grid; gap:10px; }
+  .estimate-revisions-head { display:flex; align-items:center; justify-content:space-between; gap:10px; color:var(--muted); font-size:11px; }
+  .estimate-revisions-head b { color:var(--ink-soft); font-weight:600; }
+  .estimate-revision-rows { display:grid; gap:1px; overflow:hidden; border:1px solid var(--line); border-radius:10px; background:var(--line); }
+  .estimate-revision-row { min-height:42px; display:grid; grid-template-columns:minmax(0,1fr) 30px 54px; align-items:center; gap:8px; padding:8px 10px; background:var(--surface); }
+  .estimate-revision-row span { min-width:0; color:var(--ink-soft); font-size:13px; }
+  .estimate-revision-row strong { text-align:center; color:var(--muted); font-size:12px; }
+  .estimate-revision-row em { color:var(--muted); font-size:11px; font-style:normal; text-align:end; }
+  .estimate-revision-row.overall { grid-template-columns:minmax(0,1fr) auto; }
+  .estimate-revision-row.overall strong { font-size:12px; }
+  .estimate-revision-row.positive strong,.estimate-revision-row.positive em { color:var(--teal); }
+  .estimate-revision-row.negative strong,.estimate-revision-row.negative em { color:var(--red); }
+  .estimate-revision-row.mixed strong,.estimate-revision-row.mixed em { color:var(--amber); }
+  .estimate-revisions-card > p { margin:0; color:var(--ink-soft); font-size:var(--mobile-card-body-size); line-height:1.65; }
+  .estimate-revisions-meta { display:flex; flex-wrap:wrap; gap:6px 12px; color:var(--muted); font-size:10px; }
 }

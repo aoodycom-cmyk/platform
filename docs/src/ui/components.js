@@ -1290,9 +1290,9 @@ function externalPreviewPanel(report, state) {
       <div class="quick-summary-card preview-summary">
         ${metricHtml("Ticker", escapeHtml(report.company?.ticker || "-"))}
         ${metricHtml(uiLabel("Analysis Date"), escapeHtml(report.analysisDate || "-"))}
-        ${metricHtml(uiLabel("Price at Analysis"), money(report.market?.priceAtAnalysis, 2))}
-        ${metricHtml("Base Fair Value", money(report.fairValue?.base, 0))}
-        ${metricHtml(uiLabel("Verdict"), escapeHtml(report.decision?.verdict || "-"))}
+        ${metricHtml(uiLabel("Price at Analysis"), money(report.fairValueSummary?.currentPrice, 2))}
+        ${metricHtml("Base Fair Value", money(report.fairValueSummary?.fairValueBase, 0))}
+        ${metricHtml(uiLabel("Verdict"), escapeHtml(report.decision?.action || "-"))}
       </div>
       ${historicalRequirementMatchPreview(state.externalImport?.requirementMatch)}
       <div class="external-preview-grid">
@@ -1300,16 +1300,16 @@ function externalPreviewPanel(report, state) {
         ${externalInput("company.name", uiLabel("Company"), report.company?.name)}
         ${externalInput("analysisDate", uiLabel("Analysis Date"), report.analysisDate, "date")}
         ${externalInput("reportPeriod", uiLabel("Report Period"), report.reportPeriod)}
-        ${externalInput("market.priceAtAnalysis", uiLabel("Price at Analysis"), report.market?.priceAtAnalysis, "number")}
+        ${externalInput("fairValueSummary.currentPrice", uiLabel("Price at Analysis"), report.fairValueSummary?.currentPrice, "number")}
         ${externalInput("scores.quality", "Quality", report.scores?.quality, "number")}
         ${externalInput("scores.growth", "Growth", report.scores?.growth, "number")}
         ${externalInput("scores.valuation", "Valuation", report.scores?.valuation, "number")}
         ${externalInput("scores.risk", "Risk", report.scores?.risk, "number")}
-        ${externalInput("scores.overall", "Overall", report.scores?.overall, "number")}
-        ${externalInput("fairValue.bear", "Bear Fair Value", report.fairValue?.bear, "number")}
-        ${externalInput("fairValue.base", "Base Fair Value", report.fairValue?.base, "number")}
-        ${externalInput("fairValue.bull", "Bull Fair Value", report.fairValue?.bull, "number")}
-        ${externalInput("decision.verdict", uiLabel("Verdict"), report.decision?.verdict)}
+        ${externalInput("decision.investmentScore", "Overall", report.decision?.investmentScore, "number")}
+        ${externalInput("fairValueSummary.fairValueLow", "Bear Fair Value", report.fairValueSummary?.fairValueLow, "number")}
+        ${externalInput("fairValueSummary.fairValueBase", "Base Fair Value", report.fairValueSummary?.fairValueBase, "number")}
+        ${externalInput("fairValueSummary.fairValueHigh", "Bull Fair Value", report.fairValueSummary?.fairValueHigh, "number")}
+        ${externalInput("decision.action", uiLabel("Verdict"), report.decision?.action)}
       </div>
       <div class="external-text-editors">
         <label>${uiLabel("Investment Thesis")}<textarea data-external-field="thesis.shortSummary">${escapeHtml(report.thesis?.shortSummary || "")}</textarea></label>
@@ -1364,12 +1364,12 @@ function localizedValidationMessage(item = {}) {
     "scores.growth": "Growth Score إذا كان موجودًا يجب أن يكون بين 0 و10.",
     "scores.valuation": "Valuation Score إذا كان موجودًا يجب أن يكون بين 0 و10.",
     "scores.risk": "Risk Score إذا كان موجودًا يجب أن يكون بين 0 و10.",
-    "fairValue.bear": "Bear Fair Value مطلوب ويجب أن يكون أكبر من صفر.",
-    "fairValue.base": "Base Fair Value مطلوب ويجب أن يكون أكبر من صفر.",
-    "fairValue.bull": "Bull Fair Value مطلوب ويجب أن يكون أكبر من صفر.",
+    "fairValueSummary.fairValueLow": "Bear Fair Value مطلوب ويجب أن يكون أكبر من صفر.",
+    "fairValueSummary.fairValueBase": "Base Fair Value مطلوب ويجب أن يكون أكبر من صفر.",
+    "fairValueSummary.fairValueHigh": "Bull Fair Value مطلوب ويجب أن يكون أكبر من صفر.",
     "thesis.shortSummary": "ملخص فرضية الاستثمار مطلوب.",
     risks: "يجب إدخال مخاطرة رئيسية واحدة على الأقل.",
-    "decision.verdict": "التوصية النهائية مطلوبة ويجب أن تكون مذكورة في التحليل.",
+    "decision.action": "التوصية النهائية مطلوبة ويجب أن تكون مذكورة في التحليل.",
     schemaVersion: "صيغة الرد غير صحيحة. يجب أن يكون schemaVersion مطابقًا لمسار الاستكمال.",
     ticker: "رمز السهم في الرد التكميلي غير صحيح أو لا يطابق التقرير الحالي. لا تستخدم TICKER أو SYMBOL.",
     targetAnalysisId: "الرد التكميلي لا يخص هذا التقرير الحالي.",
@@ -1411,12 +1411,12 @@ function externalHistoryPanel(state) {
                   <strong dir="ltr"><bdi>${escapeHtml(report.company?.ticker || "-")}</bdi></strong>
                   <b dir="auto"><bdi>${escapeHtml(report.company?.name || "-")}</bdi></b>
                 </span>
-                <em>${escapeHtml(localizedExternalText(report.decision?.verdict) || "-")}</em>
+                <em>${escapeHtml(localizedExternalText(report.decision?.action) || "-")}</em>
               </span>
               <span class="history-card-date" dir="auto"><bdi>${escapeHtml(report.analysisDate || "-")}</bdi>${report.reportPeriod ? ` · <bdi>${escapeHtml(report.reportPeriod)}</bdi>` : ""}</span>
               <span class="history-card-values">
-                <span><small>${uiLabel("Price at Analysis")}</small><strong dir="ltr"><bdi>${money(report.market?.priceAtAnalysis, 2)}</bdi></strong></span>
-                <span><small>${uiLabel("Base Fair Value")}</small><strong dir="ltr"><bdi>${money(report.fairValue?.base, 0)}</bdi></strong></span>
+                <span><small>${uiLabel("Price at Analysis")}</small><strong dir="ltr"><bdi>${money(report.fairValueSummary?.currentPrice, 2)}</bdi></strong></span>
+                <span><small>${uiLabel("Base Fair Value")}</small><strong dir="ltr"><bdi>${money(report.fairValueSummary?.fairValueBase, 0)}</bdi></strong></span>
               </span>
               <span class="history-card-action">${uiLabel("Open saved report")} <b aria-hidden="true">›</b></span>
             </button>
@@ -1566,6 +1566,7 @@ function externalAnalysisReportView(state) {
       <section class="stock-decision-flow">
         ${stockSection(uiLabel("فرصة الاستثمار"), investmentSummaryWorkspace(report))}
         ${qualityGrowthRiskPanel(report)}
+        ${estimateRevisionsCard(report.estimateRevisions)}
         ${latestEarningsWorkspace(report)}
         ${stockSection(uiLabel("بيانات الاستثمار"), investmentDataTableArea(report))}
         ${stockSection(uiLabel("طرق التقييم"), valuationMethodsDashboard(report))}
@@ -1604,9 +1605,9 @@ function stockDecisionHeader(report = {}, completion = {}) {
   const ticker = report.company?.ticker || "-";
   const companyName = report.company?.name || ticker;
   const action = externalRecommendationAction(report);
-  const current = report.market?.currentPrice ?? report.market?.priceAtAnalysis;
-  const upside = report.fairValue?.upsideToBasePct;
-  const potential = report.fairValue?.upsideToBullPct ?? report.fairValue?.maxUpsidePct ?? report.fairValue?.upsideToBasePct;
+  const current = report.fairValueSummary?.currentPrice;
+  const upside = report.fairValueSummary?.upsideDownsidePercent;
+  const potential = derivedUpsidePercent(report.fairValueSummary?.fairValueHigh, current) ?? upside;
   return `
     <header id="stock-report-top" class="panel stock-decision-header terminal-stock-header">
       <div class="stock-title-block terminal-stock-identity">
@@ -1633,9 +1634,9 @@ function stockDecisionHeader(report = {}, completion = {}) {
         </article>
       </div>
       <div class="mobile-scenario-grid terminal-header-strip">
-        ${stockSummaryMetric("Bear", money(report.fairValue?.bear, 0), "bear")}
-        ${stockSummaryMetric("Base", money(report.fairValue?.base, 0), "base")}
-        ${stockSummaryMetric("Bull", money(report.fairValue?.bull, 0), "bull")}
+        ${stockSummaryMetric("Bear", money(report.fairValueSummary?.fairValueLow, 0), "bear")}
+        ${stockSummaryMetric("Base", money(report.fairValueSummary?.fairValueBase, 0), "base")}
+        ${stockSummaryMetric("Bull", money(report.fairValueSummary?.fairValueHigh, 0), "bull")}
         ${stockSummaryMetric(uiLabel("العائد المحتمل"), formatExternalPercent(potential), upsideColorCategory(numericValue(upside)))}
       </div>
     </header>
@@ -1689,7 +1690,7 @@ function investmentSummaryWorkspace(report = {}) {
   const thesis = firstUsefulText([
     report.thesis?.shortSummary,
     report.decision?.rationale,
-    report.recommendation?.reason,
+    report.decision?.rationale,
     report.thesis?.fullSummary
   ]);
   return `
@@ -1706,7 +1707,7 @@ function stockScoreBar(report = {}) {
     [financialTerm("Growth"), report.scores?.growth],
     [uiLabel("Valuation"), report.scores?.valuation],
     [financialTerm("Risk"), report.scores?.risk],
-    [uiLabel("Investment Score"), report.scores?.overall]
+    [uiLabel("Investment Score"), report.decision?.investmentScore]
   ];
   return `
     <section class="stock-score-bar" aria-label="${uiLabel("Investment Score")}">
@@ -1777,8 +1778,6 @@ function earningsSnapshotRows(report = {}) {
 }
 
 function firstGuidanceValue(report = {}) {
-  const next = report.nextQuarterGuidance?.items?.[0];
-  if (next) return `${next.arabicTopic || next.topic || uiLabel("Guidance")}: ${formatAnyValue(next.guidance)}`;
   const current = Array.isArray(report.guidance) ? report.guidance[0] : null;
   if (!current) return "";
   if (typeof current === "string") return current;
@@ -1834,18 +1833,18 @@ function financialHighlightsDashboard(report = {}) {
 }
 
 function fairValueDashboard(report = {}) {
-  const current = report.market?.currentPrice ?? report.market?.priceAtAnalysis;
+  const current = report.fairValueSummary?.currentPrice;
   return `
     <div class="fair-value-dashboard">
       <div class="fair-value-scenarios">
-        ${fairValueScenario("Bear", report.fairValue?.bear, current)}
-        ${fairValueScenario("Base", report.fairValue?.base, current, true)}
-        ${fairValueScenario("Bull", report.fairValue?.bull, current)}
+        ${fairValueScenario("Bear", report.fairValueSummary?.fairValueLow, current)}
+        ${fairValueScenario("Base", report.fairValueSummary?.fairValueBase, current, true)}
+        ${fairValueScenario("Bull", report.fairValueSummary?.fairValueHigh, current)}
       </div>
       <div class="fair-value-context">
         ${miniEvidence(uiLabel("Current Price"), money(current, 2))}
-        ${miniEvidence(uiLabel("Weighted Fair Value"), money(report.fairValue?.weightedFairValue, 0))}
-        ${miniEvidence(uiLabel("Upside"), formatExternalPercent(report.fairValue?.upsideToBasePct))}
+        ${miniEvidence(uiLabel("Weighted Fair Value"), money(report.fairValueSummary?.probabilityWeightedFairValue, 0))}
+        ${miniEvidence(uiLabel("Upside"), formatExternalPercent(report.fairValueSummary?.upsideDownsidePercent))}
       </div>
     </div>
   `;
@@ -1920,9 +1919,82 @@ function qualitativeScoreLabel(value, inverse = false) {
   return uiLabel("ضعيفة");
 }
 
+export function estimateRevisionsCard(revisions = null) {
+  if (!revisions || typeof revisions !== "object") return "";
+  const metrics = [
+    [uiLabel("Revenue Estimates"), revisions.revenue],
+    [uiLabel("EPS Estimates"), revisions.eps],
+    [uiLabel("EBITDA Estimates"), revisions.ebitda]
+  ];
+  const period = Number.isFinite(numericValue(revisions.periodDays)) ? `${Math.round(numericValue(revisions.periodDays))} ${uiLabel("Days")}` : uiLabel("Period unavailable");
+  return stockSection(uiLabel("Estimate Revisions"), `
+    <div class="estimate-revisions-card ${revisionTone(revisions.overallDirection)}">
+      <div class="estimate-revisions-head">
+        <span>${uiLabel("Analyst Estimate Revisions")}</span>
+        <b dir="ltr">${escapeHtml(period)}</b>
+      </div>
+      <div class="estimate-revision-rows">
+        ${metrics.map(([label, metric]) => estimateRevisionRow(label, metric)).join("")}
+        <div class="estimate-revision-row overall ${revisionTone(revisions.overallDirection)}">
+          <span>${uiLabel("Overall Trend")}</span>
+          <strong>${escapeHtml(revisionDirectionLabel(revisions.overallDirection))}</strong>
+        </div>
+      </div>
+      ${revisions.interpretation ? `<p>${escapeHtml(localizedExternalText(revisions.interpretation))}</p>` : ""}
+      <div class="estimate-revisions-meta">
+        ${revisions.asOfDate ? `<span>${uiLabel("As of")}: <bdi dir="ltr">${escapeHtml(revisions.asOfDate)}</bdi></span>` : ""}
+        ${revisions.source ? `<span>${uiLabel("Source")}: ${escapeHtml(revisions.source)}</span>` : ""}
+      </div>
+    </div>
+  `);
+}
+
+function estimateRevisionRow(label, metric) {
+  const trend = metric?.trend || null;
+  const change = Number.isFinite(numericValue(metric?.changePercent)) ? formatExternalPercent(metric.changePercent) : "—";
+  return `
+    <div class="estimate-revision-row ${revisionTone(trend)}">
+      <span>${escapeHtml(label)}</span>
+      <strong dir="ltr"><bdi>${escapeHtml(revisionTrendSymbol(trend))}</bdi></strong>
+      <em dir="ltr"><bdi>${escapeHtml(change)}</bdi></em>
+    </div>
+  `;
+}
+
+function revisionTrendSymbol(value) {
+  if (value === "up") return "▲";
+  if (value === "down") return "▼";
+  if (value === "flat") return "—";
+  return "—";
+}
+
+function revisionTone(value) {
+  if (["up", "positive"].includes(value)) return "positive";
+  if (["down", "negative"].includes(value)) return "negative";
+  if (value === "mixed") return "mixed";
+  return "neutral";
+}
+
+function revisionDirectionLabel(value) {
+  const labels = {
+    positive: uiLabel("Positive"),
+    neutral: uiLabel("Neutral"),
+    negative: uiLabel("Negative"),
+    mixed: uiLabel("Mixed"),
+    unknown: uiLabel("Unavailable")
+  };
+  return labels[value] || uiLabel("Unavailable");
+}
+
+function derivedUpsidePercent(value, currentPrice) {
+  const fairValue = numericValue(value);
+  const current = numericValue(currentPrice);
+  return Number.isFinite(fairValue) && Number.isFinite(current) && current > 0 ? ((fairValue - current) / current) * 100 : null;
+}
+
 function valuationMethodsDashboard(report = {}) {
-  const rows = Object.entries(report.valuationMethods || {})
-    .map(([key, value]) => normalizeValuationMethodForDisplay(key, value))
+  const rows = (report.valuationResults || [])
+    .map((value, index) => normalizeValuationMethodForDisplay(value.method || `method-${index + 1}`, value))
     .filter(Boolean);
   if (!rows.length) return valuationMethodSummaryView(report) || emptyDashboardState(uiLabel("Not provided in the imported analysis."));
   return compactFinancialTable({
@@ -1963,9 +2035,9 @@ function scenariosDashboard(report = {}) {
 function normalizeScenarioRows(report = {}) {
   const raw = report.scenarios || {};
   const fallback = [
-    ["Bear", report.fairValue?.bear, report.fairValue?.downsideToBearPct],
-    ["Base", report.fairValue?.base, report.fairValue?.upsideToBasePct],
-    ["Bull", report.fairValue?.bull, report.fairValue?.upsideToBullPct]
+    ["Bear", report.fairValueSummary?.fairValueLow, derivedUpsidePercent(report.fairValueSummary?.fairValueLow, report.fairValueSummary?.currentPrice)],
+    ["Base", report.fairValueSummary?.fairValueBase, report.fairValueSummary?.upsideDownsidePercent],
+    ["Bull", report.fairValueSummary?.fairValueHigh, derivedUpsidePercent(report.fairValueSummary?.fairValueHigh, report.fairValueSummary?.currentPrice)]
   ];
   const rows = Object.entries(raw || {}).map(([key, scenario]) => ({
     label: humanValuationMethodLabel(key).replace("تقييم ", "") || key,
@@ -1993,9 +2065,7 @@ function catalystsDashboard(report = {}) {
 }
 
 function monitoringChecklistDashboard(report = {}) {
-  const items = Array.isArray(report.monitoringChecklist) && report.monitoringChecklist.length
-    ? report.monitoringChecklist
-    : report.watchItems || [];
+  const items = Array.isArray(report.monitoringChecklist) ? report.monitoringChecklist : [];
   if (!items.length) return "";
   return compactEvidenceList(items, "", "watch");
 }
@@ -2181,24 +2251,25 @@ function reportSavedBanner(notice, report = {}) {
 
 function reportDecisionStrip(report, completion = {}) {
   const action = externalRecommendationAction(report);
-  const upside = numericValue(report.fairValue?.upsideToBasePct);
+  const upside = numericValue(report.fairValueSummary?.upsideDownsidePercent);
   return `
     <section class="report-decision-strip">
       ${decisionStripMetric(uiLabel("Recommendation"), localizedExternalText(action) || "-", recommendationColorCategory(action))}
-      ${decisionStripMetric(uiLabel("Current Price"), money(report.market?.currentPrice ?? report.market?.priceAtAnalysis, 2), "neutral")}
-      ${decisionStripMetric(uiLabel("Upside"), formatExternalPercent(report.fairValue?.upsideToBasePct), upsideColorCategory(upside))}
+      ${decisionStripMetric(uiLabel("Current Price"), money(report.fairValueSummary?.currentPrice, 2), "neutral")}
+      ${decisionStripMetric(uiLabel("Upside"), formatExternalPercent(report.fairValueSummary?.upsideDownsidePercent), upsideColorCategory(upside))}
       ${decisionStripMetric(uiLabel("Confidence"), externalRecommendationConfidence(report), "neutral")}
     </section>
   `;
 }
 
 function externalRecommendationAction(report = {}) {
-  return report.recommendation?.action || report.decision?.verdict || "";
+  return report.decision?.action || "";
 }
 
 function externalRecommendationConfidence(report = {}) {
-  const confidence = numericValue(report.recommendation?.confidence);
-  return Number.isFinite(confidence) ? `${Math.round(confidence)}% ${uiLabel("Confidence")}` : "";
+  const confidence = report.decision?.confidence;
+  const numeric = numericValue(confidence);
+  return Number.isFinite(numeric) ? `${Math.round(numeric)}% ${uiLabel("Confidence")}` : escapeHtml(localizedExternalText(confidence));
 }
 
 function decisionStripMetric(label, value, category = "neutral") {
@@ -2268,7 +2339,7 @@ function compactScoreRowsView(report = {}) {
     [financialTerm("Quality"), scoreText(report.scores?.quality, 1), qualityCompactSummary(report)],
     [financialTerm("Growth"), scoreText(report.scores?.growth, 1), growthCompactSummary(report)],
     [financialTerm("Risk"), scoreText(report.scores?.risk, 1), riskCompactSummary(report)],
-    [uiLabel("Investment Score"), scoreText(report.scores?.overall, 1), investmentCompactSummary(report)]
+    [uiLabel("Investment Score"), scoreText(report.decision?.investmentScore, 1), investmentCompactSummary(report)]
   ].filter(([, value, detail]) => value !== "—" || localizedExternalText(detail).trim());
   if (!rows.length) return "";
   return `
@@ -2324,8 +2395,7 @@ function riskCompactSummary(report = {}) {
 function investmentCompactSummary(report = {}) {
   return firstUsefulText([
     report.decision?.rationale,
-    report.recommendation?.rationale,
-    report.recommendation?.reason,
+    report.decision?.rationale,
     report.valuationSelectionReason
   ]);
 }
@@ -2373,8 +2443,8 @@ function strengthsRisksSummaryView(report = {}) {
 }
 
 function compactValuationMethodsSummary(report = {}) {
-  const rows = Object.entries(report.valuationMethods || {})
-    .map(([key, value]) => normalizeValuationMethodForDisplay(key, value))
+  const rows = (report.valuationResults || [])
+    .map((value, index) => normalizeValuationMethodForDisplay(value.method || `method-${index + 1}`, value))
     .filter(Boolean);
   const method = report.primaryValuationMethod || report.metadata?.primaryValuationMethod || rows[0]?.method;
   const summary = rows.slice(0, 3).map((row) => {
@@ -2392,7 +2462,7 @@ function compactValuationMethodsSummary(report = {}) {
       </summary>
       <div class="compact-detail-stack">
         ${valuationMethodSummaryView(report)}
-        ${valuationMethodsView(report.valuationMethods)}
+        ${valuationMethodsView(report.valuationResults)}
         ${financialHighlightsView(report.financialHighlights || report.growthHighlights)}
       </div>
     </details>
@@ -2402,7 +2472,7 @@ function compactValuationMethodsSummary(report = {}) {
 function compactMoreEvidenceView(report = {}) {
   const blocks = [
     report.catalysts?.length ? externalDetail(uiLabel("Catalysts"), compactEvidenceList(report.catalysts, "", "catalyst")) : "",
-    report.watchItems?.length ? externalDetail(uiLabel("Watch List"), compactEvidenceList(report.watchItems, "", "watch")) : "",
+    report.monitoringChecklist?.length ? externalDetail(uiLabel("Watch List"), compactEvidenceList(report.monitoringChecklist, "", "watch")) : "",
     hasRenderableContent(companyQualityView(report)) ? externalDetail(uiLabel("Company Quality"), companyQualityView(report)) : "",
     hasRenderableContent(growthView(report)) ? externalDetail(uiLabel("Growth Section"), growthView(report)) : "",
     hasRenderableContent(externalRecommendationView(report)) ? externalDetail(uiLabel("Investment Verdict"), externalRecommendationView(report)) : "",
@@ -2679,9 +2749,9 @@ function latestEarningsExecutionCard(body = "") {
   `;
 }
 
-function valuationMethodsView(methods = {}) {
-  const rows = Object.entries(methods || {})
-    .map(([key, value]) => normalizeValuationMethodForDisplay(key, value))
+function valuationMethodsView(methods = []) {
+  const rows = (Array.isArray(methods) ? methods : Object.values(methods || {}))
+    .map((value, index) => normalizeValuationMethodForDisplay(value?.method || `method-${index + 1}`, value))
     .filter(Boolean);
   if (!rows.length) return "";
   return `
@@ -2860,7 +2930,7 @@ function formatValuationFairValue(value) {
 }
 
 function externalRecommendationView(report = {}) {
-  const recommendation = report.recommendation || {};
+  const decision = report.decision || {};
   const action = externalRecommendationAction(report);
   return `
     <div class="external-recommendation-block">
@@ -2869,22 +2939,22 @@ function externalRecommendationView(report = {}) {
         <strong>${escapeHtml(localizedExternalText(action) || "-")}</strong>
         <em>${externalRecommendationConfidence(report)}</em>
       </div>
-      ${paragraphBlock([recommendation.reason, report.decision?.rationale, report.decision?.buyZone, report.decision?.fairZone, report.decision?.expensiveZone])}
+      ${paragraphBlock([decision.rationale, decision.whyNot, decision.buyZone, decision.fairZone, decision.expensiveZone])}
       <div class="recommendation-trigger-grid">
-        ${triggerList(uiLabel("What Would Upgrade"), recommendation.whatWouldUpgrade)}
-        ${triggerList(uiLabel("What Would Downgrade"), recommendation.whatWouldDowngrade)}
+        ${triggerList(uiLabel("What Would Upgrade"), decision.upgradeTriggers)}
+        ${triggerList(uiLabel("What Would Downgrade"), decision.downgradeTriggers)}
       </div>
     </div>
   `;
 }
 
 function recommendationConditionsView(report = {}) {
-  const recommendation = report.recommendation || {};
+  const decision = report.decision || {};
   return `
-    ${paragraphBlock([recommendation.reason])}
+    ${paragraphBlock([decision.rationale, decision.whyNot])}
     <div class="recommendation-trigger-grid">
-      ${triggerList(uiLabel("What Would Upgrade"), recommendation.whatWouldUpgrade)}
-      ${triggerList(uiLabel("What Would Downgrade"), recommendation.whatWouldDowngrade)}
+      ${triggerList(uiLabel("What Would Upgrade"), decision.upgradeTriggers)}
+      ${triggerList(uiLabel("What Would Downgrade"), decision.downgradeTriggers)}
     </div>
     ${paragraphBlock([report.decision?.rationale, report.decision?.buyZone, report.decision?.fairZone, report.decision?.expensiveZone])}
   `;
@@ -3046,22 +3116,6 @@ function emptyCompactDataView(label) {
 function guidanceTableView(report = {}) {
   const rows = [];
   const renderedTopics = new Set();
-  const nextGuidance = Array.isArray(report.nextQuarterGuidance?.items) ? report.nextQuarterGuidance.items : [];
-  for (const item of nextGuidance) {
-    const topicKey = guidanceRowKey(item);
-    if (topicKey) renderedTopics.add(topicKey);
-    rows.push({
-      label: item.arabicTopic || item.topic || uiLabel("Guidance"),
-      secondary: item.arabicTopic && item.topic ? item.topic : "",
-      cells: [
-        { value: item.previousGuidance || "—", dir: "ltr" },
-        { value: item.guidance || "—", dir: "ltr", className: guidanceDirectionClass(item.direction) },
-        { value: report.nextQuarterGuidance?.quarter || uiLabel("Next Quarter"), dir: "ltr" },
-        { value: guidanceDirectionLabel(item.direction), dir: "auto" }
-      ],
-      detail: paragraphBlock([item.interpretation, item.importance ? `${uiLabel("Importance")}: ${importanceLabel(item.importance)}` : null])
-    });
-  }
   for (const item of Array.isArray(report.guidance) ? report.guidance : []) {
     if (typeof item === "string") {
       rows.push({
@@ -3092,8 +3146,9 @@ function guidanceTableView(report = {}) {
     });
   }
   if (!rows.length) return "";
+  const guidancePeriod = report.guidance?.find((item) => item?.period)?.period;
   return compactFinancialTable({
-    caption: report.nextQuarterGuidance?.quarter ? `${uiLabel("Next Quarter Guidance")} — ${report.nextQuarterGuidance.quarter}` : uiLabel("Guidance"),
+    caption: guidancePeriod ? `${uiLabel("Guidance")} — ${guidancePeriod}` : uiLabel("Guidance"),
     columns: [uiLabel("Previous"), uiLabel("Current"), uiLabel("Period"), uiLabel("Direction")],
     rows
   });
@@ -3369,7 +3424,7 @@ function requirementLifecycleTimeline(requirementSets = [], reports = []) {
       events.push({
         date: set.evaluatedAt || report?.analysisDate,
         title: `${set.earningsPeriod || ""} ${uiLabel("evaluated")}`,
-        detail: `${uiLabel("Weighted Achievement")}: ${Number.isFinite(numericValue(set.requirementsAssessment?.weightedAchievement)) ? `${Math.round(numericValue(set.requirementsAssessment.weightedAchievement))}%` : "—"}${report ? ` / Base ${money(report.fairValue?.base, 0)} / ${localizedExternalText(externalRecommendationAction(report) || "-")}` : ""}`,
+        detail: `${uiLabel("Weighted Achievement")}: ${Number.isFinite(numericValue(set.requirementsAssessment?.weightedAchievement)) ? `${Math.round(numericValue(set.requirementsAssessment.weightedAchievement))}%` : "—"}${report ? ` / Base ${money(report.fairValueSummary?.fairValueBase, 0)} / ${localizedExternalText(externalRecommendationAction(report) || "-")}` : ""}`,
         status: "EVALUATED"
       });
     }
@@ -3686,7 +3741,7 @@ function externalVersionHistory(currentReport, history = []) {
           <strong>${escapeHtml(report.reportPeriod || report.analysisDate || report.id)}</strong>
           <span>${escapeHtml(report.analysisDate || "-")} / ${localizedExternalText(externalRecommendationAction(report) || "-")} / ${uiLabel("Weighted Achievement")}: ${Number.isFinite(numericValue(report.requirementsAssessment?.weightedAchievement)) ? `${Math.round(numericValue(report.requirementsAssessment.weightedAchievement))}%` : "—"}</span>
           <small>
-            Bear ${money(report.fairValue?.bear, 0)} / Base ${money(report.fairValue?.base, 0)} / Bull ${money(report.fairValue?.bull, 0)}
+            Bear ${money(report.fairValueSummary?.fairValueLow, 0)} / Base ${money(report.fairValueSummary?.fairValueBase, 0)} / Bull ${money(report.fairValueSummary?.fairValueHigh, 0)}
             · Quality ${scoreText(report.scores?.quality, 1)} · Growth ${scoreText(report.scores?.growth, 1)} · Risk ${scoreText(report.scores?.risk, 1)}
           </small>
         </button>

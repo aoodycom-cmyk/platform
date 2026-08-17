@@ -62,17 +62,17 @@ const incomplete = report({
 const validation = validateExternalAnalysisReport(incomplete);
 const completion = analyzeExternalAnalysisCompletion(incomplete, validation, { now });
 assert.equal(completion.status, "incomplete");
-assert.ok(completion.missingRequiredPaths.includes("fairValue.base"));
+assert.ok(completion.missingRequiredPaths.includes("fairValueSummary.fairValueBase"));
 assert.ok(completion.missingRequiredPaths.includes("risks"));
-assert.ok(completion.missingRequiredPaths.includes("decision.verdict"));
+assert.ok(completion.missingRequiredPaths.includes("decision.action"));
 assert.ok(completion.missingRecommendedPaths.includes("scores.growth"));
 assert.ok(completion.missingRecommendedPaths.includes("sources"));
 assert.ok(completion.missingOptionalPaths.includes("company.sector"));
 assert.equal(completion.requiredComplete < completion.requiredTotal, true);
 
 const prompt = buildMissingRequirementsPrompt(incomplete, completion);
-assert.ok(prompt.text.includes("fairValue.base"));
-assert.ok(prompt.text.includes("decision.verdict"));
+assert.ok(prompt.text.includes("fairValueSummary.fairValueBase"));
+assert.ok(prompt.text.includes("decision.action"));
 assert.ok(prompt.text.includes('"schemaVersion": "external-analysis-supplement/v1"'));
 assert.equal(prompt.text.includes("company.sector"), false, "Optional fields must not be included in the default missing prompt.");
 
@@ -165,7 +165,7 @@ const supplementJson = JSON.stringify({
 
 const parsedLocal = await parseExternalAnalysisSupplement(supplementJson, { existingReport: incomplete, now });
 assert.equal(parsedLocal.usedAi, false);
-assert.equal(parsedLocal.supplement.fields["fairValue.base"], 290);
+assert.equal(parsedLocal.supplement.fields["fairValueSummary.fairValueBase"], 290);
 
 const smartQuoteSupplementText = JSON.stringify({
   schemaVersion: "external-analysis-supplement/v1",
@@ -187,7 +187,7 @@ const smartQuoteSupplementText = JSON.stringify({
 }).replace(/"/g, "\u201c");
 const parsedSmartQuote = await parseExternalAnalysisSupplement(smartQuoteSupplementText, { existingReport: incomplete, now });
 assert.equal(parsedSmartQuote.usedAi, false, "Smart-quote JSON must parse locally without AI fallback.");
-assert.equal(parsedSmartQuote.supplement.fields["fairValue.base"], 290);
+assert.equal(parsedSmartQuote.supplement.fields["fairValueSummary.fairValueBase"], 290);
 assert.equal(parsedSmartQuote.supplement.fields.risks[0].title, "Margin compression");
 assert.equal(parsedSmartQuote.supplement.fields.sources[0].title, "Amazon Investor Relations");
 assert.equal(parsedSmartQuote.supplement.fields.sources[0].sourceType, "official");
@@ -207,19 +207,19 @@ const parsedNatural = await parseExternalAnalysisSupplement("نص طبيعي م�
   })
 });
 assert.equal(parsedNatural.usedAi, true);
-assert.equal(parsedNatural.supplement.fields["decision.verdict"], "HOLD / ACCUMULATE ON WEAKNESS");
+assert.equal(parsedNatural.supplement.fields["decision.action"], "HOLD / ACCUMULATE ON WEAKNESS");
 
 const supplementValidation = validateExternalAnalysisSupplement(parsedLocal.supplement, incomplete);
 assert.equal(supplementValidation.valid, true);
 
 const merged = mergeExternalAnalysisSupplement(attachCompletionStatus(incomplete, validation), parsedLocal.supplement, { now });
 assert.equal(merged.conflicts.length, 0);
-assert.equal(merged.report.fairValue.base, 290);
-assert.equal(merged.report.decision.verdict, "HOLD / ACCUMULATE ON WEAKNESS");
+assert.equal(merged.report.fairValueSummary.fairValueBase, 290);
+assert.equal(merged.report.decision.action, "HOLD");
 assert.equal(merged.report.rawAnalysisOriginal, "ORIGINAL RAW");
 assert.equal(merged.report.supplements.length, 1);
 assert.equal(merged.report.supplements[0].rawSupplement, supplementJson);
-assert.ok(merged.report.supplements[0].appliedFields.some((item) => item.path === "fairValue.base"));
+assert.ok(merged.report.supplements[0].appliedFields.some((item) => item.path === "fairValueSummary.fairValueBase"));
 assert.equal(merged.validation.valid, true);
 assert.equal(merged.report.completionStatus.status, "complete");
 const homeCardWithCompletion = externalAnalysisToHomeCard(merged.report);
@@ -301,14 +301,14 @@ const conflictingSupplement = (await parseExternalAnalysisSupplement(JSON.string
 }), { existingReport: merged.report, now })).supplement;
 const conflictPreview = mergeExternalAnalysisSupplement(merged.report, conflictingSupplement, { now });
 assert.equal(conflictPreview.conflicts.length, 2);
-assert.equal(conflictPreview.report.fairValue.base, 290, "Existing value must not be replaced without approval.");
+assert.equal(conflictPreview.report.fairValueSummary.fairValueBase, 290, "Existing value must not be replaced without approval.");
 
 const resolved = mergeExternalAnalysisSupplement(merged.report, conflictingSupplement, {
   now,
-  resolutions: { "fairValue.base": "use-new", "decision.verdict": "keep-current" }
+  resolutions: { "fairValueSummary.fairValueBase": "use-new", "decision.action": "keep-current" }
 });
-assert.equal(resolved.report.fairValue.base, 305);
-assert.equal(resolved.report.decision.verdict, "HOLD / ACCUMULATE ON WEAKNESS");
+assert.equal(resolved.report.fairValueSummary.fairValueBase, 305);
+assert.equal(resolved.report.decision.action, "HOLD");
 
 const wrongTicker = await parseExternalAnalysisSupplement(JSON.stringify({
   schemaVersion: "external-analysis-supplement/v1",
@@ -379,8 +379,8 @@ const stillIncomplete = mergeExternalAnalysisSupplement(incomplete, (await parse
 }), { existingReport: incomplete, now })).supplement, { now });
 assert.equal(stillIncomplete.report.completionStatus.status, "incomplete");
 const remainingPrompt = buildMissingRequirementsPrompt(stillIncomplete.report, stillIncomplete.report.completionStatus);
-assert.ok(remainingPrompt.text.includes("fairValue.bear"));
-assert.equal(remainingPrompt.text.includes("fairValue.base"), false);
+assert.ok(remainingPrompt.text.includes("fairValueSummary.fairValueLow"));
+assert.equal(remainingPrompt.text.includes("fairValueSummary.fairValueBase"), false);
 
 const supplementFiles = [
   "../src/externalAnalysis/missingFields.js",

@@ -11,8 +11,10 @@ const KNOWN_ANALYSIS_ROOTS = new Set([
   "companyProfile",
   "market",
   "scores",
-  "fairValue",
-  "valuationMethods",
+  "fairValueSummary",
+  "valuationMethodology",
+  "valuationResults",
+  "forecastAssumptions",
   "financialHighlights",
   "growthHighlights",
   "quality",
@@ -20,10 +22,10 @@ const KNOWN_ANALYSIS_ROOTS = new Set([
   "catalysts",
   "thesis",
   "earningsQuality",
-  "watchItems",
   "decision",
-  "recommendation",
   "guidance",
+  "monitoringChecklist",
+  "estimateRevisions",
   "companySpecificKpis",
   "priceTargetRequirements",
   "previousRequirementsEvaluation",
@@ -41,14 +43,14 @@ const KNOWN_ANALYSIS_ROOTS = new Set([
 ]);
 
 export function getByPath(object, path) {
-  return pathParts(path).reduce((current, key) => {
+  return pathParts(canonicalAnalysisPath(path)).reduce((current, key) => {
     if (current == null) return undefined;
     return current[key];
   }, object);
 }
 
 export function setByPath(object, path, value) {
-  const parts = pathParts(path);
+  const parts = pathParts(canonicalAnalysisPath(path));
   if (!parts.length) return;
   let cursor = object;
   for (let index = 0; index < parts.length - 1; index += 1) {
@@ -84,11 +86,40 @@ export function valuePresent(value, path = "") {
 }
 
 export function isKnownAnalysisPath(path) {
-  const parts = pathParts(path);
+  const parts = pathParts(canonicalAnalysisPath(path));
   if (!parts.length) return false;
   if (!KNOWN_ANALYSIS_ROOTS.has(parts[0])) return false;
   if (pathHasUnsafePart(parts)) return false;
   return true;
+}
+
+export function canonicalAnalysisPath(path) {
+  const clean = String(path || "");
+  const exact = {
+    "market.priceAtAnalysis": "fairValueSummary.currentPrice",
+    "market.currentPrice": "fairValueSummary.currentPrice",
+    "scores.overall": "decision.investmentScore",
+    "fairValue.bear": "fairValueSummary.fairValueLow",
+    "fairValue.base": "fairValueSummary.fairValueBase",
+    "fairValue.bull": "fairValueSummary.fairValueHigh",
+    "fairValue.weightedFairValue": "fairValueSummary.probabilityWeightedFairValue",
+    "fairValue.analystFairValue": "fairValueSummary.fairValueBase",
+    "fairValue.upsideToBasePct": "fairValueSummary.upsideDownsidePercent",
+    "fairValue.marginOfSafetyPercent": "fairValueSummary.marginOfSafetyPercent",
+    "decision.verdict": "decision.action",
+    "recommendation.action": "decision.action",
+    "recommendation.confidence": "decision.confidence",
+    "recommendation.reason": "decision.rationale",
+    "recommendation.rationale": "decision.rationale",
+    "recommendation.whatWouldUpgrade": "decision.upgradeTriggers",
+    "recommendation.whatWouldDowngrade": "decision.downgradeTriggers",
+    "watchItems": "monitoringChecklist",
+    "valuationMethods": "valuationResults",
+    "nextQuarterGuidance.items": "guidance"
+  };
+  if (exact[clean]) return exact[clean];
+  if (clean.startsWith("fairValue.")) return `fairValueSummary.${clean.slice("fairValue.".length)}`;
+  return clean;
 }
 
 export function diagnosticRowsForPaths(report = {}, fields = []) {

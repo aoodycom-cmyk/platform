@@ -1,9 +1,11 @@
-export const FAIR_VALUE_ANALYSIS_SCHEMA_VERSION = "fair-value-analysis/v1";
+export const FAIR_VALUE_ANALYSIS_SCHEMA_VERSION = "fair-value-analysis/v2";
+export const LEGACY_FAIR_VALUE_ANALYSIS_SCHEMA_VERSION = "fair-value-analysis/v1";
 export const FAIR_VALUE_METHODOLOGY_VERSION = "fair-value-system/v1";
 
 export function isFairValueAnalysisReport(input = {}) {
   return Boolean(input && typeof input === "object" && (
     input.schemaVersion === FAIR_VALUE_ANALYSIS_SCHEMA_VERSION
+    || input.schemaVersion === LEGACY_FAIR_VALUE_ANALYSIS_SCHEMA_VERSION
     || input.methodologyVersion === FAIR_VALUE_METHODOLOGY_VERSION
   ));
 }
@@ -21,7 +23,6 @@ export function buildFairValueAnalysisJsonObject(options = {}) {
       sector: null,
       industry: null,
       currency: "USD",
-      currentPrice: null,
       priceTimestamp: null
     },
     companyProfile: {
@@ -52,18 +53,6 @@ export function buildFairValueAnalysisJsonObject(options = {}) {
       capitalIntensity: null,
       evidence: [],
       confidence: null
-    },
-    executiveDecision: {
-      recommendation: null,
-      confidence: null,
-      investmentScore: null,
-      currentPrice: null,
-      fairValue: null,
-      fairValueLow: null,
-      fairValueHigh: null,
-      upsideDownsidePercent: null,
-      marginOfSafetyPercent: null,
-      why: []
     },
     businessQuality: {
       score: null,
@@ -161,34 +150,22 @@ export function buildFairValueAnalysisJsonObject(options = {}) {
       marginOfSafetyPercent: null,
       confidenceLevel: null
     },
-    catalysts: [],
-    risks: [],
-    whatChangesMyMind: {
-      items: [],
-      biggestAssumption: null,
-      upgradeTrigger: null,
-      downgradeTrigger: null,
-      thesisBreak: null,
-      revaluationRequired: []
-    },
-    finalDecision: {
-      decision: null,
-      why: [],
-      whyNot: [],
-      biggestAssumption: null,
-      mainRisk: null,
-      whatChangesTheDecision: [],
-      policyGates: []
-    },
-    recommendation: {
+    decision: {
       action: null,
       confidence: null,
-      reason: null,
-      whatWouldUpgrade: [],
-      whatWouldDowngrade: []
+      investmentScore: null,
+      rationale: [],
+      whyNot: [],
+      upgradeTriggers: [],
+      downgradeTriggers: [],
+      biggestAssumption: null,
+      mainRisk: null
     },
+    catalysts: [],
+    risks: [],
     guidance: [
       {
+        period: null,
         topic: null,
         arabicTopic: null,
         currentGuidance: null,
@@ -199,19 +176,16 @@ export function buildFairValueAnalysisJsonObject(options = {}) {
         importance: "medium"
       }
     ],
-    nextQuarterGuidance: {
-      quarter: null,
-      items: [
-        {
-          topic: null,
-          arabicTopic: null,
-          guidance: null,
-          previousGuidance: null,
-          direction: "not_applicable",
-          interpretation: null,
-          importance: "medium"
-        }
-      ]
+    estimateRevisions: {
+      periodDays: 90,
+      asOfDate: null,
+      revenue: revisionTemplate(),
+      eps: revisionTemplate(),
+      ebitda: revisionTemplate(),
+      overallDirection: "unknown",
+      interpretation: null,
+      confidence: null,
+      source: null
     },
     companySpecificKpis: [
       {
@@ -344,23 +318,7 @@ export function buildFairValueAnalysisJsonObject(options = {}) {
         url: null,
         usedFor: []
       }
-    ],
-    dashboardExport: {
-      approvedOnly: false,
-      exported: false,
-      ticker: ticker || null,
-      recommendation: null,
-      currentPrice: null,
-      fairValue: null,
-      fairValueLow: null,
-      fairValueHigh: null,
-      upsideDownsidePercent: null,
-      investmentScore: null,
-      confidence: null,
-      primaryValuationMethod: null,
-      strengthsCount: null,
-      weaknessesCount: null
-    }
+    ]
   };
 }
 
@@ -379,10 +337,11 @@ export function fairValueAnalysisToExternalReport(input = {}) {
   const dashboardExport = input.dashboardExport || {};
   const whatChanges = input.whatChangesMyMind || {};
   const valuationResults = Array.isArray(input.valuationResults) ? input.valuationResults : [];
-  const currentPrice = firstNumber(company.currentPrice, executive.currentPrice, fairSummary.currentPrice, dashboardExport.currentPrice);
+  // Priority: canonical Fair Value v2 summary, then legacy company/executive/dashboard copies.
+  const currentPrice = firstNumber(fairSummary.currentPrice, company.currentPrice, executive.currentPrice, dashboardExport.currentPrice);
 
   return {
-    schemaVersion: "external-analysis-report/v1",
+    schemaVersion: "external-analysis-report/v2",
     analysisOrigin: "external_chatgpt",
     source: "ChatGPT",
     sourceModel: null,
@@ -398,7 +357,6 @@ export function fairValueAnalysisToExternalReport(input = {}) {
     },
     companyProfile: input.companyProfile || null,
     market: {
-      priceAtAnalysis: currentPrice,
       userAverageCost: null
     },
     scores: {
@@ -406,21 +364,22 @@ export function fairValueAnalysisToExternalReport(input = {}) {
       growth: normalizedScore(components.growth),
       valuation: normalizedScore(input.scores?.valuation ?? input.valuationScore),
       risk: normalizedScore(input.scores?.risk ?? input.riskScore),
-      overall: normalizedScore(executive.investmentScore ?? dashboardExport.investmentScore),
       moat: normalizedScore(components.competitiveAdvantage),
       management: normalizedScore(components.management)
     },
-    fairValue: {
-      bear: firstNumber(fairSummary.fairValueLow, executive.fairValueLow, scenarioValue(scenarios.Conservative)),
-      base: firstNumber(fairSummary.fairValueBase, executive.fairValue, dashboardExport.fairValue, scenarioValue(scenarios.Base)),
-      bull: firstNumber(fairSummary.fairValueHigh, executive.fairValueHigh, scenarioValue(scenarios.Optimistic)),
-      weightedFairValue: firstNumber(fairSummary.probabilityWeightedFairValue),
-      analystFairValue: firstNumber(executive.fairValue, dashboardExport.fairValue),
-      upsideToBasePct: firstNumber(fairSummary.upsideDownsidePercent, executive.upsideDownsidePercent, dashboardExport.upsideDownsidePercent),
-      downsideToBearPct: firstNumber(scenarioUpside(scenarios.Conservative)),
-      upsideToBullPct: firstNumber(scenarioUpside(scenarios.Optimistic))
+    fairValueSummary: {
+      fairValueLow: firstNumber(fairSummary.fairValueLow, executive.fairValueLow, scenarioValue(scenarios.Conservative)),
+      fairValueBase: firstNumber(fairSummary.fairValueBase, executive.fairValue, dashboardExport.fairValue, scenarioValue(scenarios.Base)),
+      fairValueHigh: firstNumber(fairSummary.fairValueHigh, executive.fairValueHigh, scenarioValue(scenarios.Optimistic)),
+      probabilityWeightedFairValue: firstNumber(fairSummary.probabilityWeightedFairValue),
+      currentPrice,
+      upsideDownsidePercent: firstNumber(fairSummary.upsideDownsidePercent, executive.upsideDownsidePercent, dashboardExport.upsideDownsidePercent),
+      marginOfSafetyPercent: firstNumber(fairSummary.marginOfSafetyPercent, executive.marginOfSafetyPercent),
+      confidenceLevel: fairSummary.confidenceLevel || null
     },
-    valuationMethods: valuationResultsToMethods(valuationResults, valuationMethodology),
+    valuationMethodology,
+    valuationResults,
+    forecastAssumptions: input.forecastAssumptions || null,
     financialHighlights: {},
     growthHighlights: {
       revenueGrowth: scenarioAssumption(scenarios.Base, "revenueGrowth"),
@@ -458,29 +417,30 @@ export function fairValueAnalysisToExternalReport(input = {}) {
       reportedVsNormalizedExplanation: null,
       oneOffItems: []
     },
-    watchItems: normalizeWatchItems(input.monitoringChecklist),
     decision: {
-      verdict: firstText(recommendation.action, finalDecision.decision, executive.recommendation, dashboardExport.recommendation),
-      rationale: compactSentences([
+      action: firstText(input.decision?.action, recommendation.action, finalDecision.decision, executive.recommendation, dashboardExport.recommendation),
+      confidence: firstNumber(input.decision?.confidence, recommendation.confidence, executive.confidence, dashboardExport.confidence),
+      investmentScore: firstNumber(input.decision?.investmentScore, executive.investmentScore, dashboardExport.investmentScore),
+      rationale: [compactSentences([
+        ...(Array.isArray(input.decision?.rationale) ? input.decision.rationale : []),
         recommendation.reason,
         arraySentence(finalDecision.why),
         arraySentence(executive.why),
         finalDecision.biggestAssumption ? `أهم افتراض: ${finalDecision.biggestAssumption}` : null,
         finalDecision.mainRisk ? `الخطر الرئيسي: ${finalDecision.mainRisk}` : null
-      ]),
+      ])].filter(Boolean),
+      whyNot: Array.isArray(input.decision?.whyNot) ? input.decision.whyNot : (Array.isArray(finalDecision.whyNot) ? finalDecision.whyNot : []),
+      upgradeTriggers: input.decision?.upgradeTriggers || recommendation.whatWouldUpgrade || [],
+      downgradeTriggers: input.decision?.downgradeTriggers || recommendation.whatWouldDowngrade || [],
+      biggestAssumption: firstText(input.decision?.biggestAssumption, finalDecision.biggestAssumption, whatChanges.biggestAssumption),
+      mainRisk: firstText(input.decision?.mainRisk, finalDecision.mainRisk),
       buyZone: null,
       fairZone: null,
       expensiveZone: null
     },
-    recommendation: {
-      action: firstText(recommendation.action, finalDecision.decision, executive.recommendation, dashboardExport.recommendation),
-      confidence: firstNumber(recommendation.confidence, executive.confidence, dashboardExport.confidence),
-      reason: firstText(recommendation.reason, finalDecision.why?.[0], executive.why?.[0]),
-      whatWouldUpgrade: Array.isArray(recommendation.whatWouldUpgrade) ? recommendation.whatWouldUpgrade : [],
-      whatWouldDowngrade: Array.isArray(recommendation.whatWouldDowngrade) ? recommendation.whatWouldDowngrade : []
-    },
-    guidance: Array.isArray(input.guidance) ? input.guidance : [],
-    nextQuarterGuidance: input.nextQuarterGuidance || null,
+    guidance: mergeGuidanceForAdapter(input.guidance, input.nextQuarterGuidance),
+    monitoringChecklist: mergeMonitoringForAdapter(input.monitoringChecklist, whatChanges),
+    estimateRevisions: input.estimateRevisions || null,
     companySpecificKpis: Array.isArray(input.companySpecificKpis) ? input.companySpecificKpis : [],
     priceTargetRequirements: input.priceTargetRequirements || input.priceTargetMonitoring || {},
     previousRequirementsEvaluation: input.previousRequirementsEvaluation || {},
@@ -537,6 +497,15 @@ function scenarioTemplate(enabled) {
     requiredOutcomes: [],
     thesis: null,
     keyRisks: []
+  };
+}
+
+function revisionTemplate() {
+  return {
+    trend: null,
+    currentEstimate: null,
+    previousEstimate: null,
+    changePercent: null
   };
 }
 
@@ -648,6 +617,33 @@ function normalizeWatchItems(items) {
       item.thesisBreak ? `كسر الفرضية: ${item.thesisBreak}` : null
     ]);
   }).filter(Boolean);
+}
+
+function mergeGuidanceForAdapter(guidance, nextQuarterGuidance) {
+  const result = Array.isArray(guidance) ? guidance.map((item) => ({ ...item })) : [];
+  const quarter = nextQuarterGuidance?.quarter || null;
+  for (const item of Array.isArray(nextQuarterGuidance?.items) ? nextQuarterGuidance.items : []) {
+    result.push({
+      period: quarter,
+      topic: item.topic || null,
+      arabicTopic: item.arabicTopic || null,
+      currentGuidance: item.currentGuidance ?? item.guidance ?? null,
+      previousGuidance: item.previousGuidance ?? null,
+      direction: item.direction || "not_applicable",
+      type: item.type || "text",
+      interpretation: item.interpretation || null,
+      importance: item.importance || "medium"
+    });
+  }
+  return result;
+}
+
+function mergeMonitoringForAdapter(checklist, whatChanges = {}) {
+  const result = Array.isArray(checklist) ? checklist.map((item) => ({ ...item })) : [];
+  for (const item of Array.isArray(whatChanges.items) ? whatChanges.items : []) {
+    result.push(typeof item === "string" ? { metric: item } : item);
+  }
+  return result;
 }
 
 function normalizeSources(items) {

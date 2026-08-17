@@ -1495,21 +1495,19 @@ function createEarningsUpdatePreview(currentReport = {}, incomingReport = {}, va
   const paths = [
     ["analysisDate", "Analysis Date"],
     ["reportPeriod", "Report Period"],
-    ["market.priceAtAnalysis", "Price at Analysis"],
-    ["market.currentPrice", "Current Price"],
-    ["fairValue.bear", "Bear Fair Value"],
-    ["fairValue.base", "Base Fair Value"],
-    ["fairValue.bull", "Bull Fair Value"],
-    ["fairValue.weightedFairValue", "Weighted Fair Value"],
-    ["fairValue.upsideToBasePct", "Base Upside"],
+    ["fairValueSummary.currentPrice", "Current Price"],
+    ["fairValueSummary.fairValueLow", "Bear Fair Value"],
+    ["fairValueSummary.fairValueBase", "Base Fair Value"],
+    ["fairValueSummary.fairValueHigh", "Bull Fair Value"],
+    ["fairValueSummary.probabilityWeightedFairValue", "Weighted Fair Value"],
+    ["fairValueSummary.upsideDownsidePercent", "Base Upside"],
     ["scores.quality", "Quality"],
     ["scores.growth", "Growth"],
     ["scores.valuation", "Valuation"],
     ["scores.risk", "Risk"],
-    ["scores.overall", "Overall"],
-    ["recommendation.action", "Recommendation"],
-    ["recommendation.confidence", "Confidence"],
-    ["decision.verdict", "Decision"],
+    ["decision.investmentScore", "Overall"],
+    ["decision.action", "Recommendation"],
+    ["decision.confidence", "Confidence"],
     ["thesis.shortSummary", "Thesis"],
     ["earningsQuality.status", "Earnings Quality"],
     ["previousRequirementsEvaluation.requirementsAssessment.weightedAchievement", "Requirement Achievement"],
@@ -1536,9 +1534,9 @@ function createEarningsUpdatePreview(currentReport = {}, incomingReport = {}, va
   const collectionFields = [
     ["risks", "Risks"],
     ["catalysts", "Catalysts"],
-    ["watchItems", "Watch Items"],
+    ["monitoringChecklist", "Monitoring Checklist"],
     ["guidance", "Guidance"],
-    ["nextQuarterGuidance.items", "Next Guidance"],
+    ["estimateRevisions", "Estimate Revisions"],
     ["companySpecificKpis", "Company KPIs"],
     ["previousRequirementsEvaluation.requirements", "Previous Requirements Results"],
     ["priceTargetRequirements.requirements", "Next Requirements"]
@@ -1617,7 +1615,7 @@ function externalSupplementContext(report) {
     targetAnalysisId: report.id || null,
     analysisDate: report.analysisDate || null,
     reportPeriod: report.reportPeriod || null,
-    priceAtAnalysis: report.market?.priceAtAnalysis ?? null
+    priceAtAnalysis: report.fairValueSummary?.currentPrice ?? null
   };
 }
 
@@ -1629,6 +1627,6 @@ function externalReportCompanyShell(report) {
     sector: report.company?.sector || "",
     industry: report.company?.industry || "",
     currency: report.company?.currency || "USD",
-    quote: { price: report.market?.priceAtAnalysis ?? null }
+    quote: { price: report.fairValueSummary?.currentPrice ?? null }
   };
 }

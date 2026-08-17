@@ -1,3 +1,5 @@
+import { normalizeExternalAnalysesCollection } from "./storage.js";
+
 export const FRANKLIN_BACKUP_SCHEMA_VERSION = "franklin-investment-backup/v1";
 
 const RESTORABLE_KEYS = [
@@ -31,7 +33,10 @@ const FORBIDDEN_SECRET_KEYS = [
 ];
 
 export function createInvestmentDataBackup(state = {}, now = new Date()) {
-  const data = Object.fromEntries(RESTORABLE_KEYS.map((key) => [key, scrubSecrets(state[key])]));
+  const data = Object.fromEntries(RESTORABLE_KEYS.map((key) => [
+    key,
+    scrubSecrets(key === "externalAnalyses" ? normalizeExternalAnalysesCollection(state[key] || {}) : state[key])
+  ]));
   return {
     schemaVersion: FRANKLIN_BACKUP_SCHEMA_VERSION,
     appName: "Franklin Research",

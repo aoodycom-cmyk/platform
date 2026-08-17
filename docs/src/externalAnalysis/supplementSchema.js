@@ -1,3 +1,5 @@
+import { canonicalAnalysisPath } from "./fieldPaths.js";
+
 export const EXTERNAL_ANALYSIS_SUPPLEMENT_SCHEMA_VERSION = "external-analysis-supplement/v1";
 
 const PATH_OBJECT_KEYS = new Set([
@@ -5,7 +7,9 @@ const PATH_OBJECT_KEYS = new Set([
   "companyProfile",
   "market",
   "scores",
+  "fairValueSummary",
   "fairValue",
+  "valuationResults",
   "valuationMethods",
   "financialHighlights",
   "growthHighlights",
@@ -13,6 +17,8 @@ const PATH_OBJECT_KEYS = new Set([
   "earningsQuality",
   "decision",
   "recommendation",
+  "monitoringChecklist",
+  "estimateRevisions",
   "priceTargetRequirements"
 ]);
 
@@ -52,8 +58,9 @@ export function normalizeSupplementFieldValue(path, value) {
 function normalizeFields(fields = {}) {
   const result = {};
   for (const [path, value] of Object.entries(fields || {})) {
-    if (!isAllowedPath(path)) continue;
-    result[path] = normalizeSupplementFieldValue(path, value);
+    const canonicalPath = canonicalAnalysisPath(path);
+    if (!isAllowedPath(canonicalPath)) continue;
+    result[canonicalPath] = normalizeSupplementFieldValue(canonicalPath, value);
   }
   return result;
 }
@@ -64,7 +71,7 @@ function flattenPartialReport(input = {}) {
     if (!PATH_OBJECT_KEYS.has(key)) continue;
     flattenObject(value, key, result);
   }
-  for (const path of ["analysisDate", "reportPeriod", "risks", "catalysts", "watchItems", "sources", "guidance", "companySpecificKpis"]) {
+  for (const path of ["analysisDate", "reportPeriod", "risks", "catalysts", "watchItems", "monitoringChecklist", "sources", "guidance", "companySpecificKpis", "estimateRevisions"]) {
     if (input[path] !== undefined) result[path] = input[path];
   }
   return result;
@@ -92,15 +99,15 @@ function isAllowedPath(path) {
 }
 
 function numericPath(path) {
-  return /(^scores\.|^fairValue\.|^market\.|Pct$|price|Price|value|Value|revenue|Income|cash|debt|capex|eps|flow|Flow)/i.test(path);
+  return /(^scores\.|^fairValueSummary\.|^market\.|Pct$|price|Price|value|Value|revenue|Income|cash|debt|capex|eps|flow|Flow)/i.test(path);
 }
 
 function arrayPath(path) {
-  return ["risks", "catalysts", "watchItems", "sources", "quality.strengths", "quality.weaknesses", "earningsQuality.oneOffItems"].includes(path);
+  return ["risks", "catalysts", "monitoringChecklist", "valuationResults", "sources", "quality.strengths", "quality.weaknesses", "earningsQuality.oneOffItems", "decision.rationale", "decision.whyNot", "decision.upgradeTriggers", "decision.downgradeTriggers"].includes(path);
 }
 
 function valuationMethodPath(path) {
-  return /^valuationMethods\.[A-Za-z0-9_-]+$/.test(path);
+  return /^valuationResults(\.[A-Za-z0-9_-]+)?$/.test(path);
 }
 
 function normalizeSources(value) {

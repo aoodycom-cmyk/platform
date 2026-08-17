@@ -1,4 +1,4 @@
-import { EXTERNAL_ANALYSIS_ORIGIN, hashText } from "./schema.js";
+import { EXTERNAL_ANALYSIS_ORIGIN, hashText, normalizeExternalAnalysisReport } from "./schema.js";
 
 export function normalizeExternalAnalysesCollection(collection = {}) {
   if (!collection || typeof collection !== "object") return {};
@@ -8,6 +8,7 @@ export function normalizeExternalAnalysesCollection(collection = {}) {
     if (!cleanTicker || !Array.isArray(reports)) continue;
     normalized[cleanTicker] = reports
       .filter((report) => report?.analysisOrigin === EXTERNAL_ANALYSIS_ORIGIN)
+      .map((report) => normalizeExternalAnalysisReport(report, report.rawAnalysisOriginal || report.rawAnalysis || ""))
       .sort(compareReportsDesc);
   }
   return normalized;
@@ -42,7 +43,7 @@ export function saveExternalAnalysis(collection = {}, report = {}, { allowDuplic
   if (duplicate && !allowDuplicate) return { collection, report: duplicate, duplicate };
 
   const timestamp = now.toISOString();
-  const nextReport = {
+  const nextReport = normalizeExternalAnalysisReport({
     ...report,
     id: report.id || createExternalAnalysisId(report, timestamp),
     analysisOrigin: EXTERNAL_ANALYSIS_ORIGIN,
@@ -53,7 +54,7 @@ export function saveExternalAnalysis(collection = {}, report = {}, { allowDuplic
       updatedAt: timestamp,
       rawHash: report.metadata?.rawHash || hashText(report.rawAnalysisOriginal || report.rawAnalysis || "")
     }
-  };
+  }, report.rawAnalysisOriginal || report.rawAnalysis || "", { now });
   const current = collection[ticker] || [];
   return {
     collection: {
@@ -69,7 +70,7 @@ export function updateSavedExternalAnalysis(collection = {}, report = {}, now = 
   const ticker = normalizeTicker(report.company?.ticker);
   if (!ticker || !report.id) return { collection, report: null };
   const timestamp = now.toISOString();
-  const nextReport = {
+  const nextReport = normalizeExternalAnalysisReport({
     ...report,
     analysisOrigin: EXTERNAL_ANALYSIS_ORIGIN,
     rawAnalysisOriginal: report.rawAnalysisOriginal || report.rawAnalysis || "",
@@ -77,7 +78,7 @@ export function updateSavedExternalAnalysis(collection = {}, report = {}, now = 
       ...(report.metadata || {}),
       updatedAt: timestamp
     }
-  };
+  }, report.rawAnalysisOriginal || report.rawAnalysis || "", { now });
   const withoutCurrent = {};
   for (const [entryTicker, reports] of Object.entries(collection)) {
     const remaining = (reports || []).filter((item) => item.id !== report.id);

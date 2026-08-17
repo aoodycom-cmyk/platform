@@ -110,7 +110,7 @@ const earningsPrompt = buildNewEarningsAnalysisPrompt(report);
 assert.ok(earningsPrompt.includes("direction: up أو down أو flat أو unknown"));
 assert.ok(earningsPrompt.includes("impact: positive أو negative أو mixed أو neutral أو unknown"));
 assert.ok(earningsPrompt.includes("actualDisplay"));
-assert.ok(earningsPrompt.includes("nextQuarterGuidance"));
+assert.ok(earningsPrompt.includes('"guidance"'));
 assert.ok(earningsPrompt.includes("previousValue"));
 assert.ok(earningsPrompt.includes("requiredDisplay"));
 assert.ok(earningsPrompt.includes("dilution"));

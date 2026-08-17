@@ -67,7 +67,7 @@ function findReport(state, ticker, reportId) {
 }
 
 function confidenceLabel(report) {
-  const value = numeric(report?.recommendation?.confidence ?? report?.decision?.confidence);
+  const value = numeric(report?.decision?.confidence);
   if (!Number.isFinite(value)) return "—";
   const pct = value <= 1 ? value * 100 : value;
   if (pct >= 75) return "مرتفعة";
@@ -87,10 +87,10 @@ function enhanceLibraryCards(state) {
     const report = findReport(state, ticker, reportId);
     if (!report) return;
 
-    const action = normalizeAction(report.recommendation?.action || report.decision?.verdict);
-    const current = report.market?.currentPrice ?? report.market?.priceAtAnalysis;
-    const base = report.fairValue?.base;
-    const upside = numeric(report.fairValue?.upsideToBasePct);
+    const action = normalizeAction(report.decision?.action);
+    const current = report.fairValueSummary?.currentPrice;
+    const base = report.fairValueSummary?.fairValueBase;
+    const upside = numeric(report.fairValueSummary?.upsideDownsidePercent);
     const computedUpside = Number.isFinite(upside)
       ? upside
       : (Number.isFinite(numeric(current)) && Number.isFinite(numeric(base)) && numeric(current) !== 0
@@ -121,9 +121,9 @@ function enhanceLibraryCards(state) {
         <div class="m2-current-price"><strong dir="ltr">${escapeHtml(money(current, 2))}</strong><span>السعر الحالي</span></div>
       </div>
       <div class="m2-scenario-strip">
-        ${scenarioCell("Bear", report.fairValue?.bear, "bear")}
-        ${scenarioCell("Base", report.fairValue?.base, "base")}
-        ${scenarioCell("Bull", report.fairValue?.bull, "bull")}
+        ${scenarioCell("Bear", report.fairValueSummary?.fairValueLow, "bear")}
+        ${scenarioCell("Base", report.fairValueSummary?.fairValueBase, "base")}
+        ${scenarioCell("Bull", report.fairValueSummary?.fairValueHigh, "bull")}
       </div>
       <div class="m2-stock-card-foot">
         <span class="m2-data-state ${escapeHtml(completion)}">${completion === "complete" ? "البيانات مكتملة" : "يحتاج استكمال"}</span>
@@ -184,7 +184,7 @@ function enhanceLibraryControls(state) {
     chips?.insertAdjacentElement("afterend", summary);
   }
   const reports = latestReports(state);
-  const upsides = reports.map((report) => numeric(report.fairValue?.upsideToBasePct)).filter(Number.isFinite);
+  const upsides = reports.map((report) => numeric(report.fairValueSummary?.upsideDownsidePercent)).filter(Number.isFinite);
   const avg = upsides.length ? upsides.reduce((sum, value) => sum + value, 0) / upsides.length : null;
   const belowBase = upsides.filter((value) => value < 0).length;
   const incomplete = reports.filter((report) => report.completionStatus?.status && report.completionStatus.status !== "complete").length;
@@ -226,9 +226,9 @@ function enhanceRequirements(state) {
       <div><strong>${counts.passed} من ${requirements.length} متطلبات محققة</strong><span>تقييم المتطلبات الحالية</span></div>
     </div>
     <div class="m2-target-scenarios">
-      <span class="${targetScenario.includes("bear") ? "active bear" : "bear"}">Bear · ${escapeHtml(money(report.fairValue?.bear, 0))}</span>
-      <span class="${targetScenario.includes("base") ? "active base" : "base"}">Base · ${escapeHtml(money(report.fairValue?.base, 0))}</span>
-      <span class="${targetScenario.includes("bull") || targetScenario.includes("optim") ? "active bull" : "bull"}">Bull · ${escapeHtml(money(report.fairValue?.bull, 0))}</span>
+      <span class="${targetScenario.includes("bear") ? "active bear" : "bear"}">Bear · ${escapeHtml(money(report.fairValueSummary?.fairValueLow, 0))}</span>
+      <span class="${targetScenario.includes("base") ? "active base" : "base"}">Base · ${escapeHtml(money(report.fairValueSummary?.fairValueBase, 0))}</span>
+      <span class="${targetScenario.includes("bull") || targetScenario.includes("optim") ? "active bull" : "bull"}">Bull · ${escapeHtml(money(report.fairValueSummary?.fairValueHigh, 0))}</span>
     </div>
     <div class="m2-requirement-status-grid">
       <div class="passed"><strong>${counts.passed}</strong><span>تحقق</span></div>

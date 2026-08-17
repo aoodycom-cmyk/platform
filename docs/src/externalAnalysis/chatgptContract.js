@@ -91,9 +91,9 @@ export function buildFullAnalysisPrompt(options = {}) {
     "القيمة العادلة والقرار:",
     "- احسب fairValueLow وfairValueBase وfairValueHigh وprobabilityWeightedFairValue وcurrentPrice وupsideDownsidePercent وmarginOfSafety وconfidenceLevel.",
     "- لا تستخدم متوسطًا بسيطًا لطرق التقييم إلا إذا كان ذلك مبررًا.",
-    "- استخدم recommendation.action لمسار Franklin الخارجي بقيمة واحدة فقط: BUY أو ADD أو HOLD أو WATCH أو REDUCE أو SELL.",
+    "- استخدم decision.action بقيمة واحدة فقط: BUY أو ADD أو HOLD أو WATCH أو REDUCE أو SELL.",
     "- معنى ADD: زيادة مركز قائم. معنى WATCH: المراقبة دون شراء حتى تتحقق الشروط.",
-    "- finalDecision.decision يمكن أن يبقى متوافقًا مع التحليل، لكن recommendation.action هو القرار المختصر للتطبيق.",
+    "- decision هو المصدر الوحيد للتوصية والثقة وسبب القرار ومحفزات الترقية أو الخفض.",
     "- لا تجعل جودة الشركة وحدها سببًا للشراء؛ يجب مراعاة السعر الحالي مقارنة بالقيمة العادلة.",
     "",
     "المراقبة المستقبلية:",
@@ -164,10 +164,10 @@ export function buildNewEarningsAnalysisPrompt(report = {}) {
     `- الرمز: ${ticker || "-"}`,
     `- تاريخ التحليل الحالي: ${formatPromptValue(report.analysisDate)}`,
     `- فترة التقرير الحالية: ${formatPromptValue(report.reportPeriod)}`,
-    `- التوصية الحالية: ${formatPromptValue(report.recommendation?.action || report.decision?.verdict)}`,
-    `- Bear Fair Value الحالي: ${formatPromptValue(report.fairValue?.bear)}`,
-    `- Base Fair Value الحالي: ${formatPromptValue(report.fairValue?.base)}`,
-    `- Bull Fair Value الحالي: ${formatPromptValue(report.fairValue?.bull)}`,
+    `- التوصية الحالية: ${formatPromptValue(report.decision?.action)}`,
+    `- Bear Fair Value الحالي: ${formatPromptValue(report.fairValueSummary?.fairValueLow)}`,
+    `- Base Fair Value الحالي: ${formatPromptValue(report.fairValueSummary?.fairValueBase)}`,
+    `- Bull Fair Value الحالي: ${formatPromptValue(report.fairValueSummary?.fairValueHigh)}`,
     `- القيمة المبررة الحالية: ${formatPromptValue(requirementsBlock.currentJustifiedValue)}`,
     `- الهدف التالي: ${formatPromptValue(requirementsBlock.targetValue)}`,
     `- السيناريو المستهدف: ${formatPromptValue(requirementsBlock.targetScenario)}`,
@@ -201,11 +201,11 @@ export function buildNewEarningsAnalysisPrompt(report = {}) {
     "5. لا تستخدم معادلة عامة؛ استخدم حكمًا تحليليًا مناسبًا للشركة والقطاع.",
     "6. أعد weightedAchievement وoverallStatus وsummary كما تراها أنت بناءً على التحليل.",
     "7. أعد earnings summary باللغة العربية.",
-    "8. أعد nextQuarterGuidance من توجيهات الإدارة للربع القادم إذا توفرت.",
+    "8. أضف توجيهات الربع القادم إلى guidance مع period واضح إذا توفرت.",
     "9. أعد updated guidance إذا تغيرت التوجيهات.",
     "10. أعد updated company-specific KPIs عند الحاجة.",
     "11. أعد updated risks إذا تغيرت ماديًا.",
-    "12. أعد updated recommendation.",
+    "12. أعد decision المحدث.",
     "13. أعد Bear/Base/Bull valuation فقط إذا كانت نتائج الأرباح تبرر تغييرًا جوهريًا؛ وإلا اشرح لماذا بقيت كما هي.",
     "14. أضف priceTargetRequirements جديدة للفترة القادمة إذا كان ذلك مناسبًا.",
     "",
@@ -246,11 +246,11 @@ function buildNewEarningsOutputTemplate(report = {}, requirements = []) {
   template.analysisDate = "YYYY-MM-DD";
   template.company.name = report.company?.name || null;
   template.company.currency = report.company?.currency || "USD";
-  template.company.currentPrice = null;
-  template.fairValueSummary.fairValueLow = numberOrNull(report.fairValue?.bear);
-  template.fairValueSummary.fairValueBase = numberOrNull(report.fairValue?.base);
-  template.fairValueSummary.fairValueHigh = numberOrNull(report.fairValue?.bull);
-  template.recommendation.action = report.recommendation?.action || report.decision?.verdict || null;
+  template.fairValueSummary.currentPrice = null;
+  template.fairValueSummary.fairValueLow = numberOrNull(report.fairValueSummary?.fairValueLow);
+  template.fairValueSummary.fairValueBase = numberOrNull(report.fairValueSummary?.fairValueBase);
+  template.fairValueSummary.fairValueHigh = numberOrNull(report.fairValueSummary?.fairValueHigh);
+  template.decision.action = report.decision?.action || null;
   template.previousRequirementsEvaluation = {
     requirementSetId: requirementsBlock.requirementSetId || null,
     ticker: ticker || null,
@@ -313,20 +313,17 @@ function buildNewEarningsOutputTemplate(report = {}, requirements = []) {
     earningsPeriod: null,
     requirements: []
   };
-  template.nextQuarterGuidance = {
-    quarter: null,
-    items: [
-      {
-        topic: null,
-        arabicTopic: null,
-        guidance: null,
-        previousGuidance: null,
-        direction: "not_applicable",
-        interpretation: null,
-        importance: "medium"
-      }
-    ]
-  };
+  template.guidance = [{
+    period: null,
+    topic: null,
+    arabicTopic: null,
+    currentGuidance: null,
+    previousGuidance: null,
+    direction: "not_applicable",
+    type: "text",
+    interpretation: null,
+    importance: "medium"
+  }];
   template.requirementsAssessment = {
     weightedAchievement: null,
     reportedRequirements: null,

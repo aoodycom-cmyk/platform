@@ -11,7 +11,7 @@ import {
   normalizeRequirementsAssessment
 } from "./requirements.js";
 
-export const EXTERNAL_ANALYSIS_SCHEMA_VERSION = "external-analysis-report/v1";
+export const EXTERNAL_ANALYSIS_SCHEMA_VERSION = "external-analysis-report/v2";
 export const EXTERNAL_ANALYSIS_ORIGIN = "external_chatgpt";
 export const EXTERNAL_ANALYSIS_PARSER_VERSION = "external-parser-v1";
 
@@ -36,7 +36,6 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
     },
     companyProfile: null,
     market: {
-      priceAtAnalysis: null,
       userAverageCost: null
     },
     scores: {
@@ -44,29 +43,22 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
       growth: null,
       valuation: null,
       risk: null,
-      overall: null,
       moat: null,
       management: null
     },
-    fairValue: {
-      bear: null,
-      base: null,
-      bull: null,
-      weightedFairValue: null,
-      analystFairValue: null,
-      upsideToBasePct: null,
-      downsideToBearPct: null,
-      upsideToBullPct: null
+    fairValueSummary: {
+      fairValueLow: null,
+      fairValueBase: null,
+      fairValueHigh: null,
+      probabilityWeightedFairValue: null,
+      currentPrice: null,
+      upsideDownsidePercent: null,
+      marginOfSafetyPercent: null,
+      confidenceLevel: null
     },
-    valuationMethods: {
-      dcf: null,
-      pe: null,
-      evEbitda: null,
-      ps: null,
-      peg: null,
-      sotp: null,
-      other: null
-    },
+    valuationMethodology: null,
+    valuationResults: [],
+    forecastAssumptions: null,
     financialHighlights: {
       revenue: null,
       revenueGrowthPct: null,
@@ -111,26 +103,23 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
       reportedVsNormalizedExplanation: null,
       oneOffItems: []
     },
-    watchItems: [],
     decision: {
-      verdict: null,
-      rationale: null,
+      action: null,
+      confidence: null,
+      investmentScore: null,
+      rationale: [],
+      whyNot: [],
+      upgradeTriggers: [],
+      downgradeTriggers: [],
+      biggestAssumption: null,
+      mainRisk: null,
       buyZone: null,
       fairZone: null,
       expensiveZone: null
     },
-    recommendation: {
-      action: null,
-      confidence: null,
-      reason: null,
-      whatWouldUpgrade: [],
-      whatWouldDowngrade: []
-    },
     guidance: [],
-    nextQuarterGuidance: {
-      quarter: null,
-      items: []
-    },
+    monitoringChecklist: [],
+    estimateRevisions: null,
     companySpecificKpis: [],
     priceTargetRequirements: {
       requirementSetId: null,
@@ -220,15 +209,14 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
   const companyInput = input.company || {};
   const marketInput = input.market || {};
   const scoresInput = input.scores || {};
-  const fairValueInput = input.fairValue || input.fairValues || {};
+  const fairValueSummary = normalizeFairValueSummary(input);
   const priceTargetRequirements = normalizePriceTargetRequirements(input.priceTargetRequirements ?? input.priceTargetMonitoring);
   const requirementsAssessment = normalizeRequirementsAssessment(input.requirementsAssessment || {});
-  const recommendation = normalizeExternalRecommendation(input.recommendation, input.decision?.verdict ?? input.verdict ?? input.recommendation, input.decision?.rationale ?? input.rationale);
-  const recommendationVerdict = recommendation.action || (typeof input.recommendation === "string" ? input.recommendation : null);
+  const decision = normalizeCanonicalDecision(input);
   const report = {
     ...base,
     id: input.id || null,
-    schemaVersion: input.schemaVersion || EXTERNAL_ANALYSIS_SCHEMA_VERSION,
+    schemaVersion: EXTERNAL_ANALYSIS_SCHEMA_VERSION,
     analysisOrigin: EXTERNAL_ANALYSIS_ORIGIN,
     source: nullableString(source) || "ChatGPT",
     sourceModel: nullableString(input.sourceModel ?? input.model ?? input.metadata?.sourceModel),
@@ -244,7 +232,6 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
     },
     companyProfile: normalizeCompanyProfile(input.companyProfile),
     market: {
-      priceAtAnalysis: toNullableNumber(marketInput.priceAtAnalysis ?? input.priceAtAnalysis ?? input.currentPrice),
       userAverageCost: toNullableNumber(marketInput.userAverageCost ?? input.userAverageCost)
     },
     scores: {
@@ -252,21 +239,13 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
       growth: toNullableNumber(scoresInput.growth ?? input.growthScore),
       valuation: toNullableNumber(scoresInput.valuation ?? input.valuationScore),
       risk: toNullableNumber(scoresInput.risk ?? input.riskScore),
-      overall: toNullableNumber(scoresInput.overall ?? input.overallScore ?? input.investmentScore),
       moat: toNullableNumber(scoresInput.moat ?? input.moatScore),
       management: toNullableNumber(scoresInput.management ?? input.managementScore)
     },
-    fairValue: {
-      bear: toNullableNumber(fairValueInput.bear ?? input.bearFairValue),
-      base: toNullableNumber(fairValueInput.base ?? input.baseFairValue),
-      bull: toNullableNumber(fairValueInput.bull ?? input.bullFairValue),
-      weightedFairValue: toNullableNumber(fairValueInput.weightedFairValue ?? input.weightedFairValue),
-      analystFairValue: toNullableNumber(fairValueInput.analystFairValue ?? input.analystFairValue),
-      upsideToBasePct: toNullableNumber(fairValueInput.upsideToBasePct ?? input.upsideToBasePct),
-      downsideToBearPct: toNullableNumber(fairValueInput.downsideToBearPct ?? input.downsideToBearPct),
-      upsideToBullPct: toNullableNumber(fairValueInput.upsideToBullPct ?? input.upsideToBullPct)
-    },
-    valuationMethods: normalizeValuationMethods(input.valuationMethods),
+    fairValueSummary,
+    valuationMethodology: normalizeOptionalObject(input.valuationMethodology),
+    valuationResults: normalizeValuationResults(input.valuationResults, input.valuationMethods),
+    forecastAssumptions: normalizeOptionalObject(input.forecastAssumptions),
     financialHighlights: normalizeObject(base.financialHighlights, input.financialHighlights || {}),
     growthHighlights: normalizeObject(base.growthHighlights, input.growthHighlights || {}),
     quality: {
@@ -286,17 +265,10 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
       reportedVsNormalizedExplanation: nullableString(input.earningsQuality?.reportedVsNormalizedExplanation),
       oneOffItems: normalizeStringArray(input.earningsQuality?.oneOffItems)
     },
-    watchItems: normalizeStringArray(input.watchItems),
-    decision: {
-      verdict: nullableString(input.decision?.verdict ?? input.verdict ?? recommendationVerdict),
-      rationale: nullableString(input.decision?.rationale ?? input.rationale ?? recommendation.reason),
-      buyZone: nullableString(input.decision?.buyZone),
-      fairZone: nullableString(input.decision?.fairZone),
-      expensiveZone: nullableString(input.decision?.expensiveZone)
-    },
-    recommendation,
-    guidance: normalizeGuidance(input.guidance),
-    nextQuarterGuidance: normalizeNextQuarterGuidance(input.nextQuarterGuidance),
+    decision,
+    guidance: normalizeCanonicalGuidance(input.guidance, input.nextQuarterGuidance),
+    monitoringChecklist: normalizeMonitoringChecklist(input.monitoringChecklist, input.whatChangesMyMind, input.watchItems),
+    estimateRevisions: normalizeEstimateRevisions(input.estimateRevisions),
     companySpecificKpis: normalizeCompanySpecificKpis(input.companySpecificKpis),
     priceTargetRequirements,
     previousRequirementsEvaluation: normalizePreviousRequirementsEvaluation(input.previousRequirementsEvaluation),
@@ -325,7 +297,7 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
       fairValueLimitations: Array.isArray(input.metadata?.fairValueLimitations) ? input.metadata.fairValueLimitations : []
     }
   };
-  return preserveNulls(report);
+  return attachLegacyReadAliases(preserveNulls(report));
 }
 
 export function updateExternalAnalysisField(report, path, value, now = new Date()) {
@@ -360,6 +332,267 @@ function normalizeValuationMethods(methods = {}) {
     result[key] = value === undefined ? null : preserveNulls(value);
   }
   return result;
+}
+
+export function canonicalExternalAnalysisReport(report = {}) {
+  return preserveNulls(normalizeExternalAnalysisReport(report, report.rawAnalysisOriginal || report.rawAnalysis || ""));
+}
+
+function normalizeFairValueSummary(input = {}) {
+  const canonical = input.fairValueSummary || {};
+  const legacy = input.fairValue || input.fairValues || {};
+  const executive = input.executiveDecision || {};
+  const dashboard = input.dashboardExport || {};
+  const scenarios = input.scenarios || {};
+  return {
+    // Priority: canonical v2 -> legacy external report -> Fair Value decision/scenarios -> top-level aliases.
+    fairValueLow: firstNumber(canonical.fairValueLow, legacy.bear, input.bearFairValue, executive.fairValueLow, scenarioFairValue(scenarios, "Conservative", "Bear")),
+    fairValueBase: firstNumber(canonical.fairValueBase, legacy.base, input.baseFairValue, executive.fairValue, dashboard.fairValue, scenarioFairValue(scenarios, "Base")),
+    fairValueHigh: firstNumber(canonical.fairValueHigh, legacy.bull, input.bullFairValue, executive.fairValueHigh, scenarioFairValue(scenarios, "Optimistic", "Bull")),
+    probabilityWeightedFairValue: firstNumber(canonical.probabilityWeightedFairValue, legacy.weightedFairValue, input.weightedFairValue),
+    currentPrice: firstNumber(canonical.currentPrice, input.market?.currentPrice, input.market?.priceAtAnalysis, input.priceAtAnalysis, input.currentPrice, input.company?.currentPrice, executive.currentPrice, dashboard.currentPrice),
+    upsideDownsidePercent: firstNumber(canonical.upsideDownsidePercent, legacy.upsideToBasePct, input.upsideToBasePct, executive.upsideDownsidePercent, dashboard.upsideDownsidePercent),
+    marginOfSafetyPercent: firstNumber(canonical.marginOfSafetyPercent, legacy.marginOfSafetyPercent, input.marginOfSafetyPercent, executive.marginOfSafetyPercent),
+    confidenceLevel: nullableString(canonical.confidenceLevel ?? input.confidenceLevel)
+  };
+}
+
+function normalizeCanonicalDecision(input = {}) {
+  const decision = input.decision && typeof input.decision === "object" ? input.decision : {};
+  const recommendation = normalizeExternalRecommendation(
+    input.recommendation,
+    decision.verdict ?? input.finalDecision?.decision ?? input.executiveDecision?.recommendation ?? input.verdict,
+    decision.rationale ?? input.rationale
+  );
+  const finalDecision = input.finalDecision || {};
+  const executive = input.executiveDecision || {};
+  const whatChanges = input.whatChangesMyMind || {};
+  const rawAction = decision.action ?? decision.verdict ?? recommendation.action ?? finalDecision.decision ?? executive.recommendation ?? input.verdict;
+  const action = normalizeDecisionAction(rawAction);
+  const rationale = normalizeNarrativeList(decision.rationale ?? decision.why ?? recommendation.reason ?? finalDecision.why ?? executive.why ?? input.rationale);
+  const detailedLegacyAction = nullableString(rawAction);
+  if (detailedLegacyAction && action && detailedLegacyAction.toUpperCase() !== action && !rationale.includes(detailedLegacyAction)) {
+    rationale.push(detailedLegacyAction);
+  }
+  return {
+    // Priority: canonical decision.action -> legacy decision.verdict -> recommendation -> final/executive decision.
+    action,
+    confidence: normalizeConfidence(decision.confidence ?? recommendation.confidence ?? executive.confidence ?? input.dashboardExport?.confidence),
+    investmentScore: firstNumber(decision.investmentScore, executive.investmentScore, input.dashboardExport?.investmentScore, input.scores?.overall, input.overallScore, input.investmentScore),
+    rationale,
+    whyNot: normalizeNarrativeList(decision.whyNot ?? finalDecision.whyNot),
+    upgradeTriggers: normalizeTextList(decision.upgradeTriggers ?? recommendation.whatWouldUpgrade ?? whatChanges.upgradeTrigger),
+    downgradeTriggers: normalizeTextList(decision.downgradeTriggers ?? recommendation.whatWouldDowngrade ?? whatChanges.downgradeTrigger),
+    biggestAssumption: nullableString(decision.biggestAssumption ?? finalDecision.biggestAssumption ?? whatChanges.biggestAssumption),
+    mainRisk: nullableString(decision.mainRisk ?? finalDecision.mainRisk),
+    buyZone: nullableString(decision.buyZone),
+    fairZone: nullableString(decision.fairZone),
+    expensiveZone: nullableString(decision.expensiveZone)
+  };
+}
+
+function normalizeCanonicalGuidance(guidanceInput, nextQuarterInput) {
+  const canonical = normalizeGuidance(guidanceInput).map((item) => ({
+    ...item,
+    period: nullableString(item.period)
+  }));
+  const next = normalizeNextQuarterGuidance(nextQuarterInput);
+  for (const item of next.items || []) {
+    const normalized = {
+      period: next.quarter,
+      topic: item.topic,
+      arabicTopic: item.arabicTopic,
+      currentGuidance: item.guidance,
+      previousGuidance: item.previousGuidance,
+      direction: item.direction,
+      type: "text",
+      interpretation: item.interpretation,
+      importance: item.importance
+    };
+    if (!canonical.some((entry) => guidanceIdentity(entry) === guidanceIdentity(normalized))) canonical.push(normalized);
+  }
+  return canonical;
+}
+
+function normalizeMonitoringChecklist(checklist, whatChanges, watchItems) {
+  const result = [];
+  const append = (item) => {
+    const normalized = normalizeMonitoringItem(item);
+    if (!normalized?.metric) return;
+    if (!result.some((entry) => entry.metric.toLowerCase() === normalized.metric.toLowerCase())) result.push(normalized);
+  };
+  (Array.isArray(checklist) ? checklist : []).forEach(append);
+  (Array.isArray(whatChanges?.items) ? whatChanges.items : []).forEach(append);
+  normalizeStringArray(watchItems).forEach(append);
+  for (const [metric, value] of [
+    ["Upgrade trigger", whatChanges?.upgradeTrigger],
+    ["Downgrade trigger", whatChanges?.downgradeTrigger],
+    ["Thesis break", whatChanges?.thesisBreak]
+  ]) {
+    if (value) append({ metric, currentValue: value });
+  }
+  return result;
+}
+
+function normalizeMonitoringItem(item) {
+  if (typeof item === "string") return { metric: nullableString(item), currentValue: null, expectedRange: null, upgradeTrigger: null, downgradeTrigger: null, thesisBreak: null, revaluationEvent: null };
+  if (!item || typeof item !== "object") return null;
+  return {
+    metric: nullableString(item.metric ?? item.name ?? item.title),
+    currentValue: toMaybeNumberOrString(item.currentValue),
+    expectedRange: toMaybeNumberOrString(item.expectedRange),
+    upgradeTrigger: nullableString(item.upgradeTrigger),
+    downgradeTrigger: nullableString(item.downgradeTrigger),
+    thesisBreak: nullableString(item.thesisBreak),
+    revaluationEvent: nullableString(item.revaluationEvent)
+  };
+}
+
+function normalizeEstimateRevisions(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return {
+    periodDays: toNullableNumber(value.periodDays),
+    asOfDate: normalizeDate(value.asOfDate),
+    revenue: normalizeRevisionMetric(value.revenue),
+    eps: normalizeRevisionMetric(value.eps),
+    ebitda: normalizeRevisionMetric(value.ebitda),
+    overallDirection: normalizeRevisionDirection(value.overallDirection),
+    interpretation: narrativeValue(value.interpretation),
+    confidence: nullableString(value.confidence),
+    source: nullableString(value.source)
+  };
+}
+
+function normalizeRevisionMetric(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "object" || Array.isArray(value)) return null;
+  const trend = String(value.trend || "").trim().toLowerCase();
+  return {
+    trend: ["up", "flat", "down"].includes(trend) ? trend : null,
+    currentEstimate: toMaybeNumberOrString(value.currentEstimate),
+    previousEstimate: toMaybeNumberOrString(value.previousEstimate),
+    changePercent: toNullableNumber(value.changePercent)
+  };
+}
+
+function normalizeRevisionDirection(value) {
+  const clean = String(value || "unknown").trim().toLowerCase();
+  return ["positive", "neutral", "negative", "mixed", "unknown"].includes(clean) ? clean : "unknown";
+}
+
+function normalizeValuationResults(results, legacyMethods) {
+  if (Array.isArray(results)) return results.filter((item) => item && typeof item === "object").map(preserveNulls);
+  return Object.entries(normalizeValuationMethods(legacyMethods))
+    .filter(([, item]) => item && typeof item === "object")
+    .map(([key, item]) => preserveNulls({ method: item.method || key, ...item }));
+}
+
+function normalizeOptionalObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? preserveNulls(value) : null;
+}
+
+function normalizeNarrativeList(value) {
+  const items = Array.isArray(value) ? value : [value];
+  return items.map(narrativeValue).filter((item) => item !== null);
+}
+
+function normalizeTextList(value) {
+  const items = Array.isArray(value) ? value : [value];
+  return items.map(nullableString).filter(Boolean);
+}
+
+function normalizeDecisionAction(value) {
+  const clean = String(value || "").trim().toUpperCase();
+  return ["BUY", "ADD", "HOLD", "WATCH", "REDUCE", "SELL"].find((action) => clean.split(/[\s/|-]+/).includes(action)) || nullableString(value);
+}
+
+function normalizeConfidence(value) {
+  const numeric = toNullableNumber(value);
+  return Number.isFinite(numeric) ? Math.max(0, Math.min(100, numeric)) : nullableString(value);
+}
+
+function guidanceIdentity(item = {}) {
+  return [item.period, item.topic, item.arabicTopic, item.currentGuidance].map((value) => String(value || "").trim().toLowerCase()).join("|");
+}
+
+function scenarioFairValue(scenarios, ...keys) {
+  for (const key of keys) {
+    const scenario = scenarios?.[key];
+    if (scenario?.enabled === false) continue;
+    if (scenario?.fairValue !== undefined) return scenario.fairValue;
+  }
+  return null;
+}
+
+function firstNumber(...values) {
+  for (const value of values) {
+    const number = toNullableNumber(value);
+    if (Number.isFinite(number)) return number;
+  }
+  return null;
+}
+
+function attachLegacyReadAliases(report) {
+  defineReadAlias(report, "fairValue", () => legacyFairValueView(report.fairValueSummary));
+  defineReadAlias(report, "recommendation", () => ({
+    action: report.decision?.action || null,
+    confidence: report.decision?.confidence ?? null,
+    reason: report.decision?.rationale?.[0] || null,
+    whatWouldUpgrade: report.decision?.upgradeTriggers || [],
+    whatWouldDowngrade: report.decision?.downgradeTriggers || []
+  }));
+  defineReadAlias(report, "watchItems", () => (report.monitoringChecklist || []).map((item) => item.metric).filter(Boolean));
+  defineReadAlias(report, "nextQuarterGuidance", () => legacyNextQuarterGuidanceView(report.guidance));
+  defineReadAlias(report, "valuationMethods", () => legacyValuationMethodsView(report.valuationResults));
+  defineReadAlias(report.market, "priceAtAnalysis", () => report.fairValueSummary?.currentPrice ?? null);
+  defineReadAlias(report.market, "currentPrice", () => report.fairValueSummary?.currentPrice ?? null);
+  defineReadAlias(report.scores, "overall", () => report.decision?.investmentScore ?? null);
+  defineReadAlias(report.decision, "verdict", () => report.decision?.action ?? null);
+  return report;
+}
+
+function defineReadAlias(object, key, getter) {
+  if (!object || Object.prototype.hasOwnProperty.call(object, key)) return;
+  Object.defineProperty(object, key, { enumerable: false, configurable: true, get: getter });
+}
+
+function legacyFairValueView(summary = {}) {
+  const current = summary.currentPrice;
+  return {
+    bear: summary.fairValueLow,
+    base: summary.fairValueBase,
+    bull: summary.fairValueHigh,
+    weightedFairValue: summary.probabilityWeightedFairValue,
+    analystFairValue: summary.fairValueBase,
+    upsideToBasePct: summary.upsideDownsidePercent,
+    downsideToBearPct: derivedUpside(summary.fairValueLow, current),
+    upsideToBullPct: derivedUpside(summary.fairValueHigh, current)
+  };
+}
+
+function legacyNextQuarterGuidanceView(guidance = []) {
+  const period = guidance.find((item) => item?.period)?.period || null;
+  const items = guidance.filter((item) => !period || item.period === period).map((item) => ({ ...item, guidance: item.currentGuidance }));
+  return { quarter: period, items };
+}
+
+function legacyValuationMethodsView(results = []) {
+  return Object.fromEntries((results || []).map((item, index) => [valuationResultKey(item?.method, index), item]));
+}
+
+function valuationResultKey(method, index) {
+  const clean = String(method || "other").toLowerCase();
+  if (clean.includes("dcf")) return "dcf";
+  if (clean.includes("ev/ebitda")) return "evEbitda";
+  if (clean.includes("peg")) return "peg";
+  if (clean.includes("sotp")) return "sotp";
+  if (clean.includes("sales") || clean.includes("p/s")) return "ps";
+  if (clean.includes("p/e") || clean === "pe") return "pe";
+  return index ? `other${index + 1}` : "other";
+}
+
+function derivedUpside(value, current) {
+  return Number.isFinite(value) && Number.isFinite(current) && current > 0 ? ((value - current) / current) * 100 : null;
 }
 
 function normalizeObject(template, value = {}) {

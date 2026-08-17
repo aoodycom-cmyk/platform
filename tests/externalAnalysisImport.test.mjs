@@ -50,8 +50,9 @@ assert.equal(parsedJson.report.analysisOrigin, "external_chatgpt");
 assert.equal(parsedJson.report.companyProfile.businessModel, "تربح Amazon من التجارة الإلكترونية، AWS، الإعلانات، والاشتراكات.");
 assert.equal(parsedJson.report.companyProfile.activities[0].arabicName, "خدمات الحوسبة السحابية");
 assert.deepEqual(parsedJson.report.companyProfile.mainGrowthDrivers, ["AWS", "Advertising", "Prime"]);
-assert.equal(parsedJson.report.fairValue.base, 290);
-assert.equal(parsedJson.report.decision.verdict, "HOLD / ACCUMULATE ON WEAKNESS");
+assert.equal(parsedJson.report.fairValueSummary.fairValueBase, 290);
+assert.equal(parsedJson.report.decision.action, "HOLD");
+assert.ok(parsedJson.report.decision.rationale.includes("HOLD / ACCUMULATE ON WEAKNESS"));
 
 let structuredJsonFallbackCalled = false;
 const parsedJsonWithFallback = await parseExternalAnalysisInput(rawJson, {
@@ -70,7 +71,7 @@ const parsedText = await parseExternalAnalysisInput("تحليل نصي غير م
 });
 assert.equal(parsedText.usedAi, true);
 assert.equal(parsedText.report.source, "ChatGPT");
-assert.equal(parsedText.report.fairValue.bear, 215);
+assert.equal(parsedText.report.fairValueSummary.fairValueLow, 215);
 
 const missingOptional = normalizeExternalAnalysisReport({
   ...validReport,
@@ -78,8 +79,8 @@ const missingOptional = normalizeExternalAnalysisReport({
   scores: { quality: 8, growth: 8, valuation: 8, risk: 3 },
   fairValue: { bear: 100, base: 130, bull: 160 }
 }, rawJson, { now });
-assert.equal(missingOptional.scores.overall, null);
-assert.equal(missingOptional.valuationMethods.dcf, null);
+assert.equal(missingOptional.decision.investmentScore, null);
+assert.equal(missingOptional.valuationResults.length, 0);
 assert.equal(missingOptional.market.userAverageCost, null);
 
 const invalidRequired = validateExternalAnalysisReport(normalizeExternalAnalysisReport({ ...validReport, company: { ticker: "" } }, rawJson, { now }));
@@ -221,27 +222,27 @@ const fairValueJson = JSON.stringify({
 const parsedFairValue = await parseExternalAnalysisInput(fairValueJson, { now });
 assert.equal(parsedFairValue.usedAi, false);
 assert.equal(parsedFairValue.parserSource, "Local JSON Parser");
-assert.equal(parsedFairValue.report.schemaVersion, "external-analysis-report/v1");
+assert.equal(parsedFairValue.report.schemaVersion, "external-analysis-report/v2");
 assert.equal(parsedFairValue.report.metadata.nativeSchemaVersion, "fair-value-analysis/v1");
 assert.equal(parsedFairValue.report.metadata.nativeMethodologyVersion, "fair-value-system/v1");
 assert.equal(parsedFairValue.report.company.ticker, "MSFT");
 assert.equal(parsedFairValue.report.companyProfile.activities[0].name, "Azure");
 assert.equal(parsedFairValue.report.companyProfile.customers, "الشركات، الحكومات، المطورون، والمستهلكون.");
-assert.equal(parsedFairValue.report.market.priceAtAnalysis, 451);
+assert.equal(parsedFairValue.report.fairValueSummary.currentPrice, 451);
 assert.equal(parsedFairValue.report.scores.quality, 9.9);
 assert.equal(parsedFairValue.report.scores.growth, 9.8);
-assert.equal(parsedFairValue.report.scores.overall, 9.5);
-assert.equal(parsedFairValue.report.fairValue.bear, 380);
-assert.equal(parsedFairValue.report.fairValue.base, 435);
-assert.equal(parsedFairValue.report.fairValue.bull, 500);
-assert.equal(parsedFairValue.report.valuationMethods.dcf.fairValue, 440);
-assert.equal(parsedFairValue.report.decision.verdict, "BUY");
+assert.equal(parsedFairValue.report.decision.investmentScore, 95);
+assert.equal(parsedFairValue.report.fairValueSummary.fairValueLow, 380);
+assert.equal(parsedFairValue.report.fairValueSummary.fairValueBase, 435);
+assert.equal(parsedFairValue.report.fairValueSummary.fairValueHigh, 500);
+assert.equal(parsedFairValue.report.valuationResults.find((method) => method.method === "DCF").fairValue, 440);
+assert.equal(parsedFairValue.report.decision.action, "BUY");
 assert.equal(validateExternalAnalysisReport(parsedFairValue.report).valid, true);
 
 let saved = saveExternalAnalysis({}, parsedJson.report, { now });
 assert.equal(saved.duplicate, null);
-assert.equal(saved.report.fairValue.base, 290);
-assert.equal(saved.report.decision.verdict, "HOLD / ACCUMULATE ON WEAKNESS");
+assert.equal(saved.report.fairValueSummary.fairValueBase, 290);
+assert.equal(saved.report.decision.action, "HOLD");
 assert.equal(saved.report.rawAnalysisOriginal, rawJson);
 
 const duplicate = findDuplicateExternalAnalysis(saved.collection, parsedJson.report);
@@ -260,8 +261,8 @@ const laterReport = normalizeExternalAnalysisReport({
 }, "later AMZN report", { now: new Date("2026-10-30T10:00:00.000Z"), importMethod: "structured_json" });
 saved = saveExternalAnalysis(saved.collection, laterReport, { now: new Date("2026-10-30T10:00:00.000Z") });
 assert.equal(saved.collection.AMZN.length, 2);
-assert.equal(getExternalAnalysis(saved.collection, "AMZN", "latest").fairValue.base, 310);
-assert.equal(getExternalAnalysis(saved.collection, "AMZN", duplicate.id).fairValue.base, 290);
+assert.equal(getExternalAnalysis(saved.collection, "AMZN", "latest").fairValueSummary.fairValueBase, 310);
+assert.equal(getExternalAnalysis(saved.collection, "AMZN", duplicate.id).fairValueSummary.fairValueBase, 290);
 
 const externalFiles = [
   "../src/externalAnalysis/schema.js",

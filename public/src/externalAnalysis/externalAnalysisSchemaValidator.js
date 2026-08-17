@@ -6,16 +6,16 @@ export function validateExternalAnalysisReport(report = {}) {
 
   if (!isValidTicker(report.company?.ticker)) errors.push(fieldError("company.ticker", "Ticker is required and must be a valid market symbol."));
   if (!isValidDate(report.analysisDate)) errors.push(fieldError("analysisDate", "Analysis date is required and must be valid."));
-  if (!isPositiveNumber(report.market?.priceAtAnalysis)) errors.push(fieldError("market.priceAtAnalysis", "Price at analysis is required and must be greater than zero."));
+  if (!isPositiveNumber(report.fairValueSummary?.currentPrice)) errors.push(fieldError("fairValueSummary.currentPrice", "Price at analysis is required and must be greater than zero."));
 
-  for (const key of ["quality", "growth", "valuation", "risk", "overall", "moat", "management"]) {
+  for (const key of ["quality", "growth", "valuation", "risk", "moat", "management"]) {
     if (report.scores?.[key] !== null && report.scores?.[key] !== undefined && !isScore(report.scores?.[key])) {
       errors.push(fieldError(`scores.${key}`, `${key} score must be between 0 and 10 when present.`));
     }
   }
 
-  for (const key of ["bear", "base", "bull"]) {
-    if (!isPositiveNumber(report.fairValue?.[key])) errors.push(fieldError(`fairValue.${key}`, `${key} fair value is required and must be greater than zero.`));
+  for (const [key, label] of [["fairValueLow", "bear"], ["fairValueBase", "base"], ["fairValueHigh", "bull"]]) {
+    if (!isPositiveNumber(report.fairValueSummary?.[key])) errors.push(fieldError(`fairValueSummary.${key}`, `${label} fair value is required and must be greater than zero.`));
   }
   validateFairValueOrdering(report, errors);
   validateOptionalPositiveFairValues(report, errors);
@@ -27,12 +27,13 @@ export function validateExternalAnalysisReport(report = {}) {
   if (!Array.isArray(report.risks) || !report.risks.length || !report.risks.some((risk) => hasText(risk?.title) || hasText(risk?.explanation))) {
     errors.push(fieldError("risks", "At least one main risk is required."));
   }
-  if (!hasText(report.decision?.verdict)) errors.push(fieldError("decision.verdict", "Verdict is required and must be stated in the pasted analysis."));
+  if (!hasText(report.decision?.action)) errors.push(fieldError("decision.action", "Verdict is required and must be stated in the pasted analysis."));
 
   validateArrays(report, errors);
   validateGuidance(report, errors);
   validateCompanySpecificKpis(report, errors);
   validatePriceTargetRequirements(report, errors);
+  validateEstimateRevisions(report.estimateRevisions, errors);
   validateFiniteNumbers(report, errors);
   warnings.push(...detectCrossCompanyContamination(report));
 
@@ -59,7 +60,7 @@ function detectCrossCompanyContamination(report = {}) {
     ...contaminationFields("companyProfile.activities", report.companyProfile?.activities, ["name", "arabicName", "description", "importance"]),
     ...contaminationFields("priceTargetRequirements.requirements", report.priceTargetRequirements?.requirements, ["name", "arabicName", "metric", "whyItMatters", "evaluationNote"]),
     ...contaminationFields("guidance", report.guidance, ["topic", "arabicTopic", "title", "name", "interpretation", "commentary", "explanation"]),
-    ...contaminationFields("nextQuarterGuidance.items", report.nextQuarterGuidance?.items, ["topic", "arabicTopic", "interpretation"])
+    ...contaminationFields("guidance", report.guidance, ["topic", "arabicTopic", "interpretation"])
   ];
   const warnings = [];
   for (const field of fields) {
@@ -109,37 +110,40 @@ function tokenMatches(text, token) {
 }
 
 function validateExternalDecisionFields(report, errors) {
-  const action = report.recommendation?.action;
+  const action = report.decision?.action;
   if (action && !["BUY", "ADD", "HOLD", "WATCH", "REDUCE", "SELL"].includes(String(action).toUpperCase())) {
-    errors.push(fieldError("recommendation.action", "External recommendation action must be BUY, ADD, HOLD, WATCH, REDUCE, or SELL."));
+    errors.push(fieldError("decision.action", "External recommendation action must be BUY, ADD, HOLD, WATCH, REDUCE, or SELL."));
   }
-  const confidence = report.recommendation?.confidence;
-  if (confidence !== null && confidence !== undefined && (!Number.isFinite(confidence) || confidence < 0 || confidence > 100)) {
-    errors.push(fieldError("recommendation.confidence", "External recommendation confidence must be between 0 and 100 when present."));
+  const confidence = report.decision?.confidence;
+  if (typeof confidence === "number" && (!Number.isFinite(confidence) || confidence < 0 || confidence > 100)) {
+    errors.push(fieldError("decision.confidence", "External recommendation confidence must be between 0 and 100 when numeric."));
+  }
+  if (report.decision?.investmentScore !== null && report.decision?.investmentScore !== undefined && !isInvestmentScore(report.decision.investmentScore)) {
+    errors.push(fieldError("decision.investmentScore", "Investment score must be between 0 and 100 when present."));
   }
 }
 
 function validateFairValueOrdering(report, errors) {
-  const bear = report.fairValue?.bear;
-  const base = report.fairValue?.base;
-  const bull = report.fairValue?.bull;
+  const bear = report.fairValueSummary?.fairValueLow;
+  const base = report.fairValueSummary?.fairValueBase;
+  const bull = report.fairValueSummary?.fairValueHigh;
   if (![bear, base, bull].every(Number.isFinite)) return;
   if (!(bear <= base && base <= bull)) {
-    errors.push(fieldError("fairValue", "Bear/Base/Bull Fair Value must be ordered as Bear <= Base <= Bull."));
+    errors.push(fieldError("fairValueSummary", "Bear/Base/Bull Fair Value must be ordered as Bear <= Base <= Bull."));
   }
 }
 
 function validateOptionalPositiveFairValues(report, errors) {
-  for (const key of ["weightedFairValue", "analystFairValue", "finalFairValue"]) {
-    const value = report.fairValue?.[key];
+  for (const key of ["probabilityWeightedFairValue"]) {
+    const value = report.fairValueSummary?.[key];
     if (value !== null && value !== undefined && !isPositiveNumber(value)) {
-      errors.push(fieldError(`fairValue.${key}`, `${key} must be a positive number when present.`));
+      errors.push(fieldError(`fairValueSummary.${key}`, `${key} must be a positive number when present.`));
     }
   }
 }
 
 function validateArrays(report, errors) {
-  const arrayPaths = ["risks", "catalysts", "watchItems", "sources", "quality.strengths", "quality.weaknesses", "earningsQuality.oneOffItems", "guidance", "nextQuarterGuidance.items", "companySpecificKpis", "companyProfile.activities", "companyProfile.mainGrowthDrivers", "priceTargetRequirements.requirements", "recommendation.whatWouldUpgrade", "recommendation.whatWouldDowngrade"];
+  const arrayPaths = ["risks", "catalysts", "sources", "quality.strengths", "quality.weaknesses", "earningsQuality.oneOffItems", "guidance", "monitoringChecklist", "valuationResults", "companySpecificKpis", "companyProfile.activities", "companyProfile.mainGrowthDrivers", "priceTargetRequirements.requirements", "decision.rationale", "decision.whyNot", "decision.upgradeTriggers", "decision.downgradeTriggers"];
   for (const path of arrayPaths) {
     const value = getByPath(report, path);
     if (value !== undefined && value !== null && !Array.isArray(value)) {
@@ -187,6 +191,31 @@ function validatePriceTargetRequirements(report, errors) {
   }
 }
 
+function validateEstimateRevisions(value, errors) {
+  if (value === null || value === undefined) return;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    errors.push(fieldError("estimateRevisions", "Estimate Revisions must be an object when present."));
+    return;
+  }
+  if (value.periodDays !== null && value.periodDays !== undefined && (!Number.isFinite(value.periodDays) || value.periodDays <= 0)) {
+    errors.push(fieldError("estimateRevisions.periodDays", "Estimate revision periodDays must be greater than zero."));
+  }
+  if (value.asOfDate && !isValidDate(value.asOfDate)) errors.push(fieldError("estimateRevisions.asOfDate", "Estimate revision asOfDate must be valid."));
+  const trends = new Set(["up", "flat", "down", null]);
+  for (const metric of ["revenue", "eps", "ebitda"]) {
+    const item = value[metric];
+    if (item === null || item === undefined) continue;
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      errors.push(fieldError(`estimateRevisions.${metric}`, `${metric} revisions must be an object or null.`));
+      continue;
+    }
+    if (!trends.has(item.trend)) errors.push(fieldError(`estimateRevisions.${metric}.trend`, "Revision trend must be up, flat, down, or null."));
+  }
+  if (!["positive", "neutral", "negative", "mixed", "unknown"].includes(value.overallDirection)) {
+    errors.push(fieldError("estimateRevisions.overallDirection", "Overall revision direction is not supported."));
+  }
+}
+
 function validateFiniteNumbers(value, errors, path = "") {
   if (typeof value === "number" && !Number.isFinite(value)) {
     errors.push(fieldError(path || "report", "Numbers cannot be NaN or Infinity."));
@@ -210,6 +239,10 @@ function isValidDate(value) {
 
 function isPositiveNumber(value) {
   return Number.isFinite(value) && value > 0;
+}
+
+function isInvestmentScore(value) {
+  return Number.isFinite(value) && value >= 0 && value <= 100;
 }
 
 function isScore(value) {
