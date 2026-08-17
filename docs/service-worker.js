@@ -1,13 +1,15 @@
-const CACHE_NAME = "franklin-research-v10-mobile-only-release-20260816";
+const CACHE_NAME = "franklin-research-v10-issue-2-final-cleanup-20260817";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
   "./offline.html",
   "./backend-config.js",
   "./styles.css",
+  "./styles-mobile2.css",
   "./manifest.webmanifest",
   "./src/main.js",
   "./src/pwa.js",
+  "./src/ui/mobile2Enhancer.js",
   "./src/externalAnalysis/schema.js",
   "./src/externalAnalysis/requirements.js",
   "./src/externalAnalysis/historicalRequirements.js",
