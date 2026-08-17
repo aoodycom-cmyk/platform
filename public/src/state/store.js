@@ -27,6 +27,7 @@ import {
   normalizeHistoricalRequirementSets,
   prepareHistoricalRequirementEvaluation
 } from "../externalAnalysis/historicalRequirements.js";
+import { availableQuarterlyScorecardYears } from "../externalAnalysis/quarterlyScorecard.js";
 import { mergeExternalAnalysisSupplement } from "../externalAnalysis/supplementMerge.js";
 import { parseExternalAnalysisSupplement } from "../externalAnalysis/supplementParser.js";
 import { validateExternalAnalysisSupplement } from "../externalAnalysis/supplementValidator.js";
@@ -98,6 +99,7 @@ export function createStore() {
     externalImport: createExternalImportState(),
     earningsUpdate: createEarningsUpdateState(),
     externalReportSelection: saved.externalReportSelection || null,
+    quarterlyScorecard: createQuarterlyScorecardState(),
     restorePreview: null,
     valuationWorkspace: saved.valuationWorkspace || null,
     history: saved.history || [],
@@ -886,6 +888,52 @@ export function createStore() {
     });
   }
 
+  function openQuarterlyScorecard(ticker, reportId = "latest") {
+    const report = ensureExternalCompletionStatus(getExternalAnalysis(state.externalAnalyses, ticker, reportId));
+    const normalizedTicker = normalizeTickerHint(report?.company?.ticker || ticker);
+    if (!report || !normalizedTicker) return;
+    const years = availableQuarterlyScorecardYears(state.historicalRequirementSets, normalizedTicker);
+    set({
+      quarterlyScorecard: {
+        ticker: normalizedTicker,
+        year: years[0] || Number(String(report.reportPeriod || report.analysisDate || "").match(/20\d{2}/)?.[0]) || null,
+        selectedMetricKey: null,
+        selectedQuarter: null,
+        originTicker: report.company?.ticker || normalizedTicker,
+        originReportId: report.id || reportId
+      },
+      activePanel: "quarterly-scorecard",
+      notice: "",
+      searchResults: []
+    });
+  }
+
+  function closeQuarterlyScorecard() {
+    const scorecard = state.quarterlyScorecard || {};
+    openExternalReport(scorecard.originTicker || scorecard.ticker, scorecard.originReportId || "latest");
+  }
+
+  function setQuarterlyScorecardYear(year) {
+    set({
+      quarterlyScorecard: {
+        ...state.quarterlyScorecard,
+        year: Number(year) || null,
+        selectedMetricKey: null,
+        selectedQuarter: null
+      }
+    });
+  }
+
+  function selectQuarterlyScorecardCell(metricKey, quarter) {
+    set({
+      quarterlyScorecard: {
+        ...state.quarterlyScorecard,
+        selectedMetricKey: metricKey || null,
+        selectedQuarter: Number(quarter) || null
+      }
+    });
+  }
+
   function editExternalReport(ticker, reportId) {
     const report = ensureExternalCompletionStatus(getExternalAnalysis(state.externalAnalyses, ticker, reportId));
     if (!report) return;
@@ -1337,6 +1385,10 @@ export function createStore() {
     selectHistoricalRequirementSet,
     openExternalReport,
     openCompanyProfile,
+    openQuarterlyScorecard,
+    closeQuarterlyScorecard,
+    setQuarterlyScorecardYear,
+    selectQuarterlyScorecardCell,
     editExternalReport,
     startExternalReportCompletion,
     removeExternalReport,
@@ -1488,6 +1540,17 @@ function createEarningsUpdateState() {
     preview: null,
     validation: { valid: false, errors: [], warnings: [] },
     error: ""
+  };
+}
+
+function createQuarterlyScorecardState() {
+  return {
+    ticker: "",
+    year: null,
+    selectedMetricKey: null,
+    selectedQuarter: null,
+    originTicker: "",
+    originReportId: ""
   };
 }
 

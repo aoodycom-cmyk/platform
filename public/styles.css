@@ -2130,6 +2130,570 @@ td {
   display: none !important;
 }
 
+.quarterly-scorecard-entry {
+  width: 100%;
+  min-height: 48px;
+  padding: 9px 11px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1px 8px;
+  border: 1px solid color-mix(in srgb, var(--steel) 48%, var(--line));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--steel) 9%, var(--surface-3));
+  color: var(--ink);
+  text-align: start;
+}
+
+.quarterly-scorecard-entry span {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.quarterly-scorecard-entry small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.quarterly-scorecard-entry b {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  color: var(--steel);
+  font-size: 20px;
+}
+
+.quarterly-scorecard-shell {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+}
+
+.quarterly-scorecard-header {
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.quarterly-scorecard-titlebar {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+}
+
+.scorecard-back,
+.quarterly-scorecard-detail > header button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-3);
+  color: var(--ink);
+  font-size: 24px;
+}
+
+.quarterly-scorecard-titlebar > div {
+  display: grid;
+  gap: 2px;
+}
+
+.quarterly-scorecard-titlebar span,
+.scorecard-year-select span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.quarterly-scorecard-titlebar h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.quarterly-scorecard-titlebar strong {
+  color: var(--steel);
+  font-size: 12px;
+}
+
+.scorecard-year-select {
+  display: grid;
+  gap: 3px;
+}
+
+.scorecard-year-select select {
+  min-height: 38px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-3);
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.quarterly-scorecard-targets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  direction: ltr;
+}
+
+.quarterly-scorecard-targets article {
+  min-height: 54px;
+  padding: 7px 5px;
+  display: grid;
+  place-content: center;
+  gap: 4px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--surface-3);
+  text-align: center;
+}
+
+.quarterly-scorecard-targets span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.quarterly-scorecard-targets strong {
+  font-size: 15px;
+}
+
+.quarterly-scorecard-targets .failed strong { color: var(--red); }
+.quarterly-scorecard-targets .partial strong { color: var(--amber); }
+.quarterly-scorecard-targets .passed strong { color: var(--green); }
+.quarterly-scorecard-targets .target strong { color: var(--steel); }
+
+.quarterly-scorecard-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.quarterly-annual-summary {
+  padding: 11px;
+  display: grid;
+  gap: 10px;
+}
+
+.quarterly-annual-summary > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.quarterly-annual-summary > header div {
+  display: grid;
+  gap: 3px;
+}
+
+.quarterly-annual-summary > header span,
+.quarterly-annual-summary > header b {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.quarterly-annual-summary > header strong {
+  font-size: 16px;
+}
+
+.quarterly-progress-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  direction: ltr;
+}
+
+.quarterly-progress-grid article {
+  min-height: 78px;
+  padding: 7px 3px;
+  display: grid;
+  place-content: center;
+  gap: 3px;
+  border: 1px solid var(--line-soft);
+  border-radius: 9px;
+  background: var(--surface-3);
+  text-align: center;
+}
+
+.quarterly-progress-grid article.latest {
+  border-color: color-mix(in srgb, var(--steel) 72%, var(--line));
+  background: color-mix(in srgb, var(--steel) 12%, var(--surface-3));
+}
+
+.quarterly-progress-grid span,
+.quarterly-progress-grid small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.quarterly-progress-grid strong {
+  color: var(--ink);
+  font-size: 18px;
+}
+
+.quarterly-progress-grid .awaiting strong { color: var(--muted); }
+
+.quarterly-scorecard-layout {
+  display: grid;
+  gap: 10px;
+}
+
+.quarterly-scorecard-main {
+  padding: 10px;
+}
+
+.quarterly-desktop-matrix {
+  display: none;
+}
+
+.quarterly-mobile-cards {
+  display: grid;
+  gap: 9px;
+}
+
+.quarterly-metric-card {
+  padding: 11px;
+  display: grid;
+  gap: 9px;
+  border: 1px solid var(--line-soft);
+  border-radius: 11px;
+  background: var(--surface-3);
+}
+
+.quarterly-metric-card > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.scorecard-metric-label {
+  display: grid;
+  gap: 2px;
+  text-align: start;
+}
+
+.scorecard-metric-label strong {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.scorecard-metric-label small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.quarterly-metric-card > header > div:last-child {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 2px;
+  text-align: end;
+}
+
+.quarterly-metric-card > header > div:last-child span,
+.quarterly-metric-card > footer span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.quarterly-metric-card > header > div:last-child strong {
+  font-size: 12px;
+}
+
+.quarterly-mobile-quarter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  direction: ltr;
+}
+
+.quarterly-mobile-quarter-grid button {
+  min-height: 74px;
+  padding: 7px 2px;
+  display: grid;
+  place-content: center;
+  gap: 4px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  text-align: center;
+}
+
+.quarterly-mobile-quarter-grid button.latest {
+  border-color: color-mix(in srgb, var(--steel) 68%, var(--line));
+  background: color-mix(in srgb, var(--steel) 12%, var(--surface));
+}
+
+.quarterly-mobile-quarter-grid button:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.quarterly-mobile-quarter-grid span,
+.quarterly-mobile-quarter-grid small {
+  font-size: 10px;
+}
+
+.quarterly-mobile-quarter-grid strong {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.quarterly-mobile-quarter-grid .exceeded strong,
+.quarterly-mobile-quarter-grid .exceeded small { color: var(--green); }
+.quarterly-mobile-quarter-grid .passed strong,
+.quarterly-mobile-quarter-grid .passed small { color: color-mix(in srgb, var(--green) 78%, white); }
+.quarterly-mobile-quarter-grid .partially-passed strong,
+.quarterly-mobile-quarter-grid .partially-passed small { color: var(--amber); }
+.quarterly-mobile-quarter-grid .failed strong,
+.quarterly-mobile-quarter-grid .failed small { color: var(--red); }
+.quarterly-mobile-quarter-grid .not-reported strong,
+.quarterly-mobile-quarter-grid .not-reported small { color: var(--muted); }
+
+.quarterly-metric-card > footer {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 7px;
+}
+
+.scorecard-trend {
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.scorecard-trend.up { color: var(--green); }
+.scorecard-trend.down { color: var(--red); }
+.scorecard-trend.flat,
+.scorecard-trend.neutral { color: var(--muted); }
+
+.quarterly-scorecard-detail {
+  position: fixed;
+  z-index: var(--layer-modal);
+  inset: auto 8px calc(8px + env(safe-area-inset-bottom));
+  max-height: 72dvh;
+  padding: 13px;
+  overflow-y: auto;
+  box-shadow: var(--shadow-sheet);
+}
+
+.quarterly-scorecard-detail.is-default {
+  display: none;
+}
+
+.quarterly-scorecard-detail > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.quarterly-scorecard-detail > header span,
+.quarterly-scorecard-detail section span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.quarterly-scorecard-detail h3 {
+  margin: 3px 0 0;
+  font-size: 18px;
+}
+
+.scorecard-detail-facts {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.scorecard-detail-facts article {
+  min-height: 62px;
+  padding: 9px;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--surface-3);
+}
+
+.scorecard-detail-facts span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.scorecard-detail-facts strong {
+  font-size: 13px;
+}
+
+.scorecard-detail-facts .exceeded strong,
+.scorecard-detail-facts .passed strong { color: var(--green); }
+.scorecard-detail-facts .partially-passed strong { color: var(--amber); }
+.scorecard-detail-facts .failed strong { color: var(--red); }
+
+.quarterly-scorecard-detail section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.quarterly-scorecard-detail section p,
+.scorecard-detail-empty {
+  margin: 5px 0 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.quarterly-scorecard-empty {
+  padding: 20px 14px;
+  display: grid;
+  gap: 10px;
+  text-align: center;
+}
+
+@media (min-width: 900px) {
+  .scorecard-app-shell .mobile-app-frame {
+    width: min(calc(100% - 32px), 1180px);
+  }
+
+  .quarterly-scorecard-nav {
+    display: none;
+  }
+
+  .quarterly-scorecard-shell {
+    gap: 14px;
+  }
+
+  .quarterly-scorecard-header {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    padding: 16px;
+  }
+
+  .quarterly-scorecard-titlebar {
+    grid-template-columns: 42px minmax(240px, 1fr) 92px;
+  }
+
+  .quarterly-scorecard-titlebar h2 {
+    font-size: 22px;
+  }
+
+  .quarterly-scorecard-targets {
+    min-width: 360px;
+  }
+
+  .quarterly-scorecard-actions {
+    grid-template-columns: auto auto;
+  }
+
+  .quarterly-progress-grid article {
+    min-height: 96px;
+  }
+
+  .quarterly-progress-grid strong {
+    font-size: 24px;
+  }
+
+  .quarterly-scorecard-layout {
+    grid-template-columns: minmax(0, 1fr) 290px;
+    align-items: start;
+  }
+
+  .quarterly-scorecard-main {
+    padding: 14px;
+    overflow: hidden;
+  }
+
+  .quarterly-desktop-matrix {
+    display: block;
+  }
+
+  .quarterly-desktop-matrix table {
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .quarterly-desktop-matrix th:first-child { width: 25%; }
+  .quarterly-desktop-matrix th:nth-child(2) { width: 15%; }
+  .quarterly-desktop-matrix th:last-child { width: 8%; }
+
+  .quarterly-desktop-matrix th,
+  .quarterly-desktop-matrix td {
+    height: 66px;
+    padding: 8px;
+    border-bottom: 1px solid var(--line-soft);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .quarterly-desktop-matrix thead th {
+    height: 42px;
+    color: var(--muted);
+    font-size: 11px;
+  }
+
+  .quarterly-desktop-matrix tbody th {
+    text-align: start;
+  }
+
+  .quarterly-desktop-matrix .latest {
+    background: color-mix(in srgb, var(--steel) 9%, transparent);
+  }
+
+  .scorecard-quarter-cell button {
+    width: 100%;
+    min-height: 48px;
+    padding: 4px;
+    display: grid;
+    place-content: center;
+    gap: 4px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--muted);
+  }
+
+  .scorecard-quarter-cell button:disabled {
+    opacity: 1;
+    cursor: default;
+  }
+
+  .scorecard-quarter-cell strong { color: var(--ink); font-size: 14px; }
+  .scorecard-quarter-cell span { font-size: 10px; }
+  .scorecard-quarter-cell.exceeded strong,
+  .scorecard-quarter-cell.exceeded span,
+  .scorecard-quarter-cell.passed strong,
+  .scorecard-quarter-cell.passed span { color: var(--green); }
+  .scorecard-quarter-cell.partially-passed strong,
+  .scorecard-quarter-cell.partially-passed span { color: var(--amber); }
+  .scorecard-quarter-cell.failed strong,
+  .scorecard-quarter-cell.failed span { color: var(--red); }
+
+  .quarterly-mobile-cards {
+    display: none;
+  }
+
+  .quarterly-scorecard-detail,
+  .quarterly-scorecard-detail.is-default {
+    position: sticky;
+    inset: auto;
+    top: 88px;
+    display: block;
+    max-height: calc(100dvh - 120px);
+    box-shadow: none;
+  }
+
+  .quarterly-scorecard-detail > header button {
+    display: none;
+  }
+}
+
 @media (max-width: 374px) {
   .mobile-app-frame {
     padding-inline: 8px;

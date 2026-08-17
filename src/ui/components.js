@@ -14,6 +14,8 @@ import { DEMO_ANALYSIS_FIXTURE } from "../data/demoFlow.js";
 import { copyableExternalAnalysisJson, externalAnalysisToHomeCard, externalReportWithCompletionStatus } from "../externalAnalysis/reportAdapter.js";
 import { analyzeExternalAnalysisCompletion, FIELD_PRIORITY, FIELD_REQUIREMENTS } from "../externalAnalysis/missingFields.js";
 import { getExternalAnalysis, listLatestExternalAnalyses } from "../externalAnalysis/storage.js";
+import { buildQuarterlyScorecard } from "../externalAnalysis/quarterlyScorecard.js";
+import { downloadQuarterlyScorecardPng, shareQuarterlyScorecardPng } from "./quarterlyScorecardExport.js";
 import {
   analysisText,
   decisionLabel,
@@ -50,7 +52,7 @@ const panels = [
   ["settings", "Settings"]
 ];
 
-const visiblePanels = new Set(["home", "external-import", "external-report", "company-profile", "history", "settings"]);
+const visiblePanels = new Set(["home", "external-import", "external-report", "company-profile", "quarterly-scorecard", "history", "settings"]);
 
 function visiblePanel(panel) {
   return visiblePanels.has(panel) ? panel : "home";
@@ -73,7 +75,7 @@ function render(root, store, actions) {
     return;
   }
   root.innerHTML = `
-    <main class="mobile-app-shell">
+    <main class="mobile-app-shell ${activePanel === "quarterly-scorecard" ? "scorecard-app-shell" : ""}">
       <section class="mobile-app-frame">
         ${mobileAppHeader(state)}
         ${state.notice ? `<div class="notice">${escapeHtml(state.notice)}</div>` : ""}
@@ -81,7 +83,7 @@ function render(root, store, actions) {
       </section>
     </main>
     ${evidenceDetailDialog()}
-    <nav class="mobile-nav">
+    <nav class="mobile-nav ${activePanel === "quarterly-scorecard" ? "quarterly-scorecard-nav" : ""}">
       ${panels.map(([key, label]) => `<button class="${state.activePanel === key ? "active" : ""}" data-panel="${key}">${uiLabel(label)}</button>`).join("")}
     </nav>
   `;
@@ -558,6 +560,7 @@ function activePanelLabel(panel) {
   if (panel === "history") return uiLabel("History");
   if (panel === "settings") return uiLabel("Settings");
   if (panel === "company-profile") return uiLabel("Company Profile");
+  if (panel === "quarterly-scorecard") return uiLabel("Quarterly Scorecard");
   return uiLabel("Investment Watchlist");
 }
 
@@ -1003,6 +1006,7 @@ function panelContent(state) {
   if (state.activePanel === "external-import") return externalImportPanel(state);
   if (state.activePanel === "external-report") return externalAnalysisReportView(state);
   if (state.activePanel === "company-profile") return companyProfileView(state);
+  if (state.activePanel === "quarterly-scorecard") return quarterlyScorecardView(state);
   if (state.activePanel === "history") return externalHistoryPanel(state);
   if (state.activePanel === "settings") return settingsPanel(state);
   return externalAnalysesHomeSection(state);
@@ -1599,6 +1603,263 @@ function externalAnalysisReportView(state) {
       ${earningsUpdateDrawer(state)}
     </section>
   `;
+}
+
+function quarterlyScorecardView(state) {
+  const selection = state.quarterlyScorecard || {};
+  const scorecard = buildQuarterlyScorecard({
+    historicalRequirementSets: state.historicalRequirementSets,
+    externalAnalyses: state.externalAnalyses,
+    ticker: selection.ticker,
+    year: selection.year
+  });
+  if (!scorecard?.rows?.length) {
+    return `
+      <section class="panel quarterly-scorecard-empty">
+        <h2>${uiLabel("Quarterly Scorecard")}</h2>
+        <p>${uiLabel("No quarterly requirement history is available for this stock.")}</p>
+        <button class="primary-btn" data-action="close-quarterly-scorecard">${uiLabel("Back to report")}</button>
+      </section>
+    `;
+  }
+  const selected = selectedScorecardCell(scorecard, selection);
+  const isDefaultSelection = !selection.selectedMetricKey || !selection.selectedQuarter;
+  return `
+    <section class="quarterly-scorecard-shell" data-scorecard-ticker="${escapeHtml(scorecard.ticker)}" data-scorecard-year="${escapeHtml(scorecard.year)}">
+      ${quarterlyScorecardHeader(scorecard)}
+      ${quarterlyAnnualSummary(scorecard)}
+      <div class="quarterly-scorecard-layout">
+        <section class="quarterly-scorecard-main panel">
+          ${quarterlyDesktopMatrix(scorecard)}
+          ${quarterlyMobileCards(scorecard)}
+        </section>
+        ${quarterlyDetailPanel(selected, isDefaultSelection)}
+      </div>
+    </section>
+  `;
+}
+
+function quarterlyScorecardHeader(scorecard = {}) {
+  return `
+    <header class="panel quarterly-scorecard-header">
+      <div class="quarterly-scorecard-titlebar">
+        <button class="scorecard-back" data-action="close-quarterly-scorecard" aria-label="${uiLabel("Back to report")}">‹</button>
+        <div>
+          <span>${escapeHtml(scorecard.companyName || scorecard.ticker)}</span>
+          <h2>${uiLabel("Quarterly Scorecard")}</h2>
+          <strong dir="ltr">${escapeHtml(scorecard.ticker)}</strong>
+        </div>
+        <label class="scorecard-year-select">
+          <span>${uiLabel("Year")}</span>
+          <select data-scorecard-year>
+            ${scorecard.years.map((year) => `<option value="${year}" ${year === scorecard.year ? "selected" : ""}>${year}</option>`).join("")}
+          </select>
+        </label>
+      </div>
+      <div class="quarterly-scorecard-targets">
+        ${scorecard.fairValue ? `
+          ${scorecardTargetMetric("Bear", scorecard.fairValue.bear, "failed")}
+          ${scorecardTargetMetric("Base", scorecard.fairValue.base, "partial")}
+          ${scorecardTargetMetric("Bull", scorecard.fairValue.bull, "passed")}
+        ` : ""}
+        ${scorecardTargetMetric(uiLabel("Target"), scorecard.target?.value, "target")}
+      </div>
+      <div class="quarterly-scorecard-actions">
+        <button class="icon-btn" data-action="download-quarterly-scorecard">${uiLabel("Download PNG")}</button>
+        <button class="primary-btn" data-action="share-quarterly-scorecard">${uiLabel("Share")}</button>
+      </div>
+    </header>
+  `;
+}
+
+function scorecardTargetMetric(label, value, tone) {
+  if (!Number.isFinite(numericValue(value))) return "";
+  return `<article class="${escapeHtml(tone)}"><span>${escapeHtml(label)}</span><strong dir="ltr">${money(value, 0)}</strong></article>`;
+}
+
+function quarterlyAnnualSummary(scorecard = {}) {
+  return `
+    <section class="panel quarterly-annual-summary">
+      <header>
+        <div>
+          <span>${uiLabel("Annual execution")}</span>
+          <strong>${escapeHtml(quarterlyTrajectoryLabel(scorecard.trajectory))}</strong>
+        </div>
+        ${scorecard.overallStatus ? `<b>${escapeHtml(requirementsStatusLabel(scorecard.overallStatus))}</b>` : ""}
+      </header>
+      <div class="quarterly-progress-grid">
+        ${scorecard.quarters.map((quarter) => `
+          <article class="${quarter.evaluated ? "reported" : "awaiting"} ${quarter.quarter === scorecard.latestReportedQuarter ? "latest" : ""}">
+            <span dir="ltr">Q${quarter.quarter}</span>
+            <strong dir="ltr">${quarter.evaluated && Number.isFinite(quarter.weightedAchievement) ? `${Math.round(quarter.weightedAchievement)}%` : "—"}</strong>
+            <small>${quarter.evaluated ? uiLabel("Reported") : uiLabel("Awaiting report")}</small>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function quarterlyDesktopMatrix(scorecard = {}) {
+  return `
+    <div class="quarterly-desktop-matrix">
+      <table>
+        <thead><tr>
+          <th>${uiLabel("Metric")}</th>
+          <th>${uiLabel("Required")}</th>
+          ${scorecard.quarters.map((quarter) => `<th class="${quarter.quarter === scorecard.latestReportedQuarter ? "latest" : ""}" dir="ltr">Q${quarter.quarter}</th>`).join("")}
+          <th>${uiLabel("Trend")}</th>
+        </tr></thead>
+        <tbody>
+          ${scorecard.rows.map((row) => `
+            <tr>
+              <th>${scorecardMetricLabel(row)}</th>
+              <td dir="ltr">${escapeHtml(scorecardRequiredText(latestScorecardCell(row.cells)))}</td>
+              ${scorecard.quarters.map((quarter) => quarterlyDesktopCell(row, quarter, scorecard.latestReportedQuarter)).join("")}
+              <td>${scorecardDirection(latestReportedScorecardCell(row.cells))}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function quarterlyDesktopCell(row, quarter, latestReportedQuarter) {
+  const cell = row.cells?.[quarter.quarter];
+  const disabled = !cell?.reported;
+  return `
+    <td class="scorecard-quarter-cell ${cell ? scorecardStatusClass(cell.status) : "not-reported"} ${quarter.quarter === latestReportedQuarter ? "latest" : ""}">
+      <button data-scorecard-metric="${escapeHtml(row.key)}" data-scorecard-quarter="${quarter.quarter}" ${disabled ? "disabled" : ""}>
+        <strong dir="auto">${escapeHtml(scorecardActualText(cell))}</strong>
+        <span>${escapeHtml(scorecardStatusLabel(cell?.status))}</span>
+      </button>
+    </td>
+  `;
+}
+
+function quarterlyMobileCards(scorecard = {}) {
+  return `
+    <div class="quarterly-mobile-cards">
+      ${scorecard.rows.map((row) => `
+        <article class="quarterly-metric-card">
+          <header>
+            ${scorecardMetricLabel(row)}
+            <div><span>${uiLabel("Required")}</span><strong dir="ltr">${escapeHtml(scorecardRequiredText(latestScorecardCell(row.cells)))}</strong></div>
+          </header>
+          <div class="quarterly-mobile-quarter-grid">
+            ${scorecard.quarters.map((quarter) => quarterlyMobileCell(row, quarter, scorecard.latestReportedQuarter)).join("")}
+          </div>
+          <footer>
+            <span>${uiLabel("Trend")}</span>
+            ${scorecardDirection(latestReportedScorecardCell(row.cells))}
+          </footer>
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
+
+function quarterlyMobileCell(row, quarter, latestReportedQuarter) {
+  const cell = row.cells?.[quarter.quarter];
+  return `
+    <button class="${cell ? scorecardStatusClass(cell.status) : "not-reported"} ${quarter.quarter === latestReportedQuarter ? "latest" : ""}" data-scorecard-metric="${escapeHtml(row.key)}" data-scorecard-quarter="${quarter.quarter}" ${cell?.reported ? "" : "disabled"}>
+      <span dir="ltr">Q${quarter.quarter}</span>
+      <strong dir="auto">${escapeHtml(scorecardActualText(cell))}</strong>
+      <small>${escapeHtml(scorecardStatusLabel(cell?.status))}</small>
+    </button>
+  `;
+}
+
+function quarterlyDetailPanel(selected, isDefaultSelection) {
+  if (!selected?.cell) return "";
+  const { row, cell } = selected;
+  return `
+    <aside class="panel quarterly-scorecard-detail ${isDefaultSelection ? "is-default" : ""}">
+      <header>
+        <div><span>${uiLabel("Stored quarter detail")}</span><h3>${escapeHtml(row.label)}</h3></div>
+        <button data-action="close-scorecard-detail" aria-label="${uiLabel("Close")}">×</button>
+      </header>
+      <div class="scorecard-detail-facts">
+        ${scorecardDetailFact(uiLabel("Quarter"), `Q${cell.quarter}`)}
+        ${scorecardDetailFact(uiLabel("Required"), scorecardRequiredText(cell))}
+        ${scorecardDetailFact(uiLabel("Actual"), scorecardActualText(cell))}
+        ${scorecardDetailFact(uiLabel("Status"), scorecardStatusLabel(cell.status), scorecardStatusClass(cell.status))}
+      </div>
+      ${cell.evaluationNote ? `<section><span>${uiLabel("Evaluation note")}</span><p>${escapeHtml(localizedExternalText(cell.evaluationNote))}</p></section>` : `<p class="scorecard-detail-empty">${uiLabel("No stored evaluation note is available.")}</p>`}
+    </aside>
+  `;
+}
+
+function scorecardDetailFact(label, value, tone = "") {
+  return `<article class="${escapeHtml(tone)}"><span>${escapeHtml(label)}</span><strong dir="auto">${escapeHtml(String(value || "—"))}</strong></article>`;
+}
+
+function selectedScorecardCell(scorecard, selection = {}) {
+  const explicitRow = scorecard.rows.find((row) => row.key === selection.selectedMetricKey);
+  const explicitCell = explicitRow?.cells?.[Number(selection.selectedQuarter)];
+  if (explicitRow && explicitCell?.reported) return { row: explicitRow, cell: explicitCell };
+  for (const quarter of [scorecard.latestReportedQuarter, 4, 3, 2, 1].filter(Boolean)) {
+    const row = scorecard.rows.find((candidate) => candidate.cells?.[quarter]?.reported);
+    if (row) return { row, cell: row.cells[quarter] };
+  }
+  return null;
+}
+
+function scorecardMetricLabel(row = {}) {
+  return `<div class="scorecard-metric-label"><strong>${escapeHtml(row.label || "—")}</strong>${row.secondaryLabel ? `<small dir="ltr">${escapeHtml(row.secondaryLabel)}</small>` : ""}</div>`;
+}
+
+function latestScorecardCell(cells = {}) {
+  return [4, 3, 2, 1].map((quarter) => cells?.[quarter]).find(Boolean) || null;
+}
+
+function latestReportedScorecardCell(cells = {}) {
+  return [4, 3, 2, 1].map((quarter) => cells?.[quarter]).find((cell) => cell?.reported) || null;
+}
+
+function scorecardActualText(cell) {
+  if (!cell?.reported) return "—";
+  if (cell.actualDisplay) return cell.actualDisplay;
+  if (cell.actualValue === null || cell.actualValue === undefined || cell.actualValue === "") return "—";
+  return formatRequirementValue(cell.actualValue, cell.unit);
+}
+
+function scorecardRequiredText(cell) {
+  if (!cell) return "—";
+  if (cell.requiredDisplay) return cell.requiredDisplay;
+  return formatRequirementThreshold(cell);
+}
+
+function scorecardStatusClass(status) {
+  return String(status || "NOT_REPORTED").toLowerCase().replaceAll("_", "-");
+}
+
+function scorecardStatusLabel(status) {
+  const labels = {
+    EXCEEDED: uiLabel("Exceeded"),
+    PASSED: uiLabel("Passed"),
+    PARTIALLY_PASSED: uiLabel("Partially Passed"),
+    FAILED: uiLabel("Failed"),
+    NOT_REPORTED: uiLabel("Awaiting report")
+  };
+  return labels[String(status || "NOT_REPORTED").toUpperCase()] || uiLabel("Awaiting report");
+}
+
+function scorecardDirection(cell) {
+  if (!cell?.reported) return `<span class="scorecard-trend neutral">—</span>`;
+  const direction = String(cell.direction || "unknown").toLowerCase();
+  if (direction === "up") return `<span class="scorecard-trend up">▲</span>`;
+  if (direction === "down") return `<span class="scorecard-trend down">▼</span>`;
+  if (direction === "flat") return `<span class="scorecard-trend flat">—</span>`;
+  return `<span class="scorecard-trend neutral">—</span>`;
+}
+
+function quarterlyTrajectoryLabel(value) {
+  if (value === "improving") return uiLabel("Improving");
+  if (value === "weakening") return uiLabel("Weakening");
+  if (value === "stable") return uiLabel("Stable");
+  return uiLabel("Not enough reported quarters");
 }
 
 function stockDecisionHeader(report = {}, completion = {}) {
@@ -3067,7 +3328,10 @@ function investmentDataTableArea(report = {}) {
     {
       key: "requirements",
       label: uiLabel("Price Target Requirements"),
-      body: priceTargetRequirementsView(report.priceTargetRequirements, { compact: true }) || emptyCompactDataView(uiLabel("Price Target Requirements"))
+      body: priceTargetRequirementsView(report.priceTargetRequirements, {
+        ticker: report.company?.ticker,
+        reportId: report.id
+      }) || emptyCompactDataView(uiLabel("Price Target Requirements"))
     },
     {
       key: "guidance",
@@ -3302,7 +3566,7 @@ function companyKpisView(kpis = []) {
   `;
 }
 
-function priceTargetRequirementsView(requirementsBlock = {}) {
+function priceTargetRequirementsView(requirementsBlock = {}, context = {}) {
   const requirements = requirementsBlock?.requirements || [];
   if (!Array.isArray(requirements) || !requirements.length) return "";
   const targetValue = requirementsBlock.targetValue ?? requirementsBlock.nextTargetValue;
@@ -3339,6 +3603,11 @@ function priceTargetRequirementsView(requirementsBlock = {}) {
         targetValue,
         pending: true
       })}
+      <button class="quarterly-scorecard-entry" data-action="open-quarterly-scorecard" data-scorecard-ticker="${escapeHtml(context.ticker || "")}" data-scorecard-report-id="${escapeHtml(context.reportId || "latest")}">
+        <span>${uiLabel("Quarterly Scorecard")}</span>
+        <small>Quarterly Scorecard</small>
+        <b aria-hidden="true">→</b>
+      </button>
     </div>
   `;
 }
@@ -5770,6 +6039,28 @@ function bind(root, store, actions) {
     const button = event.currentTarget;
     store.openExternalReport(button.dataset.profileReportTicker, button.dataset.profileReportId);
   });
+  root.querySelectorAll("[data-action='open-quarterly-scorecard']").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      store.openQuarterlyScorecard(button.dataset.scorecardTicker, button.dataset.scorecardReportId);
+    });
+  });
+  root.querySelectorAll("[data-action='close-quarterly-scorecard']").forEach((button) => {
+    button.addEventListener("click", store.closeQuarterlyScorecard);
+  });
+  root.querySelector("[data-scorecard-year]")?.addEventListener("change", (event) => {
+    store.setQuarterlyScorecardYear(event.target.value);
+  });
+  root.querySelectorAll("[data-scorecard-metric][data-scorecard-quarter]").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (!button.disabled) store.selectQuarterlyScorecardCell(button.dataset.scorecardMetric, button.dataset.scorecardQuarter);
+    });
+  });
+  root.querySelector("[data-action='close-scorecard-detail']")?.addEventListener("click", () => {
+    store.selectQuarterlyScorecardCell(null, null);
+  });
+  root.querySelector("[data-action='download-quarterly-scorecard']")?.addEventListener("click", () => exportQuarterlyScorecard(store, "download"));
+  root.querySelector("[data-action='share-quarterly-scorecard']")?.addEventListener("click", () => exportQuarterlyScorecard(store, "share"));
   root.querySelector("[data-action='save-run']")?.addEventListener("click", store.saveRun);
   root.querySelectorAll("[data-action='new-analysis']").forEach((button) => {
     button.addEventListener("click", store.startBlankAnalysis);
@@ -6241,6 +6532,38 @@ function labelFromKey(key) {
 function selectedExternalReport(store) {
   const selection = store.state.externalReportSelection || {};
   return getExternalAnalysis(store.state.externalAnalyses || {}, selection.ticker, selection.reportId);
+}
+
+function selectedQuarterlyScorecard(store) {
+  const selection = store.state.quarterlyScorecard || {};
+  return buildQuarterlyScorecard({
+    historicalRequirementSets: store.state.historicalRequirementSets,
+    externalAnalyses: store.state.externalAnalyses,
+    ticker: selection.ticker,
+    year: selection.year
+  });
+}
+
+async function exportQuarterlyScorecard(store, mode) {
+  const scorecard = selectedQuarterlyScorecard(store);
+  if (!scorecard?.rows?.length) return;
+  try {
+    if (mode === "share") {
+      const result = await shareQuarterlyScorecardPng(scorecard);
+      if (!result.shared) {
+        await downloadQuarterlyScorecardPng(scorecard);
+        store.set({ notice: store.state.language === "ar" ? "المشاركة غير مدعومة؛ تم تنزيل PNG بدلًا منها." : "Sharing is unavailable; the PNG was downloaded instead." });
+        return;
+      }
+      store.set({ notice: store.state.language === "ar" ? "تمت مشاركة بطاقة متابعة الأرباع." : "Quarterly scorecard shared." });
+      return;
+    }
+    await downloadQuarterlyScorecardPng(scorecard);
+    store.set({ notice: store.state.language === "ar" ? "تم تنزيل بطاقة متابعة الأرباع بصيغة PNG." : "Quarterly scorecard PNG downloaded." });
+  } catch (error) {
+    if (error?.name === "AbortError") return;
+    store.set({ notice: store.state.language === "ar" ? "تعذر إنشاء صورة متابعة الأرباع." : "Could not create the quarterly scorecard image." });
+  }
 }
 
 async function copySelectedExternalReport(store) {
