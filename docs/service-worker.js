@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v10-canonical-estimate-revisions-20260817";
+const CACHE_NAME = "franklin-research-v10-quarterly-scorecard-20260818";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -6,13 +6,16 @@ const STATIC_ASSETS = [
   "./backend-config.js",
   "./styles.css",
   "./styles-mobile2.css",
+  "./styles-desktop.css",
   "./manifest.webmanifest",
   "./src/main.js",
   "./src/pwa.js",
   "./src/ui/mobile2Enhancer.js",
+  "./src/ui/quarterlyScorecardExport.js",
   "./src/externalAnalysis/schema.js",
   "./src/externalAnalysis/requirements.js",
   "./src/externalAnalysis/historicalRequirements.js",
+  "./src/externalAnalysis/quarterlyScorecard.js",
   "./src/externalAnalysis/fairValueAdapter.js",
   "./src/externalAnalysis/parser.js",
   "./src/externalAnalysis/externalAnalysisSchemaValidator.js",

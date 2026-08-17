@@ -16,6 +16,8 @@ const DIRECTORY_PAIRS = [
 const FILES = [
   "index.html",
   "styles.css",
+  "styles-mobile2.css",
+  "styles-desktop.css",
   "service-worker.js",
   "manifest.webmanifest",
   "offline.html",
