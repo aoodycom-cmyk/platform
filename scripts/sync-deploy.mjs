@@ -15,6 +15,7 @@ const GENERATED_FILES = [
   "index.html",
   "styles.css",
   "styles-mobile2.css",
+  "styles-mobile-scorecard-figma.css",
   "styles-desktop.css",
   "service-worker.js",
   "manifest.webmanifest",
