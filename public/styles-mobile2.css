@@ -113,7 +113,6 @@
   .earnings-status-grid .mini-evidence b { font-size:10px; }
   .earnings-status-grid .mini-evidence strong { font-size:14px; }
   .strength-risk-compare h4 { margin:0 0 8px; font-size:16px; line-height:1.4; font-weight:700; }
-
   .price-requirements-block { display:grid; gap:10px; }
   .m2-requirements-overview { display:grid; gap:9px; margin-bottom:2px; }
   .m2-target-card { display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:center; padding:13px; border:1px solid var(--line); border-radius:15px; background:var(--bg-elevated); }
