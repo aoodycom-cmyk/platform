@@ -1,0 +1,548 @@
+/* Desktop responsive layer — keeps approved mobile behavior untouched and fixes laptop/desktop rendering. */
+
+@media (min-width: 900px) {
+  body {
+    padding-block: 0;
+  }
+
+  .mobile-app-shell:not(.scorecard-app-shell) .mobile-app-frame {
+    width: min(calc(100% - 48px), 1280px);
+    min-height: calc(100dvh - 24px);
+    margin: 12px auto;
+    padding: 0 24px 96px;
+  }
+
+  .mobile-app-shell:not(.scorecard-app-shell) .mobile-app-header {
+    min-height: 72px;
+    margin: 0 -24px 18px;
+    padding: 14px 24px;
+  }
+
+  .mobile-app-shell:not(.scorecard-app-shell) .mobile-page-content {
+    gap: 16px;
+  }
+
+  .mobile-nav:not(.quarterly-scorecard-nav) {
+    width: min(calc(100% - 48px), 1280px);
+    bottom: 12px;
+  }
+
+  .library-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .company-profile-grid,
+  .settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  /* Quarterly Scorecard — Figma desktop node 13:1733 */
+  .scorecard-app-shell {
+    min-height: 100dvh;
+    background: #0b0e14;
+  }
+
+  .scorecard-app-shell .mobile-app-frame {
+    width: min(100%, 1440px);
+    min-height: 100dvh;
+    margin: 0 auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: #0b0e14;
+    box-shadow: none;
+  }
+
+  .scorecard-app-shell .mobile-app-header,
+  .quarterly-scorecard-nav {
+    display: none !important;
+  }
+
+  .scorecard-app-shell .mobile-page-content {
+    display: block;
+  }
+
+  .quarterly-scorecard-shell {
+    width: 100%;
+    min-height: 100dvh;
+    margin: 0 auto;
+    padding: 0 32px 96px;
+    display: grid;
+    grid-template-columns: 290px minmax(0, 1fr);
+    grid-template-areas:
+      "header header"
+      "detail annual"
+      "detail main";
+    grid-auto-rows: max-content;
+    column-gap: 24px;
+    row-gap: 16px;
+    direction: ltr;
+    background: #0b0e14;
+  }
+
+  .quarterly-scorecard-header,
+  .quarterly-annual-summary,
+  .quarterly-scorecard-main,
+  .quarterly-scorecard-detail {
+    direction: rtl;
+  }
+
+  .quarterly-scorecard-header {
+    grid-area: header;
+    width: auto;
+    min-height: 72px;
+    margin: 0 -32px;
+    padding: 16px 32px;
+    display: grid;
+    grid-template-columns: minmax(360px, 1fr) auto auto;
+    align-items: center;
+    gap: 18px;
+    border: 0;
+    border-bottom: 1px solid #1f2937;
+    border-radius: 0;
+    background: #0d1117;
+    box-shadow: none;
+  }
+
+  .quarterly-scorecard-titlebar {
+    min-width: 360px;
+    display: grid;
+    grid-template-columns: 40px minmax(250px, 1fr) 96px;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .scorecard-back {
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 999px;
+    background: #1f2937;
+    color: #9ca3af;
+    font-size: 24px;
+  }
+
+  .quarterly-scorecard-titlebar > div {
+    gap: 3px;
+  }
+
+  .quarterly-scorecard-titlebar > div > span {
+    order: 2;
+    color: #9ca3af;
+    font-size: 12px;
+  }
+
+  .quarterly-scorecard-titlebar h2 {
+    order: 1;
+    margin: 0;
+    color: #fff;
+    font-size: 20px;
+    line-height: 1.35;
+    font-weight: 800;
+  }
+
+  .quarterly-scorecard-titlebar strong {
+    order: 3;
+    color: #60a5fa;
+    font-size: 13px;
+  }
+
+  .scorecard-year-select {
+    gap: 3px;
+  }
+
+  .scorecard-year-select span {
+    color: #6b7280;
+    font-size: 10px;
+  }
+
+  .scorecard-year-select select {
+    min-height: 36px;
+    padding: 6px 10px;
+    border-color: #374151;
+    border-radius: 8px;
+    background: #161b22;
+    color: #fff;
+    font-size: 13px;
+  }
+
+  .quarterly-scorecard-targets {
+    min-width: 0;
+    display: block;
+  }
+
+  .quarterly-scorecard-targets .failed,
+  .quarterly-scorecard-targets .partial,
+  .quarterly-scorecard-targets .passed {
+    display: none;
+  }
+
+  .quarterly-scorecard-targets .target {
+    min-height: 34px;
+    padding: 7px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  .quarterly-scorecard-targets .target span,
+  .quarterly-scorecard-targets .target strong {
+    color: #60a5fa;
+    font-size: 11px;
+  }
+
+  .quarterly-scorecard-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .quarterly-scorecard-actions .icon-btn,
+  .quarterly-scorecard-actions .primary-btn {
+    min-height: 34px;
+    padding: 7px 14px;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    background: #161b22;
+    color: #e5e7eb;
+    box-shadow: none;
+    font-size: 11px;
+  }
+
+  .quarterly-scorecard-actions .primary-btn {
+    border-color: #374151;
+  }
+
+  .quarterly-scorecard-layout {
+    display: contents;
+  }
+
+  .quarterly-annual-summary {
+    grid-area: annual;
+    min-height: 118px;
+    margin-top: 8px;
+    padding: 20px 24px;
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    align-items: center;
+    gap: 24px;
+    border: 1px solid rgba(59, 130, 246, 0.1);
+    border-radius: 16px;
+    background: rgba(17, 24, 39, 0.72);
+    box-shadow: none;
+  }
+
+  .quarterly-annual-summary > header {
+    display: grid;
+    align-content: center;
+    justify-items: end;
+    gap: 5px;
+  }
+
+  .quarterly-annual-summary > header div {
+    justify-items: end;
+  }
+
+  .quarterly-annual-summary > header span,
+  .quarterly-annual-summary > header b {
+    color: #6b7280;
+    font-size: 11px;
+  }
+
+  .quarterly-annual-summary > header strong {
+    width: max-content;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.1);
+    color: #34d399;
+    font-size: 12px;
+  }
+
+  .quarterly-progress-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 56px);
+    justify-content: start;
+    gap: 18px;
+    direction: rtl;
+  }
+
+  .quarterly-progress-grid article {
+    min-height: 72px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    gap: 6px;
+    border: 0;
+    background: transparent;
+  }
+
+  .quarterly-progress-grid article.latest {
+    border: 0;
+    background: transparent;
+  }
+
+  .quarterly-progress-grid span {
+    color: #6b7280;
+    font-size: 9px;
+    line-height: 1;
+  }
+
+  .quarterly-progress-grid strong {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border: 2px solid #1f2937;
+    border-radius: 999px;
+    color: #374151;
+    font-size: 12px;
+  }
+
+  .quarterly-progress-grid article.reported strong {
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #34d399;
+  }
+
+  .quarterly-progress-grid article.latest strong {
+    border-color: #3b82f6;
+    color: #60a5fa;
+  }
+
+  .quarterly-progress-grid small {
+    display: none;
+  }
+
+  .quarterly-scorecard-main {
+    grid-area: main;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid rgba(59, 130, 246, 0.1);
+    border-radius: 16px;
+    background: rgba(17, 24, 39, 0.72);
+    box-shadow: none;
+  }
+
+  .quarterly-desktop-matrix {
+    display: block;
+  }
+
+  .quarterly-mobile-cards {
+    display: none;
+  }
+
+  .quarterly-desktop-matrix table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    direction: rtl;
+  }
+
+  .quarterly-desktop-matrix thead {
+    background: rgba(31, 41, 55, 0.3);
+  }
+
+  .quarterly-desktop-matrix th,
+  .quarterly-desktop-matrix td {
+    height: 58px;
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(31, 41, 55, 0.5);
+    color: #9ca3af;
+    font-size: 12px;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  .quarterly-desktop-matrix thead th {
+    height: 46px;
+    color: #9ca3af;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .quarterly-desktop-matrix tbody th {
+    color: #fff;
+    text-align: right;
+  }
+
+  .quarterly-desktop-matrix th:first-child {
+    width: 23%;
+  }
+
+  .quarterly-desktop-matrix th:nth-child(2) {
+    width: 14%;
+  }
+
+  .quarterly-desktop-matrix th:last-child {
+    width: 9%;
+  }
+
+  .quarterly-desktop-matrix .latest {
+    background: rgba(59, 130, 246, 0.07);
+  }
+
+  .scorecard-quarter-cell button {
+    width: 100%;
+    min-height: 44px;
+    padding: 3px;
+    display: grid;
+    place-content: center;
+    gap: 2px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .scorecard-quarter-cell strong {
+    color: #fff;
+    font-size: 13px;
+  }
+
+  .scorecard-quarter-cell span {
+    font-size: 10px;
+  }
+
+  .scorecard-quarter-cell.exceeded strong,
+  .scorecard-quarter-cell.exceeded span,
+  .scorecard-quarter-cell.passed strong,
+  .scorecard-quarter-cell.passed span {
+    color: #34d399;
+  }
+
+  .scorecard-quarter-cell.partially-passed strong,
+  .scorecard-quarter-cell.partially-passed span {
+    color: #f59e0b;
+  }
+
+  .scorecard-quarter-cell.failed strong,
+  .scorecard-quarter-cell.failed span {
+    color: #ef4444;
+  }
+
+  .scorecard-metric-label {
+    gap: 2px;
+  }
+
+  .scorecard-metric-label strong {
+    color: inherit;
+    font-size: 13px;
+  }
+
+  .scorecard-metric-label small {
+    color: #6b7280;
+    font-size: 9px;
+  }
+
+  .scorecard-trend {
+    font-size: 14px;
+  }
+
+  .scorecard-trend.up {
+    color: #34d399;
+  }
+
+  .scorecard-trend.down {
+    color: #ef4444;
+  }
+
+  .quarterly-scorecard-detail,
+  .quarterly-scorecard-detail.is-default {
+    grid-area: detail;
+    position: sticky;
+    inset: auto;
+    top: 24px;
+    display: block;
+    max-height: calc(100dvh - 48px);
+    margin-top: 8px;
+    padding: 24px;
+    overflow-y: auto;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 16px;
+    background: rgba(17, 24, 39, 0.78);
+    box-shadow: none;
+  }
+
+  .quarterly-scorecard-detail > header {
+    padding-bottom: 18px;
+    border-bottom: 1px solid rgba(31, 41, 55, 0.5);
+  }
+
+  .quarterly-scorecard-detail > header button {
+    display: none;
+  }
+
+  .quarterly-scorecard-detail > header span,
+  .quarterly-scorecard-detail section span {
+    color: #6b7280;
+    font-size: 11px;
+  }
+
+  .quarterly-scorecard-detail h3 {
+    margin: 4px 0 0;
+    color: #fff;
+    font-size: 16px;
+  }
+
+  .scorecard-detail-facts {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .scorecard-detail-facts article {
+    min-height: 48px;
+    padding: 10px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 0;
+    border-bottom: 1px solid rgba(31, 41, 55, 0.45);
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .scorecard-detail-facts span {
+    color: #6b7280;
+    font-size: 11px;
+  }
+
+  .scorecard-detail-facts strong {
+    color: #d1d5db;
+    font-size: 13px;
+  }
+
+  .scorecard-detail-facts .partially-passed strong {
+    color: #f59e0b;
+  }
+
+  .scorecard-detail-facts .failed strong {
+    color: #ef4444;
+  }
+
+  .scorecard-detail-facts .passed strong,
+  .scorecard-detail-facts .exceeded strong {
+    color: #34d399;
+  }
+
+  .quarterly-scorecard-detail section {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(31, 41, 55, 0.5);
+  }
+
+  .quarterly-scorecard-detail section p,
+  .scorecard-detail-empty {
+    margin-top: 8px;
+    padding: 14px;
+    border-radius: 10px;
+    background: #1c2128;
+    color: #9ca3af;
+    font-size: 11px;
+    line-height: 1.7;
+  }
+}
