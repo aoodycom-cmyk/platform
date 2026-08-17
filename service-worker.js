@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v10-quarterly-scorecard-20260818";
+const CACHE_NAME = "franklin-research-v10-figma-mobile-scorecard-20260818a";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -6,11 +6,13 @@ const STATIC_ASSETS = [
   "./backend-config.js",
   "./styles.css",
   "./styles-mobile2.css",
+  "./styles-mobile-scorecard-figma.css",
   "./styles-desktop.css",
   "./manifest.webmanifest",
   "./src/main.js",
   "./src/pwa.js",
   "./src/ui/mobile2Enhancer.js",
+  "./src/ui/quarterlyScorecardMobileFigma.js",
   "./src/ui/quarterlyScorecardExport.js",
   "./src/externalAnalysis/schema.js",
   "./src/externalAnalysis/requirements.js",
