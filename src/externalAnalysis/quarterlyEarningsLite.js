@@ -1,3 +1,8 @@
+import {
+  normalizeQuarterlyForwardOutlook,
+  upsertQuarterlyForwardOutlookSupplement
+} from "./quarterlyForwardOutlook.js";
+
 export const QUARTERLY_EARNINGS_LITE_SCHEMA = "quarterly-earnings-lite/v1";
 
 const REQUIREMENT_STATUSES = new Set(["EXCEEDED", "PASSED", "PARTIALLY_PASSED", "FAILED", "NOT_REPORTED"]);
@@ -48,6 +53,14 @@ export function buildQuarterlyEarningsLitePrompt(report = {}, options = {}) {
     guidance: [
       { topic: "", currentGuidance: "", direction: "raised|maintained|lowered|new|not_applicable", interpretation: "جملة قصيرة" }
     ],
+    forwardOutlook: {
+      growthOutlook: "accelerating|stable|slowing|unclear",
+      marginOutlook: "improving|stable|pressured|unclear",
+      guidanceTrend: "raised|maintained|lowered|mixed|new|not_reported",
+      managementTone: "positive|neutral|cautious|mixed|unclear",
+      thesisImpact: "supports|neutral|weakens|unclear",
+      summary: null
+    },
     requirements: requirements.map((item) => ({
       id: item.id,
       actualValue: null,
@@ -64,9 +77,12 @@ export function buildQuarterlyEarningsLitePrompt(report = {}, options = {}) {
     "",
     "المطلوب:",
     "- ركز فقط على ما يهم هذا الربع: Revenue، EPS، الهوامش المهمة، FCF/السيولة عند أهميتها، KPIs الخاصة بالشركة، Guidance، ومدى تحقق المتطلبات السابقة.",
+    "- أضف Forward Outlook مختصرًا فقط إذا كان الإعلان أو Guidance أو تعليق الإدارة يعطي معلومات مستقبلية حقيقية عن النمو أو الهوامش أو الطلب أو القدرة أو التنفيذ.",
+    "- Forward Outlook ليس تقييمًا جديدًا للسهم: لا تغيّر Fair Value ولا تصدر توصية جديدة. thesisImpact يقيس فقط هل هذا الربع يدعم فرضية الاستثمار الحالية أو يضعفها.",
+    "- إذا لم توجد معلومات مستقبلية كافية، استخدم unclear / not_reported واجعل forwardOutlook.summary = null بدل الاستنتاج أو التخمين.",
     "- استخدم المصادر الرسمية للشركة وSEC أولًا إذا لم يرفق المستخدم نص الإعلان.",
     "- لا تخترع أي رقم؛ استخدم null عند عدم التوفر.",
-    "- اجعل summary من سطر أو سطرين، highlights بحد أقصى 3، concerns بحد أقصى 2، companyKpis بحد أقصى 4، guidance بحد أقصى 3.",
+    "- اجعل summary من سطر أو سطرين، highlights بحد أقصى 3، concerns بحد أقصى 2، companyKpis بحد أقصى 4، guidance بحد أقصى 3، وforwardOutlook.summary بحد أقصى سطرين.",
     "- قارن فقط المتطلبات السابقة المرفقة أدناه، ولا تنشئ متطلبات جديدة.",
     "",
     "ممنوع في هذه المهمة:",
@@ -108,6 +124,7 @@ export function inflateQuarterlyEarningsLitePayload(currentReport = {}, payload 
   const concerns = limitStrings(payload.concerns, 2, 220);
   const guidance = normalizeLiteGuidance(payload.guidance).slice(0, 3);
   const companyKpis = normalizeLiteKpis(payload.companyKpis).slice(0, 4);
+  const forwardOutlook = normalizeQuarterlyForwardOutlook(payload.forwardOutlook);
   const raw = String(rawText || JSON.stringify(payload));
 
   return {
@@ -148,6 +165,7 @@ export function inflateQuarterlyEarningsLitePayload(currentReport = {}, payload 
     risks: concerns.length
       ? concerns.map((item) => ({ title: item, severity: "Quarterly", explanation: item, whatToMonitor: null, thesisBreaker: null }))
       : (currentReport.risks || []),
+    supplements: upsertQuarterlyForwardOutlookSupplement(currentReport.supplements, reportPeriod, forwardOutlook),
     previousRequirementsEvaluation: {
       requirementSetId: payload.requirementSetId || requirementBlock.requirementSetId || null,
       ticker: currentTicker,
