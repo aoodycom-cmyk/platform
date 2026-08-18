@@ -6,6 +6,9 @@ import { registerServiceWorker, watchOfflineState } from "./pwa.js";
 const root = document.getElementById("app");
 const store = createStore();
 
+// Internal UI helpers can reuse the single live store without creating a second app state.
+window.__equityResearchStore = store;
+
 mountApp(root, store);
 registerServiceWorker();
 watchOfflineState((offline) => {
