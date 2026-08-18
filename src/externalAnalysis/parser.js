@@ -1,4 +1,5 @@
 import { normalizeExternalAnalysisReport } from "./schema.js";
+import { upsertQuarterlyEarningsDigestSupplement } from "./quarterlyEarningsDigest.js";
 import { inflateQuarterlyEarningsLitePayload, isQuarterlyEarningsLitePayload } from "./quarterlyEarningsLite.js";
 
 let quarterlyEarningsLiteReportResolver = null;
@@ -20,8 +21,12 @@ export async function parseExternalAnalysisInput(text, { parseUnstructured, now 
         error.userMessage = "هذا JSON تحديث أرباح ربع ويحتاج فتح السهم المحفوظ من شاشة التقرير قبل الاستيراد.";
         throw error;
       }
+      const inflated = inflateQuarterlyEarningsLitePayload(baseReport, localJson.value, rawAnalysis, now);
       return {
-        report: inflateQuarterlyEarningsLitePayload(baseReport, localJson.value, rawAnalysis, now),
+        report: {
+          ...inflated,
+          supplements: upsertQuarterlyEarningsDigestSupplement(inflated.supplements, inflated.reportPeriod, localJson.value)
+        },
         parserSource: "Quarterly Earnings Lite Parser",
         usedAi: false
       };

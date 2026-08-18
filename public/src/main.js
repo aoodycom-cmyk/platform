@@ -1,6 +1,7 @@
 import { createStore } from "./state/store.js";
 import { mountApp } from "./ui/components.js";
 import "./ui/mobile2Enhancer.js";
+import "./ui/quarterlyResultsEnhancer.js";
 import { getExternalAnalysis } from "./externalAnalysis/storage.js";
 import { setQuarterlyEarningsLiteReportResolver } from "./externalAnalysis/parser.js";
 import { registerServiceWorker, watchOfflineState } from "./pwa.js";

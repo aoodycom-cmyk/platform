@@ -12,6 +12,7 @@ assert.ok(script.includes("نسخ برومبت الربع المختصر"));
 assert.ok(script.includes("buildQuarterlyEarningsLitePrompt"));
 assert.ok(script.includes("inflateQuarterlyEarningsLitePayload"));
 assert.ok(script.includes("step: 3"));
+assert.ok(script.includes("Forward Outlook"));
 assert.ok(script.includes("بدون تقييم سهم كامل أو Fair Value جديد"));
 
 console.log("Quarterly JSON prompt V2 lite-mode tests passed.");
