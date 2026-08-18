@@ -86,7 +86,13 @@ self.addEventListener("fetch", (event) => {
 });
 
 function fetchAndCache(request, url) {
-  return fetch(event.request).then((response) => response);
+  return fetch(request).then((response) => {
+    if (response.ok && isSafeStaticAsset(url)) {
+      const clone = response.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+    }
+    return response;
+  });
 }
 
 function isVersionedAppAsset(url) {
