@@ -1,3 +1,9 @@
+import {
+  buildQuarterlyEarningsLitePrompt,
+  inflateQuarterlyEarningsLitePayload,
+  isQuarterlyEarningsLitePayload
+} from "../externalAnalysis/quarterlyEarningsLite.js";
+
 const CONTEXT_KEY = "quarterlyEarningsEntryContext";
 const BUTTON_ATTR = "data-copy-quarterly-json-prompt";
 
@@ -7,18 +13,30 @@ function selectedQuarterContext() {
   try {
     const value = JSON.parse(raw);
     const quarter = Number(value?.quarter);
-    const year = String(value?.year || "").trim();
-    if (![1, 2, 3, 4].includes(quarter) || !/^\d{4}$/.test(year)) return null;
+    const year = Number(value?.year);
+    if (![1, 2, 3, 4].includes(quarter) || !Number.isInteger(year)) return null;
     return { ticker: String(value?.ticker || "").trim(), quarter, year };
   } catch {
     return null;
   }
 }
 
-function ensureJsonPromptButton() {
+function currentStore() {
+  return window.__equityResearchStore || null;
+}
+
+function selectedReport(store) {
+  const selection = store?.state?.externalReportSelection;
+  if (!selection?.ticker) return null;
+  const reports = store.state.externalAnalyses?.[selection.ticker] || [];
+  return reports.find((item) => item.id === selection.reportId) || reports[0] || null;
+}
+
+function ensureLitePromptButton() {
   const context = selectedQuarterContext();
+  const store = currentStore();
   const sheet = document.querySelector(".earnings-update-sheet");
-  if (!context || !sheet) return;
+  if (!context || !store || !sheet) return;
 
   const pasteStep = sheet.querySelector("[data-earnings-field='earningsText']")?.closest(".earnings-update-body");
   if (!pasteStep || pasteStep.querySelector(`[${BUTTON_ATTR}]`)) return;
@@ -26,79 +44,97 @@ function ensureJsonPromptButton() {
   const actions = pasteStep.querySelector(".earnings-update-actions");
   if (!actions) return;
 
+  const oldNext = actions.querySelector("[data-action='prepare-earnings-prompt']");
+  if (oldNext) oldNext.hidden = true;
+
   const button = document.createElement("button");
   button.type = "button";
   button.className = "primary-btn";
   button.setAttribute(BUTTON_ATTR, "");
-  button.innerHTML = `نسخ برومبت JSON لـ ChatGPT <span dir="ltr">Q${context.quarter} ${escapeMarkup(context.year)}</span>`;
-  button.addEventListener("click", () => copyGeneratedJsonPrompt(context, sheet));
+  button.innerHTML = `نسخ برومبت الربع المختصر <span dir="ltr">Q${context.quarter} ${context.year}</span>`;
+  button.addEventListener("click", () => copyLitePrompt(context, pasteStep));
   actions.prepend(button);
 
   const hint = document.createElement("p");
   hint.className = "compact-empty-state quarterly-json-prompt-hint";
-  hint.textContent = "ينسخ برومبت جاهز يطلب من ChatGPT البحث عن نتائج الربع من المصادر الرسمية، مقارنة النتائج بالمتطلبات السابقة، ثم إرجاع JSON صالح للاستيراد فقط.";
+  hint.textContent = "وضع خفيف: أهم أرقام الربع + Guidance + نقاط مختصرة + تقييم المتطلبات فقط. بدون تقييم سهم كامل أو Fair Value جديد.";
   actions.insertAdjacentElement("beforebegin", hint);
 }
 
-async function copyGeneratedJsonPrompt(context, sheet) {
-  const earningsInput = sheet.querySelector("[data-earnings-field='earningsText']");
-  if (!earningsInput) return;
+async function copyLitePrompt(context, pasteStep) {
+  const store = currentStore();
+  const report = selectedReport(store);
+  const earningsInput = pasteStep.querySelector("[data-earnings-field='earningsText']");
+  if (!store || !report || !earningsInput) return;
 
-  const researchInstruction = [
-    `[Selected quarter: Q${context.quarter} ${context.year}]`,
-    `This task is specifically for Q${context.quarter} ${context.year}.`,
-    "If earnings materials are not pasted below, independently research the official company Investor Relations earnings release, SEC filing, earnings presentation, and management guidance for this exact quarter.",
-    "Use official company/SEC sources first. Do not invent missing numbers.",
-    "Evaluate the previously stored price-target requirements against this quarter's actual results.",
-    "Preserve the selected quarter and year in the resulting report period / earnings period fields.",
-    "",
-    "Optional pasted earnings materials:",
-    ""
-  ].join("\n");
-
-  if (!String(earningsInput.value || "").includes(`This task is specifically for Q${context.quarter} ${context.year}.`)) {
-    const existing = String(earningsInput.value || "")
-      .replace(/^\[Selected quarter:[^\]]+\][\s\S]*?Paste the earnings release \/ 10-Q excerpts \/ management commentary below:\s*/i, "")
-      .trim();
-    earningsInput.value = `${researchInstruction}${existing}`;
-    earningsInput.dispatchEvent(new Event("input", { bubbles: true }));
-  }
-
-  sheet.querySelector("[data-action='prepare-earnings-prompt']")?.click();
-  const generated = await waitForElement("[data-earnings-generated-prompt]", 1800);
-  if (!generated) {
-    showLocalFeedback("تعذر تجهيز البرومبت. اضغط «التالي» ثم حاول النسخ من خطوة البرومبت.", true);
-    return;
-  }
-
-  const strictOutput = [
-    "",
-    "=== QUARTERLY JSON OUTPUT MODE ===",
-    `Selected reporting period: Q${context.quarter} ${context.year}.`,
-    "Research the exact selected quarter if source materials were not supplied.",
-    "Return ONLY one valid JSON object compatible with the application's ExternalAnalysisReport import schema.",
-    "Do not include Markdown fences, commentary, an Arabic summary, citations outside JSON, or any text before/after the JSON.",
-    "Keep unavailable values null rather than guessing.",
-    "For each previously stored priceTargetRequirement, preserve its identity and fill actualValue/status/evaluationNote only when supported by the selected quarter's evidence.",
-    "Allowed requirement status values: EXCEEDED, PASSED, PARTIALLY_PASSED, FAILED, NOT_REPORTED.",
-    "Do not mark unreported or unavailable metrics as FAILED.",
-    `Ensure the JSON clearly represents Q${context.quarter} ${context.year}.`
-  ].join("\n");
-
-  const prompt = `${generated.value || generated.textContent || ""}\n${strictOutput}`.trim();
-  if (!prompt) return;
+  const prompt = buildQuarterlyEarningsLitePrompt(report, {
+    quarter: context.quarter,
+    year: context.year,
+    earningsText: earningsInput.value || ""
+  });
 
   try {
     if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
     await navigator.clipboard.writeText(prompt);
-    showLocalFeedback(`تم نسخ برومبت JSON لـ Q${context.quarter} ${context.year} ✓`);
+    store.set({
+      earningsUpdate: {
+        ...store.state.earningsUpdate,
+        generatedPrompt: prompt,
+        step: 3
+      },
+      notice: ""
+    });
+    showLocalFeedback(`تم نسخ البرومبت المختصر لـ Q${context.quarter} ${context.year} ✓`);
   } catch {
-    generated.value = prompt;
-    generated.focus();
-    generated.select?.();
-    showLocalFeedback("تعذر النسخ التلقائي. تم تحديد البرومبت لنسخه يدويًا.", true);
+    store.set({
+      earningsUpdate: {
+        ...store.state.earningsUpdate,
+        generatedPrompt: prompt,
+        step: 2
+      },
+      notice: ""
+    });
+    showLocalFeedback("تعذر النسخ التلقائي. ظهر البرومبت المختصر لنسخه يدويًا.", true);
   }
 }
+
+document.addEventListener("click", async (event) => {
+  const button = event.target.closest?.("[data-action='parse-earnings-update-json']");
+  if (!button) return;
+  const textarea = document.querySelector("[data-earnings-field='responseText']");
+  const raw = String(textarea?.value || "").trim();
+  if (!raw) return;
+
+  let payload;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    return;
+  }
+  if (!isQuarterlyEarningsLitePayload(payload)) return;
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+
+  const store = currentStore();
+  const report = selectedReport(store);
+  if (!store || !report) {
+    showLocalFeedback("تعذر العثور على التقرير السابق لهذا السهم.", true);
+    return;
+  }
+
+  try {
+    const inflated = inflateQuarterlyEarningsLitePayload(report, payload, raw);
+    const fullJson = JSON.stringify(inflated);
+    if (textarea) {
+      textarea.value = fullJson;
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    await store.parseEarningsUpdateJson(fullJson);
+  } catch (error) {
+    showLocalFeedback(error.message || "تعذر قراءة JSON المختصر.", true);
+  }
+}, true);
 
 function showLocalFeedback(message, isError = false) {
   let feedback = document.querySelector(".quarterly-json-prompt-feedback");
@@ -130,31 +166,7 @@ function showLocalFeedback(message, isError = false) {
   showLocalFeedback.timer = setTimeout(() => feedback.remove(), 2600);
 }
 
-function waitForElement(selector, timeout = 1500) {
-  return new Promise((resolve) => {
-    const existing = document.querySelector(selector);
-    if (existing) return resolve(existing);
-    const started = Date.now();
-    const timer = window.setInterval(() => {
-      const element = document.querySelector(selector);
-      if (element || Date.now() - started > timeout) {
-        window.clearInterval(timer);
-        resolve(element || null);
-      }
-    }, 40);
-  });
-}
-
-function escapeMarkup(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-const observer = new MutationObserver(ensureJsonPromptButton);
+const observer = new MutationObserver(ensureLitePromptButton);
 observer.observe(document.documentElement, { childList: true, subtree: true });
-window.addEventListener("pageshow", ensureJsonPromptButton);
-ensureJsonPromptButton();
+window.addEventListener("pageshow", ensureLitePromptButton);
+ensureLitePromptButton();
