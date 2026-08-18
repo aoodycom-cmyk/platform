@@ -1,11 +1,31 @@
 import { normalizeExternalAnalysisReport } from "./schema.js";
+import { inflateQuarterlyEarningsLitePayload, isQuarterlyEarningsLitePayload } from "./quarterlyEarningsLite.js";
 
-export async function parseExternalAnalysisInput(text, { parseUnstructured, now = new Date() } = {}) {
+let quarterlyEarningsLiteReportResolver = null;
+
+export function setQuarterlyEarningsLiteReportResolver(resolver) {
+  quarterlyEarningsLiteReportResolver = typeof resolver === "function" ? resolver : null;
+}
+
+export async function parseExternalAnalysisInput(text, { parseUnstructured, now = new Date(), currentReport = null } = {}) {
   const rawAnalysis = String(text || "").trim();
   if (!rawAnalysis) throw new Error("Paste an external ChatGPT analysis first.");
 
   const localJson = parseJsonCandidate(rawAnalysis);
   if (localJson.ok) {
+    if (isQuarterlyEarningsLitePayload(localJson.value)) {
+      const baseReport = currentReport || await resolveQuarterlyEarningsLiteReport(localJson.value);
+      if (!baseReport) {
+        const error = new Error("Quarterly earnings lite JSON requires an existing saved report for this ticker.");
+        error.userMessage = "هذا JSON تحديث أرباح ربع ويحتاج فتح السهم المحفوظ من شاشة التقرير قبل الاستيراد.";
+        throw error;
+      }
+      return {
+        report: inflateQuarterlyEarningsLitePayload(baseReport, localJson.value, rawAnalysis, now),
+        parserSource: "Quarterly Earnings Lite Parser",
+        usedAi: false
+      };
+    }
     return {
       report: normalizeExternalAnalysisReport(localJson.value, rawAnalysis, { now, importMethod: "structured_json" }),
       parserSource: "Local JSON Parser",
@@ -55,6 +75,11 @@ export function normalizeJsonLikeText(text) {
     .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
     .replace(/\u00A0/g, " ")
     .trim();
+}
+
+async function resolveQuarterlyEarningsLiteReport(payload) {
+  if (typeof quarterlyEarningsLiteReportResolver !== "function") return null;
+  return quarterlyEarningsLiteReportResolver(payload);
 }
 
 function uniqueCandidates(items) {
