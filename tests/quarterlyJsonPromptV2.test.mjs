@@ -7,10 +7,11 @@ const script = readFileSync(new URL("../src/ui/quarterlyEarningsJsonPromptV2.js"
 
 assert.ok(index.includes("quarterlyEarningsJsonPromptV2.js"));
 assert.ok(sw.includes("./src/ui/quarterlyEarningsJsonPromptV2.js"));
-assert.ok(script.includes("نسخ برومبت JSON"));
-assert.ok(script.includes("Return ONLY one valid JSON object"));
-assert.ok(script.includes("EXCEEDED, PASSED, PARTIALLY_PASSED, FAILED, NOT_REPORTED"));
-assert.ok(script.includes("Research the exact selected quarter"));
-assert.ok(script.includes("data-action='prepare-earnings-prompt'"));
+assert.ok(sw.includes("./src/externalAnalysis/quarterlyEarningsLite.js"));
+assert.ok(script.includes("نسخ برومبت الربع المختصر"));
+assert.ok(script.includes("buildQuarterlyEarningsLitePrompt"));
+assert.ok(script.includes("inflateQuarterlyEarningsLitePayload"));
+assert.ok(script.includes("step: 3"));
+assert.ok(script.includes("بدون تقييم سهم كامل أو Fair Value جديد"));
 
-console.log("Quarterly JSON prompt V2 tests passed.");
+console.log("Quarterly JSON prompt V2 lite-mode tests passed.");
