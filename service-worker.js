@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v10-quarterly-scorecard-20260818-earnings-entry-a";
+const CACHE_NAME = "franklin-research-v10-quarterly-scorecard-20260818-json-prompt-a";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -15,6 +15,7 @@ const STATIC_ASSETS = [
   "./src/ui/mobile2Enhancer.js",
   "./src/ui/quarterlyScorecardMobileFigma.js",
   "./src/ui/quarterlyEarningsEntry.js",
+  "./src/ui/quarterlyEarningsJsonPrompt.js",
   "./src/ui/quarterlyScorecardExport.js",
   "./src/externalAnalysis/schema.js",
   "./src/externalAnalysis/requirements.js",
