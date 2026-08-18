@@ -7,6 +7,7 @@ import {
   inflateQuarterlyEarningsLitePayload,
   isQuarterlyEarningsLitePayload
 } from "../src/externalAnalysis/quarterlyEarningsLite.js";
+import { QUARTERLY_FORWARD_OUTLOOK_KIND } from "../src/externalAnalysis/quarterlyForwardOutlook.js";
 
 const current = createDemoExternalAnalysisScenario()[0];
 const prompt = buildQuarterlyEarningsLitePrompt(current, {
@@ -18,6 +19,8 @@ const prompt = buildQuarterlyEarningsLitePrompt(current, {
 assert.ok(prompt.includes(QUARTERLY_EARNINGS_LITE_SCHEMA));
 assert.ok(prompt.includes("لا تعمل DCF"));
 assert.ok(prompt.includes("لا تحسب Fair Value جديدًا"));
+assert.ok(prompt.includes("Forward Outlook"));
+assert.ok(prompt.includes("thesisImpact"));
 assert.ok(prompt.includes("حد أقصى 3"));
 assert.ok(prompt.length < 12000, "Lite prompt should remain compact.");
 
@@ -41,6 +44,14 @@ const payload = {
   },
   companyKpis: [],
   guidance: [{ topic: "Revenue", currentGuidance: "$1.2B-$1.3B", direction: "raised", interpretation: "تم رفع التوجيهات." }],
+  forwardOutlook: {
+    growthOutlook: "accelerating",
+    marginOutlook: "pressured",
+    guidanceTrend: "raised",
+    managementTone: "positive",
+    thesisImpact: "supports",
+    summary: "الإدارة ترى طلبًا أقوى رغم ضغط استثماري مؤقت على الهوامش."
+  },
   requirements: [
     { id: "revenue_growth", actualValue: 34, actualDisplay: "34%", status: "EXCEEDED", evaluationNote: "تجاوز المطلوب." },
     { id: "gross_margin", actualValue: 43, actualDisplay: "43%", status: "FAILED", evaluationNote: "أقل من 45%." },
@@ -60,6 +71,11 @@ assert.equal(inflated.financialHighlights.epsReported, 3.2);
 assert.equal(inflated.previousRequirementsEvaluation.requirements.length, 4);
 assert.equal(inflated.previousRequirementsEvaluation.requirements[0].status, "EXCEEDED");
 assert.equal(inflated.metadata.importMethod, "quarterly_earnings_lite");
+const outlook = inflated.supplements.find((item) => item.kind === QUARTERLY_FORWARD_OUTLOOK_KIND && item.period === "Q4 2026");
+assert.ok(outlook, "Forward outlook should be stored as a quarterly supplement.");
+assert.equal(outlook.growthOutlook, "accelerating");
+assert.equal(outlook.marginOutlook, "pressured");
+assert.equal(outlook.thesisImpact, "supports");
 assert.equal(validateExternalAnalysisReport(inflated).valid, true);
 
 console.log("Quarterly earnings lite tests passed.");
