@@ -1,3 +1,5 @@
+import { buildQuarterlyForwardOutlookIndex } from "./quarterlyForwardOutlook.js";
+
 const QUARTERS = [1, 2, 3, 4];
 const REQUIREMENT_STATUSES = new Set(["EXCEEDED", "PASSED", "PARTIALLY_PASSED", "FAILED", "NOT_REPORTED"]);
 const SET_STATUS_PRIORITY = { EVALUATED: 4, OPEN: 3, SUPERSEDED: 2, CANCELLED: 1 };
@@ -26,7 +28,8 @@ export function buildQuarterlyScorecard({
     .filter(({ period }) => period?.year === selectedYear);
   const quarterSets = selectQuarterSets(sourceSets);
   const rows = alignRequirementRows(quarterSets);
-  const quarters = QUARTERS.map((quarter) => quarterSummary(quarterSets[quarter], quarter));
+  const outlookByQuarter = buildQuarterlyForwardOutlookIndex(reports, selectedYear);
+  const quarters = QUARTERS.map((quarter) => quarterSummary(quarterSets[quarter], quarter, outlookByQuarter[quarter] || null));
   const reportedQuarters = quarters.filter((item) => item.evaluated);
   const latestReportedQuarter = reportedQuarters.at(-1)?.quarter || null;
   const latestSet = [...QUARTERS].reverse().map((quarter) => quarterSets[quarter]).find(Boolean)?.set || null;
@@ -177,7 +180,7 @@ function requirementCell(requirement = {}, set = {}, quarter) {
   };
 }
 
-function quarterSummary(candidate, quarter) {
+function quarterSummary(candidate, quarter, outlook = null) {
   const set = candidate?.set;
   const assessment = set?.requirementsAssessment;
   const weightedAchievement = numberOrNull(assessment?.weightedAchievement);
@@ -193,7 +196,8 @@ function quarterSummary(candidate, quarter) {
     summary: textOrNull(assessment?.summary),
     targetValue: numberOrNull(set?.targetValue ?? set?.nextTargetValue),
     targetScenario: textOrNull(set?.targetScenario),
-    requirementSetId: set?.requirementSetId || null
+    requirementSetId: set?.requirementSetId || null,
+    outlook
   };
 }
 
