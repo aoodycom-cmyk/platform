@@ -13,7 +13,7 @@
   <link rel="manifest" href="./manifest.webmanifest?v=v10-quarterly-scorecard-20260818">
   <script>
     (function () {
-      var version = "v10-quarterly-earnings-entry-20260818a";
+      var version = "v10-quarterly-json-prompt-20260818b";
       if (!("serviceWorker" in navigator) || !("caches" in window)) return;
       if (sessionStorage.getItem("franklin-cache-reset") === version) return;
       sessionStorage.setItem("franklin-cache-reset", version);
@@ -41,5 +41,6 @@
   <script type="module" src="./src/main.js?v=v10-quarterly-scorecard-20260818"></script>
   <script type="module" src="./src/ui/quarterlyScorecardMobileFigma.js?v=v10-figma-mobile-scorecard-20260818a"></script>
   <script type="module" src="./src/ui/quarterlyEarningsEntry.js?v=v10-quarterly-earnings-entry-20260818a"></script>
+  <script type="module" src="./src/ui/quarterlyEarningsJsonPromptV2.js?v=v10-quarterly-json-prompt-20260818b"></script>
 </body>
 </html>
