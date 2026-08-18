@@ -57,7 +57,7 @@ function ensureLitePromptButton() {
 
   const hint = document.createElement("p");
   hint.className = "compact-empty-state quarterly-json-prompt-hint";
-  hint.textContent = "وضع خفيف: أهم أرقام الربع + Guidance + نقاط مختصرة + تقييم المتطلبات فقط. بدون تقييم سهم كامل أو Fair Value جديد.";
+  hint.textContent = "وضع خفيف: أهم أرقام الربع + Guidance + Forward Outlook + تقييم المتطلبات. بدون تقييم سهم كامل أو Fair Value جديد.";
   actions.insertAdjacentElement("beforebegin", hint);
 }
 
