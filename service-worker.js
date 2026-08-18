@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v10-quarterly-scorecard-20260818-earnings-lite-c";
+const CACHE_NAME = "franklin-research-v10-quarterly-scorecard-20260818-forward-outlook-a";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -22,6 +22,7 @@ const STATIC_ASSETS = [
   "./src/externalAnalysis/historicalRequirements.js",
   "./src/externalAnalysis/quarterlyScorecard.js",
   "./src/externalAnalysis/quarterlyEarningsLite.js",
+  "./src/externalAnalysis/quarterlyForwardOutlook.js",
   "./src/externalAnalysis/fairValueAdapter.js",
   "./src/externalAnalysis/parser.js",
   "./src/externalAnalysis/externalAnalysisSchemaValidator.js",
