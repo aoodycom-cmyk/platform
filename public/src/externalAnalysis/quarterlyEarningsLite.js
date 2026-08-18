@@ -29,6 +29,7 @@ export function buildQuarterlyEarningsLitePrompt(report = {}, options = {}) {
   const earningsText = stripQuarterContext(options.earningsText || "");
   const requirementBlock = report.priceTargetRequirements || {};
   const requirements = compactRequirements(requirementBlock.requirements || []);
+  const currentThesis = trimText(report.thesis?.shortSummary, 520);
   const template = {
     schemaVersion: QUARTERLY_EARNINGS_LITE_SCHEMA,
     ticker: ticker || null,
@@ -80,6 +81,7 @@ export function buildQuarterlyEarningsLitePrompt(report = {}, options = {}) {
     "- أضف Forward Outlook مختصرًا فقط إذا كان الإعلان أو Guidance أو تعليق الإدارة يعطي معلومات مستقبلية حقيقية عن النمو أو الهوامش أو الطلب أو القدرة أو التنفيذ.",
     "- Forward Outlook ليس تقييمًا جديدًا للسهم: لا تغيّر Fair Value ولا تصدر توصية جديدة. thesisImpact يقيس فقط هل هذا الربع يدعم فرضية الاستثمار الحالية أو يضعفها.",
     "- إذا لم توجد معلومات مستقبلية كافية، استخدم unclear / not_reported واجعل forwardOutlook.summary = null بدل الاستنتاج أو التخمين.",
+    "- إذا كانت فرضية الاستثمار الحالية غير متوفرة أدناه، اجعل thesisImpact = unclear ولا تنشئ فرضية جديدة.",
     "- استخدم المصادر الرسمية للشركة وSEC أولًا إذا لم يرفق المستخدم نص الإعلان.",
     "- لا تخترع أي رقم؛ استخدم null عند عدم التوفر.",
     "- اجعل summary من سطر أو سطرين، highlights بحد أقصى 3، concerns بحد أقصى 2، companyKpis بحد أقصى 4، guidance بحد أقصى 3، وforwardOutlook.summary بحد أقصى سطرين.",
@@ -92,6 +94,9 @@ export function buildQuarterlyEarningsLitePrompt(report = {}, options = {}) {
     "- لا تصدر BUY/ADD/HOLD/WATCH/REDUCE/SELL جديدة.",
     "- لا تكتب Company Profile أو تحليل صناعة أو سيناريوهات أو Forecast طويل.",
     "- لا تعيد كتابة التقرير السابق.",
+    "",
+    "فرضية الاستثمار الحالية للمقارنة فقط:",
+    currentThesis || "- غير متوفرة؛ لا تنشئ فرضية بديلة واجعل thesisImpact = unclear.",
     "",
     "المتطلبات السابقة التي يجب تقييمها فقط:",
     JSON.stringify(requirements),
