@@ -30,6 +30,7 @@ export function buildQuarterlyEarningsLitePrompt(report = {}, options = {}) {
   const requirementBlock = report.priceTargetRequirements || {};
   const requirements = compactRequirements(requirementBlock.requirements || []);
   const currentThesis = trimText(report.thesis?.shortSummary, 520);
+  const targetQuarter = trimText(requirementBlock.targetQuarter || requirementBlock.earningsPeriod, 40);
   const template = {
     schemaVersion: QUARTERLY_EARNINGS_LITE_SCHEMA,
     ticker: ticker || null,
@@ -86,6 +87,9 @@ export function buildQuarterlyEarningsLitePrompt(report = {}, options = {}) {
     "- لا تخترع أي رقم؛ استخدم null عند عدم التوفر.",
     "- اجعل summary من سطر أو سطرين، highlights بحد أقصى 3، concerns بحد أقصى 2، companyKpis بحد أقصى 4، guidance بحد أقصى 3، وforwardOutlook.summary بحد أقصى سطرين.",
     "- قارن فقط المتطلبات السابقة المرفقة أدناه، ولا تنشئ متطلبات جديدة.",
+    "- إذا كان المتطلب هدفًا لربع لاحق، سجّل actualValue/actualDisplay لهذا الربع فقط عندما يكون نفس الـKPI قابلًا للمقارنة، لكن أبقِ status = NOT_REPORTED حتى يصل الربع المستهدف؛ هذا Observation للتقدم وليس حكمًا نهائيًا.",
+    "- لا تستخدم رقم الربع الحالي بدل متطلب يذكر ربعًا مستقبليًا صراحةً؛ مثال: Q1 Net Sales لا يملأ متطلب Q3 Net Sales.",
+    "- في evaluationNote وضّح باختصار أن القراءة الحالية ملاحظة تقدم إذا لم يصل الربع المستهدف بعد.",
     "",
     "ممنوع في هذه المهمة:",
     "- لا تعمل تحليل سهم كامل.",
@@ -97,6 +101,9 @@ export function buildQuarterlyEarningsLitePrompt(report = {}, options = {}) {
     "",
     "فرضية الاستثمار الحالية للمقارنة فقط:",
     currentThesis || "- غير متوفرة؛ لا تنشئ فرضية بديلة واجعل thesisImpact = unclear.",
+    "",
+    "الربع المستهدف للمتطلبات الحالية:",
+    targetQuarter || "- غير محدد.",
     "",
     "المتطلبات السابقة التي يجب تقييمها فقط:",
     JSON.stringify(requirements),
@@ -125,8 +132,6 @@ export function inflateQuarterlyEarningsLitePayload(currentReport = {}, payload 
   const requirementBlock = currentReport.priceTargetRequirements || {};
   const requirements = Array.isArray(payload.requirements) ? payload.requirements.map(normalizeLiteRequirement) : [];
   const summary = trimText(payload.summary, 400);
-  const highlights = limitStrings(payload.highlights, 3, 220);
-  const concerns = limitStrings(payload.concerns, 2, 220);
   const guidance = normalizeLiteGuidance(payload.guidance).slice(0, 3);
   const companyKpis = normalizeLiteKpis(payload.companyKpis).slice(0, 4);
   const forwardOutlook = normalizeQuarterlyForwardOutlook(payload.forwardOutlook);
@@ -166,10 +171,8 @@ export function inflateQuarterlyEarningsLitePayload(currentReport = {}, payload 
     },
     guidance,
     companySpecificKpis: enrichMetricsAsKpis(companyKpis, metrics),
-    catalysts: highlights.map((item) => ({ title: item, explanation: item })),
-    risks: concerns.length
-      ? concerns.map((item) => ({ title: item, severity: "Quarterly", explanation: item, whatToMonitor: null, thesisBreaker: null }))
-      : (currentReport.risks || []),
+    catalysts: currentReport.catalysts || [],
+    risks: currentReport.risks || [],
     supplements: upsertQuarterlyForwardOutlookSupplement(currentReport.supplements, reportPeriod, forwardOutlook),
     previousRequirementsEvaluation: {
       requirementSetId: payload.requirementSetId || requirementBlock.requirementSetId || null,
@@ -183,7 +186,7 @@ export function inflateQuarterlyEarningsLitePayload(currentReport = {}, payload 
       summary: summary || null,
       matchType: "quarterly_earnings_lite",
       previousQuarter: requirementBlock.previousQuarter || null,
-      targetQuarter: reportPeriod,
+      targetQuarter: requirementBlock.targetQuarter || requirementBlock.earningsPeriod || reportPeriod,
       requirements,
       requirementsAssessment: null
     },
@@ -290,10 +293,6 @@ function metricNumber(item) {
 
 function metricDisplay(item) {
   return trimText(item?.display, 120);
-}
-
-function limitStrings(items, max, maxLength) {
-  return (Array.isArray(items) ? items : []).map((item) => trimText(item, maxLength)).filter(Boolean).slice(0, max);
 }
 
 function trimText(value, maxLength = 240) {
