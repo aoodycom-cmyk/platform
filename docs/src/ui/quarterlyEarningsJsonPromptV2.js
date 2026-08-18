@@ -1,8 +1,4 @@
-import {
-  buildQuarterlyEarningsLitePrompt,
-  inflateQuarterlyEarningsLitePayload,
-  isQuarterlyEarningsLitePayload
-} from "../externalAnalysis/quarterlyEarningsLite.js";
+import { buildQuarterlyEarningsLitePrompt } from "../externalAnalysis/quarterlyEarningsLite.js";
 
 const CONTEXT_KEY = "quarterlyEarningsEntryContext";
 const BUTTON_ATTR = "data-copy-quarterly-json-prompt";
@@ -57,7 +53,7 @@ function ensureLitePromptButton() {
 
   const hint = document.createElement("p");
   hint.className = "compact-empty-state quarterly-json-prompt-hint";
-  hint.textContent = "وضع خفيف: أهم أرقام الربع + Guidance + Forward Outlook + تقييم المتطلبات. بدون تقييم سهم كامل أو Fair Value جديد.";
+  hint.textContent = "وضع خفيف: نتائج الربع + تقدم الأهداف + Guidance + Forward Outlook. بدون تقييم سهم كامل أو Fair Value جديد.";
   actions.insertAdjacentElement("beforebegin", hint);
 }
 
@@ -97,44 +93,6 @@ async function copyLitePrompt(context, pasteStep) {
     showLocalFeedback("تعذر النسخ التلقائي. ظهر البرومبت المختصر لنسخه يدويًا.", true);
   }
 }
-
-document.addEventListener("click", async (event) => {
-  const button = event.target.closest?.("[data-action='parse-earnings-update-json']");
-  if (!button) return;
-  const textarea = document.querySelector("[data-earnings-field='responseText']");
-  const raw = String(textarea?.value || "").trim();
-  if (!raw) return;
-
-  let payload;
-  try {
-    payload = JSON.parse(raw);
-  } catch {
-    return;
-  }
-  if (!isQuarterlyEarningsLitePayload(payload)) return;
-
-  event.preventDefault();
-  event.stopImmediatePropagation();
-
-  const store = currentStore();
-  const report = selectedReport(store);
-  if (!store || !report) {
-    showLocalFeedback("تعذر العثور على التقرير السابق لهذا السهم.", true);
-    return;
-  }
-
-  try {
-    const inflated = inflateQuarterlyEarningsLitePayload(report, payload, raw);
-    const fullJson = JSON.stringify(inflated);
-    if (textarea) {
-      textarea.value = fullJson;
-      textarea.dispatchEvent(new Event("input", { bubbles: true }));
-    }
-    await store.parseEarningsUpdateJson(fullJson);
-  } catch (error) {
-    showLocalFeedback(error.message || "تعذر قراءة JSON المختصر.", true);
-  }
-}, true);
 
 function showLocalFeedback(message, isError = false) {
   let feedback = document.querySelector(".quarterly-json-prompt-feedback");
