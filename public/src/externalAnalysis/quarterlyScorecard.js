@@ -2,7 +2,7 @@ import { buildQuarterlyForwardOutlookIndex } from "./quarterlyForwardOutlook.js"
 
 const QUARTERS = [1, 2, 3, 4];
 const REQUIREMENT_STATUSES = new Set(["EXCEEDED", "PASSED", "PARTIALLY_PASSED", "FAILED", "NOT_REPORTED"]);
-const SET_STATUS_PRIORITY = { EVALUATED: 4, OPEN: 3, SUPERSEDED: 2, CANCELLED: 1 };
+const SET_STATUS_PRIORITY = { EVALUATED: 5, OBSERVED: 4, OPEN: 3, SUPERSEDED: 2, CANCELLED: 1 };
 
 export function availableQuarterlyScorecardYears(historicalRequirementSets = {}, ticker = "") {
   const normalizedTicker = normalizeTicker(ticker);
@@ -21,36 +21,45 @@ export function buildQuarterlyScorecard({
 } = {}) {
   const normalizedTicker = normalizeTicker(ticker);
   const years = availableQuarterlyScorecardYears(historicalRequirementSets, normalizedTicker);
-  const selectedYear = Number(year) || years[0] || null;
   const reports = Array.isArray(externalAnalyses?.[normalizedTicker]) ? externalAnalyses[normalizedTicker] : [];
+  const reportYears = reports.map((report) => parseQuarterPeriod(report?.reportPeriod)?.year).filter(Number.isFinite);
+  const selectedYear = Number(year) || years[0] || reportYears.sort((a, b) => b - a)[0] || null;
   const sourceSets = (historicalRequirementSets?.[normalizedTicker] || [])
+    .map((set) => sanitizePrematureEvaluation(set, reports))
     .map((set) => ({ set, period: parseQuarterPeriod(set?.targetQuarter || set?.earningsPeriod) }))
     .filter(({ period }) => period?.year === selectedYear);
-  const quarterSets = selectQuarterSets(sourceSets);
+  const observationSets = buildQuarterObservationSets(reports, selectedYear);
+  const quarterSets = selectQuarterSets([...sourceSets, ...observationSets]);
   const rows = alignRequirementRows(quarterSets);
   const outlookByQuarter = buildQuarterlyForwardOutlookIndex(reports, selectedYear);
   const quarters = QUARTERS.map((quarter) => quarterSummary(quarterSets[quarter], quarter, outlookByQuarter[quarter] || null));
   const reportedQuarters = quarters.filter((item) => item.evaluated);
   const latestReportedQuarter = reportedQuarters.at(-1)?.quarter || null;
-  const latestSet = [...QUARTERS].reverse().map((quarter) => quarterSets[quarter]).find(Boolean)?.set || null;
+  const latestTargetSet = [...QUARTERS]
+    .reverse()
+    .map((quarter) => sourceSets.find((candidate) => candidate.period?.quarter === quarter)?.set)
+    .find(Boolean) || null;
   const latestReport = findLatestReport(reports, selectedYear);
 
   return {
     ticker: normalizedTicker,
     companyName: latestReport?.company?.name || normalizedTicker,
     year: selectedYear,
-    years,
+    years: [...new Set([...years, ...reportYears])].sort((left, right) => right - left),
     quarters,
     rows,
     latestReportedQuarter,
     reportedQuarterCount: reportedQuarters.length,
     trajectory: storedAchievementTrajectory(reportedQuarters),
     overallStatus: reportedQuarters.at(-1)?.overallStatus || null,
-    target: latestSet ? {
-      value: numberOrNull(latestSet.targetValue ?? latestSet.nextTargetValue),
-      scenario: textOrNull(latestSet.targetScenario),
-      description: textOrNull(latestSet.targetDescription || latestSet.summary),
-      trend: storedTargetTrend(quarters)
+    target: latestTargetSet ? {
+      value: numberOrNull(latestTargetSet.targetValue ?? latestTargetSet.nextTargetValue),
+      scenario: textOrNull(latestTargetSet.targetScenario),
+      description: textOrNull(latestTargetSet.targetDescription || latestTargetSet.summary),
+      trend: storedTargetTrend(sourceSets.map(({ set, period }) => ({
+        quarter: period.quarter,
+        targetValue: numberOrNull(set?.targetValue ?? set?.nextTargetValue)
+      })))
     } : null,
     fairValue: latestReport ? {
       bear: numberOrNull(latestReport.fairValueSummary?.fairValueLow),
@@ -99,6 +108,52 @@ export function normalizeRequirementAlias(value) {
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim()
     .replace(/\s+/g, " ");
+}
+
+function buildQuarterObservationSets(reports = [], selectedYear) {
+  return reports.map((report) => {
+    const period = parseQuarterPeriod(report?.reportPeriod || report?.previousRequirementsEvaluation?.earningsPeriod);
+    const evaluation = report?.previousRequirementsEvaluation;
+    if (!period || period.year !== selectedYear || !Array.isArray(evaluation?.requirements) || !evaluation.requirements.length) return null;
+    const hasActual = evaluation.requirements.some(hasRequirementActual);
+    if (!hasActual) return null;
+    return {
+      period,
+      set: {
+        ...evaluation,
+        requirementSetId: evaluation.requirementSetId || `OBS-${report.id || `${period.quarter}-${period.year}`}`,
+        status: "OBSERVED",
+        earningsPeriod: report.reportPeriod || evaluation.earningsPeriod || `Q${period.quarter} ${period.year}`,
+        evaluatedAt: report.analysisDate || report.metadata?.updatedAt || report.metadata?.importedAt || null,
+        requirementsAssessment: evaluation.requirementsAssessment || report.requirementsAssessment || null
+      }
+    };
+  }).filter(Boolean);
+}
+
+function sanitizePrematureEvaluation(set = {}, reports = []) {
+  if (set.status !== "EVALUATED" || !set.evaluatedByAnalysisId) return set;
+  const target = parseQuarterPeriod(set.targetQuarter || set.earningsPeriod);
+  const evaluationReport = reports.find((report) => report?.id === set.evaluatedByAnalysisId);
+  const reported = parseQuarterPeriod(evaluationReport?.reportPeriod);
+  if (!target || !reported || (target.quarter === reported.quarter && target.year === reported.year)) return set;
+  return {
+    ...set,
+    status: "OPEN",
+    evaluatedByAnalysisId: null,
+    evaluatedAt: null,
+    requirementsAssessment: null,
+    requirements: (set.requirements || []).map((requirement) => ({
+      ...requirement,
+      actualValue: null,
+      actualDisplay: null,
+      actualRaw: null,
+      direction: "unknown",
+      impact: "unknown",
+      status: "NOT_REPORTED",
+      evaluationNote: null
+    }))
+  };
 }
 
 function selectQuarterSets(sourceSets = []) {
@@ -160,6 +215,7 @@ function alignRequirementRows(quarterSets = {}) {
 
 function requirementCell(requirement = {}, set = {}, quarter) {
   const status = normalizeRequirementStatus(requirement.status);
+  const hasActual = hasRequirementActual(requirement);
   return {
     quarter,
     requirementSetId: set.requirementSetId || null,
@@ -176,7 +232,8 @@ function requirementCell(requirement = {}, set = {}, quarter) {
     impact: requirement.impact || "unknown",
     evaluationNote: requirement.evaluationNote || null,
     weight: numberOrNull(requirement.weight),
-    reported: set.status === "EVALUATED" && status !== "NOT_REPORTED"
+    reported: hasActual || (set.status === "EVALUATED" && status !== "NOT_REPORTED"),
+    observation: set.status === "OBSERVED"
   };
 }
 
@@ -184,8 +241,8 @@ function quarterSummary(candidate, quarter, outlook = null) {
   const set = candidate?.set;
   const assessment = set?.requirementsAssessment;
   const weightedAchievement = numberOrNull(assessment?.weightedAchievement);
-  const hasReportedRequirement = (set?.requirements || []).some((requirement) => normalizeRequirementStatus(requirement?.status) !== "NOT_REPORTED");
-  const evaluated = set?.status === "EVALUATED" && (hasReportedRequirement || Number.isFinite(weightedAchievement));
+  const hasReportedRequirement = (set?.requirements || []).some((requirement) => hasRequirementActual(requirement) || normalizeRequirementStatus(requirement?.status) !== "NOT_REPORTED");
+  const evaluated = ["EVALUATED", "OBSERVED"].includes(set?.status) && (hasReportedRequirement || Number.isFinite(weightedAchievement));
   return {
     quarter,
     label: `Q${quarter}`,
@@ -212,7 +269,10 @@ function storedAchievementTrajectory(reportedQuarters = []) {
 }
 
 function storedTargetTrend(quarters = []) {
-  const values = quarters.map((quarter) => quarter.targetValue).filter(Number.isFinite);
+  const values = [...quarters]
+    .sort((left, right) => (left.quarter || 0) - (right.quarter || 0))
+    .map((quarter) => quarter.targetValue)
+    .filter(Number.isFinite);
   if (values.length < 2) return null;
   if (values.at(-1) > values[0]) return "up";
   if (values.at(-1) < values[0]) return "down";
@@ -226,6 +286,12 @@ function requirementAliases(requirement = {}) {
     requirement.arabicName,
     stripQuarterSuffix(requirement.id)
   ].map(normalizeRequirementAlias).filter(Boolean))];
+}
+
+function hasRequirementActual(requirement = {}) {
+  return requirement.actualValue !== null && requirement.actualValue !== undefined
+    || Boolean(textOrNull(requirement.actualDisplay))
+    || requirement.actualRaw !== null && requirement.actualRaw !== undefined;
 }
 
 function normalizeStableId(value) {
