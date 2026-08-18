@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v10-quarterly-earnings-entry-20260818a";
+const CACHE_NAME = "franklin-research-v10-quarterly-scorecard-20260818-earnings-entry-a";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
