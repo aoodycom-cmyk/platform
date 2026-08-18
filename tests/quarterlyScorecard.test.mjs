@@ -7,6 +7,7 @@ import {
   normalizeRequirementAlias,
   parseQuarterPeriod
 } from "../src/externalAnalysis/quarterlyScorecard.js";
+import { QUARTERLY_FORWARD_OUTLOOK_KIND } from "../src/externalAnalysis/quarterlyForwardOutlook.js";
 
 const historicalRequirementSets = {
   DEMO: [
@@ -31,7 +32,29 @@ const externalAnalyses = {
     analysisDate: "2026-08-08",
     reportPeriod: "Q2 2026",
     company: { ticker: "DEMO", name: "Demo Company" },
-    fairValueSummary: { fairValueLow: 45, fairValueBase: 60, fairValueHigh: 100 }
+    fairValueSummary: { fairValueLow: 45, fairValueBase: 60, fairValueHigh: 100 },
+    supplements: [
+      {
+        kind: QUARTERLY_FORWARD_OUTLOOK_KIND,
+        period: "Q1 2026",
+        growthOutlook: "stable",
+        marginOutlook: "pressured",
+        guidanceTrend: "maintained",
+        managementTone: "cautious",
+        thesisImpact: "neutral",
+        summary: "النمو مستقر لكن الهوامش تحت ضغط."
+      },
+      {
+        kind: QUARTERLY_FORWARD_OUTLOOK_KIND,
+        period: "Q2 2026",
+        growthOutlook: "accelerating",
+        marginOutlook: "improving",
+        guidanceTrend: "raised",
+        managementTone: "positive",
+        thesisImpact: "supports",
+        summary: "النمو والهوامش يتحسنان والتوجيهات ارتفعت."
+      }
+    ]
   }]
 };
 
@@ -74,26 +97,37 @@ assert.deepEqual(availableQuarterlyScorecardYears(historicalRequirementSets, "de
 assert.equal(scorecard.rows.length, 2);
 assert.equal(scorecard.companyName, "Demo Company");
 
-// 8. Export model generation is deterministic and does not mutate source state.
+// 8. Forward outlook is attached to the correct quarter and does not fabricate future-quarter views.
+assert.equal(scorecard.quarters[0].outlook.growthOutlook, "stable");
+assert.equal(scorecard.quarters[0].outlook.thesisImpact, "neutral");
+assert.equal(scorecard.quarters[1].outlook.growthOutlook, "accelerating");
+assert.equal(scorecard.quarters[1].outlook.guidanceTrend, "raised");
+assert.equal(scorecard.quarters[1].outlook.thesisImpact, "supports");
+assert.equal(scorecard.quarters[2].outlook, null);
+assert.equal(scorecard.quarters[3].outlook, null);
+
+// 9. Export model generation is deterministic and does not mutate source state.
 const before = JSON.stringify({ historicalRequirementSets, externalAnalyses, scorecard });
 const exportModel = createQuarterlyScorecardExportModel(scorecard, new Date("2026-08-18T12:00:00.000Z"));
 assert.equal(exportModel.exportedAt, "2026-08-18T12:00:00.000Z");
 assert.equal(exportModel.rows[0].cells[4], null);
+assert.equal(exportModel.quarters[1].outlook.thesisImpact, "supports");
 assert.equal(JSON.stringify({ historicalRequirementSets, externalAnalyses, scorecard }), before);
 
 const components = readFileSync(new URL("../src/ui/components.js", import.meta.url), "utf8");
 const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 const store = readFileSync(new URL("../src/state/store.js", import.meta.url), "utf8");
+const mobileScorecard = readFileSync(new URL("../src/ui/quarterlyScorecardMobileFigma.js", import.meta.url), "utf8");
 
-// 9. Price Target Requirements exposes the scorecard entry point.
+// 10. Price Target Requirements exposes the scorecard entry point.
 assert.ok(components.includes('data-action="open-quarterly-scorecard"'));
 assert.ok(components.includes("Quarterly Scorecard"));
 
-// 10. Back navigation restores the originating saved report.
+// 11. Back navigation restores the originating saved report.
 assert.ok(store.includes("function closeQuarterlyScorecard()"));
 assert.ok(store.includes('openExternalReport(scorecard.originTicker || scorecard.ticker, scorecard.originReportId || "latest")'));
 
-// 11. Mobile uses cards and explicitly prevents page-level horizontal overflow.
+// 12. Mobile uses cards and explicitly prevents page-level horizontal overflow.
 assert.ok(styles.includes(".quarterly-mobile-cards"));
 assert.ok(styles.includes(".quarterly-desktop-matrix {\n  display: none;"));
 assert.ok(styles.includes("overflow-x: hidden"));
@@ -101,7 +135,12 @@ assert.ok(styles.includes("grid-template-columns: repeat(4, minmax(0, 1fr))"));
 const scorecardStyles = styles.slice(styles.indexOf(".quarterly-scorecard-entry"), styles.indexOf("@media (max-width: 374px)"));
 assert.equal(scorecardStyles.includes("font-size: 9px"), false, "New scorecard styles must not introduce 9px labels.");
 
-// 12. Existing report/history/navigation panels remain present.
+// 13. Forward Outlook has a dedicated scorecard UI and never edits valuation/recommendation fields.
+assert.ok(mobileScorecard.includes("quarterly-forward-outlook"));
+assert.ok(mobileScorecard.includes("النظرة المستقبلية عبر الأرباع"));
+assert.ok(mobileScorecard.includes("دون تغيير القيمة العادلة أو التوصية الأساسية"));
+
+// 14. Existing report/history/navigation panels remain present.
 for (const panel of ["external-report", "company-profile", "history", "settings", "external-import"]) {
   assert.ok(components.includes(`"${panel}"`), `${panel} navigation must remain available.`);
 }
