@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v10-quarterly-scorecard-20260818-json-prompt-b";
+const CACHE_NAME = "franklin-research-v10-quarterly-scorecard-20260818-earnings-lite-c";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -21,6 +21,7 @@ const STATIC_ASSETS = [
   "./src/externalAnalysis/requirements.js",
   "./src/externalAnalysis/historicalRequirements.js",
   "./src/externalAnalysis/quarterlyScorecard.js",
+  "./src/externalAnalysis/quarterlyEarningsLite.js",
   "./src/externalAnalysis/fairValueAdapter.js",
   "./src/externalAnalysis/parser.js",
   "./src/externalAnalysis/externalAnalysisSchemaValidator.js",
@@ -85,13 +86,7 @@ self.addEventListener("fetch", (event) => {
 });
 
 function fetchAndCache(request, url) {
-  return fetch(request).then((response) => {
-    if (response.ok && isSafeStaticAsset(url)) {
-      const clone = response.clone();
-      caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-    }
-    return response;
-  });
+  return fetch(event.request).then((response) => response);
 }
 
 function isVersionedAppAsset(url) {
