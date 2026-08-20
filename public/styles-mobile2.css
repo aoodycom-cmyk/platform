@@ -134,9 +134,8 @@
   .earnings-empty-state,
   .strength-risk-compare { font-size:var(--mobile-card-body-size); font-weight:400; }
   .investment-summary-workspace > p { font-size:var(--mobile-card-body-size); line-height:1.65; }
-  .qgr-row summary { min-height:62px; grid-template-columns:minmax(0,1fr) minmax(76px,96px) auto auto; padding:11px 12px; }
+  .qgr-row summary { min-height:62px; grid-template-columns:minmax(0,1fr) 40px auto auto; padding:11px 12px; }
   .qgr-row summary span:first-child { font-size:14px; }
-  .qgr-score-visual { grid-template-columns:30px minmax(34px,1fr); gap:6px; }
   .qgr-score-visual strong { font-size:17px; }
   .qgr-row summary em { font-size:11px; }
   .earnings-dashboard-head { align-items:center; gap:8px; }

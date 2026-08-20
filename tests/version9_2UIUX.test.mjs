@@ -134,8 +134,9 @@ assert.ok(language.includes("أسهمي"), "Arabic My Stocks positioning must be
 assert.ok(language.includes("عن الشركة"), "Company Profile label must be localized in Arabic.");
 assert.ok(language.includes("اكتمال البيانات"), "Arabic data completion label must be localized.");
 assert.ok(language.includes("صحة البيانات"), "Arabic data health label must be localized.");
-assert.ok(language.includes("السيناريو المتحفظ"), "Arabic Bear case helper label must be localized.");
-assert.ok(language.includes("السيناريو المتفائل"), "Arabic Bull case helper label must be localized.");
+assert.ok(language.includes('"Bear Scenario Label": "Bear"'), "Bear scenario labels must remain the standard English financial term.");
+assert.ok(language.includes('"Base Scenario Label": "Base"'), "Base scenario labels must remain the standard English financial term.");
+assert.ok(language.includes('"Bull Scenario Label": "Bull"'), "Bull scenario labels must remain the standard English financial term.");
 assert.ok(language.includes("اكتب الرمز هنا إذا كان التقرير الملصوق لا يذكر رمز السهم بوضوح."), "Ticker fallback helper text must be localized.");
 assert.ok(language.includes("انسخ برومبت Fair value الرسمي، أرسله إلى ChatGPT، ثم الصق رد JSON هنا."), "ChatGPT prep copy must be localized.");
 assert.ok(language.includes("تحليل إعلان الأرباح الجديد"), "Analyze New Earnings action must be localized in Arabic.");

@@ -5,6 +5,7 @@ import {
   bottomNavigationMarkup,
   companyLogoMarkup
 } from "../src/ui/foundation.js";
+import { mixedDirectionMarkup } from "../src/ui/components.js";
 
 const rootCss = read("../styles.css");
 const mobileCss = read("../styles-mobile2.css");
@@ -29,7 +30,7 @@ for (const token of [
   "--radius:",
   "--space-4:",
   "--tap:",
-  "--app-max-width: 440px"
+  "--app-max-width: 402px"
 ]) {
   assert.ok(rootCss.includes(token), `Foundation token missing: ${token}`);
 }
@@ -73,7 +74,19 @@ assert.equal(/localStorage|indexedDB|removeItem|\.clear\s*\(/.test(foundationSou
 assert.ok(componentSource.includes('class="library-hero"'), "Investment Library identity must remain visible on Home.");
 assert.ok(componentSource.includes('class="investment-library-summary"'), "Home must retain its compact portfolio indicators.");
 assert.ok(componentSource.includes("companyLogoMarkup({"), "Library and report identity must use the shared logo primitive.");
-assert.ok(componentSource.includes('class="qgr-score-visual"'), "Report score rows must retain their visual indicators.");
+assert.ok(componentSource.includes('class="qgr-score-visual"'), "Report score rows must retain their compact numeric scores.");
+assert.equal(componentSource.includes('style="width:${scoreMeterWidth(row.value)}%"'), false, "The obsolete colored score meter must not render in the report.");
+assert.ok(componentSource.includes("export function mixedDirectionMarkup"), "Mixed Arabic/English prose must use the shared bidi formatter.");
+assert.ok(componentSource.includes('<bdi dir="ltr">'), "English and financial fragments must be isolated inside Arabic prose.");
+const mixedProse = mixedDirectionMarkup("تستفيد الشركة من Futu Holdings مع Base Case بقيمة $150.");
+assert.ok(mixedProse.includes('<bdi dir="ltr">Futu Holdings</bdi>'));
+assert.ok(mixedProse.includes('<bdi dir="ltr">Base Case</bdi>'));
+assert.ok(mixedProse.includes('<bdi dir="ltr">$150</bdi>'));
+const previewStart = componentSource.indexOf("function externalPreviewPanel");
+const previewEnd = componentSource.indexOf("function externalInput", previewStart);
+const previewSource = componentSource.slice(previewStart, previewEnd);
+assert.equal(previewSource.includes('externalInput("scores.'), false, "ChatGPT-supplied score controls must not appear in the import preview.");
+assert.equal(previewSource.includes('externalInput("decision.investmentScore"'), false, "The overall score control must not appear in the import preview.");
 assert.ok(enhancerSource.includes('scenarioCell("Bear"') && enhancerSource.includes('scenarioCell("Base"') && enhancerSource.includes('scenarioCell("Bull"'));
 assert.ok(premiumCss.includes(".stock-summary-metric.bear strong { color: var(--fr-red); }"));
 assert.ok(premiumCss.includes(".stock-summary-metric.base strong { color: var(--fr-amber); }"));

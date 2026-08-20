@@ -30,7 +30,8 @@ const longPlainText = "Long plain catalyst text that must stay compact in the ro
 const plainTextHtml = compactEvidenceList([longPlainText], "", "catalyst");
 assert.ok(plainTextHtml.includes("plain-text-preview"), "Plain-string evidence must use the clamped mobile title treatment.");
 assert.equal(plainTextHtml.includes("<small"), false, "Plain-string evidence must not duplicate the same text in a secondary row preview.");
-assert.ok(plainTextHtml.split("<template")[1]?.includes(longPlainText), "The complete plain string must remain available inside the detail sheet.");
+const plainTextDetail = plainTextHtml.split("<template")[1]?.replace(/<[^>]+>/g, "");
+assert.ok(plainTextDetail?.includes(longPlainText), "The complete plain string must remain available inside the detail sheet.");
 
 const checklistItem = { metric: "Revenue Growth", currentValue: "34%", focus: "Compare against guidance" };
 const checklistFields = evidenceDetailFields(checklistItem);

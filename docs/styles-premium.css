@@ -299,9 +299,7 @@ html[data-theme="dark"] .qgr-row {
   border-color: rgba(148, 163, 184, .1);
   background: rgba(255, 255, 255, .018);
 }
-html[data-theme="dark"] .qgr-score-visual i { background: rgba(148, 163, 184, .11); }
 html[data-theme="dark"] .qgr-tone-quality .qgr-score-visual strong { color: var(--fr-green); }
-html[data-theme="dark"] .qgr-tone-quality .qgr-score-visual i b { background: var(--fr-green); }
 html[data-theme="dark"] .stock-report-section > header {
   padding: 15px 17px;
   border-bottom-color: rgba(148,163,184,.09);

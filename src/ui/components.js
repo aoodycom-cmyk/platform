@@ -894,12 +894,11 @@ function moneySignal(value, digits = 0) {
 
 function valuationSummaryItem(label, value, currentPrice) {
   const className = `valuation-card ${valuationScenarioClass(label)}`;
-  const subtitle = `${label} Case`;
   const primaryLabel = label === "Bear" ? uiLabel("Bear Scenario Label") : label === "Bull" ? uiLabel("Bull Scenario Label") : uiLabel("Base Scenario Label");
   const delta = Number.isFinite(value) && Number.isFinite(currentPrice) && currentPrice > 0 ? (value - currentPrice) / currentPrice : null;
   return `
     <article class="${className}">
-      <span>${escapeHtml(primaryLabel)} <em>${escapeHtml(subtitle)}</em></span>
+      <span>${escapeHtml(primaryLabel)}</span>
       <strong>${money(value, 0)}</strong>
       <small>${Number.isFinite(delta) ? formatSignedPercent(delta) : "-"}</small>
     </article>
@@ -1044,7 +1043,7 @@ function externalImportPanel(state) {
         <p>${uiLabel("Use this when the pasted report does not clearly include the ticker.")}</p>
       </div>
       ${externalChatGptPrepCard(state)}
-      <textarea class="paste-box external-paste-box" data-external-raw placeholder="${uiLabel("Paste completed ChatGPT analysis or ExternalAnalysisReport JSON here.")}">${escapeHtml(state.externalImport?.rawText || "")}</textarea>
+      <textarea class="paste-box external-paste-box" data-external-raw dir="auto" placeholder="${uiLabel("Paste completed ChatGPT analysis or ExternalAnalysisReport JSON here.")}">${escapeHtml(state.externalImport?.rawText || "")}</textarea>
       <div class="external-import-actions">
         <button class="primary-btn" data-action="parse-external-analysis" ${state.loading ? "disabled" : ""}>${state.loading ? uiLabel("Parsing") : uiLabel("Parse Analysis")}</button>
         <button class="icon-btn" data-action="clear-external-import">${uiLabel("Clear")}</button>
@@ -1203,7 +1202,7 @@ function supplementaryInputPanel(report, completion, state) {
       <div class="supplement-missing-mini">
         ${missing.slice(0, 6).map((item) => `<span><b>${escapeHtml(item.labelAr || item.path)}</b><em dir="ltr">${escapeHtml(item.path)}</em></span>`).join("")}
       </div>
-      <textarea class="paste-box supplement-paste-box" data-supplement-raw placeholder="${uiLabel("Paste supplementary ChatGPT response here.")}">${escapeHtml(supplement.rawText || "")}</textarea>
+      <textarea class="paste-box supplement-paste-box" data-supplement-raw dir="auto" placeholder="${uiLabel("Paste supplementary ChatGPT response here.")}">${escapeHtml(supplement.rawText || "")}</textarea>
       <div class="external-import-actions">
         <button class="primary-btn" data-action="parse-external-supplement" ${state.loading ? "disabled" : ""}>${state.loading ? uiLabel("Parsing") : uiLabel("Parse Supplement")}</button>
         <button class="icon-btn" data-action="cancel-external-supplement">${uiLabel("Cancel")}</button>
@@ -1307,25 +1306,20 @@ function externalPreviewPanel(report, state) {
         ${externalInput("analysisDate", uiLabel("Analysis Date"), report.analysisDate, "date")}
         ${externalInput("reportPeriod", uiLabel("Report Period"), report.reportPeriod)}
         ${externalInput("fairValueSummary.currentPrice", uiLabel("Price at Analysis"), report.fairValueSummary?.currentPrice, "number")}
-        ${externalInput("scores.quality", "Quality", report.scores?.quality, "number")}
-        ${externalInput("scores.growth", "Growth", report.scores?.growth, "number")}
-        ${externalInput("scores.valuation", "Valuation", report.scores?.valuation, "number")}
-        ${externalInput("scores.risk", "Risk", report.scores?.risk, "number")}
-        ${externalInput("decision.investmentScore", "Overall", report.decision?.investmentScore, "number")}
         ${externalInput("fairValueSummary.fairValueLow", "Bear Fair Value", report.fairValueSummary?.fairValueLow, "number")}
         ${externalInput("fairValueSummary.fairValueBase", "Base Fair Value", report.fairValueSummary?.fairValueBase, "number")}
         ${externalInput("fairValueSummary.fairValueHigh", "Bull Fair Value", report.fairValueSummary?.fairValueHigh, "number")}
         ${externalInput("decision.action", uiLabel("Verdict"), report.decision?.action)}
       </div>
       <div class="external-text-editors">
-        <label>${uiLabel("Investment Thesis")}<textarea data-external-field="thesis.shortSummary">${escapeHtml(report.thesis?.shortSummary || "")}</textarea></label>
-        <label>${uiLabel("Decision Rationale")}<textarea data-external-field="decision.rationale">${escapeHtml(report.decision?.rationale || "")}</textarea></label>
+        <label>${uiLabel("Investment Thesis")}<textarea data-external-field="thesis.shortSummary" dir="auto">${escapeHtml(report.thesis?.shortSummary || "")}</textarea></label>
+        <label>${uiLabel("Decision Rationale")}<textarea data-external-field="decision.rationale" dir="auto">${escapeHtml(report.decision?.rationale || "")}</textarea></label>
       </div>
       <details class="report-detail advanced-json-block">
         <summary>${uiLabel("Advanced JSON")}</summary>
         <div>
           <p class="muted">${uiLabel("Advanced editor. Edit any field in JSON, then leave the field to re-validate.")}</p>
-          <textarea class="paste-box external-json-editor" data-external-json>${escapeHtml(state.externalImport?.draftJson || JSON.stringify(report, null, 2))}</textarea>
+          <textarea class="paste-box external-json-editor" data-external-json dir="ltr">${escapeHtml(state.externalImport?.draftJson || JSON.stringify(report, null, 2))}</textarea>
         </div>
       </details>
     </section>
@@ -1333,10 +1327,11 @@ function externalPreviewPanel(report, state) {
 }
 
 function externalInput(path, label, value, type = "text") {
+  const direction = type === "number" || type === "date" ? "ltr" : "auto";
   return `
     <label>
       <span>${escapeHtml(label)}</span>
-      <input data-external-field="${escapeHtml(path)}" type="${type}" value="${escapeHtml(value ?? "")}">
+      <input data-external-field="${escapeHtml(path)}" type="${type}" dir="${direction}" value="${escapeHtml(value ?? "")}">
     </label>
   `;
 }
@@ -1496,7 +1491,7 @@ function companyProfileSection(title, value) {
   return `
     <article class="panel company-profile-section">
       <h3>${escapeHtml(title)}</h3>
-      <p>${escapeHtml(text)}</p>
+      <p class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(text)}</p>
     </article>
   `;
 }
@@ -1510,14 +1505,14 @@ function companyActivitiesSection(activities = []) {
         ${activities.map((activity) => `
           <section class="company-activity-card">
             <div>
-              <strong>${escapeHtml(companyActivityTitle(activity))}</strong>
-              ${companyActivitySubtitle(activity) ? `<span>${escapeHtml(companyActivitySubtitle(activity))}</span>` : ""}
+              <strong class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(companyActivityTitle(activity))}</strong>
+              ${companyActivitySubtitle(activity) ? `<span class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(companyActivitySubtitle(activity))}</span>` : ""}
             </div>
             ${localizedExternalText(activity.description).trim() ? `
-              <p><b>${uiLabel("What is it?")}</b> ${escapeHtml(localizedExternalText(activity.description))}</p>
+              <p class="mixed-direction-text" dir="auto"><b>${uiLabel("What is it?")}</b> ${mixedDirectionMarkup(activity.description)}</p>
             ` : ""}
             ${localizedExternalText(activity.importance).trim() ? `
-              <p><b>${uiLabel("Why does it matter?")}</b> ${escapeHtml(localizedExternalText(activity.importance))}</p>
+              <p class="mixed-direction-text" dir="auto"><b>${uiLabel("Why does it matter?")}</b> ${mixedDirectionMarkup(activity.importance)}</p>
             ` : ""}
           </section>
         `).join("")}
@@ -1543,7 +1538,7 @@ function companyGrowthDriversSection(drivers = []) {
   return `
     <article class="panel company-profile-section">
       <h3>${uiLabel("Main Growth Drivers")}</h3>
-      <ul>${visible.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+      <ul>${visible.map((item) => `<li class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(item)}</li>`).join("")}</ul>
     </article>
   `;
 }
@@ -1965,8 +1960,8 @@ function investmentSummaryWorkspace(report = {}) {
   ]);
   return `
     <div class="investment-summary-workspace">
-      <p>${escapeHtml(shortText(thesis || uiLabel("Not provided in the imported analysis."), 520))}</p>
-      ${report.thesis?.fullSummary ? externalDetail(uiLabel("Full thesis"), `<p>${escapeHtml(localizedExternalText(report.thesis.fullSummary))}</p>`) : ""}
+      <p class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(shortText(thesis || uiLabel("Not provided in the imported analysis."), 520))}</p>
+      ${report.thesis?.fullSummary ? externalDetail(uiLabel("Full thesis"), `<p class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(report.thesis.fullSummary)}</p>`) : ""}
     </div>
   `;
 }
@@ -2165,7 +2160,6 @@ function qualityGrowthRiskPanel(report = {}) {
               <span>${escapeHtml(row.label)}</span>
               <span class="qgr-score-visual">
                 <strong dir="ltr">${escapeHtml(scoreText(row.value, 1))}</strong>
-                <i aria-hidden="true"><b style="width:${scoreMeterWidth(row.value)}%"></b></i>
               </span>
               <em>${escapeHtml(row.status)}</em>
               <b>›</b>
@@ -2176,11 +2170,6 @@ function qualityGrowthRiskPanel(report = {}) {
       </div>
     </section>
   `;
-}
-
-function scoreMeterWidth(value) {
-  const score = numericValue(value);
-  return Number.isFinite(score) ? Math.max(0, Math.min(100, score * 10)) : 0;
 }
 
 function qualitativeScoreLabel(value, inverse = false) {
@@ -2794,8 +2783,8 @@ export function compactEvidenceList(items = [], emptyLabel = "", type = "evidenc
         <li>
           <button class="compact-evidence-row" type="button" data-evidence-detail data-evidence-dialog-label="${escapeHtml(dialogLabel)}" aria-haspopup="dialog" aria-label="${escapeHtml(actionLabel)}">
             <span>
-              <strong class="evidence-row-title${isPlainText ? " plain-text-preview" : ""}" dir="auto"><bdi>${escapeHtml(title)}</bdi></strong>
-              ${preview ? `<small dir="auto"><bdi>${escapeHtml(preview)}</bdi></small>` : ""}
+              <strong class="evidence-row-title mixed-direction-text${isPlainText ? " plain-text-preview" : ""}" dir="auto">${mixedDirectionMarkup(title)}</strong>
+              ${preview ? `<small class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(preview)}</small>` : ""}
             </span>
             <b class="evidence-row-chevron" aria-hidden="true">›</b>
           </button>
@@ -2831,13 +2820,13 @@ function evidenceDetailContent(item, type) {
   return `
     <header class="evidence-detail-head">
       <span>${escapeHtml(evidenceTypeLabel(type))}</span>
-      ${isPlainText ? "" : `<h3 dir="auto"><bdi>${escapeHtml(title)}</bdi></h3>`}
+      ${isPlainText ? "" : `<h3 class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(title)}</h3>`}
     </header>
     <div class="evidence-detail-fields">
       ${fields.map(({ label, value }) => `
         <section>
           <strong>${escapeHtml(label)}</strong>
-          <p dir="auto"><bdi>${escapeHtml(value)}</bdi></p>
+          <p class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(value)}</p>
         </section>
       `).join("")}
     </div>
@@ -3691,7 +3680,7 @@ function previousRequirementExecutionView(evaluation = {}) {
         pending: false
       })}
       ${assessment.overallStatus ? `<p><b>${uiLabel("Overall")}:</b> ${escapeHtml(requirementsStatusLabel(assessment.overallStatus))}</p>` : ""}
-      ${assessment.summary ? `<p>${escapeHtml(localizedExternalText(assessment.summary))}</p>` : ""}
+      ${assessment.summary ? `<p class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(assessment.summary)}</p>` : ""}
     </div>
   `;
 }
@@ -3926,7 +3915,7 @@ function valuationMethodSummaryView(report = {}) {
   return `
     <div class="valuation-method-summary">
       ${method ? compactCardMetric(uiLabel("Primary Valuation Method"), method) : ""}
-      ${reason ? `<p>${escapeHtml(localizedExternalText(reason))}</p>` : ""}
+      ${reason ? `<p class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(reason)}</p>` : ""}
       ${scenarioRows.length ? `
         <div class="scenario-assumption-grid">
           ${scenarioRows.map(([label, scenario]) => `
@@ -3937,7 +3926,7 @@ function valuationMethodSummaryView(report = {}) {
               ${scenario.marginAssumption ? `<span>Margin: ${escapeHtml(formatAnyValue(scenario.marginAssumption))}</span>` : ""}
               ${scenario.multipleUsed ? `<span>${uiLabel("Multiple Used")}: ${escapeHtml(formatAnyValue(scenario.multipleUsed))}</span>` : ""}
               ${scenario.timeHorizon ? `<span>${uiLabel("Time Horizon")}: ${escapeHtml(scenario.timeHorizon)}</span>` : ""}
-              ${scenario.thesis ? `<p>${escapeHtml(localizedExternalText(scenario.thesis))}</p>` : ""}
+              ${scenario.thesis ? `<p class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(scenario.thesis)}</p>` : ""}
             </article>
           `).join("")}
         </div>
@@ -3969,13 +3958,13 @@ function earningsQualityBlock(quality = {}) {
 
 function paragraphBlock(items = []) {
   const visible = items.map((item) => localizedExternalText(item)).filter((item) => item.trim());
-  return visible.map((item) => `<p>${escapeHtml(item)}</p>`).join("");
+  return visible.map((item) => `<p class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(item)}</p>`).join("");
 }
 
 function objectBlock(object = {}) {
   const rows = Object.entries(object || {}).filter(([, value]) => value !== null && value !== undefined && value !== "");
   if (!rows.length) return "";
-  return rows.map(([key, value]) => `<p><strong>${escapeHtml(labelFromKey(key))}</strong>: ${escapeHtml(localizedExternalText(formatAnyValue(value)))}</p>`).join("");
+  return rows.map(([key, value]) => `<p class="mixed-direction-text" dir="auto"><strong>${escapeHtml(labelFromKey(key))}</strong>: ${mixedDirectionMarkup(formatAnyValue(value))}</p>`).join("");
 }
 
 function itemList(items = [], detailKeys = []) {
@@ -3983,10 +3972,10 @@ function itemList(items = [], detailKeys = []) {
   return `
     <div class="external-list">
       ${items.map((item) => {
-        if (typeof item === "string") return `<p>${escapeHtml(localizedExternalText(item))}</p>`;
+        if (typeof item === "string") return `<p class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(item)}</p>`;
         const title = item.title || item.name || item.sourceType || "-";
         const details = detailKeys.map((key) => localizedExternalText(item[key])).filter((value) => value.trim());
-        return `<article><strong>${escapeHtml(localizedExternalText(title))}</strong>${details.map((detail) => `<span>${escapeHtml(localizedExternalText(detail))}</span>`).join("")}</article>`;
+        return `<article><strong class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(title)}</strong>${details.map((detail) => `<span class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(detail)}</span>`).join("")}</article>`;
       }).join("")}
     </div>
   `;
@@ -4151,9 +4140,9 @@ function requirementsStatusLabel(status) {
 
 function targetScenarioLabel(value) {
   const clean = String(value || "").trim().toLowerCase();
-  if (clean === "bear" || clean === "downside") return "Bear";
+  if (["bear", "downside", "conservative", "pessimistic"].includes(clean)) return "Bear";
   if (clean === "base" || clean === "base_case") return "Base";
-  if (clean === "bull" || clean === "optimistic") return clean === "bull" ? "Bull" : "Optimistic";
+  if (clean === "bull" || clean === "optimistic") return "Bull";
   return localizedExternalText(value || "—").replaceAll("_", " ");
 }
 
@@ -5017,9 +5006,9 @@ function valuationSummaryBlock(report) {
   return `
     <div class="valuation-summary-grid">
       ${metric(uiLabel("Current Price"), money(item.currentPrice, 2))}
-      ${metricHtml("Conservative", fairValueSignal(item.bearFairValue, item.currentPrice))}
+      ${metricHtml("Bear", fairValueSignal(item.bearFairValue, item.currentPrice))}
       ${metricHtml("Base", fairValueSignal(item.baseFairValue, item.currentPrice))}
-      ${metricHtml("Optimistic", fairValueSignal(item.bullFairValue, item.currentPrice))}
+      ${metricHtml("Bull", fairValueSignal(item.bullFairValue, item.currentPrice))}
       ${metricHtml("Morningstar", fairValueSignal(item.morningstarFairValue, item.currentPrice))}
       ${metricHtml(uiLabel("Range FV"), fairValueSignal(item.rangeFairValue, item.currentPrice))}
       ${metricHtml(uiLabel("Expected Upside"), upsideSignal(item.expectedUpside))}
@@ -6418,6 +6407,21 @@ function formatDateShort(value) {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return String(value).slice(0, 10);
   return parsed.toISOString().slice(0, 10);
+}
+
+export function mixedDirectionMarkup(value) {
+  const text = localizedExternalText(value);
+  if (!text) return "";
+  const ltrFragment = /(\([^()\n]*[A-Za-z][^()\n]*\)|(?:[$€£]\s*)?[+-]?\d[\d,]*(?:\.\d+)?(?:\s*(?:%|×|x|K|M|B|T|USD|SAR))?|[A-Za-z][A-Za-z0-9]*(?:(?:[ \t]+|[./&+:'’-])[A-Za-z0-9][A-Za-z0-9%]*)*)/g;
+  let markup = "";
+  let cursor = 0;
+  for (const match of text.matchAll(ltrFragment)) {
+    const index = match.index ?? 0;
+    markup += escapeHtml(text.slice(cursor, index));
+    markup += `<bdi dir="ltr">${escapeHtml(match[0])}</bdi>`;
+    cursor = index + match[0].length;
+  }
+  return markup + escapeHtml(text.slice(cursor));
 }
 
 function localizedExternalText(value) {
