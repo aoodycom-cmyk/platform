@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v10-quarterly-scorecard-20260818-forward-outlook-a";
+const CACHE_NAME = "franklin-research-v11-mobile-ui-20260820b";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -9,6 +9,7 @@ const STATIC_ASSETS = [
   "./styles-mobile-scorecard-figma.css",
   "./styles-quarterly-earnings-entry.css",
   "./styles-desktop.css",
+  "./styles-premium.css",
   "./manifest.webmanifest",
   "./src/main.js",
   "./src/pwa.js",
