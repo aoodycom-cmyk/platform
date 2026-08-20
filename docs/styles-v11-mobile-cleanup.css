@@ -1,0 +1,43 @@
+/* Franklin V11 — mobile import screen cleanup */
+@media (max-width: 899px) {
+  .external-import-panel .external-import-head > div > p:not(.eyebrow) {
+    display: none;
+  }
+
+  .external-import-panel .external-import-context > p {
+    display: none;
+  }
+
+  .external-import-panel .chatgpt-prep-card .table-title > div:first-child {
+    display: none;
+  }
+
+  .external-import-panel .chatgpt-prep-card .table-title {
+    display: block;
+  }
+
+  .external-import-panel .chatgpt-prep-card .prep-actions {
+    width: 100%;
+  }
+
+  .external-import-panel .chatgpt-prep-card .prep-actions .primary-btn {
+    width: 100%;
+    min-height: 52px;
+    font-size: 0;
+  }
+
+  .external-import-panel .chatgpt-prep-card .prep-actions .primary-btn::after {
+    content: "نسخ البرومبت";
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  html[lang="en"] .external-import-panel .chatgpt-prep-card .prep-actions .primary-btn::after {
+    content: "Copy prompt";
+  }
+
+  .external-import-panel .external-paste-box::placeholder {
+    color: transparent;
+    opacity: 0;
+  }
+}

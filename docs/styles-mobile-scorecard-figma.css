@@ -1,0 +1,646 @@
+/* Mobile Quarterly Scorecard — visual source of truth: Figma node 13:2064. */
+
+@media (max-width: 899px) {
+  .scorecard-app-shell {
+    min-height: 100dvh;
+    background: #0b0e14;
+  }
+
+  .scorecard-app-shell .mobile-app-frame {
+    width: 100%;
+    max-width: 440px;
+    min-height: 100dvh;
+    margin: 0 auto;
+    padding: 0 0 92px;
+    border: 0;
+    border-radius: 0;
+    background: #0b0e14;
+    box-shadow: none;
+    overflow-x: hidden;
+  }
+
+  .scorecard-app-shell > .mobile-app-frame > .mobile-app-header,
+  .scorecard-app-shell > .mobile-app-frame > .notice {
+    display: none !important;
+  }
+
+  .scorecard-app-shell .mobile-page-content {
+    width: 100%;
+    padding: 0;
+    gap: 0;
+  }
+
+  .quarterly-scorecard-shell {
+    position: relative;
+    width: 100%;
+    min-height: 100dvh;
+    display: grid;
+    gap: 0;
+    background: #0b0e14;
+    color: #fff;
+    overflow-x: hidden;
+  }
+
+  .quarterly-scorecard-header {
+    width: 100%;
+    margin: 0;
+    padding: 16px 20px;
+    display: block;
+    border: 0;
+    border-bottom: 1px solid #1f2937;
+    border-radius: 0;
+    background: #0d1117;
+    box-shadow: none;
+  }
+
+  .quarterly-scorecard-titlebar {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .scorecard-back {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    padding: 0 0 3px;
+    border: 1px solid #374151;
+    border-radius: 999px;
+    background: #161b22;
+    color: #9ca3af;
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .quarterly-scorecard-titlebar > div {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: grid;
+    justify-items: end;
+    gap: 1px;
+    text-align: right;
+  }
+
+  .quarterly-scorecard-titlebar h2 {
+    margin: 0;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 28px;
+    white-space: nowrap;
+  }
+
+  .figma-scorecard-meta {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px !important;
+    color: #6b7280;
+    line-height: 15px;
+  }
+
+  .figma-scorecard-meta strong {
+    order: 1;
+    color: #60a5fa;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .figma-scorecard-meta i {
+    order: 2;
+    color: #6b7280;
+    font-size: 10px;
+    font-style: normal;
+  }
+
+  .figma-scorecard-meta span {
+    order: 3;
+    color: #9ca3af;
+    font-size: 10px;
+    font-weight: 400;
+  }
+
+  .scorecard-year-select {
+    flex: 0 0 auto;
+    display: block;
+  }
+
+  .scorecard-year-select > span {
+    display: none;
+  }
+
+  .scorecard-year-select select {
+    min-width: 76px;
+    min-height: 32px;
+    padding: 5px 10px;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    background: #161b22;
+    color: #fff;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .quarterly-scorecard-targets,
+  .quarterly-scorecard-actions {
+    display: none !important;
+  }
+
+  .quarterly-annual-summary {
+    position: relative;
+    width: auto;
+    min-height: 146px;
+    margin: 16px 14px 20px;
+    padding: 18px 18px 16px;
+    display: grid;
+    gap: 18px;
+    border: 1px solid rgba(59, 130, 246, 0.1);
+    border-radius: 16px;
+    background: rgba(17, 24, 39, 0.72);
+    box-shadow: none;
+    overflow: hidden;
+  }
+
+  .quarterly-annual-summary > header {
+    width: 58%;
+    min-height: 50px;
+    margin-inline-start: auto;
+    display: block;
+  }
+
+  .quarterly-annual-summary > header > div {
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      "label label"
+      "score trajectory";
+    justify-content: end;
+    align-items: center;
+    gap: 2px 8px;
+  }
+
+  .quarterly-annual-summary > header > div > span {
+    grid-area: label;
+    color: #6b7280;
+    font-size: 10px;
+    line-height: 15px;
+  }
+
+  .figma-scorecard-annual-score {
+    grid-area: score;
+    color: #fff;
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 32px;
+  }
+
+  .quarterly-annual-summary > header > div > strong {
+    grid-area: trajectory;
+    width: max-content;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.1);
+    color: #34d399;
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 15px;
+  }
+
+  .quarterly-annual-summary > header > b {
+    display: none;
+  }
+
+  .figma-scorecard-target-pill {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    min-height: 30px;
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.1);
+    color: #60a5fa;
+    font-size: 10px;
+  }
+
+  .figma-scorecard-target-pill span {
+    color: #60a5fa;
+    font-size: 10px;
+  }
+
+  .figma-scorecard-target-pill strong {
+    color: #60a5fa;
+    font-size: 10px;
+    font-weight: 800;
+  }
+
+  .quarterly-progress-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    direction: rtl;
+  }
+
+  .quarterly-progress-grid article {
+    min-height: 54px;
+    padding: 0 1px;
+    display: grid;
+    grid-template-rows: 14px 4px 18px;
+    place-items: center;
+    align-content: center;
+    gap: 6px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    text-align: center;
+  }
+
+  .quarterly-progress-grid article::before {
+    content: "";
+    grid-row: 2;
+    width: 100%;
+    height: 4px;
+    border-radius: 999px;
+    background: #1f2937;
+  }
+
+  .quarterly-progress-grid article.reported:not(.latest)::before {
+    background: #10b981;
+  }
+
+  .quarterly-progress-grid article.latest::before {
+    background: #3b82f6;
+  }
+
+  .quarterly-progress-grid article.latest {
+    border: 0;
+    background: transparent;
+  }
+
+  .quarterly-progress-grid span {
+    grid-row: 1;
+    color: #6b7280;
+    font-size: 10px;
+    line-height: 14px;
+  }
+
+  .quarterly-progress-grid strong {
+    grid-row: 3;
+    color: #374151;
+    font-size: 10px;
+    line-height: 15px;
+  }
+
+  .quarterly-progress-grid article.reported:not(.latest) strong {
+    color: #34d399;
+  }
+
+  .quarterly-progress-grid article.latest strong {
+    color: #60a5fa;
+  }
+
+  .quarterly-progress-grid small {
+    display: none;
+  }
+
+  .quarterly-scorecard-layout {
+    display: block;
+    width: 100%;
+  }
+
+  .quarterly-scorecard-main {
+    width: 100%;
+    padding: 0 14px 22px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .quarterly-desktop-matrix {
+    display: none !important;
+  }
+
+  .quarterly-mobile-cards {
+    display: grid;
+    gap: 12px;
+  }
+
+  .quarterly-mobile-cards::before {
+    content: "متطلبات الأداء";
+    display: block;
+    padding: 0 4px 2px;
+    color: #9ca3af;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-align: right;
+  }
+
+  .quarterly-metric-card {
+    position: relative;
+    padding: 18px 16px 16px;
+    display: grid;
+    gap: 14px;
+    border: 1px solid rgba(59, 130, 246, 0.1);
+    border-left-width: 4px;
+    border-radius: 16px;
+    background: rgba(17, 24, 39, 0.72);
+    box-shadow: none;
+    overflow: hidden;
+  }
+
+  .quarterly-metric-card.figma-tone-exceeded,
+  .quarterly-metric-card.figma-tone-passed {
+    border-left-color: rgba(16, 185, 129, 0.72);
+  }
+
+  .quarterly-metric-card.figma-tone-partially-passed {
+    border-left-color: rgba(245, 158, 11, 0.78);
+    background: rgba(59, 130, 246, 0.05);
+  }
+
+  .quarterly-metric-card.figma-tone-failed {
+    border-left-color: rgba(239, 68, 68, 0.78);
+  }
+
+  .quarterly-metric-card.figma-tone-not-reported {
+    border-left-color: rgba(75, 85, 99, 0.72);
+  }
+
+  .quarterly-metric-card > header {
+    position: relative;
+    display: block;
+    min-height: 40px;
+    padding-left: 34px;
+  }
+
+  .quarterly-metric-card > header::before {
+    content: "↗";
+    position: absolute;
+    top: 0;
+    left: 3px;
+    color: #34d399;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .quarterly-metric-card.figma-tone-failed > header::before {
+    content: "↘";
+    color: #f87171;
+  }
+
+  .quarterly-metric-card.figma-tone-partially-passed > header::before {
+    color: #34d399;
+  }
+
+  .scorecard-metric-label {
+    display: grid;
+    justify-items: end;
+    gap: 1px;
+    text-align: right;
+  }
+
+  .scorecard-metric-label > strong {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 20px;
+  }
+
+  .quarterly-metric-card.figma-tone-partially-passed .scorecard-metric-label > strong {
+    color: #60a5fa;
+  }
+
+  .scorecard-metric-label > small {
+    display: none;
+  }
+
+  .figma-required-line {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px !important;
+    color: #6b7280;
+    text-align: right !important;
+  }
+
+  .figma-required-line span,
+  .figma-required-line strong {
+    color: #6b7280 !important;
+    font-size: 10px !important;
+    font-weight: 400 !important;
+    line-height: 15px;
+  }
+
+  .quarterly-mobile-quarter-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    direction: rtl;
+  }
+
+  .quarterly-mobile-quarter-grid button {
+    min-height: 42px;
+    padding: 9px 11px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    background: #161b22;
+    color: #6b7280;
+    text-align: center;
+  }
+
+  .quarterly-mobile-quarter-grid button.latest {
+    border-color: rgba(59, 130, 246, 0.2);
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  .quarterly-mobile-quarter-grid button.not-reported {
+    border-color: rgba(31, 41, 55, 0.3);
+    background: rgba(31, 41, 55, 0.2);
+  }
+
+  .quarterly-mobile-quarter-grid button:disabled {
+    opacity: 1;
+    cursor: default;
+  }
+
+  .quarterly-mobile-quarter-grid button > span {
+    flex: 0 0 auto;
+    order: 1;
+    color: #6b7280;
+    font-size: 10px;
+    font-weight: 400;
+    line-height: 15px;
+  }
+
+  .quarterly-mobile-quarter-grid button.latest > span {
+    color: #60a5fa;
+    font-weight: 800;
+  }
+
+  .quarterly-mobile-quarter-grid button.not-reported > span {
+    color: #4b5563;
+  }
+
+  .quarterly-mobile-quarter-grid button > strong {
+    order: 2;
+    margin-inline-start: auto;
+    color: #fff !important;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 16px;
+  }
+
+  .quarterly-mobile-quarter-grid button.not-reported > strong {
+    color: #374151 !important;
+  }
+
+  .quarterly-mobile-quarter-grid button > small {
+    order: 3;
+    flex: 0 0 auto;
+    width: 12px;
+    color: #6b7280;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 12px;
+    text-align: center;
+  }
+
+  .quarterly-mobile-quarter-grid button.exceeded > small,
+  .quarterly-mobile-quarter-grid button.passed > small {
+    color: #34d399;
+  }
+
+  .quarterly-mobile-quarter-grid button.partially-passed > small {
+    color: #f59e0b;
+  }
+
+  .quarterly-mobile-quarter-grid button.failed > small {
+    color: #f87171;
+  }
+
+  .quarterly-mobile-quarter-grid button.not-reported > small {
+    color: #374151;
+  }
+
+  .quarterly-metric-card > footer {
+    min-height: 28px;
+    padding-top: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid #1f2937;
+  }
+
+  .quarterly-metric-card > footer > span:first-child {
+    color: #6b7280;
+    font-size: 10px;
+    font-weight: 400;
+  }
+
+  .quarterly-metric-card > footer .scorecard-trend {
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 15px;
+  }
+
+  .quarterly-metric-card > footer .figma-status-exceeded,
+  .quarterly-metric-card > footer .figma-status-passed {
+    color: #34d399;
+  }
+
+  .quarterly-metric-card > footer .figma-status-partially-passed {
+    color: #f59e0b;
+  }
+
+  .quarterly-metric-card > footer .figma-status-failed {
+    color: #f87171;
+  }
+
+  .quarterly-metric-card > footer .figma-status-not-reported {
+    color: #6b7280;
+  }
+
+  .quarterly-scorecard-detail {
+    inset: auto 12px calc(82px + env(safe-area-inset-bottom));
+    max-height: 68dvh;
+    padding: 16px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 16px;
+    background: #111827;
+    box-shadow: 0 -18px 44px rgba(0, 0, 0, 0.42);
+  }
+
+  .quarterly-scorecard-detail.is-default {
+    display: none;
+  }
+
+  .quarterly-scorecard-nav {
+    width: 100%;
+    max-width: 440px;
+    min-height: 76px;
+    left: 50%;
+    right: auto;
+    bottom: 0;
+    transform: translateX(-50%);
+    padding: 12px 22px calc(12px + env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    align-items: center;
+    gap: 4px;
+    border: 0;
+    border-top: 1px solid #1f2937;
+    border-radius: 0;
+    background: #0d1117;
+    box-shadow: none;
+  }
+
+  .quarterly-scorecard-nav button {
+    min-height: 48px;
+    padding: 2px 4px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 3px;
+    border: 0;
+    background: transparent;
+    color: #6b7280;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .quarterly-scorecard-nav button::before {
+    display: block;
+    color: #6b7280;
+    font-size: 17px;
+    font-weight: 500;
+    line-height: 18px;
+  }
+
+  .quarterly-scorecard-nav button[data-panel="home"]::before { content: "▦"; }
+  .quarterly-scorecard-nav button[data-panel="external-import"]::before { content: "⇩"; }
+  .quarterly-scorecard-nav button[data-panel="history"]::before { content: "↶"; }
+  .quarterly-scorecard-nav button[data-panel="settings"]::before { content: "⚙"; }
+
+  .quarterly-scorecard-nav button.active,
+  .quarterly-scorecard-nav button.active::before {
+    color: #60a5fa;
+  }
+}

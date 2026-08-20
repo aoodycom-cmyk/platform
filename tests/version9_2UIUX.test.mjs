@@ -10,6 +10,7 @@ import {
 } from "../public/src/valuationWorkflow/workflow.js";
 
 const components = readFileSync(new URL("../public/src/ui/components.js", import.meta.url), "utf8");
+const foundation = readFileSync(new URL("../public/src/ui/foundation.js", import.meta.url), "utf8");
 const styles = readFileSync(new URL("../public/styles.css", import.meta.url), "utf8");
 const language = readFileSync(new URL("../public/src/i18n/language.js", import.meta.url), "utf8");
 const storeSource = readFileSync(new URL("../public/src/state/store.js", import.meta.url), "utf8");
@@ -17,7 +18,7 @@ const chatgptContract = readFileSync(new URL("../public/src/externalAnalysis/cha
 const supplementMergeSource = readFileSync(new URL("../public/src/externalAnalysis/supplementMerge.js", import.meta.url), "utf8");
 
 const homeStart = components.indexOf("function homeDashboard");
-const homeEnd = components.indexOf("function languageToggle", homeStart);
+const homeEnd = components.indexOf("function homePolishedSearch", homeStart);
 const homeDashboard = components.slice(homeStart, homeEnd);
 const panelsStart = components.indexOf("const panels =");
 const panelsEnd = components.indexOf("];", panelsStart);
@@ -25,7 +26,7 @@ const visiblePanelConfig = components.slice(panelsStart, panelsEnd);
 
 assert.ok(homeDashboard.includes("My Stocks"), "Home must present Franklin as My Stocks / investment library.");
 assert.ok(homeDashboard.includes("externalAnalysesHomeSection"), "Home must focus on saved imported reports.");
-assert.ok(homeDashboard.includes("data-action=\"open-external-import\""), "Home must expose Import Analysis.");
+assert.ok(foundation.includes("data-action=\"open-external-import\""), "Home must expose Import Analysis through the shared app header.");
 assert.ok(components.includes("investmentLibrarySummary"), "Home must show a compact saved-stock status summary.");
 assert.ok(components.includes("Analyze / Add Stock"), "Home primary CTA must focus on analyzing or adding a stock.");
 assert.equal(homeDashboard.includes("data-action=\"new-analysis\""), false, "Home must not surface the legacy internal New Analysis flow.");

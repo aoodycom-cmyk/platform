@@ -17,6 +17,11 @@ import { getExternalAnalysis, listLatestExternalAnalyses } from "../externalAnal
 import { buildQuarterlyScorecard } from "../externalAnalysis/quarterlyScorecard.js";
 import { downloadQuarterlyScorecardPng, shareQuarterlyScorecardPng } from "./quarterlyScorecardExport.js";
 import {
+  appHeaderMarkup,
+  bindCompanyLogoFallbacks,
+  bottomNavigationMarkup
+} from "./foundation.js";
+import {
   analysisText,
   decisionLabel,
   decisionWhyText,
@@ -71,6 +76,7 @@ function render(root, store, actions) {
   document.documentElement.dataset.theme = state.theme;
   if (activePanel === "home") {
     root.innerHTML = homeDashboard(state);
+    bindCompanyLogoFallbacks(root);
     bind(root, store, actions);
     return;
   }
@@ -83,10 +89,14 @@ function render(root, store, actions) {
       </section>
     </main>
     ${evidenceDetailDialog()}
-    <nav class="mobile-nav ${activePanel === "quarterly-scorecard" ? "quarterly-scorecard-nav" : ""}">
-      ${panels.map(([key, label]) => `<button class="${state.activePanel === key ? "active" : ""}" data-panel="${key}">${uiLabel(label)}</button>`).join("")}
-    </nav>
+    ${bottomNavigationMarkup({
+      panels,
+      activePanel: state.activePanel,
+      scorecard: activePanel === "quarterly-scorecard",
+      label: uiLabel
+    })}
   `;
+  bindCompanyLogoFallbacks(root);
   bind(root, store, actions);
 }
 
@@ -101,45 +111,19 @@ function homeDashboard(state) {
         </div>
       </section>
     </main>
-    <nav class="mobile-nav">
-      ${panels.map(([key, label]) => `<button class="${state.activePanel === key ? "active" : ""}" data-panel="${key}">${uiLabel(label)}</button>`).join("")}
-    </nav>
+    ${bottomNavigationMarkup({ panels, activePanel: state.activePanel, label: uiLabel })}
   `;
 }
 
 function mobileAppHeader(state, isHome = false) {
   const title = isHome ? uiLabel("My Stocks") : activePanelLabel(state.activePanel);
-  return `
-    <header class="mobile-app-header">
-      <div class="mobile-brand">
-        <img class="app-logo" src="./assets/icon-192.png" alt="">
-        <div>
-          <strong>Franklin</strong>
-          <span>${escapeHtml(title)}</span>
-        </div>
-      </div>
-      <div class="mobile-header-actions">
-        ${isHome ? `<button class="primary-btn compact-primary" data-action="open-external-import">${uiLabel("إضافة سهم")}</button>` : `<button class="icon-btn back-home" data-panel="home">${uiLabel("Home")}</button>`}
-        <details class="mobile-app-menu">
-          <summary aria-label="${uiLabel("More")}">•••</summary>
-          <div>
-            ${languageToggle(state)}
-            <button class="icon-btn" data-action="toggle-theme">${state.theme === "dark" ? uiLabel("Light") : uiLabel("Dark")}</button>
-          </div>
-        </details>
-      </div>
-    </header>
-  `;
-}
-
-function languageToggle(state) {
-  return `
-    <div class="language-toggle" role="group" aria-label="Language">
-      <button class="${state.language === "ar" ? "active" : ""}" data-language="ar">العربية</button>
-      <span></span>
-      <button class="${state.language === "en" ? "active" : ""}" data-language="en">English</button>
-    </div>
-  `;
+  return appHeaderMarkup({
+    title,
+    isHome,
+    theme: state.theme,
+    language: state.language,
+    label: uiLabel
+  });
 }
 
 function homePolishedSearch(state) {

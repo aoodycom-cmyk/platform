@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v11-mobile-ui-20260820b";
+const CACHE_NAME = "franklin-research-v11-foundation-20260820a";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -10,9 +10,11 @@ const STATIC_ASSETS = [
   "./styles-quarterly-earnings-entry.css",
   "./styles-desktop.css",
   "./styles-premium.css",
+  "./styles-v11-mobile-cleanup.css",
   "./manifest.webmanifest",
   "./src/main.js",
   "./src/pwa.js",
+  "./src/ui/foundation.js",
   "./src/ui/mobile2Enhancer.js",
   "./src/ui/quarterlyScorecardMobileFigma.js",
   "./src/ui/quarterlyEarningsEntry.js",

@@ -135,10 +135,10 @@ try {
 
   const app = await inject(server, { path: "/", headers: { cookie, accept: "text/html" } });
   assert.equal(app.status, 200);
-  assert.ok(app.text.includes("Franklin Research 10.0.0"));
+  assert.ok(app.text.includes("Franklin Research 11.0.0"));
   assert.ok(app.text.includes("apple-mobile-web-app-title"));
-  assert.ok(app.text.includes("styles.css?v=v10-quarterly-scorecard-20260818"));
-  assert.ok(app.text.includes("src/main.js?v=v10-quarterly-scorecard-20260818"));
+  assert.ok(app.text.includes("styles.css?v=v11-foundation-20260820a"));
+  assert.ok(app.text.includes("src/main.js?v=v11-foundation-20260820a"));
   assert.ok(app.text.includes("franklin-cache-reset"));
 
   const search = await inject(server, { method: "POST", path: "/api/search", headers: { cookie }, body: { query: "AAPL" } });
@@ -172,7 +172,9 @@ try {
 
   const serviceWorker = await inject(server, { path: "/service-worker.js", headers: { cookie } });
   assert.equal(serviceWorker.status, 200);
-  assert.ok(serviceWorker.text.includes("franklin-research-v10-quarterly-scorecard-20260818"));
+  assert.ok(serviceWorker.text.includes("franklin-research-v11-foundation-20260820a"));
+  assert.ok(serviceWorker.text.includes("src/ui/foundation.js"));
+  assert.ok(serviceWorker.text.includes("styles-v11-mobile-cleanup.css"));
   assert.ok(serviceWorker.text.includes("isVersionedAppAsset"));
   assert.ok(serviceWorker.text.includes("fairValueAdapter.js"));
   assert.ok(serviceWorker.text.includes("offline.html"));

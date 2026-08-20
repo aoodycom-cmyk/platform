@@ -18,6 +18,8 @@ const GENERATED_FILES = [
   "styles-mobile-scorecard-figma.css",
   "styles-quarterly-earnings-entry.css",
   "styles-desktop.css",
+  "styles-premium.css",
+  "styles-v11-mobile-cleanup.css",
   "service-worker.js",
   "manifest.webmanifest",
   "offline.html",

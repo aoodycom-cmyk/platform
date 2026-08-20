@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>Franklin Research 10.0.0</title>
-  <meta name="theme-color" content="#07080D">
+  <title>Franklin Research 11.0.0</title>
+  <meta name="theme-color" content="#060a11">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Franklin Research">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png">
-  <link rel="manifest" href="./manifest.webmanifest?v=v10-quarterly-scorecard-20260818">
+  <link rel="manifest" href="./manifest.webmanifest?v=v11-foundation-20260820a">
   <script>
     (function () {
-      var version = "v10-figma-desktop-20260818a";
+      var version = "v11-foundation-20260820a";
       if (!("serviceWorker" in navigator) || !("caches" in window)) return;
       if (sessionStorage.getItem("franklin-cache-reset") === version) return;
       sessionStorage.setItem("franklin-cache-reset", version);
@@ -29,13 +29,20 @@
       });
     }());
   </script>
-  <link rel="stylesheet" href="./styles.css?v=v10-quarterly-scorecard-20260818">
-  <link rel="stylesheet" href="./styles-mobile2.css?v=v10-quarterly-scorecard-20260818">
-  <link rel="stylesheet" href="./styles-desktop.css?v=v10-figma-desktop-20260818a">
-  <script src="./backend-config.js?v=v10-quarterly-scorecard-20260818"></script>
+  <link rel="stylesheet" href="./styles.css?v=v11-foundation-20260820a">
+  <link rel="stylesheet" href="./styles-mobile2.css?v=v11-foundation-20260820a">
+  <link rel="stylesheet" href="./styles-mobile-scorecard-figma.css?v=v11-foundation-20260820a">
+  <link rel="stylesheet" href="./styles-quarterly-earnings-entry.css?v=v11-foundation-20260820a">
+  <link rel="stylesheet" href="./styles-desktop.css?v=v11-foundation-20260820a">
+  <link rel="stylesheet" href="./styles-premium.css?v=v11-foundation-20260820a">
+  <link rel="stylesheet" href="./styles-v11-mobile-cleanup.css?v=v11-foundation-20260820a">
+  <script src="./backend-config.js?v=v11-foundation-20260820a"></script>
 </head>
 <body>
   <div id="app"></div>
-  <script type="module" src="./src/main.js?v=v10-quarterly-scorecard-20260818"></script>
+  <script type="module" src="./src/main.js?v=v11-foundation-20260820a"></script>
+  <script type="module" src="./src/ui/quarterlyScorecardMobileFigma.js?v=v11-foundation-20260820a"></script>
+  <script type="module" src="./src/ui/quarterlyEarningsEntry.js?v=v11-foundation-20260820a"></script>
+  <script type="module" src="./src/ui/quarterlyEarningsJsonPromptV2.js?v=v11-foundation-20260820a"></script>
 </body>
 </html>
