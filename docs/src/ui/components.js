@@ -19,7 +19,8 @@ import { downloadQuarterlyScorecardPng, shareQuarterlyScorecardPng } from "./qua
 import {
   appHeaderMarkup,
   bindCompanyLogoFallbacks,
-  bottomNavigationMarkup
+  bottomNavigationMarkup,
+  companyLogoMarkup
 } from "./foundation.js";
 import {
   analysisText,
@@ -106,12 +107,23 @@ function homeDashboard(state) {
       <section class="mobile-app-frame">
         ${mobileAppHeader(state, true)}
         <div class="mobile-page-content">
+          ${libraryHero()}
           ${homePolishedSearch(state)}
           ${externalAnalysesHomeSection(state)}
         </div>
       </section>
     </main>
     ${bottomNavigationMarkup({ panels, activePanel: state.activePanel, label: uiLabel })}
+  `;
+}
+
+function libraryHero() {
+  return `
+    <section class="library-hero" aria-labelledby="library-title">
+      <p>${isArabicUi() ? "مكتبة أبحاث خاصة" : "PRIVATE RESEARCH LIBRARY"}</p>
+      <h1 id="library-title">${isArabicUi() ? "مكتبة الاستثمار" : "Investment Library"}</h1>
+      <span>${isArabicUi() ? "راجع قراراتك وتقاريرك الاستثمارية المحفوظة." : "Review your saved investment decisions and research."}</span>
+    </section>
   `;
 }
 
@@ -174,6 +186,7 @@ function externalAnalysesHomeSection(state) {
           <span>${totalReports} ${uiLabel("Analyses")}</span>
         </div>
       </div>
+      ${investmentLibrarySummary(allReports)}
       ${watchlistToolbar(state)}
       ${reports.length ? `
         <div class="library-card-grid">
@@ -192,9 +205,12 @@ function externalHomeCard(report) {
   return `
     <article class="company-card external-company-card library-company-card terminal-watchlist-row" data-external-ticker="${escapeHtml(report.ticker)}" data-external-report-id="${escapeHtml(report.id)}" data-library-card data-search-text="${escapeHtml(`${report.ticker} ${report.companyName}`.toLowerCase())}">
       <div class="company-card-top library-card-top">
-        <div>
-          <strong>${escapeHtml(report.ticker)}</strong>
-          <span>${escapeHtml(report.companyName || uiLabel("Company"))}</span>
+        <div class="library-company-identity">
+          ${companyLogoMarkup({ ticker: report.ticker, name: report.companyName })}
+          <div>
+            <strong><bdi>${escapeHtml(report.ticker)}</bdi></strong>
+            <span>${escapeHtml(report.companyName || uiLabel("Company"))}</span>
+          </div>
         </div>
         <em class="${colorClass(recommendationColorCategory(report.verdict), "badge")}">${escapeHtml(localizedExternalText(report.verdict) || "-")}</em>
       </div>
@@ -225,7 +241,10 @@ function watchlistToolbar(state) {
         <select data-library-filter>
           ${watchlistFilterOption("all", uiLabel("All"), state.libraryFilter)}
           ${watchlistFilterOption("buy", decisionLabel("BUY"), state.libraryFilter)}
+          ${watchlistFilterOption("add", decisionLabel("ADD"), state.libraryFilter)}
           ${watchlistFilterOption("hold", decisionLabel("HOLD"), state.libraryFilter)}
+          ${watchlistFilterOption("watch", decisionLabel("WATCH"), state.libraryFilter)}
+          ${watchlistFilterOption("reduce", decisionLabel("REDUCE"), state.libraryFilter)}
           ${watchlistFilterOption("sell", decisionLabel("SELL"), state.libraryFilter)}
           ${watchlistFilterOption("incomplete", uiLabel("Incomplete"), state.libraryFilter)}
         </select>
@@ -264,21 +283,20 @@ function investmentLibrarySummary(reports = []) {
     if (key) acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {});
+  const complete = reports.filter((report) => report.completionStatus?.status === "complete").length;
   const items = [
-    [uiLabel("Stocks"), reports.length, "neutral"],
-    [decisionLabel("BUY"), counts.BUY || 0, "positive"],
-    [decisionLabel("ADD"), counts.ADD || 0, "positive"],
-    [decisionLabel("HOLD"), counts.HOLD || 0, "warning"],
-    [decisionLabel("WATCH"), counts.WATCH || 0, "neutral"],
-    [decisionLabel("REDUCE"), counts.REDUCE || 0, "warning"],
-    [decisionLabel("SELL"), counts.SELL || 0, "negative"]
+    [isArabicUi() ? "إجمالي الأسهم" : "Total Stocks", reports.length, "neutral", isArabicUi() ? "مكتبة المتابعة" : "Research library"],
+    [isArabicUi() ? "فرص الشراء" : "Buy Candidates", (counts.BUY || 0) + (counts.ADD || 0), "positive", isArabicUi() ? "قائمة القرار" : "Action list"],
+    [isArabicUi() ? "قيد المتابعة" : "Under Review", (counts.HOLD || 0) + (counts.WATCH || 0), "warning", isArabicUi() ? "احتفاظ ومراقبة" : "Hold and watch"],
+    [isArabicUi() ? "تقارير مكتملة" : "Complete Reports", complete, "neutral", isArabicUi() ? "جاهزة للمراجعة" : "Ready to review"]
   ];
   return `
     <div class="investment-library-summary" aria-label="${uiLabel("Portfolio status summary")}">
-      ${items.map(([label, value, tone]) => `
+      ${items.map(([label, value, tone, detail]) => `
         <article class="library-summary-card ${colorClass(tone, "tone")}">
           <span>${escapeHtml(label)}</span>
           <strong>${escapeHtml(String(value))}</strong>
+          <small>${escapeHtml(detail)}</small>
         </article>
       `).join("")}
     </div>
@@ -1856,7 +1874,14 @@ function stockDecisionHeader(report = {}, completion = {}) {
   return `
     <header id="stock-report-top" class="panel stock-decision-header terminal-stock-header">
       <div class="stock-title-block terminal-stock-identity">
-        <div>
+        ${companyLogoMarkup({
+          ticker,
+          name: companyName,
+          logoUrl: report.company?.logoUrl || report.companyProfile?.logoUrl || report.companyProfile?.logo || "",
+          className: "stock-company-logo"
+        })}
+        <div class="stock-title-copy">
+          <p class="report-header-kicker">${isArabicUi() ? "تقرير الاستثمار" : "INVESTMENT REPORT"}</p>
           <div class="stock-title-row">
             <h2><bdi>${escapeHtml(ticker)}</bdi></h2>
             ${report.companyProfile ? `<button class="ticker-profile-button" data-profile-ticker="${escapeHtml(ticker)}" data-profile-report-id="${escapeHtml(report.id || "latest")}">${uiLabel("Company Profile")}</button>` : ""}
@@ -2134,11 +2159,14 @@ function qualityGrowthRiskPanel(report = {}) {
     <section class="panel stock-report-section qgr-performance-panel">
       <header><h3>${uiLabel("جودة الشركة / النمو / المخاطر")}</h3></header>
       <div class="qgr-row-list">
-        ${rows.map((row) => `
-          <details class="qgr-row">
+        ${rows.map((row, index) => `
+          <details class="qgr-row qgr-tone-${index === 0 ? "quality" : index === 1 ? "growth" : "risk"}">
             <summary>
               <span>${escapeHtml(row.label)}</span>
-              <strong dir="ltr">${escapeHtml(scoreText(row.value, 1))}</strong>
+              <span class="qgr-score-visual">
+                <strong dir="ltr">${escapeHtml(scoreText(row.value, 1))}</strong>
+                <i aria-hidden="true"><b style="width:${scoreMeterWidth(row.value)}%"></b></i>
+              </span>
               <em>${escapeHtml(row.status)}</em>
               <b>›</b>
             </summary>
@@ -2148,6 +2176,11 @@ function qualityGrowthRiskPanel(report = {}) {
       </div>
     </section>
   `;
+}
+
+function scoreMeterWidth(value) {
+  const score = numericValue(value);
+  return Number.isFinite(score) ? Math.max(0, Math.min(100, score * 10)) : 0;
 }
 
 function qualitativeScoreLabel(value, inverse = false) {

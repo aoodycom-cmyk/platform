@@ -74,8 +74,7 @@ body {
 body {
   min-height: 100dvh;
   background:
-    radial-gradient(circle at 12% -8%, rgba(56, 149, 164, 0.14), transparent 28rem),
-    radial-gradient(circle at 92% 2%, rgba(50, 132, 96, 0.1), transparent 24rem),
+    linear-gradient(180deg, rgba(17, 29, 46, 0.2), transparent 28rem),
     var(--bg);
 }
 
@@ -537,6 +536,39 @@ label {
   padding: 10px;
 }
 
+.library-hero {
+  padding: 8px 2px 4px;
+  display: grid;
+  gap: 5px;
+}
+
+.library-hero p,
+.library-hero h1,
+.library-hero span {
+  margin: 0;
+}
+
+.library-hero p {
+  color: var(--green);
+  font-size: 10px;
+  font-weight: var(--font-weight-strong);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.library-hero h1 {
+  color: var(--ink);
+  font-size: 27px;
+  font-weight: var(--font-weight-strong);
+  line-height: 1.2;
+}
+
+.library-hero span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .search-line {
   display: grid;
 }
@@ -545,6 +577,51 @@ label {
   padding: 13px;
   display: grid;
   gap: 11px;
+}
+
+.investment-library-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.library-summary-card {
+  min-height: 118px;
+  padding: 13px;
+  display: grid;
+  align-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(155deg, color-mix(in srgb, var(--surface-2) 96%, var(--steel) 4%), var(--surface-3));
+  box-shadow: var(--shadow-soft);
+}
+
+.library-summary-card span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: var(--font-weight-medium);
+}
+
+.library-summary-card strong {
+  color: var(--ink);
+  font-size: 24px;
+  font-weight: var(--font-weight-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.library-summary-card small {
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+.library-summary-card.tone-positive strong {
+  color: var(--green);
+}
+
+.library-summary-card.tone-warning strong {
+  color: var(--amber);
 }
 
 .library-stats {
@@ -608,6 +685,19 @@ label {
 .company-card-top > div {
   display: grid;
   gap: 2px;
+}
+
+.library-card-top .library-company-identity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.library-company-identity > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
 }
 
 .library-card-top strong,
@@ -724,7 +814,29 @@ label {
 }
 
 .terminal-stock-identity {
-  display: block;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.stock-company-logo {
+  width: 46px;
+  height: 46px;
+  flex-basis: 46px;
+  border-radius: 13px;
+}
+
+.stock-title-copy {
+  min-width: 0;
+}
+
+.report-header-kicker {
+  margin: 0 0 5px;
+  color: var(--green);
+  font-size: 9px;
+  font-weight: var(--font-weight-strong);
+  letter-spacing: 0.1em;
 }
 
 .stock-title-row {
@@ -1030,7 +1142,7 @@ label {
   min-height: 54px;
   padding: 10px 13px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  grid-template-columns: minmax(0, 1fr) minmax(76px, 96px) auto auto;
   align-items: center;
   gap: 8px;
   list-style: none;
@@ -1048,6 +1160,44 @@ label {
 .qgr-row summary strong {
   color: var(--teal);
   font-size: 18px;
+}
+
+.qgr-score-visual {
+  display: grid;
+  grid-template-columns: 32px minmax(36px, 1fr);
+  align-items: center;
+  gap: 7px;
+}
+
+.qgr-score-visual i {
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-3);
+}
+
+.qgr-score-visual i b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--teal);
+}
+
+.qgr-tone-growth .qgr-score-visual strong {
+  color: var(--amber);
+}
+
+.qgr-tone-growth .qgr-score-visual i b {
+  background: var(--amber);
+}
+
+.qgr-tone-risk .qgr-score-visual strong {
+  color: var(--red);
+}
+
+.qgr-tone-risk .qgr-score-visual i b {
+  background: var(--red);
 }
 
 .qgr-row summary em {
@@ -2205,7 +2355,6 @@ td {
 .terminal-command-bar,
 .scenario-terminal-grid,
 .requirements-comparison-desktop,
-.investment-library-summary,
 .quick-actions-panel,
 .topbar,
 .product-topbar {

@@ -13,6 +13,9 @@ const serviceWorker = read("../service-worker.js");
 const syncScript = read("../scripts/sync-deploy.mjs");
 const foundationSource = read("../src/ui/foundation.js");
 const mainSource = read("../src/main.js");
+const componentSource = read("../src/ui/components.js");
+const enhancerSource = read("../src/ui/mobile2Enhancer.js");
+const premiumCss = read("../styles-premium.css");
 
 for (const token of [
   "--bg:",
@@ -66,6 +69,15 @@ assert.ok(serviceWorker.includes('"./src/ui/foundation.js"'));
 assert.ok(mainSource.includes('import "./ui/mobile2Enhancer.js"'));
 assert.ok(mainSource.includes('import "./ui/quarterlyResultsEnhancer.js"'));
 assert.equal(/localStorage|indexedDB|removeItem|\.clear\s*\(/.test(foundationSource), false, "Presentation primitives must not touch persisted data.");
+
+assert.ok(componentSource.includes('class="library-hero"'), "Investment Library identity must remain visible on Home.");
+assert.ok(componentSource.includes('class="investment-library-summary"'), "Home must retain its compact portfolio indicators.");
+assert.ok(componentSource.includes("companyLogoMarkup({"), "Library and report identity must use the shared logo primitive.");
+assert.ok(componentSource.includes('class="qgr-score-visual"'), "Report score rows must retain their visual indicators.");
+assert.ok(enhancerSource.includes('scenarioCell("Bear"') && enhancerSource.includes('scenarioCell("Base"') && enhancerSource.includes('scenarioCell("Bull"'));
+assert.ok(premiumCss.includes(".stock-summary-metric.bear strong { color: var(--fr-red); }"));
+assert.ok(premiumCss.includes(".stock-summary-metric.base strong { color: var(--fr-amber); }"));
+assert.ok(premiumCss.includes(".stock-summary-metric.bull strong { color: var(--fr-green); }"));
 
 console.log("Frontend foundation tests passed.");
 

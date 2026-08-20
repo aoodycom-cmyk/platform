@@ -1,3 +1,5 @@
+import { bindCompanyLogoFallbacks, companyLogoMarkup } from "./foundation.js";
+
 const STORAGE_KEY = "equityResearchV4State";
 
 function safeState() {
@@ -97,6 +99,7 @@ function enhanceLibraryCards(state) {
         ? ((numeric(base) - numeric(current)) / numeric(current)) * 100
         : null);
     const companyName = report.company?.name || ticker;
+    const logoUrl = report.company?.logoUrl || report.companyProfile?.logoUrl || report.companyProfile?.logo || "";
     const lastUpdate = report.reportPeriod || report.analysisDate || "—";
     const completion = report.completionStatus?.status || "complete";
     const profileButton = report.companyProfile
@@ -107,9 +110,10 @@ function enhanceLibraryCards(state) {
     card.dataset.mobile2Enhanced = "true";
     card.innerHTML = `
       <div class="m2-stock-card-head">
-        <div class="m2-ticker" dir="ltr">${escapeHtml(ticker)}</div>
+        ${companyLogoMarkup({ ticker, name: companyName, logoUrl, className: "m2-company-logo" })}
         <div class="m2-stock-identity">
-          <div><span class="m2-action-pill ${action.key}">${escapeHtml(action.label)}</span><strong>${escapeHtml(companyName)}</strong></div>
+          <div class="m2-stock-title-line"><strong dir="auto">${escapeHtml(companyName)}</strong><span class="m2-action-pill ${action.key}">${escapeHtml(action.label)}</span></div>
+          <bdi class="m2-ticker">${escapeHtml(ticker)}</bdi>
           <small>آخر تحديث ${escapeHtml(lastUpdate)} · ثقة ${escapeHtml(confidenceLabel(report))}</small>
         </div>
       </div>
@@ -130,6 +134,7 @@ function enhanceLibraryCards(state) {
         <div>${profileButton}<span>فتح التقرير ←</span></div>
       </div>
     `;
+    bindCompanyLogoFallbacks(card);
   });
 }
 
@@ -249,6 +254,7 @@ function enhanceReportShell() {
 }
 
 function runEnhancer() {
+  if (!window.matchMedia("(max-width: 640px)").matches) return;
   const state = safeState();
   enhanceLibraryControls(state);
   enhanceLibraryCards(state);
@@ -273,4 +279,5 @@ if (app) {
 }
 window.addEventListener("storage", schedule);
 window.addEventListener("DOMContentLoaded", schedule);
+window.matchMedia("(max-width: 640px)").addEventListener("change", schedule);
 schedule();
