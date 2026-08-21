@@ -54,20 +54,20 @@ export function appHeaderMarkup({ title, isHome = false, theme = "dark", languag
   const moreLabel = escapeHtml(text("More"));
   const themeLabel = escapeHtml(theme === "dark" ? text("Light") : text("Dark"));
   return `
-    <header class="mobile-app-header">
+    <header class="mobile-app-header ${isHome ? "library-app-header" : ""}">
       <div class="mobile-brand">
         ${companyLogoMarkup({ name: "Franklin", logoUrl: "./assets/icon-192.png", className: "app-logo" })}
         <div>
-          <strong>Franklin</strong>
-          <span>${escapeHtml(title)}</span>
+          <strong>${language === "ar" ? "فرانكلين" : "Franklin"}</strong>
+          <span dir="ltr">FRANKLIN RESEARCH</span>
         </div>
       </div>
       <div class="mobile-header-actions">
         ${isHome
-          ? `<button class="primary-btn compact-primary" data-action="open-external-import">${addStockLabel}</button>`
-          : `<button class="icon-btn back-home" data-panel="home">${homeLabel}</button>`}
+          ? `<button class="header-icon-button header-add-button" data-action="open-external-import" aria-label="${addStockLabel}" title="${addStockLabel}"><span aria-hidden="true">+</span></button>`
+          : `<button class="header-icon-button back-home" data-panel="home" aria-label="${homeLabel}" title="${homeLabel}"><span aria-hidden="true">‹</span></button>`}
         <details class="mobile-app-menu">
-          <summary aria-label="${moreLabel}">•••</summary>
+          <summary aria-label="${moreLabel}" title="${moreLabel}"><span aria-hidden="true">•••</span></summary>
           <div>
             <div class="language-toggle" role="group" aria-label="Language">
               <button class="${languageClass("ar", language)}" data-language="ar">العربية</button>
@@ -84,10 +84,17 @@ export function appHeaderMarkup({ title, isHome = false, theme = "dark", languag
 
 export function bottomNavigationMarkup({ panels = [], activePanel = "home", scorecard = false, label }) {
   const text = typeof label === "function" ? label : (value) => value;
+  const icons = {
+    home: "⌂",
+    "external-import": "+",
+    history: "◷",
+    settings: "⚙"
+  };
   return `
     <nav class="mobile-nav ${scorecard ? "quarterly-scorecard-nav" : ""}" aria-label="${escapeHtml(text("Navigation"))}">
       ${panels.map(([key, panelLabel]) => `
         <button class="${activePanel === key ? "active" : ""}" data-panel="${escapeHtml(key)}" ${activePanel === key ? 'aria-current="page"' : ""}>
+          <b aria-hidden="true">${escapeHtml(icons[key] || "·")}</b>
           <span>${escapeHtml(text(panelLabel))}</span>
         </button>
       `).join("")}

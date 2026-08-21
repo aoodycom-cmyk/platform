@@ -83,7 +83,7 @@ function render(root, store, actions) {
   }
   root.innerHTML = `
     <main class="mobile-app-shell ${activePanel === "quarterly-scorecard" ? "scorecard-app-shell" : ""}">
-      <section class="mobile-app-frame">
+      <section class="mobile-app-frame panel-${escapeHtml(activePanel)}">
         ${mobileAppHeader(state)}
         ${state.notice ? `<div class="notice">${escapeHtml(state.notice)}</div>` : ""}
         <div class="mobile-page-content">${panelContent(state)}</div>
@@ -104,10 +104,9 @@ function render(root, store, actions) {
 function homeDashboard(state) {
   return `
     <main class="mobile-app-shell library-home">
-      <section class="mobile-app-frame">
+      <section class="mobile-app-frame panel-home">
         ${mobileAppHeader(state, true)}
         <div class="mobile-page-content">
-          ${libraryHero()}
           ${homePolishedSearch(state)}
           ${externalAnalysesHomeSection(state)}
         </div>
@@ -128,6 +127,7 @@ function libraryHero() {
 }
 
 function mobileAppHeader(state, isHome = false) {
+  if (state.activePanel === "external-report") return externalReportAppBar(state);
   const title = isHome ? uiLabel("My Stocks") : activePanelLabel(state.activePanel);
   return appHeaderMarkup({
     title,
@@ -136,6 +136,40 @@ function mobileAppHeader(state, isHome = false) {
     language: state.language,
     label: uiLabel
   });
+}
+
+function externalReportAppBar(state) {
+  const selection = state.externalReportSelection || {};
+  const report = getExternalAnalysis(state.externalAnalyses || {}, selection.ticker, selection.reportId);
+  const ticker = report?.company?.ticker || selection.ticker || "—";
+  const companyName = report?.company?.name || ticker;
+  const updated = report?.reportPeriod || report?.analysisDate || "—";
+  const moreLabel = uiLabel("More");
+  return `
+    <header class="mobile-app-header report-app-bar">
+      <button class="header-icon-button report-back-button" data-panel="home" aria-label="${uiLabel("Back to My Stocks")}" title="${uiLabel("Back to My Stocks")}"><span aria-hidden="true">‹</span></button>
+      <div class="report-app-identity">
+        <strong dir="auto">${escapeHtml(companyName)}</strong>
+        <span>
+          ${report?.companyProfile
+            ? `<button class="report-profile-link" data-profile-ticker="${escapeHtml(ticker)}" data-profile-report-id="${escapeHtml(report.id || "latest")}"><bdi dir="ltr">${escapeHtml(ticker)}</bdi></button>`
+            : `<bdi dir="ltr">${escapeHtml(ticker)}</bdi>`}
+          <i aria-hidden="true">•</i><bdi dir="ltr">${escapeHtml(updated)}</bdi>
+        </span>
+      </div>
+      <details class="mobile-app-menu">
+        <summary aria-label="${escapeHtml(moreLabel)}" title="${escapeHtml(moreLabel)}"><span aria-hidden="true">•••</span></summary>
+        <div>
+          <div class="language-toggle" role="group" aria-label="Language">
+            <button class="${state.language === "ar" ? "active" : ""}" data-language="ar">العربية</button>
+            <span></span>
+            <button class="${state.language === "en" ? "active" : ""}" data-language="en">English</button>
+          </div>
+          <button class="icon-btn" data-action="toggle-theme">${state.theme === "dark" ? uiLabel("Light") : uiLabel("Dark")}</button>
+        </div>
+      </details>
+    </header>
+  `;
 }
 
 function homePolishedSearch(state) {
@@ -186,7 +220,6 @@ function externalAnalysesHomeSection(state) {
           <span>${totalReports} ${uiLabel("Analyses")}</span>
         </div>
       </div>
-      ${investmentLibrarySummary(allReports)}
       ${watchlistToolbar(state)}
       ${reports.length ? `
         <div class="library-card-grid">
@@ -198,66 +231,74 @@ function externalAnalysesHomeSection(state) {
 }
 
 function externalHomeCard(report) {
-  const currentPriceLabel = Number.isFinite(numericValue(report.currentPrice)) && Number.isFinite(numericValue(report.priceAtAnalysis)) && numericValue(report.currentPrice) !== numericValue(report.priceAtAnalysis)
-    ? uiLabel("Current Price")
-    : uiLabel("Price at Analysis");
   const lastUpdate = report.reportPeriod || report.analysisDate || "-";
+  const completion = report.completionStatus || {};
+  const completionLabel = completion.status === "complete"
+    ? (isArabicUi() ? "مكتمل" : "Complete")
+    : (isArabicUi() ? "يحتاج استكمال" : "Needs completion");
   return `
-    <article class="company-card external-company-card library-company-card terminal-watchlist-row" data-external-ticker="${escapeHtml(report.ticker)}" data-external-report-id="${escapeHtml(report.id)}" data-library-card data-search-text="${escapeHtml(`${report.ticker} ${report.companyName}`.toLowerCase())}">
-      <div class="company-card-top library-card-top">
+    <article class="company-card external-company-card library-company-card terminal-watchlist-row figma-library-row" data-franklin-v2="true" data-external-ticker="${escapeHtml(report.ticker)}" data-external-report-id="${escapeHtml(report.id)}" data-library-card data-search-text="${escapeHtml(`${report.ticker} ${report.companyName}`.toLowerCase())}">
+      <div class="figma-library-primary">
+        <div class="library-target-snapshot">
+          <strong dir="ltr">${money(report.baseFairValue, 0)}</strong>
+          <span>Base Fair Value</span>
+          <b class="${colorClass(upsideColorCategory(numericValue(report.upsideToBasePct)), "tone")}" dir="ltr">${formatExternalPercent(report.upsideToBasePct)}</b>
+        </div>
         <div class="library-company-identity">
           ${companyLogoMarkup({ ticker: report.ticker, name: report.companyName })}
           <div>
-            <strong><bdi>${escapeHtml(report.ticker)}</bdi></strong>
-            <span>${escapeHtml(report.companyName || uiLabel("Company"))}</span>
+            <strong dir="auto">${escapeHtml(report.companyName || uiLabel("Company"))}</strong>
+            <span><bdi dir="ltr">${escapeHtml(report.ticker)}</bdi></span>
           </div>
         </div>
+      </div>
+      <div class="figma-library-secondary">
+        <span><small>${uiLabel("Current Price")}</small><strong dir="ltr">${money(report.currentPrice, 2)}</strong></span>
+        <span class="bear"><small>Bear</small><strong dir="ltr">${money(report.bearFairValue, 0)}</strong></span>
+        <span class="bull"><small>Bull</small><strong dir="ltr">${money(report.bullFairValue, 0)}</strong></span>
+        <span class="period"><small>${uiLabel("Last Update")}</small><strong dir="auto">${escapeHtml(lastUpdate)}</strong></span>
+      </div>
+      <div class="figma-library-footer">
         <em class="${colorClass(recommendationColorCategory(report.verdict), "badge")}">${escapeHtml(localizedExternalText(report.verdict) || "-")}</em>
-      </div>
-      <div class="library-card-metrics">
-        ${compactCardMetric(currentPriceLabel, money(report.currentPrice, 2))}
-        ${compactCardMetric("Base", money(report.baseFairValue, 0))}
-        ${compactCardMetric("Bull", money(report.bullFairValue, 0))}
-        ${compactCardMetric(uiLabel("Upside"), formatExternalPercent(report.upsideToBasePct))}
-        ${compactCardMetric(uiLabel("Last Update"), lastUpdate)}
-      </div>
-      ${libraryCompletionRow(report.completionStatus)}
-      <div class="company-card-footer library-card-footer">
-        <span>${uiLabel("Open saved report")}</span>
-        <div class="library-card-actions">
-          ${report.hasCompanyProfile ? `<button class="profile-pill" data-profile-ticker="${escapeHtml(report.ticker)}" data-profile-report-id="${escapeHtml(report.id)}">${uiLabel("Company Profile")}</button>` : ""}
-          <small>${uiLabel("Open report")}</small>
-        </div>
+        <span class="library-data-status ${completionStatusClass(completion.status)}">${escapeHtml(completionLabel)}</span>
+        ${report.hasCompanyProfile ? `<button class="profile-pill" data-profile-ticker="${escapeHtml(report.ticker)}" data-profile-report-id="${escapeHtml(report.id)}">${uiLabel("Company Profile")}</button>` : ""}
+        <b aria-hidden="true">‹</b>
       </div>
     </article>
   `;
 }
 
 function watchlistToolbar(state) {
+  const filters = [
+    ["all", uiLabel("All")],
+    ["buy", decisionLabel("BUY")],
+    ["add", decisionLabel("ADD")],
+    ["hold", decisionLabel("HOLD")],
+    ["watch", decisionLabel("WATCH")]
+  ];
   return `
     <div class="watchlist-toolbar">
-      <label>
-        <span>${uiLabel("Filter")}</span>
-        <select data-library-filter>
-          ${watchlistFilterOption("all", uiLabel("All"), state.libraryFilter)}
-          ${watchlistFilterOption("buy", decisionLabel("BUY"), state.libraryFilter)}
-          ${watchlistFilterOption("add", decisionLabel("ADD"), state.libraryFilter)}
-          ${watchlistFilterOption("hold", decisionLabel("HOLD"), state.libraryFilter)}
-          ${watchlistFilterOption("watch", decisionLabel("WATCH"), state.libraryFilter)}
-          ${watchlistFilterOption("reduce", decisionLabel("REDUCE"), state.libraryFilter)}
-          ${watchlistFilterOption("sell", decisionLabel("SELL"), state.libraryFilter)}
-          ${watchlistFilterOption("incomplete", uiLabel("Incomplete"), state.libraryFilter)}
-        </select>
-      </label>
-      <label>
-        <span>${uiLabel("Sort")}</span>
+      <select data-library-filter aria-hidden="true" tabindex="-1">
+        ${watchlistFilterOption("all", uiLabel("All"), state.libraryFilter)}
+        ${watchlistFilterOption("buy", decisionLabel("BUY"), state.libraryFilter)}
+        ${watchlistFilterOption("add", decisionLabel("ADD"), state.libraryFilter)}
+        ${watchlistFilterOption("hold", decisionLabel("HOLD"), state.libraryFilter)}
+        ${watchlistFilterOption("watch", decisionLabel("WATCH"), state.libraryFilter)}
+        ${watchlistFilterOption("reduce", decisionLabel("REDUCE"), state.libraryFilter)}
+        ${watchlistFilterOption("sell", decisionLabel("SELL"), state.libraryFilter)}
+        ${watchlistFilterOption("incomplete", uiLabel("Incomplete"), state.libraryFilter)}
+      </select>
+      <div class="library-filter-chips" role="group" aria-label="${uiLabel("Filter")}">
+        ${filters.map(([value, label]) => `<button class="${state.libraryFilter === value ? "active" : ""}" type="button" data-library-filter-button="${value}" aria-pressed="${state.libraryFilter === value}">${escapeHtml(label)}</button>`).join("")}
+      </div>
+      <label class="library-sort-control">
+        <span aria-hidden="true">↕</span>
         <select data-library-sort>
           ${watchlistFilterOption("latest", uiLabel("Latest Update"), state.librarySort)}
           ${watchlistFilterOption("upside", uiLabel("Highest Upside"), state.librarySort)}
           ${watchlistFilterOption("ticker", uiLabel("Ticker"), state.librarySort)}
         </select>
       </label>
-      <button class="primary-btn compact-primary" data-action="open-external-import">${uiLabel("إضافة سهم")}</button>
     </div>
   `;
 }
@@ -1860,49 +1901,40 @@ function quarterlyTrajectoryLabel(value) {
 }
 
 function stockDecisionHeader(report = {}, completion = {}) {
-  const ticker = report.company?.ticker || "-";
-  const companyName = report.company?.name || ticker;
   const action = externalRecommendationAction(report);
   const current = report.fairValueSummary?.currentPrice;
   const upside = report.fairValueSummary?.upsideDownsidePercent;
   const potential = derivedUpsidePercent(report.fairValueSummary?.fairValueHigh, current) ?? upside;
+  const priceAtAnalysis = report.market?.priceAtAnalysis;
   return `
-    <header id="stock-report-top" class="panel stock-decision-header terminal-stock-header">
-      <div class="stock-title-block terminal-stock-identity">
-        ${companyLogoMarkup({
-          ticker,
-          name: companyName,
-          logoUrl: report.company?.logoUrl || report.companyProfile?.logoUrl || report.companyProfile?.logo || "",
-          className: "stock-company-logo"
-        })}
-        <div class="stock-title-copy">
-          <p class="report-header-kicker">${isArabicUi() ? "تقرير الاستثمار" : "INVESTMENT REPORT"}</p>
-          <div class="stock-title-row">
-            <h2><bdi>${escapeHtml(ticker)}</bdi></h2>
-            ${report.companyProfile ? `<button class="ticker-profile-button" data-profile-ticker="${escapeHtml(ticker)}" data-profile-report-id="${escapeHtml(report.id || "latest")}">${uiLabel("Company Profile")}</button>` : ""}
-          </div>
-          <strong>${escapeHtml(companyName)}</strong>
+    <header id="stock-report-top" class="panel stock-decision-header terminal-stock-header figma-decision-card" data-franklin-v2="true">
+      <div class="decision-card-heading">
+        <div>
+          <span>${isArabicUi() ? "قرار الاستثمار" : "INVESTMENT DECISION"}</span>
+          <small>${escapeHtml(report.reportPeriod || report.analysisDate || "—")}</small>
         </div>
+        <em class="decision-action ${colorClass(recommendationColorCategory(action), "badge")}">${escapeHtml(localizedExternalText(action) || "-")}</em>
       </div>
-      <div class="mobile-report-facts">
-        <article class="recommendation-fact ${colorClass(recommendationColorCategory(action), "tone")}">
-          <span>${uiLabel("Recommendation")}</span>
-          <strong>${escapeHtml(localizedExternalText(action) || "-")}</strong>
+      <div class="decision-primary-values">
+        <article class="decision-base-value">
+          <span>Base Fair Value</span>
+          <strong dir="ltr">${money(report.fairValueSummary?.fairValueBase, 0)}</strong>
+          <small class="${colorClass(upsideColorCategory(numericValue(upside)), "tone")}" dir="ltr">${formatExternalPercent(upside)} ${isArabicUi() ? "من السعر الحالي" : "from current price"}</small>
         </article>
-        <article>
+        <article class="decision-current-value">
           <span>${uiLabel("Current Price")}</span>
-          <strong><bdi>${money(current, 2)}</bdi></strong>
-        </article>
-        <article>
-          <span>${uiLabel("آخر تحديث")}</span>
-          <strong><bdi>${escapeHtml(report.reportPeriod || report.analysisDate || "—")}</bdi></strong>
+          <strong dir="ltr">${money(current, 2)}</strong>
+          ${Number.isFinite(numericValue(priceAtAnalysis)) ? `<small>${uiLabel("Price at Analysis")}: <bdi dir="ltr">${money(priceAtAnalysis, 2)}</bdi></small>` : ""}
         </article>
       </div>
-      <div class="mobile-scenario-grid terminal-header-strip">
-        ${stockSummaryMetric("Bear", money(report.fairValueSummary?.fairValueLow, 0), "bear")}
-        ${stockSummaryMetric("Base", money(report.fairValueSummary?.fairValueBase, 0), "base")}
-        ${stockSummaryMetric("Bull", money(report.fairValueSummary?.fairValueHigh, 0), "bull")}
-        ${stockSummaryMetric(uiLabel("العائد المحتمل"), formatExternalPercent(potential), upsideColorCategory(numericValue(upside)))}
+      <div class="valuation-range-visual" aria-label="Bear Base Bull">
+        <div class="valuation-range-title"><span>${isArabicUi() ? "نطاق القيمة العادلة" : "VALUATION RANGE"}</span><b dir="ltr">${formatExternalPercent(potential)} ${isArabicUi() ? "أقصى عائد" : "max potential"}</b></div>
+        <div class="valuation-range-track" aria-hidden="true"><i class="bear"></i><i class="base"></i><i class="bull"></i></div>
+        <div class="valuation-range-values">
+          ${stockSummaryMetric("Bear", money(report.fairValueSummary?.fairValueLow, 0), "bear")}
+          ${stockSummaryMetric("Base", money(report.fairValueSummary?.fairValueBase, 0), "base")}
+          ${stockSummaryMetric("Bull", money(report.fairValueSummary?.fairValueHigh, 0), "bull")}
+        </div>
       </div>
     </header>
   `;
@@ -3579,28 +3611,32 @@ function priceTargetRequirementsView(requirementsBlock = {}, context = {}) {
   const previousQuarter = requirementsBlock.previousQuarter || uiLabel("Previous Quarter");
   const targetQuarter = requirementsBlock.targetQuarter || requirementsBlock.earningsPeriod || uiLabel("Target Quarter");
   return `
-    <div class="price-requirements-block">
-      <div class="next-target-bridge">
-        <article>
-          <span>${uiLabel("Current Justified Value")}</span>
-          <strong>${money(requirementsBlock.currentJustifiedValue, 0)}</strong>
-        </article>
-        <b aria-hidden="true">→</b>
-        <article class="target">
+    <div class="price-requirements-block figma-thesis-tracker" data-franklin-v2="true">
+      <div class="next-target-bridge thesis-tracker-summary">
+        <div class="tracker-summary-title">
+          <span>${isArabicUi() ? "متتبع الفرضية" : "THESIS TRACKER"}</span>
+          <strong>${uiLabel("What must the company deliver to justify")} <bdi dir="ltr">${money(targetValue, 0)}</bdi>${isArabicUi() ? "؟" : "?"}</strong>
+        </div>
+        <article class="tracker-target-value">
           <span>${uiLabel("Next Target")}</span>
-          <strong>${money(targetValue, 0)}</strong>
+          <strong dir="ltr">${money(targetValue, 0)}</strong>
         </article>
-        <article>
-          <span>${uiLabel("Target Scenario")}</span>
-          <strong dir="auto"><bdi>${escapeHtml(targetScenarioLabel(requirementsBlock.targetScenario))}</bdi></strong>
-        </article>
-        <article>
-          <span>${uiLabel("Earnings Period")}</span>
-          <strong>${escapeHtml(requirementsBlock.earningsPeriod || "-")}</strong>
-        </article>
+        <div class="tracker-context-grid">
+          <article>
+            <span>${uiLabel("Current Justified Value")}</span>
+            <strong dir="ltr">${money(requirementsBlock.currentJustifiedValue, 0)}</strong>
+          </article>
+          <article>
+            <span>${uiLabel("Target Scenario")}</span>
+            <strong dir="auto"><bdi>${escapeHtml(targetScenarioLabel(requirementsBlock.targetScenario))}</bdi></strong>
+          </article>
+          <article>
+            <span>${uiLabel("Earnings Period")}</span>
+            <strong dir="ltr">${escapeHtml(requirementsBlock.earningsPeriod || "—")}</strong>
+          </article>
+        </div>
       </div>
       <div class="requirements-cycle-copy">
-        <strong>${uiLabel("What must the company deliver to justify")} <bdi dir="ltr">${isArabicUi() ? `${money(targetValue, 0).replace("$", "")} USD` : money(targetValue, 0)}</bdi>${isArabicUi() ? "؟" : "?"}</strong>
         ${requirementsBlock.summary || requirementsBlock.targetDescription ? `<p>${escapeHtml(localizedExternalText(requirementsBlock.summary || requirementsBlock.targetDescription))}</p>` : ""}
       </div>
       ${requirementsComparisonView(requirements, {
@@ -3741,7 +3777,7 @@ function requirementsComparisonView(requirements = [], options = {}) {
 function requirementComparisonMobileRow(item = {}, options = {}) {
   const hasDetails = Boolean(item.whyItMatters || item.evaluationNote || item.direction || item.impact);
   return `
-    <article class="requirement-comparison-row">
+    <article class="requirement-comparison-row" data-requirement-status="${escapeHtml(String(item.status || "NOT_REPORTED").toUpperCase())}">
       <header>
         ${requirementMetricCell(item)}
         <span class="requirement-weight">${uiLabel("Weight")}: <bdi>${requirementWeightText(item.weight)}</bdi></span>
@@ -6006,6 +6042,9 @@ function bind(root, store, actions) {
   });
   root.querySelector("[data-library-filter]")?.addEventListener("change", (event) => {
     store.setLibraryFilter(event.target.value);
+  });
+  root.querySelectorAll("[data-library-filter-button]").forEach((button) => {
+    button.addEventListener("click", () => store.setLibraryFilter(button.dataset.libraryFilterButton));
   });
   root.querySelector("[data-library-sort]")?.addEventListener("change", (event) => {
     store.setLibrarySort(event.target.value);

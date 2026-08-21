@@ -255,10 +255,8 @@ function enhanceReportShell() {
 
 function runEnhancer() {
   if (!window.matchMedia("(max-width: 640px)").matches) return;
-  const state = safeState();
-  enhanceLibraryControls(state);
-  enhanceLibraryCards(state);
-  enhanceRequirements(state);
+  // Canonical renderers now own the Figma-aligned library and requirements UI.
+  // Keep the legacy helpers in this module for backward-compatible markup only.
   enhanceReportShell();
 }
 

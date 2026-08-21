@@ -30,7 +30,7 @@ for (const token of [
   "--radius:",
   "--space-4:",
   "--tap:",
-  "--app-max-width: 402px"
+  "--app-max-width: 430px"
 ]) {
   assert.ok(rootCss.includes(token), `Foundation token missing: ${token}`);
 }
@@ -40,7 +40,11 @@ assert.ok(rootCss.includes("env(safe-area-inset-bottom)"));
 assert.ok(rootCss.includes("overflow-x: hidden"));
 assert.ok(rootCss.includes("unicode-bidi: isolate"));
 assert.ok(rootCss.includes("min-height: var(--tap)"));
-assert.ok(mobileCss.includes("max-width:var(--app-max-width)"));
+assert.ok(mobileCss.includes("--franklin-screen: 430px"));
+assert.ok(mobileCss.includes("width: min(100%, var(--franklin-screen))"));
+for (const color of ["#07080d", "#0b0d16", "#111422", "#1f253b", "#2dd4bf", "#fbbf24", "#f43f5e"]) {
+  assert.ok(`${rootCss}\n${mobileCss}`.includes(color), `Figma color token missing: ${color}`);
+}
 
 const logo = companyLogoMarkup({ ticker: "MSFT", name: "Microsoft", logoUrl: "bad.png" });
 assert.ok(logo.includes("data-company-logo"));

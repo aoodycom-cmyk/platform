@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v11-library-ui-20260820d";
+const CACHE_NAME = "franklin-research-v11-figma-ui-20260821d";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
