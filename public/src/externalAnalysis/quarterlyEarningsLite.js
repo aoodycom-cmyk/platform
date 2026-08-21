@@ -2,6 +2,7 @@ import {
   normalizeQuarterlyForwardOutlook,
   upsertQuarterlyForwardOutlookSupplement
 } from "./quarterlyForwardOutlook.js";
+import { normalizeRequirementsAssessment } from "./requirements.js";
 
 export const QUARTERLY_EARNINGS_LITE_SCHEMA = "quarterly-earnings-lite/v1";
 
@@ -70,6 +71,18 @@ export function buildQuarterlyEarningsLitePrompt(report = {}, options = {}) {
       status: "NOT_REPORTED",
       evaluationNote: "جملة قصيرة"
     })),
+    requirementsAssessment: {
+      weightedAchievement: null,
+      reportedRequirements: null,
+      totalRequirements: null,
+      passed: null,
+      failed: null,
+      exceeded: null,
+      partiallyPassed: null,
+      notReported: null,
+      overallStatus: null,
+      summary: null
+    },
     highlights: ["حد أقصى 3 نقاط"],
     concerns: ["حد أقصى نقطتان"]
   };
@@ -87,7 +100,10 @@ export function buildQuarterlyEarningsLitePrompt(report = {}, options = {}) {
     "- لا تخترع أي رقم؛ استخدم null عند عدم التوفر.",
     "- اجعل summary من سطر أو سطرين، highlights بحد أقصى 3، concerns بحد أقصى 2، companyKpis بحد أقصى 4، guidance بحد أقصى 3، وforwardOutlook.summary بحد أقصى سطرين.",
     "- قارن فقط المتطلبات السابقة المرفقة أدناه، ولا تنشئ متطلبات جديدة.",
+    "- عند وصول الربع المستهدف، أرسل requirementsAssessment كما حسبته أنت من التحليل: لا تترك weightedAchievement أو أعداد النتائج فارغة إذا كانت قابلة للتقييم.",
+    "- Franklin لا يعيد حساب requirementsAssessment ولا حالات المتطلبات؛ لذلك أرسل القيم والحالات النهائية كما توصلت إليها أنت.",
     "- إذا كان المتطلب هدفًا لربع لاحق، سجّل actualValue/actualDisplay لهذا الربع فقط عندما يكون نفس الـKPI قابلًا للمقارنة، لكن أبقِ status = NOT_REPORTED حتى يصل الربع المستهدف؛ هذا Observation للتقدم وليس حكمًا نهائيًا.",
+    "- قبل الربع المستهدف اجعل حقول requirementsAssessment = null، ولا تحوّل ملاحظة التقدم إلى نسبة إنجاز نهائية.",
     "- لا تستخدم رقم الربع الحالي بدل متطلب يذكر ربعًا مستقبليًا صراحةً؛ مثال: Q1 Net Sales لا يملأ متطلب Q3 Net Sales.",
     "- في evaluationNote وضّح باختصار أن القراءة الحالية ملاحظة تقدم إذا لم يصل الربع المستهدف بعد.",
     "",
@@ -130,7 +146,10 @@ export function inflateQuarterlyEarningsLitePayload(currentReport = {}, payload 
   const reportPeriod = `${quarter} ${year}`;
   const metrics = payload.metrics && typeof payload.metrics === "object" ? payload.metrics : {};
   const requirementBlock = currentReport.priceTargetRequirements || {};
-  const requirements = Array.isArray(payload.requirements) ? payload.requirements.map(normalizeLiteRequirement) : [];
+  const requirements = mergeLiteRequirementResults(requirementBlock.requirements, payload.requirements);
+  const requirementsAssessment = payload.requirementsAssessment && typeof payload.requirementsAssessment === "object" && !Array.isArray(payload.requirementsAssessment)
+    ? normalizeRequirementsAssessment(payload.requirementsAssessment)
+    : null;
   const summary = trimText(payload.summary, 400);
   const guidance = normalizeLiteGuidance(payload.guidance).slice(0, 3);
   const companyKpis = normalizeLiteKpis(payload.companyKpis).slice(0, 4);
@@ -188,9 +207,9 @@ export function inflateQuarterlyEarningsLitePayload(currentReport = {}, payload 
       previousQuarter: requirementBlock.previousQuarter || null,
       targetQuarter: requirementBlock.targetQuarter || requirementBlock.earningsPeriod || reportPeriod,
       requirements,
-      requirementsAssessment: null
+      requirementsAssessment
     },
-    requirementsAssessment: null,
+    requirementsAssessment,
     rawAnalysis: raw,
     rawAnalysisOriginal: raw,
     metadata: {
@@ -239,6 +258,41 @@ function normalizeLiteRequirement(item = {}) {
     status: REQUIREMENT_STATUSES.has(status) ? status : "NOT_REPORTED",
     evaluationNote: trimText(item.evaluationNote, 220)
   };
+}
+
+function mergeLiteRequirementResults(definitionsInput, resultsInput) {
+  const definitions = Array.isArray(definitionsInput) ? definitionsInput : [];
+  const results = (Array.isArray(resultsInput) ? resultsInput : []).map(normalizeLiteRequirement);
+  if (!definitions.length) return results;
+
+  const used = new Set();
+  const merged = definitions.map((definition, index) => {
+    const matchIndex = results.findIndex((result, resultIndex) => !used.has(resultIndex) && requirementsMatch(definition, result));
+    const result = matchIndex >= 0 ? results[matchIndex] : normalizeLiteRequirement({ id: definition.id || `requirement_${index + 1}` });
+    if (matchIndex >= 0) used.add(matchIndex);
+    return {
+      ...definition,
+      ...result,
+      id: definition.id || result.id || `requirement_${index + 1}`
+    };
+  });
+
+  results.forEach((result, index) => {
+    if (!used.has(index)) merged.push(result);
+  });
+  return merged;
+}
+
+function requirementsMatch(definition = {}, result = {}) {
+  const definitionKeys = requirementKeys(definition);
+  const resultKeys = requirementKeys(result);
+  return resultKeys.some((key) => definitionKeys.includes(key));
+}
+
+function requirementKeys(item = {}) {
+  return [item.id, item.metric, item.name, item.arabicName]
+    .map((value) => String(value || "").trim().toLowerCase())
+    .filter(Boolean);
 }
 
 function normalizeLiteGuidance(items) {

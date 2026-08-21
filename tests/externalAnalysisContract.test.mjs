@@ -13,6 +13,8 @@ assert.ok(prompt.includes("companyProfile"), "Prompt must require the educationa
 assert.ok(prompt.includes("للمستثمر الذكي"), "Prompt must ask for simple Arabic company-profile explanations.");
 assert.ok(prompt.includes("fairValueSummary"), "Prompt must include Fair value summary fields.");
 assert.ok(prompt.includes("Conservative"), "Prompt must document Fair value scenarios.");
+assert.ok(prompt.includes("previousValue قيمة مختصرة"), "Prompt must keep the previous KPI value concise for the card renderer.");
+assert.ok(prompt.includes("requirementsAssessment وweightedAchievement فارغين/null"), "Future targets must not carry a premature achievement assessment.");
 assert.ok(prompt.includes('"ticker": "AAOI"'), "Prompt template must carry the entered ticker.");
 assert.equal(prompt.includes('"ticker": "TICKER"'), false, "Prompt must not use TICKER as a placeholder value.");
 assert.equal(prompt.includes("```"), false, "Prompt must not use Markdown fences.");
@@ -60,6 +62,9 @@ assert.ok(earningsPrompt.includes("تحليل إعلان أرباح جديد") |
 assert.ok(earningsPrompt.includes("azure_growth"), "Earnings prompt must include saved requirement IDs.");
 assert.ok(earningsPrompt.includes("MSFT_Q4_2026"), "Earnings prompt must include the historical requirement set ID.");
 assert.ok(earningsPrompt.includes("previousRequirementsEvaluation"), "Earnings prompt must include the importable previousRequirementsEvaluation template.");
+assert.ok(earningsPrompt.includes("currentJustifiedValue مساويًا للهدف السابق"), "A justified target must advance through a new ChatGPT-supplied target set.");
+assert.ok(earningsPrompt.includes("لا يرفع Franklin الهدف آليًا"), "Franklin must never invent or calculate the next target.");
+assert.ok(earningsPrompt.includes("ينقل متتبع الفرضية تلقائيًا إلى المرحلة التالية"), "The prompt must explain how the next requirement set advances tracking.");
 assert.ok(earningsPrompt.includes('"ticker": "MSFT"'), "Earnings prompt template must carry the selected ticker.");
 assert.equal(/OPENAI_API|api\/|fetch\(/i.test(earningsPrompt), false, "Earnings prompt must not require an API call.");
 

@@ -28,7 +28,8 @@ export function recommendationColorCategory(recommendation, status) {
   const normalized = String(recommendation || "").trim().toUpperCase();
   if (normalized.includes("BUY") || normalized.includes("ADD") || recommendation === "شراء") return COLOR_CATEGORIES.POSITIVE;
   if (normalized.includes("SELL") || normalized.includes("REDUCE") || recommendation === "بيع") return COLOR_CATEGORIES.NEGATIVE;
-  if (normalized.includes("HOLD") || normalized.includes("WATCH") || recommendation === "احتفاظ") return COLOR_CATEGORIES.WARNING;
+  if (normalized.includes("WATCH") || recommendation === "مراقبة") return COLOR_CATEGORIES.WARNING;
+  if (normalized.includes("HOLD") || recommendation === "احتفاظ") return COLOR_CATEGORIES.NEUTRAL;
   return COLOR_CATEGORIES.MISSING;
 }
 

@@ -138,7 +138,7 @@ try {
   assert.ok(app.text.includes("Franklin Research 11.0.0"));
   assert.ok(app.text.includes("apple-mobile-web-app-title"));
   assert.ok(app.text.includes("styles.css?v=v11-figma-ui-20260821c"));
-  assert.ok(app.text.includes("styles-mobile2.css?v=v11-franklin-v31-20260821a"));
+  assert.ok(app.text.includes("styles-mobile2.css?v=v11-franklin-v31-20260821c"));
   assert.ok(app.text.includes("src/main.js?v=v11-figma-ui-20260821c"));
   assert.ok(app.text.includes("franklin-cache-reset"));
 
@@ -173,7 +173,7 @@ try {
 
   const serviceWorker = await inject(server, { path: "/service-worker.js", headers: { cookie } });
   assert.equal(serviceWorker.status, 200);
-  assert.ok(serviceWorker.text.includes("franklin-research-v11-franklin-v31-20260821a"));
+  assert.ok(serviceWorker.text.includes("franklin-research-v11-franklin-v31-20260821c"));
   assert.ok(serviceWorker.text.includes("src/ui/foundation.js"));
   assert.ok(serviceWorker.text.includes("styles-v11-mobile-cleanup.css"));
   assert.ok(serviceWorker.text.includes("isVersionedAppAsset"));

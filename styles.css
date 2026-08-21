@@ -953,6 +953,11 @@ label {
   color: var(--amber);
 }
 
+.tone-neutral,
+.badge-neutral {
+  color: var(--steel);
+}
+
 .stock-summary-metric.bull,
 .stock-summary-metric.positive {
   border-color: color-mix(in srgb, var(--teal) 45%, var(--line));

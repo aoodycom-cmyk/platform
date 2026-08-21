@@ -89,7 +89,8 @@ export function normalizePreviousRequirementsEvaluation(value = {}) {
     };
   }
   const requirements = normalizeRequirementList(value.requirements);
-  const targetQuarter = normalizeText(value.targetQuarter ?? value.earningsPeriod);
+  const earningsPeriod = normalizeText(value.earningsPeriod);
+  const targetQuarter = normalizeText(value.targetQuarter ?? earningsPeriod);
   return {
     requirementSetId: normalizeText(value.requirementSetId),
     ticker: normalizeText(value.ticker)?.toUpperCase() || null,
@@ -102,7 +103,7 @@ export function normalizePreviousRequirementsEvaluation(value = {}) {
     matchType: normalizeText(value.matchType),
     previousQuarter: normalizeText(value.previousQuarter ?? value.currentQuarter),
     targetQuarter,
-    earningsPeriod: targetQuarter,
+    earningsPeriod: earningsPeriod || targetQuarter,
     requirements,
     requirementsAssessment: value.requirementsAssessment && typeof value.requirementsAssessment === "object"
       ? normalizeRequirementsAssessment(value.requirementsAssessment)

@@ -87,7 +87,8 @@ assert.equal(colors.fairValueColorCategory(102.1, 100), "positive");
 assert.equal(colors.fairValueColorCategory(97.9, 100), "negative");
 
 assert.equal(colors.recommendationColorCategory("BUY", "ACTIONABLE"), "positive");
-assert.equal(colors.recommendationColorCategory("HOLD", "ACTIONABLE"), "warning");
+assert.equal(colors.recommendationColorCategory("HOLD", "ACTIONABLE"), "neutral");
+assert.equal(colors.recommendationColorCategory("WATCH", "ACTIONABLE"), "warning");
 assert.equal(colors.recommendationColorCategory("SELL", "ACTIONABLE"), "negative");
 assert.equal(colors.recommendationColorCategory("BUY", "INSUFFICIENT_DATA"), "missing");
 

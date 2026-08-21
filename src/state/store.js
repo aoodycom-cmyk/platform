@@ -1573,6 +1573,15 @@ function createEarningsUpdatePreview(currentReport = {}, incomingReport = {}, va
     ["decision.confidence", "Confidence"],
     ["thesis.shortSummary", "Thesis"],
     ["earningsQuality.status", "Earnings Quality"],
+    ["financialHighlights.revenue", "Revenue"],
+    ["financialHighlights.revenueGrowthPct", "Revenue Growth"],
+    ["financialHighlights.epsReported", "Reported EPS"],
+    ["financialHighlights.operatingMarginPct", "Operating Margin"],
+    ["financialHighlights.freeCashFlow", "Free Cash Flow"],
+    ["financialHighlights.cash", "Cash"],
+    ["financialHighlights.debt", "Debt"],
+    ["growthHighlights.marginTrend", "Margin Trend"],
+    ["previousRequirementsEvaluation.summary", "Earnings Summary"],
     ["previousRequirementsEvaluation.requirementsAssessment.weightedAchievement", "Requirement Achievement"],
     ["previousRequirementsEvaluation.requirementsAssessment.overallStatus", "Requirement Status"],
     ["priceTargetRequirements.targetValue", "Next Target"]
@@ -1609,7 +1618,7 @@ function createEarningsUpdatePreview(currentReport = {}, incomingReport = {}, va
     const after = getPathValue(incomingReport, path);
     const beforeCount = Array.isArray(before) ? before.length : isDisplayMissing(before) ? 0 : 1;
     const afterCount = Array.isArray(after) ? after.length : isDisplayMissing(after) ? 0 : 1;
-    if (afterCount > 0 && afterCount !== beforeCount) {
+    if (afterCount > 0 && (afterCount !== beforeCount || !sameDisplayValue(before, after))) {
       if (beforeCount === 0) newFields += 1;
       else updatedFields += 1;
       changes.push({ path, label, type: beforeCount === 0 ? "new" : "changed", before: beforeCount, after: afterCount });

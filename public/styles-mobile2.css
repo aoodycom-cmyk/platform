@@ -656,13 +656,15 @@ body {
 
 .v31-library-stock-row,
 .library-company-card.v31-library-stock-row {
-  min-height: 108px;
+  min-height: 126px;
   padding: 14px;
-  grid-template-columns: minmax(108px, 0.82fr) minmax(0, 1.45fr);
-  grid-template-areas: "price identity";
-  align-items: center;
-  gap: 12px;
-  direction: ltr;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "identity"
+    "price";
+  align-items: stretch;
+  gap: 11px;
+  direction: rtl;
   border-color: var(--line-strong);
   border-radius: 12px;
   background: #090c15;
@@ -678,49 +680,61 @@ body {
   grid-area: price;
   min-width: 0;
   display: grid;
-  justify-items: start;
-  gap: 7px;
-  direction: ltr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 0;
+  direction: rtl;
+  border-top: 1px solid var(--line);
 }
 
 .v31-current-price,
-.v31-fair-value-line {
+.v31-fair-value-line,
+.v31-upside-line {
   min-width: 0;
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  white-space: nowrap;
+  padding: 10px 9px 0;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 5px;
+  direction: rtl;
+}
+
+.v31-current-price:not(:last-child),
+.v31-fair-value-line:not(:last-child) {
+  border-inline-end: 1px solid var(--line-soft);
 }
 
 .v31-current-price strong {
   color: var(--ink);
-  font-size: 23px;
+  font-size: 19px;
   line-height: 1;
   font-weight: 720;
 }
 
 .v31-current-price span,
-.v31-fair-value-line span {
+.v31-fair-value-line span,
+.v31-upside-line span {
   color: var(--dim);
   font-family: "Noto Sans Arabic", "SF Arabic", sans-serif;
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.2;
 }
 
 .v31-fair-value-line strong {
   color: var(--amber);
-  font-size: 15px;
+  font-size: 18px;
   line-height: 1;
   font-weight: 700;
 }
 
-.v31-fair-value-line b {
-  font-size: 12px;
+.v31-upside-line b {
+  font-size: 16px;
   line-height: 1;
   font-weight: 700;
 }
 
-.v31-library-price-block > em {
+.v31-library-stock-row .library-company-identity > em {
+  flex: 0 0 auto;
   min-height: 29px;
   padding: 5px 11px;
   display: inline-flex;
@@ -737,9 +751,11 @@ body {
 .v31-library-stock-row .library-company-identity {
   grid-area: identity;
   min-width: 0;
-  grid-template-columns: minmax(0, 1fr) 40px;
-  grid-template-areas: "copy logo";
+  width: 100%;
+  display: flex;
+  align-items: center;
   gap: 10px;
+  direction: rtl;
 }
 
 .v31-library-stock-row .library-company-identity .company-logo {
@@ -752,7 +768,12 @@ body {
 }
 
 .v31-library-stock-row .library-company-identity > div {
+  grid-area: auto;
+  width: auto;
+  flex: 1 1 auto;
+  justify-items: start;
   gap: 5px;
+  text-align: right;
 }
 
 .v31-library-stock-row .library-company-identity > div > strong {
@@ -2210,7 +2231,7 @@ details.v31-assessment-row {
   gap: 12px;
 }
 
-.v31-tracker-header > div {
+.v31-tracker-header > div:first-child {
   display: grid;
   justify-items: start;
   gap: 3px;
@@ -2225,23 +2246,53 @@ details.v31-assessment-row {
   font-weight: 730;
 }
 
-.v31-tracker-header > div > span {
+.v31-tracker-header > div:first-child > span {
   color: var(--dim);
-  font-size: 9px;
+  font-size: 10px;
 }
 
-.v31-tracker-header > strong {
-  min-height: 32px;
-  padding: 5px 10px;
-  display: flex;
+.v31-target-path {
+  min-width: 146px;
+  padding: 7px 9px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 5px;
-  border: 1px solid var(--amber);
+  gap: 7px;
+  border: 1px solid var(--line-strong);
   border-radius: 9px;
-  color: var(--amber);
-  font-size: 11px;
-  line-height: 1.2;
+  background: var(--surface);
+}
+
+.v31-target-path > span,
+.v31-target-path > strong {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.v31-target-path small {
+  color: var(--dim);
+  font-family: "Noto Sans Arabic", "SF Arabic", sans-serif;
+  font-size: 10px;
+  font-weight: 600;
   white-space: nowrap;
+}
+
+.v31-target-path bdi {
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.v31-target-path > strong bdi {
+  color: var(--teal);
+}
+
+.v31-target-path > i {
+  color: var(--dim);
+  font-size: 11px;
+  font-style: normal;
 }
 
 .v31-tracker-progress-card {
@@ -2279,6 +2330,19 @@ details.v31-assessment-row {
   grid-area: 1 / 1;
   color: var(--teal);
   font-size: 14px;
+}
+
+.v31-tracker-progress-card.pending .v31-tracker-ring {
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+}
+
+.v31-tracker-progress-card.pending .v31-tracker-ring strong {
+  color: var(--amber);
+}
+
+.v31-tracker-progress-card > div:last-child > strong.pending {
+  color: var(--amber);
 }
 
 .v31-tracker-progress-card > div:last-child {
@@ -2505,6 +2569,18 @@ details.v31-assessment-row {
 
 .v31-achievement-summary > small {
   grid-column: 1 / -1;
+}
+
+.v31-achievement-summary.pending > b {
+  color: var(--amber);
+}
+
+.v31-achievement-summary.pending > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.65;
 }
 
 .v31-analyze-announcement {
@@ -2837,8 +2913,8 @@ textarea {
 
   .v31-library-stock-row,
   .library-company-card.v31-library-stock-row {
-    grid-template-columns: minmax(98px, 0.78fr) minmax(0, 1.4fr);
-    gap: 8px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
     padding: 12px;
   }
 
@@ -2853,7 +2929,7 @@ textarea {
   }
 
   .v31-current-price strong {
-    font-size: 21px;
+    font-size: 18px;
   }
 
   .v31-report-app-bar {

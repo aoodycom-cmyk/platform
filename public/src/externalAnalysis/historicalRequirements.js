@@ -102,7 +102,7 @@ export function prepareHistoricalRequirementEvaluation(report = {}, requirementS
 export function applyHistoricalRequirementLifecycle(collection = {}, report = {}, match = {}, now = new Date()) {
   let next = normalizeHistoricalRequirementSets(collection);
   const evaluation = report.previousRequirementsEvaluation;
-  if (hasExplicitPreviousRequirementEvaluation(evaluation)) {
+  if (hasExplicitPreviousRequirementEvaluation(evaluation) && evaluationReachesTarget(evaluation, report)) {
     next = markRequirementSetEvaluated(next, evaluation, report, now);
   }
   const nextSet = createRequirementSetFromReport(report, now);
@@ -179,10 +179,11 @@ export function buildRequirementEvaluation(requirementSet = {}, report = {}, mat
   });
   const supplied = report.previousRequirementsEvaluation?.requirementsAssessment || report.requirementsAssessment || {};
   const requirementsAssessment = normalizeRequirementsAssessment(supplied);
+  const reportedEarningsPeriod = extractReportedEarningsPeriod(report) || requirementSet.earningsPeriod;
   return {
     requirementSetId: requirementSet.requirementSetId,
     ticker: requirementSet.ticker,
-    earningsPeriod: requirementSet.earningsPeriod,
+    earningsPeriod: reportedEarningsPeriod,
     previousQuarter: requirementSet.previousQuarter || null,
     targetQuarter: requirementSet.targetQuarter || requirementSet.earningsPeriod || null,
     createdAt: requirementSet.createdAt,
@@ -352,6 +353,13 @@ function hasExplicitPreviousRequirementEvaluation(evaluation = {}) {
   if (!evaluation?.requirementSetId) return false;
   if (Array.isArray(evaluation.requirements) && evaluation.requirements.length) return true;
   return Boolean(evaluation.requirementsAssessment);
+}
+
+function evaluationReachesTarget(evaluation = {}, report = {}) {
+  const target = normalizedEarningsPeriod(evaluation.targetQuarter);
+  if (!target) return true;
+  const reported = normalizedEarningsPeriod(evaluation.earningsPeriod || report.reportPeriod);
+  return reported ? reported === target : true;
 }
 
 function isSameSetAsPreviousEvaluation(set, evaluation) {

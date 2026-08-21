@@ -14,6 +14,7 @@ import { DEMO_ANALYSIS_FIXTURE } from "../data/demoFlow.js";
 import { copyableExternalAnalysisJson, externalAnalysisToHomeCard, externalReportWithCompletionStatus } from "../externalAnalysis/reportAdapter.js";
 import { analyzeExternalAnalysisCompletion, FIELD_PRIORITY, FIELD_REQUIREMENTS } from "../externalAnalysis/missingFields.js";
 import { getExternalAnalysis, listLatestExternalAnalyses } from "../externalAnalysis/storage.js";
+import { normalizedEarningsPeriod } from "../externalAnalysis/historicalRequirements.js";
 import { buildQuarterlyScorecard } from "../externalAnalysis/quarterlyScorecard.js";
 import { downloadQuarterlyScorecardPng, shareQuarterlyScorecardPng } from "./quarterlyScorecardExport.js";
 import {
@@ -64,6 +65,13 @@ function visiblePanel(panel) {
   return visiblePanels.has(panel) ? panel : "home";
 }
 
+function inlineNotice(notice, activePanel) {
+  const text = String(notice || "").trim();
+  if (!text) return "";
+  if (activePanel === "external-report" && /(تم حفظ|تم تحديث|saved|updated successfully)/i.test(text)) return "";
+  return `<div class="notice">${escapeHtml(text)}</div>`;
+}
+
 export function mountApp(root, store) {
   const actions = createActions(store);
   store.subscribe(() => render(root, store, actions));
@@ -85,7 +93,7 @@ function render(root, store, actions) {
     <main class="mobile-app-shell ${activePanel === "quarterly-scorecard" ? "scorecard-app-shell" : ""}">
       <section class="mobile-app-frame panel-${escapeHtml(activePanel)}">
         ${mobileAppHeader(state)}
-        ${state.notice ? `<div class="notice">${escapeHtml(state.notice)}</div>` : ""}
+        ${inlineNotice(state.notice, activePanel)}
         <div class="mobile-page-content">${panelContent(state)}</div>
       </section>
     </main>
@@ -247,25 +255,28 @@ function externalAnalysesHomeSection(state) {
 function externalHomeCard(report) {
   return `
     <article class="company-card external-company-card library-company-card terminal-watchlist-row figma-library-row v31-library-stock-row" data-franklin-v2="true" data-external-ticker="${escapeHtml(report.ticker)}" data-external-report-id="${escapeHtml(report.id)}" data-library-card data-search-text="${escapeHtml(`${report.ticker} ${report.companyName}`.toLowerCase())}">
-      <div class="v31-library-price-block">
-        <div class="v31-current-price">
-          <strong dir="ltr">${money(report.currentPrice, 0)}</strong>
-          <span>${uiLabel("Current Price")}</span>
-        </div>
-        <div class="v31-fair-value-line">
-          <strong dir="ltr">${money(report.baseFairValue, 0)}</strong>
-          <span>${uiLabel("Fair Value")}</span>
-          <b class="${colorClass(upsideColorCategory(numericValue(report.upsideToBasePct)), "tone")}" dir="ltr">${formatExternalPercent(report.upsideToBasePct)}</b>
-        </div>
-        <em class="${colorClass(recommendationColorCategory(report.verdict), "badge")}">${escapeHtml(localizedExternalText(report.verdict) || "-")}</em>
-      </div>
       <div class="library-company-identity">
         ${companyLogoMarkup({ ticker: report.ticker, name: report.companyName })}
         <div>
           <strong dir="auto">${escapeHtml(report.companyName || uiLabel("Company"))}</strong>
           <span><bdi dir="ltr">${escapeHtml(report.ticker)}</bdi></span>
         </div>
+        <em class="${colorClass(recommendationColorCategory(report.verdict), "badge")}">${escapeHtml(localizedExternalText(report.verdict) || "-")}</em>
         ${report.hasCompanyProfile ? `<button class="profile-pill" data-profile-ticker="${escapeHtml(report.ticker)}" data-profile-report-id="${escapeHtml(report.id)}">${uiLabel("Company Profile")}</button>` : ""}
+      </div>
+      <div class="v31-library-price-block">
+        <div class="v31-current-price">
+          <span>${uiLabel("Current Price")}</span>
+          <strong dir="ltr">${money(report.currentPrice, 0)}</strong>
+        </div>
+        <div class="v31-fair-value-line">
+          <span>${uiLabel("Fair Value")}</span>
+          <strong dir="ltr">${money(report.baseFairValue, 0)}</strong>
+        </div>
+        <div class="v31-upside-line">
+          <span>${isArabicUi() ? "العائد إلى Base" : "Return to Base"}</span>
+          <b class="${colorClass(upsideColorCategory(numericValue(report.upsideToBasePct)), "tone")}" dir="ltr">${formatExternalPercent(report.upsideToBasePct)}</b>
+        </div>
       </div>
     </article>
   `;
@@ -1596,7 +1607,6 @@ function externalAnalysisReportView(state) {
   const ticker = report.company?.ticker || "-";
   return `
     <section class="external-report-shell external-report-v2 stock-decision-workspace">
-      ${reportSavedBanner(state.notice, report)}
       ${stockDecisionHeader(reportWithCompletion, completion)}
       ${dataHealthTerminalGuard(reportWithCompletion, completion)}
       <section class="stock-decision-flow">
@@ -1936,8 +1946,8 @@ function valuationRangeDashboard(report = {}) {
   const absoluteUpside = Number.isFinite(numericValue(upside)) ? `${Math.abs(numericValue(upside)).toFixed(1)}%` : "";
   const relation = Number.isFinite(numericValue(upside))
     ? numericValue(upside) >= 0
-      ? (isArabicUi() ? `يتداول بأقل من القيمة الأساسية بنسبة ${absoluteUpside}` : `Trading below Base by ${absoluteUpside}`)
-      : (isArabicUi() ? `يتداول بأعلى من القيمة الأساسية بنسبة ${absoluteUpside}` : `Trading above Base by ${absoluteUpside}`)
+      ? (isArabicUi() ? `القيمة الأساسية تعني عائدًا متوقعًا بنسبة ${absoluteUpside}` : `Base implies expected upside of ${absoluteUpside}`)
+      : (isArabicUi() ? `القيمة الأساسية تعني هبوطًا متوقعًا بنسبة ${absoluteUpside}` : `Base implies expected downside of ${absoluteUpside}`)
     : "";
   return `
     <section class="v31-report-block v31-valuation-section">
@@ -2075,7 +2085,7 @@ function latestEarningsWorkspace(report = {}) {
       </div>
       ${assessment.overallStatus ? `<p class="earnings-overall">${escapeHtml(requirementsStatusLabel(assessment.overallStatus))}</p>` : ""}
       ${rows.length ? externalDetail(uiLabel("Earnings Snapshot"), metricRows(rows)) : ""}
-      ${hasPreviousEvaluation ? externalDetail(uiLabel("Earnings Requirement Results"), previousRequirementExecutionView(previous), true) : ""}
+      ${hasPreviousEvaluation ? externalDetail(uiLabel("Earnings Requirement Results"), previousRequirementExecutionView(previous, { earningsPeriod: report.reportPeriod }), true) : ""}
       ${hasGuidance ? externalDetail(uiLabel("Guidance"), guidanceTableView(report)) : ""}
     </div>
   `);
@@ -2235,7 +2245,7 @@ function companyAssessmentPanel(report = {}) {
         <header>
           <div>
             <strong>${isArabicUi() ? "التقييم الشامل" : "Overall Assessment"}</strong>
-            <span dir="ltr">Overall Quality Score</span>
+            <span dir="ltr">Investment Score</span>
           </div>
           <div class="v31-overall-ring" style="--overall:${overallPct}%">
             <strong dir="ltr">${Number.isFinite(overall) ? Math.round(overall) : "—"}</strong>
@@ -2637,23 +2647,6 @@ function earningsUpdateSuccess(workflow = {}) {
         <button class="primary-btn" data-action="close-earnings-update">${uiLabel("Open Report")}</button>
       </div>
     </div>
-  `;
-}
-
-function reportSavedBanner(notice, report = {}) {
-  const text = String(notice || "");
-  if (!/(تم حفظ|تم تحديث|saved|updated)/i.test(text)) return "";
-  return `
-    <section class="save-confirmation-banner">
-      <div>
-        <strong>${escapeHtml(text)}</strong>
-        <span>${escapeHtml(report.company?.ticker || "")} ${uiLabel("is saved in My Stocks.")}</span>
-      </div>
-      <div>
-        <a class="primary-btn" href="#stock-report-top">${uiLabel("View Report")}</a>
-        <button class="icon-btn" data-panel="home">${uiLabel("Back to My Stocks")}</button>
-      </div>
-    </section>
   `;
 }
 
@@ -3471,15 +3464,18 @@ function guidanceView(guidance = []) {
 }
 
 function investmentDataTableArea(report = {}) {
+  const tracking = activeRequirementTracking(report);
   const panels = [
     {
       key: "thesis",
       label: isArabicUi() ? "الفرضية • Thesis" : "Thesis",
-      body: priceTargetRequirementsView(report.priceTargetRequirements, {
+      body: priceTargetRequirementsView(tracking.requirementsBlock, {
         ticker: report.company?.ticker,
         reportId: report.id,
         fairValue: report.fairValueSummary?.fairValueBase,
-        assessment: report.requirementsAssessment
+        assessment: tracking.assessment,
+        pending: tracking.pending,
+        actualQuarter: tracking.actualQuarter
       }) || emptyCompactDataView(uiLabel("Price Target Requirements"))
     },
     {
@@ -3517,6 +3513,63 @@ function investmentDataTableArea(report = {}) {
       </div>
     </section>
   `;
+}
+
+function activeRequirementTracking(report = {}) {
+  const requirementsBlock = report.priceTargetRequirements || {};
+  const evaluation = report.previousRequirementsEvaluation || {};
+  const blockId = requirementsBlock.requirementSetId;
+  const evaluationId = evaluation.requirementSetId;
+  const sameSet = !blockId || !evaluationId || blockId === evaluationId;
+  const targetPeriod = normalizedEarningsPeriod(evaluation.targetQuarter || requirementsBlock.targetQuarter || requirementsBlock.earningsPeriod);
+  const actualPeriod = normalizedEarningsPeriod(evaluation.earningsPeriod || report.reportPeriod);
+  const targetReached = sameSet && Boolean(targetPeriod && actualPeriod && targetPeriod === actualPeriod);
+  if (!targetReached) {
+    return {
+      requirementsBlock,
+      assessment: requirementsBlock.requirementsAssessment || null,
+      pending: true,
+      actualQuarter: requirementsBlock.targetQuarter || requirementsBlock.earningsPeriod || null
+    };
+  }
+
+  return {
+    requirementsBlock: {
+      ...requirementsBlock,
+      requirements: mergeRequirementDefinitions(requirementsBlock.requirements, evaluation.requirements),
+      requirementsAssessment: evaluation.requirementsAssessment || null
+    },
+    assessment: evaluation.requirementsAssessment || null,
+    pending: false,
+    actualQuarter: evaluation.earningsPeriod || report.reportPeriod || evaluation.targetQuarter || null
+  };
+}
+
+function mergeRequirementDefinitions(definitionsInput, resultsInput) {
+  const definitions = Array.isArray(definitionsInput) ? definitionsInput : [];
+  const results = Array.isArray(resultsInput) ? resultsInput : [];
+  if (!definitions.length) return results;
+  const used = new Set();
+  const merged = definitions.map((definition) => {
+    const matchIndex = results.findIndex((result, index) => !used.has(index) && requirementIdentityMatches(definition, result));
+    if (matchIndex < 0) return definition;
+    used.add(matchIndex);
+    return { ...definition, ...results[matchIndex], id: definition.id || results[matchIndex].id };
+  });
+  results.forEach((result, index) => {
+    if (!used.has(index)) merged.push(result);
+  });
+  return merged;
+}
+
+function requirementIdentityMatches(left = {}, right = {}) {
+  const leftKeys = [left.id, left.metric, left.name, left.arabicName].map(requirementIdentityKey).filter(Boolean);
+  const rightKeys = [right.id, right.metric, right.name, right.arabicName].map(requirementIdentityKey).filter(Boolean);
+  return rightKeys.some((key) => leftKeys.includes(key));
+}
+
+function requirementIdentityKey(value) {
+  return String(value || "").trim().toLowerCase();
 }
 
 function emptyCompactDataView(label) {
@@ -3716,16 +3769,21 @@ function priceTargetRequirementsView(requirementsBlock = {}, context = {}) {
   const requirements = requirementsBlock?.requirements || [];
   if (!Array.isArray(requirements) || !requirements.length) return "";
   const targetValue = requirementsBlock.targetValue ?? requirementsBlock.nextTargetValue;
+  const currentJustifiedValue = requirementsBlock.currentJustifiedValue ?? context.fairValue;
   const previousQuarter = requirementsBlock.previousQuarter || uiLabel("Previous Quarter");
-  const targetQuarter = requirementsBlock.targetQuarter || requirementsBlock.earningsPeriod || uiLabel("Target Quarter");
-  const assessment = context.assessment || requirementsBlock.requirementsAssessment || {};
+  const targetQuarter = context.actualQuarter || requirementsBlock.targetQuarter || requirementsBlock.earningsPeriod || uiLabel("Target Quarter");
+  const pending = context.pending !== false;
+  const assessment = pending ? {} : (context.assessment || requirementsBlock.requirementsAssessment || {});
   const progress = numericValue(assessment.weightedAchievement);
   const displayedProgress = Number.isFinite(progress) ? boundedPercent(progress) : null;
-  const overallStatus = requirementsStatusLabel(assessment.overallStatus);
+  const overallStatus = pending
+    ? (isArabicUi() ? `بانتظار إعلان ${targetQuarter}` : `Awaiting ${targetQuarter} earnings`)
+    : requirementsStatusLabel(assessment.overallStatus);
   const periods = [...new Set([previousQuarter, targetQuarter].filter((period) => period && period !== "—"))];
   const passed = assessment.passedRequirements ?? assessment.passed;
   const reported = assessment.reportedRequirements;
   const total = assessment.totalRequirements;
+  const targetScenario = targetScenarioLabel(requirementsBlock.targetScenario);
   return `
     <div class="price-requirements-block figma-thesis-tracker" data-franklin-v2="true">
       <header class="v31-tracker-header">
@@ -3733,16 +3791,22 @@ function priceTargetRequirementsView(requirementsBlock = {}, context = {}) {
           <h4>${isArabicUi() ? "متتبع الفرضية" : "Thesis Tracker"}</h4>
           <span dir="ltr">${escapeHtml(context.ticker || "—")} • Thesis Tracker</span>
         </div>
-        <strong><span>${isArabicUi() ? "القيمة العادلة" : "Fair Value"}</span> <bdi dir="ltr">${money(context.fairValue, 0)}</bdi></strong>
+        <div class="v31-target-path" dir="ltr">
+          <span><small>${isArabicUi() ? "المبرر الآن" : "Justified now"}</small><bdi>${money(currentJustifiedValue, 0)}</bdi></span>
+          <i aria-hidden="true">→</i>
+          <strong><small>${isArabicUi() ? "الهدف القادم" : "Next target"}</small><bdi>${money(targetValue, 0)}</bdi></strong>
+        </div>
       </header>
-      <section class="v31-tracker-progress-card">
+      <section class="v31-tracker-progress-card ${pending ? "pending" : "evaluated"}">
         <div class="v31-tracker-ring" style="--progress:${displayedProgress ?? 0}%">
-          <strong dir="ltr">${displayedProgress === null ? "—" : `${displayedProgress}%`}</strong>
+          <strong dir="ltr">${pending ? trackerQuarterToken(targetQuarter) : (displayedProgress === null ? "—" : `${displayedProgress}%`)}</strong>
         </div>
         <div>
-          <span>${isArabicUi() ? "نسبة الإنجاز" : "Progress"} • Progress</span>
-          <strong class="${requirementsStatusClass(assessment.overallStatus)}">${escapeHtml(overallStatus)}</strong>
-          <small>${isArabicUi() ? "مسار التنفيذ" : "Execution Path"} • Execution Path</small>
+          <span>${pending ? (isArabicUi() ? "هدف الإعلان القادم" : "Next earnings goal") : (isArabicUi() ? "نسبة الإنجاز" : "Achievement")}</span>
+          <strong class="${pending ? "pending" : requirementsStatusClass(assessment.overallStatus)}">${escapeHtml(overallStatus)}</strong>
+          <small>${pending
+            ? (isArabicUi() ? `تظهر النتيجة بعد استيراد إعلان ${targetQuarter}` : `Results appear after importing ${targetQuarter}`)
+            : (isArabicUi() ? "تقييم ChatGPT المحفوظ" : "Stored ChatGPT assessment")}</small>
         </div>
       </section>
       ${periods.length ? `
@@ -3753,29 +3817,31 @@ function priceTargetRequirementsView(requirementsBlock = {}, context = {}) {
       ` : ""}
       <div class="v31-requirements-heading">
         <div>
-          <h4>${isArabicUi() ? "متطلبات الأداء" : "KPI Requirements"} • KPI Requirements</h4>
-          <span>${isArabicUi() ? "المقياس والمطلوب" : "Metric & Required"} • Metric & Required</span>
+          <h4>${isArabicUi() ? "طموح الإعلان القادم" : "Next Earnings Ambition"}</h4>
+          <span>${isArabicUi() ? "متطلبات الأداء" : "KPI Requirements"} • KPI Requirements</span>
         </div>
-        <strong>${uiLabel("What must the company deliver to justify")} <bdi dir="ltr">${money(targetValue, 0)}</bdi>${isArabicUi() ? "؟" : "?"}</strong>
+        <strong>${isArabicUi() ? "ما المطلوب في" : "What is required in"} <bdi dir="ltr">${escapeHtml(targetQuarter)}</bdi> ${isArabicUi() ? "لتبرير" : "to justify"} <bdi dir="ltr">${escapeHtml(targetScenario)} ${money(targetValue, 0)}</bdi>${isArabicUi() ? "؟" : "?"}</strong>
       </div>
       <div class="requirements-cycle-copy">
-        ${requirementsBlock.summary || requirementsBlock.targetDescription ? `<p>${escapeHtml(localizedExternalText(requirementsBlock.summary || requirementsBlock.targetDescription))}</p>` : ""}
+        ${requirementsBlock.summary || requirementsBlock.targetDescription ? `<p class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(requirementsBlock.summary || requirementsBlock.targetDescription)}</p>` : ""}
       </div>
       ${requirementsComparisonView(requirements, {
         previousQuarter,
         targetQuarter,
-          targetValue,
-          pending: true
-        })}
-      <section class="v31-achievement-summary">
-        <div>
-          <span>${isArabicUi() ? "المتطلبات المحققة" : "Requirements met"}</span>
-          <strong dir="ltr">${assessmentCountText(passed, total)}</strong>
-        </div>
-        <b dir="ltr">${displayedProgress === null ? "—" : `${displayedProgress}%`} ${isArabicUi() ? "نجاح" : "Success"}</b>
-        <i aria-hidden="true"><u style="width:${displayedProgress ?? 0}%"></u></i>
-        ${Number.isFinite(numericValue(reported)) ? `<small>${isArabicUi() ? "المتطلبات المعلنة" : "Reported requirements"}: <bdi dir="ltr">${assessmentCountText(reported, total)}</bdi></small>` : ""}
-      </section>
+        targetValue,
+        pending
+      })}
+      ${pending ? pendingRequirementsSummary(requirements, targetQuarter) : `
+        <section class="v31-achievement-summary evaluated">
+          <div>
+            <span>${isArabicUi() ? "المتطلبات المحققة" : "Requirements met"}</span>
+            <strong dir="ltr">${assessmentCountText(passed, total)}</strong>
+          </div>
+          <b dir="ltr">${displayedProgress === null ? "—" : `${displayedProgress}%`}</b>
+          <i aria-hidden="true"><u style="width:${displayedProgress ?? 0}%"></u></i>
+          ${Number.isFinite(numericValue(reported)) ? `<small>${isArabicUi() ? "المتطلبات المعلنة" : "Reported requirements"}: <bdi dir="ltr">${assessmentCountText(reported, total)}</bdi></small>` : ""}
+        </section>
+      `}
       <button class="primary-btn v31-analyze-announcement" data-action="open-earnings-update">${isArabicUi() ? "تحليل إعلان جديد" : "Analyze New Announcement"} • Analyze New Announcement</button>
       <button class="quarterly-scorecard-entry" data-action="open-quarterly-scorecard" data-scorecard-ticker="${escapeHtml(context.ticker || "")}" data-scorecard-report-id="${escapeHtml(context.reportId || "latest")}">
         <span>${uiLabel("Quarterly Scorecard")}</span>
@@ -3784,6 +3850,26 @@ function priceTargetRequirementsView(requirementsBlock = {}, context = {}) {
       </button>
     </div>
   `;
+}
+
+function pendingRequirementsSummary(requirements = [], targetQuarter = "") {
+  const count = Array.isArray(requirements) ? requirements.length : 0;
+  return `
+    <section class="v31-achievement-summary pending">
+      <div>
+        <span>${isArabicUi() ? "الإعلان المستهدف" : "Target earnings"}</span>
+        <strong dir="ltr">${escapeHtml(targetQuarter || "—")}</strong>
+      </div>
+      <b>${count} ${isArabicUi() ? "مؤشرات" : "KPIs"}</b>
+      <p>${isArabicUi()
+        ? "هذه أهداف مستقبلية وليست نتيجة إنجاز. بعد صدور الإعلان استخدم «تحليل إعلان جديد» لإظهار تقييم ChatGPT المحفوظ."
+        : "These are future targets, not an achievement result. Import the earnings analysis to display ChatGPT's stored assessment."}</p>
+    </section>
+  `;
+}
+
+function trackerQuarterToken(value) {
+  return String(value || "").match(/Q[1-4]/i)?.[0]?.toUpperCase() || "—";
 }
 
 function historicalRequirementMatchPreview(match = {}) {
@@ -3827,23 +3913,24 @@ function historicalRequirementMatchPreview(match = {}) {
   `;
 }
 
-function previousRequirementExecutionView(evaluation = {}) {
+function previousRequirementExecutionView(evaluation = {}, options = {}) {
   const requirements = evaluation.requirements || [];
   if (!requirements.length) return "";
   const assessment = evaluation.requirementsAssessment || {};
   const previousQuarter = evaluation.previousQuarter || uiLabel("Previous Quarter");
   const targetQuarter = evaluation.targetQuarter || evaluation.earningsPeriod || uiLabel("Target Quarter");
+  const earningsPeriod = options.earningsPeriod || evaluation.earningsPeriod || targetQuarter;
   return `
     <div class="previous-execution-block">
       <div class="requirements-summary">
         ${Number.isFinite(numericValue(evaluation.targetValue)) ? compactCardMetric(uiLabel("Target being tested"), `${money(evaluation.targetValue, 0)} ${localizedExternalText(evaluation.targetScenario || "")}`) : ""}
         ${compactCardMetric(uiLabel("Requirement achievement"), Number.isFinite(numericValue(assessment.weightedAchievement)) ? `${Math.round(numericValue(assessment.weightedAchievement))}%` : "—")}
         ${compactCardMetric(uiLabel("Reported Requirements"), assessmentCountText(assessment.reportedRequirements, assessment.totalRequirements))}
-        ${compactCardMetric(uiLabel("Earnings Period"), targetQuarter || "-")}
+        ${compactCardMetric(uiLabel("Earnings Period"), earningsPeriod || "-")}
       </div>
       ${requirementsComparisonView(requirements, {
         previousQuarter,
-        targetQuarter,
+        targetQuarter: earningsPeriod,
         targetValue: evaluation.targetValue,
         pending: false
       })}
@@ -3888,9 +3975,15 @@ function requirementLifecycleTimeline(requirementSets = [], reports = []) {
 
 function requirementsComparisonView(requirements = [], options = {}) {
   if (!Array.isArray(requirements) || !requirements.length) return "";
-  const previousHeader = `${uiLabel("Figures")} ${options.previousQuarter || uiLabel("Previous Quarter")}`;
-  const targetHeader = `${uiLabel("Required To Justify")} \u2066${money(options.targetValue, 0)}\u2069`;
-  const actualHeader = `${uiLabel("Figures")} ${options.targetQuarter || uiLabel("Target Quarter")}`;
+  const previousHeader = isArabicUi()
+    ? `آخر قراءة • ${options.previousQuarter || uiLabel("Previous Quarter")}`
+    : `Last reading • ${options.previousQuarter || uiLabel("Previous Quarter")}`;
+  const targetHeader = isArabicUi()
+    ? `هدف ${options.targetQuarter || uiLabel("Target Quarter")}`
+    : `${options.targetQuarter || uiLabel("Target Quarter")} target`;
+  const actualHeader = isArabicUi()
+    ? `نتيجة ${options.targetQuarter || uiLabel("Target Quarter")}`
+    : `${options.targetQuarter || uiLabel("Target Quarter")} result`;
   return `
     <div class="requirements-comparison">
       <div class="compact-table-caption">${uiLabel("Price Target Requirements")}</div>
@@ -3907,7 +4000,8 @@ function requirementsComparisonView(requirements = [], options = {}) {
 }
 
 function requirementComparisonMobileRow(item = {}, options = {}) {
-  const hasDetails = Boolean(item.whyItMatters || item.evaluationNote || item.direction || item.impact);
+  const previousContext = requirementPreviousContext(item, options.previousQuarter);
+  const hasDetails = Boolean(item.whyItMatters || item.evaluationNote || item.direction || item.impact || previousContext);
   return `
     <article class="requirement-comparison-row" data-requirement-status="${escapeHtml(String(item.status || "NOT_REPORTED").toUpperCase())}">
       <header>
@@ -3916,7 +4010,7 @@ function requirementComparisonMobileRow(item = {}, options = {}) {
         ${requirementStatusBadge(item.status)}
       </header>
       <div class="requirement-comparison-grid">
-        ${comparisonCell(options.previousHeader || uiLabel("Previous"), requirementPreviousText(item), "ltr")}
+        ${comparisonCell(options.previousHeader || uiLabel("Previous"), requirementPreviousText(item, options.previousQuarter), "ltr")}
         ${comparisonCell(options.targetHeader || uiLabel("Required"), requirementRequiredText(item), "ltr")}
         ${comparisonCell(options.actualHeader || uiLabel("Actual"), requirementActualCell(item, options.pending), "ltr", true)}
       </div>
@@ -3924,8 +4018,9 @@ function requirementComparisonMobileRow(item = {}, options = {}) {
         <details class="mobile-card-details">
           <summary>${uiLabel("Show details")}</summary>
           <div>
-            ${item.whyItMatters ? `<p><b>${uiLabel("Why does it matter?")}</b> ${escapeHtml(localizedExternalText(item.whyItMatters))}</p>` : ""}
-            ${item.evaluationNote ? `<p><b>${uiLabel("Result explanation")}</b> ${escapeHtml(localizedExternalText(item.evaluationNote))}</p>` : ""}
+            ${item.whyItMatters ? `<p class="mixed-direction-text" dir="auto"><b>${uiLabel("Why does it matter?")}</b> ${mixedDirectionMarkup(item.whyItMatters)}</p>` : ""}
+            ${previousContext ? `<p class="mixed-direction-text" dir="auto"><b>${isArabicUi() ? "سياق القراءة السابقة" : "Previous reading context"}</b> ${mixedDirectionMarkup(previousContext)}</p>` : ""}
+            ${item.evaluationNote ? `<p class="mixed-direction-text" dir="auto"><b>${uiLabel("Result explanation")}</b> ${mixedDirectionMarkup(item.evaluationNote)}</p>` : ""}
             ${item.direction ? `<p><b>${uiLabel("Direction")}</b> ${escapeHtml(directionLabel(item.direction))}</p>` : ""}
             ${item.impact ? `<p><b>${uiLabel("Investment Impact")}</b> ${escapeHtml(impactLabel(item.impact))}</p>` : ""}
           </div>
@@ -3968,8 +4063,34 @@ function requirementWeightText(value) {
   return Number.isFinite(numericValue(value)) ? `${numericValue(value)}%` : "—";
 }
 
-function requirementPreviousText(item = {}) {
-  return item.previousDisplay || formatRequirementValue(item.previousValue ?? item.currentLevel, item.unit);
+function requirementPreviousText(item = {}, previousQuarter = "") {
+  const display = item.previousDisplay || formatRequirementValue(item.previousValue ?? item.currentLevel, item.unit);
+  return compactRequirementObservationText(display, previousQuarter);
+}
+
+function requirementPreviousContext(item = {}, previousQuarter = "") {
+  const display = String(item.previousDisplay || "").trim();
+  if (!display) return "";
+  const compact = compactRequirementObservationText(display, previousQuarter);
+  return compact && compact !== display ? display : "";
+}
+
+function compactRequirementObservationText(value, previousQuarter = "") {
+  const original = String(value ?? "").replace(/\s+/g, " ").trim();
+  if (!original) return "—";
+  const specific = String(previousQuarter || "").match(/Q[1-4]\s*(?:FY\s*)?\d{4}/i)?.[0];
+  const periodPattern = specific
+    ? specific.trim().split(/\s+/).map(escapeRegExp).join("\\s*")
+    : "Q[1-4]\\s*(?:FY\\s*)?\\d{4}";
+  let compact = original.replace(new RegExp(`^${periodPattern}\\s*[:：\\-–—]?\\s*`, "i"), "");
+  compact = compact.replace(new RegExp(`\\s+(?:في|خلال|عن|لـ|for|in|during)\\s+${periodPattern}[\\s\\S]*$`, "i"), "");
+  compact = compact.replace(new RegExp(`\\s+${periodPattern}[\\s\\S]*$`, "i"), "");
+  compact = compact.replace(/[\s،,;:\-–—]+$/g, "").trim();
+  return compact || original;
+}
+
+function escapeRegExp(value) {
+  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function requirementRequiredText(item = {}) {
@@ -4287,6 +4408,7 @@ function requirementStatusLabel(status) {
 
 function requirementsStatusClass(status) {
   const clean = String(status || "").toLowerCase();
+  if (clean === "not_reported" || clean === "not-reported" || clean === "pending") return "pending";
   if (clean.includes("strengthened")) return "strengthened";
   if (clean.includes("broken")) return "broken";
   if (clean.includes("weakened")) return "weakened";
@@ -4301,6 +4423,9 @@ function requirementsStatusLabel(status) {
     thesis_strengthened: uiLabel("Thesis Strengthened"),
     thesis_weakened: uiLabel("Thesis Weakened"),
     thesis_broken: uiLabel("Thesis Broken"),
+    mixed: isArabicUi() ? "مختلط" : "Mixed",
+    NOT_REPORTED: isArabicUi() ? "بانتظار الإعلان" : "Awaiting earnings",
+    not_reported: isArabicUi() ? "بانتظار الإعلان" : "Awaiting earnings",
     NO_PRIOR_SET: uiLabel("لا توجد متطلبات سابقة للمقارنة.")
   };
   return labels[String(status || "")] || localizedExternalText(status || "-");
@@ -6284,7 +6409,9 @@ function bind(root, store, actions) {
       store.openEarningsUpdate();
     });
   });
-  root.querySelector("[data-action='close-earnings-update']")?.addEventListener("click", store.closeEarningsUpdate);
+  root.querySelectorAll("[data-action='close-earnings-update']").forEach((button) => {
+    button.addEventListener("click", store.closeEarningsUpdate);
+  });
   root.querySelectorAll("[data-earnings-step]").forEach((button) => {
     button.addEventListener("click", () => {
       const step = button.dataset.earningsStep;

@@ -61,6 +61,18 @@ const payload = {
     { id: "eps", actualValue: 3.2, actualDisplay: "$3.20", status: "PASSED", evaluationNote: "حقق المطلوب." },
     { id: "guidance", actualValue: "Raised", actualDisplay: "Raised", status: "PASSED", evaluationNote: "تم رفع Guidance." }
   ],
+  requirementsAssessment: {
+    weightedAchievement: 70,
+    reportedRequirements: 4,
+    totalRequirements: 4,
+    passed: 2,
+    failed: 1,
+    exceeded: 1,
+    partiallyPassed: 0,
+    notReported: 0,
+    overallStatus: "bull_case_strengthened",
+    summary: "ثلاثة متطلبات نجحت وGross Margin بقي دون المطلوب."
+  },
   highlights: ["نمو الإيرادات قوي", "EPS أعلى من المطلوب"],
   concerns: ["Gross Margin دون العتبة"]
 };
@@ -73,6 +85,11 @@ assert.equal(inflated.financialHighlights.revenue, 1100);
 assert.equal(inflated.financialHighlights.epsReported, 3.2);
 assert.equal(inflated.previousRequirementsEvaluation.requirements.length, 4);
 assert.equal(inflated.previousRequirementsEvaluation.requirements[0].status, "EXCEEDED");
+assert.equal(inflated.previousRequirementsEvaluation.requirements[0].name, current.priceTargetRequirements.requirements[0].name);
+assert.equal(inflated.previousRequirementsEvaluation.requirements[0].requiredValue, current.priceTargetRequirements.requirements[0].requiredValue);
+assert.equal(inflated.previousRequirementsEvaluation.requirements[0].weight, current.priceTargetRequirements.requirements[0].weight);
+assert.equal(inflated.previousRequirementsEvaluation.requirementsAssessment.weightedAchievement, 70);
+assert.equal(inflated.requirementsAssessment.passed, 2);
 assert.equal(inflated.previousRequirementsEvaluation.targetQuarter, current.priceTargetRequirements.targetQuarter || current.priceTargetRequirements.earningsPeriod);
 assert.equal(inflated.metadata.importMethod, "quarterly_earnings_lite");
 
