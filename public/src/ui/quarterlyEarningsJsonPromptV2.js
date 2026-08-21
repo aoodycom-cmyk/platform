@@ -47,7 +47,7 @@ function ensureLitePromptButton() {
   button.type = "button";
   button.className = "primary-btn";
   button.setAttribute(BUTTON_ATTR, "");
-  button.innerHTML = `نسخ برومبت الربع المختصر <span dir="ltr">Q${context.quarter} ${context.year}</span>`;
+  button.innerHTML = `نسخ برومبت <span dir="ltr">Q${context.quarter} ${context.year}</span>`;
   button.addEventListener("click", () => copyLitePrompt(context, pasteStep));
   actions.prepend(button);
 

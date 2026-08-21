@@ -15,10 +15,10 @@ assert.match(syncDeploy, /styles-quarterly-earnings-entry\.css/);
 
 assert.match(source, /إضافة نتائج ربع/);
 assert.match(source, /data-quarter=/);
-assert.match(source, /Quarter context: Q\$\{quarter\} \$\{year\}/);
-assert.match(source, /open-earnings-update/);
-assert.match(source, /data-earnings-field='earningsText'/);
-assert.match(source, /dispatchEvent\(new Event\("input"/);
+assert.match(source, /quarterlyEarningsEntryContext/);
+assert.match(source, /__equityResearchStore/);
+assert.match(source, /openEarningsUpdate\(\{ quarter, year: Number\(year\) \}\)/);
+assert.doesNotMatch(source, /Selected quarter:/, "Quarter selection must not be injected into the pasted earnings source text.");
 assert.match(css, /@media \(max-width: 899px\)/);
 assert.match(css, /quarterly-earnings-entry-overlay/);
 assert.match(css, /#60a5fa/i);

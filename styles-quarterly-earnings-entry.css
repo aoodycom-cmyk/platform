@@ -224,25 +224,4 @@
     font-weight: 800;
   }
 
-  .quarterly-selected-context {
-    margin: 0 0 10px;
-    padding: 10px 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    border: 1px solid rgba(59, 130, 246, 0.26);
-    border-radius: 10px;
-    background: rgba(59, 130, 246, 0.08);
-  }
-
-  .quarterly-selected-context span {
-    color: #9ca3af;
-    font-size: 11px;
-  }
-
-  .quarterly-selected-context strong {
-    color: #60a5fa;
-    font-size: 12px;
-  }
 }

@@ -9,7 +9,7 @@ const parser = readFileSync(new URL("../src/externalAnalysis/parser.js", import.
 assert.ok(index.includes("quarterlyEarningsJsonPromptV2.js"));
 assert.ok(sw.includes("./src/ui/quarterlyEarningsJsonPromptV2.js"));
 assert.ok(sw.includes("./src/externalAnalysis/quarterlyEarningsLite.js"));
-assert.ok(script.includes("نسخ برومبت الربع المختصر"));
+assert.ok(script.includes("نسخ برومبت"));
 assert.ok(script.includes("buildQuarterlyEarningsLitePrompt"));
 assert.ok(parser.includes("inflateQuarterlyEarningsLitePayload"));
 assert.ok(script.includes("step: 3"));

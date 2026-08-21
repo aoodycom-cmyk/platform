@@ -2249,25 +2249,28 @@ label {
 
 .earnings-update-overlay {
   position: fixed;
-  z-index: 100;
+  z-index: 500;
   inset: 0;
   padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
   display: grid;
   align-items: end;
   background: rgba(0, 0, 0, 0.72);
+  overscroll-behavior: contain;
 }
 
 .earnings-update-sheet {
   width: min(100%, 440px);
   max-height: calc(100dvh - 20px);
   margin-inline: auto;
-  overflow-y: auto;
+  overflow: hidden;
   padding: 13px;
   display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
   gap: 12px;
   border: 1px solid var(--line);
   border-radius: 16px 16px 10px 10px;
   background: var(--surface);
+  box-shadow: 0 -18px 54px rgba(0, 0, 0, 0.38);
 }
 
 .earnings-update-head {
@@ -2277,9 +2280,216 @@ label {
   gap: 10px;
 }
 
-.earnings-update-body {
+.earnings-update-head > div {
+  min-width: 0;
+}
+
+.earnings-update-head .eyebrow,
+.earnings-update-head h3,
+.earnings-update-head span,
+.earnings-update-body h4,
+.earnings-update-body p {
+  margin: 0;
+}
+
+.earnings-update-head h3 {
+  margin-top: 3px;
+  color: var(--ink);
+  font-size: 21px;
+  line-height: 1.3;
+}
+
+.earnings-update-head span,
+.earnings-update-body > p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.earnings-update-head .icon-btn {
+  width: auto;
+  min-width: 58px;
+  min-height: 42px;
+  flex: 0 0 auto;
+}
+
+.earnings-period-lock {
+  min-width: 0;
+  padding: 10px 11px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 10px;
+  border: 1px solid color-mix(in srgb, var(--steel) 62%, var(--line));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--steel) 13%, var(--surface-3));
+}
+
+.earnings-period-lock span,
+.earnings-period-lock small {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.earnings-period-lock strong {
+  color: var(--steel-light, #8fb2d8);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.earnings-period-lock small {
+  grid-column: 1 / -1;
+}
+
+.earnings-update-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  direction: rtl;
+}
+
+.earnings-update-steps > span {
+  min-width: 0;
+  min-height: 42px;
+  padding: 5px 3px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid var(--line-soft);
+  border-radius: 9px;
+  background: var(--surface-3);
+  color: var(--muted);
+}
+
+.earnings-update-steps b {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--steel) 24%, var(--surface));
+  font-size: 10px;
+}
+
+.earnings-update-steps em {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.earnings-update-steps > span.active {
+  border-color: color-mix(in srgb, var(--teal) 64%, var(--line));
+  color: var(--teal);
+}
+
+.earnings-update-body {
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  align-content: start;
   gap: 10px;
+  padding: 1px 2px max(12px, env(safe-area-inset-bottom));
+}
+
+.earnings-update-body h4 {
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+.earnings-update-body textarea {
+  width: 100%;
+  min-width: 0;
+  resize: none;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.earnings-paste-box,
+.earnings-json-box {
+  min-height: 180px;
+  max-height: 34dvh;
+}
+
+.earnings-prompt-box {
+  min-height: 150px;
+  max-height: 25dvh;
+  direction: rtl;
+  text-align: start;
+}
+
+.earnings-context-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.earnings-context-strip .mini-evidence {
+  min-width: 0;
+  min-height: 58px;
+  padding: 8px;
+}
+
+.earnings-context-strip .mini-evidence strong {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.earnings-update-actions {
+  position: sticky;
+  z-index: 2;
+  bottom: 0;
+  grid-template-columns: minmax(0, 1.7fr) minmax(92px, 1fr);
+  padding-top: 10px;
+  padding-bottom: max(2px, env(safe-area-inset-bottom));
+  background: linear-gradient(to bottom, transparent, var(--surface) 14px);
+}
+
+.earnings-update-actions > :only-child {
+  grid-column: 1 / -1;
+}
+
+.earnings-update-actions [hidden] {
+  display: none !important;
+}
+
+html:has(.earnings-update-overlay),
+body:has(.earnings-update-overlay) {
+  overflow: hidden;
+}
+
+body:has(.earnings-update-overlay) .mobile-nav {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .earnings-update-overlay {
+    padding: max(8px, env(safe-area-inset-top)) 0 0;
+    align-items: stretch;
+  }
+
+  .earnings-update-sheet {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    padding: 12px 14px 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 18px 18px 0 0;
+  }
 }
 
 .empty-home-state,

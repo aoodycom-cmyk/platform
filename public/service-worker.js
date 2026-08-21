@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v11-franklin-v31-20260821c";
+const CACHE_NAME = "franklin-research-v11-franklin-v33-20260821e";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -23,6 +23,7 @@ const STATIC_ASSETS = [
   "./src/externalAnalysis/schema.js",
   "./src/externalAnalysis/requirements.js",
   "./src/externalAnalysis/historicalRequirements.js",
+  "./src/externalAnalysis/earningsPeriod.js",
   "./src/externalAnalysis/quarterlyScorecard.js",
   "./src/externalAnalysis/quarterlyEarningsLite.js",
   "./src/externalAnalysis/quarterlyForwardOutlook.js",

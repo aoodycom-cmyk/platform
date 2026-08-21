@@ -130,57 +130,12 @@ function closeQuarterSheet() {
 
 function startExistingEarningsFlow({ ticker, year, quarter }) {
   closeQuarterSheet();
-  const contextLine = `Quarter context: Q${quarter} ${year}. Treat this update as the Q${quarter} ${year} earnings/report period and preserve this quarter/year in the JSON output.`;
-  sessionStorage.setItem("quarterlyEarningsEntryContext", JSON.stringify({ ticker, year, quarter, contextLine }));
+  sessionStorage.setItem("quarterlyEarningsEntryContext", JSON.stringify({ ticker, year, quarter }));
 
   const closeScorecard = document.querySelector("[data-action='close-quarterly-scorecard']");
   closeScorecard?.click();
-  waitForElement("[data-action='open-earnings-update']", 1800).then((openButton) => {
-    if (!openButton) return;
-    openButton.click();
-    hydrateEarningsDrawer();
-  });
-}
-
-async function hydrateEarningsDrawer() {
-  const textarea = await waitForElement("[data-earnings-field='earningsText']", 1800);
-  if (!textarea) return;
-  const raw = sessionStorage.getItem("quarterlyEarningsEntryContext");
-  if (!raw) return;
-
-  let context;
-  try { context = JSON.parse(raw); } catch { return; }
-  const prefix = `[Selected quarter: Q${context.quarter} ${context.year}]\n${context.contextLine}\n\nPaste the earnings release / 10-Q excerpts / management commentary below:\n\n`;
-  if (!String(textarea.value || "").startsWith("[Selected quarter:")) {
-    textarea.value = `${prefix}${textarea.value || ""}`;
-    textarea.dispatchEvent(new Event("input", { bubbles: true }));
-  }
-  ensureQuarterContextBadge(context);
-}
-
-function ensureQuarterContextBadge(context) {
-  const sheet = document.querySelector(".earnings-update-sheet");
-  if (!sheet || sheet.querySelector(".quarterly-selected-context")) return;
-  const header = sheet.querySelector(".earnings-update-head");
-  if (!header) return;
-  const badge = document.createElement("div");
-  badge.className = "quarterly-selected-context";
-  badge.innerHTML = `<span>الربع المحدد</span><strong dir="ltr">Q${context.quarter} ${escapeMarkup(context.year)}</strong>`;
-  header.insertAdjacentElement("afterend", badge);
-}
-
-function waitForElement(selector, timeout = 1500) {
-  return new Promise((resolve) => {
-    const existing = document.querySelector(selector);
-    if (existing) return resolve(existing);
-    const started = Date.now();
-    const timer = window.setInterval(() => {
-      const element = document.querySelector(selector);
-      if (element || Date.now() - started > timeout) {
-        window.clearInterval(timer);
-        resolve(element || null);
-      }
-    }, 40);
+  window.requestAnimationFrame(() => {
+    window.__equityResearchStore?.openEarningsUpdate({ quarter, year: Number(year) });
   });
 }
 
@@ -195,12 +150,6 @@ function escapeMarkup(value) {
 
 const observer = new MutationObserver(() => {
   ensureEntryButton();
-  if (document.querySelector(".earnings-update-sheet")) {
-    const raw = sessionStorage.getItem("quarterlyEarningsEntryContext");
-    if (raw) {
-      try { ensureQuarterContextBadge(JSON.parse(raw)); } catch { /* ignore stale context */ }
-    }
-  }
 });
 observer.observe(document.documentElement, { childList: true, subtree: true });
 

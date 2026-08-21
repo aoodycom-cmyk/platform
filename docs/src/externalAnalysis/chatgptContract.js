@@ -1,4 +1,5 @@
 import { buildFairValueAnalysisJsonObject } from "./fairValueAdapter.js";
+import { earningsPeriodFromOptions } from "./earningsPeriod.js";
 import { FIELD_PRIORITY, FIELD_REQUIREMENTS } from "./missingFields.js";
 
 export function buildFullAnalysisPrompt(options = {}) {
@@ -143,12 +144,13 @@ export function buildExternalAnalysisJsonTemplate(options = {}) {
   return JSON.stringify(buildFairValueAnalysisJsonObject(options), null, 2);
 }
 
-export function buildNewEarningsAnalysisPrompt(report = {}) {
+export function buildNewEarningsAnalysisPrompt(report = {}, options = {}) {
   const ticker = normalizeTicker(report.company?.ticker);
   const companyName = report.company?.name || ticker || "-";
   const requirementsBlock = report.priceTargetRequirements || {};
   const requirements = Array.isArray(requirementsBlock.requirements) ? requirementsBlock.requirements : [];
-  const template = buildNewEarningsOutputTemplate(report, requirements);
+  const selectedPeriod = earningsPeriodFromOptions(options)?.reportPeriod || null;
+  const template = buildNewEarningsOutputTemplate(report, requirements, { selectedPeriod });
 
   return [
     "أنت تعمل داخل مشروع Fair value لتحليل إعلان أرباح جديد بناءً على تقرير محفوظ سابقًا في Franklin.",
@@ -177,6 +179,11 @@ export function buildNewEarningsAnalysisPrompt(report = {}) {
     `- الربع السابق المحفوظ: ${formatPromptValue(requirementsBlock.previousQuarter || report.reportPeriod)}`,
     `- الربع المستهدف للتقييم: ${formatPromptValue(requirementsBlock.targetQuarter || requirementsBlock.earningsPeriod)}`,
     `- فترة الأرباح المطلوب تقييمها: ${formatPromptValue(requirementsBlock.earningsPeriod)}`,
+    ...(selectedPeriod ? [
+      `- الربع الذي اختاره المستخدم لهذا التحديث: ${selectedPeriod}`,
+      `- يجب أن تكون reportPeriod في JSON النهائي مساوية تمامًا لـ ${selectedPeriod}.`,
+      `- حلل مواد ${selectedPeriod} فقط، ولا تستبدلها بربع آخر حتى لو وجدت نتائج أحدث.`
+    ] : []),
     "",
     "فرضية الاستثمار المحفوظة:",
     report.thesis?.shortSummary || report.thesis?.fullSummary ? textForPrompt(report.thesis?.shortSummary || report.thesis?.fullSummary) : "- غير متوفرة.",
@@ -244,11 +251,13 @@ function normalizeTicker(value) {
   return clean.slice(0, 12);
 }
 
-function buildNewEarningsOutputTemplate(report = {}, requirements = []) {
+function buildNewEarningsOutputTemplate(report = {}, requirements = [], options = {}) {
   const ticker = normalizeTicker(report.company?.ticker);
   const requirementsBlock = report.priceTargetRequirements || {};
+  const selectedPeriod = options.selectedPeriod || null;
   const template = buildFairValueAnalysisJsonObject({ tickerHint: ticker });
   template.analysisDate = "YYYY-MM-DD";
+  template.reportPeriod = selectedPeriod;
   template.company.name = report.company?.name || null;
   template.company.currency = report.company?.currency || "USD";
   template.fairValueSummary.currentPrice = null;
@@ -261,7 +270,7 @@ function buildNewEarningsOutputTemplate(report = {}, requirements = []) {
     ticker: ticker || null,
     previousQuarter: requirementsBlock.previousQuarter || report.reportPeriod || null,
     targetQuarter: requirementsBlock.targetQuarter || requirementsBlock.earningsPeriod || null,
-    earningsPeriod: requirementsBlock.targetQuarter || requirementsBlock.earningsPeriod || null,
+    earningsPeriod: selectedPeriod || requirementsBlock.targetQuarter || requirementsBlock.earningsPeriod || null,
     createdAt: requirementsBlock.createdAt || null,
     createdFromAnalysisId: requirementsBlock.createdFromAnalysisId || report.id || null,
     targetValue: numberOrNull(requirementsBlock.targetValue),

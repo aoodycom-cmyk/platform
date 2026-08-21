@@ -2516,6 +2516,7 @@ function earningsUpdateDrawer(state) {
   if (!workflow.open) return "";
   const report = getExternalAnalysis(state.externalAnalyses || {}, state.externalReportSelection?.ticker, state.externalReportSelection?.reportId);
   const ticker = report?.company?.ticker || workflow.ticker || "-";
+  const selectedPeriod = workflow.selectedPeriod || "";
   return `
     <section class="earnings-update-overlay" role="dialog" aria-modal="true" aria-label="${uiLabel("Analyze New Earnings")}">
       <div class="earnings-update-sheet">
@@ -2527,6 +2528,13 @@ function earningsUpdateDrawer(state) {
           </div>
           <button class="icon-btn" data-action="close-earnings-update">${uiLabel("Cancel")}</button>
         </header>
+        ${selectedPeriod ? `
+          <div class="earnings-period-lock">
+            <span>${uiLabel("الربع المحدد للتحليل")}</span>
+            <strong dir="ltr"><bdi>${escapeHtml(selectedPeriod)}</bdi></strong>
+            <small>${uiLabel("سيقبل Franklin نتيجة JSON المطابقة لهذا الربع فقط.")}</small>
+          </div>
+        ` : ""}
         <div class="earnings-update-steps">
           ${earningsStepPill("1", uiLabel("Paste"), workflow.step === 1)}
           ${earningsStepPill("2", uiLabel("Prompt"), workflow.step === 2)}
@@ -2540,7 +2548,7 @@ function earningsUpdateDrawer(state) {
 }
 
 function earningsStepPill(number, label, active) {
-  return `<span class="${active ? "active" : ""}"><b>${escapeHtml(number)}</b>${escapeHtml(label)}</span>`;
+  return `<span class="${active ? "active" : ""}"><b dir="ltr">${escapeHtml(number)}</b><em dir="auto">${escapeHtml(label)}</em></span>`;
 }
 
 function earningsUpdateStepBody(workflow = {}, report = {}, state = {}) {
@@ -2558,7 +2566,7 @@ function earningsPasteStep(workflow = {}, report = {}) {
       <textarea class="paste-box earnings-paste-box" data-earnings-field="earningsText" placeholder="${uiLabel("الصق مواد إعلان الأرباح هنا.")}">${escapeHtml(workflow.earningsText || "")}</textarea>
       <div class="earnings-context-strip">
         ${miniEvidence(uiLabel("Recommendation"), localizedExternalText(externalRecommendationAction(report)) || "-")}
-        ${miniEvidence(uiLabel("Base Fair Value"), money(report?.fairValue?.base, 0))}
+        ${miniEvidence(uiLabel("Base Fair Value"), money(report?.fairValueSummary?.fairValueBase, 0))}
         ${miniEvidence(uiLabel("Requirements"), String(report?.priceTargetRequirements?.requirements?.length || 0))}
       </div>
       <div class="earnings-update-actions">
@@ -6406,11 +6414,15 @@ function bind(root, store, actions) {
   root.querySelectorAll("[data-action='open-earnings-update']").forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
+      try { sessionStorage.removeItem("quarterlyEarningsEntryContext"); } catch { /* Storage may be unavailable. */ }
       store.openEarningsUpdate();
     });
   });
   root.querySelectorAll("[data-action='close-earnings-update']").forEach((button) => {
-    button.addEventListener("click", store.closeEarningsUpdate);
+    button.addEventListener("click", () => {
+      try { sessionStorage.removeItem("quarterlyEarningsEntryContext"); } catch { /* Storage may be unavailable. */ }
+      store.closeEarningsUpdate();
+    });
   });
   root.querySelectorAll("[data-earnings-step]").forEach((button) => {
     button.addEventListener("click", () => {

@@ -148,7 +148,7 @@ assert.ok(storeSource.includes("currentFullAnalysisPrompt"), "Store must expose 
 assert.ok(storeSource.includes("currentExternalAnalysisJsonTemplate"), "Store must expose the blank JSON Template.");
 assert.ok(storeSource.includes("createEarningsUpdateState"), "Store must keep local-only earnings update workflow state.");
 assert.ok(storeSource.includes("prepareEarningsUpdatePrompt"), "Store must build the local ChatGPT earnings update prompt.");
-assert.ok(storeSource.includes("parseExternalAnalysisInput(rawText)"), "Structured earnings JSON import must work locally without an OpenAI call.");
+assert.ok(storeSource.includes("parseExternalAnalysisInput(rawText, { currentReport })"), "Structured earnings JSON import must work locally against the selected saved report without an OpenAI call.");
 assert.ok(storeSource.includes("saveEarningsUpdate"), "Store must save the validated earnings update report.");
 assert.ok(chatgptContract.includes("buildFullAnalysisPrompt"), "ChatGPT contract prompt builder must exist.");
 assert.ok(chatgptContract.includes("buildExternalAnalysisJsonTemplate"), "ChatGPT contract JSON template builder must exist.");

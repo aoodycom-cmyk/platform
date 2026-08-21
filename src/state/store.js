@@ -15,6 +15,7 @@ import { normalizeExternalAnalysisReport, updateExternalAnalysisField } from "..
 import { validateExternalAnalysisReport } from "../externalAnalysis/externalAnalysisSchemaValidator.js";
 import { analyzeExternalAnalysisCompletion, attachCompletionStatus, buildMissingRequirementsPrompt } from "../externalAnalysis/missingFields.js";
 import { buildExternalAnalysisJsonTemplate, buildFullAnalysisPrompt, buildNewEarningsAnalysisPrompt } from "../externalAnalysis/chatgptContract.js";
+import { earningsPeriodMatches, resolveEarningsPeriodSelection } from "../externalAnalysis/earningsPeriod.js";
 import {
   createInvestmentDataBackup,
   mergeInvestmentDataBackup,
@@ -499,12 +500,14 @@ export function createStore() {
 
   function currentNewEarningsAnalysisPrompt() {
     const report = selectedExternalReportFromState();
-    return report ? buildNewEarningsAnalysisPrompt(report) : "";
+    const selection = resolveEarningsPeriodSelection(report);
+    return report ? buildNewEarningsAnalysisPrompt(report, selection) : "";
   }
 
-  function openEarningsUpdate() {
+  function openEarningsUpdate(options = {}) {
     const report = selectedExternalReportFromState();
     if (!report) return;
+    const selection = resolveEarningsPeriodSelection(report, options);
     set({
       earningsUpdate: {
         ...createEarningsUpdateState(),
@@ -512,7 +515,10 @@ export function createStore() {
         step: 1,
         ticker: report.company?.ticker || "",
         reportId: report.id || "",
-        generatedPrompt: buildNewEarningsAnalysisPrompt(report)
+        selectedQuarter: selection.quarter,
+        selectedYear: selection.year,
+        selectedPeriod: selection.reportPeriod,
+        generatedPrompt: buildNewEarningsAnalysisPrompt(report, selection)
       },
       notice: ""
     });
@@ -535,8 +541,9 @@ export function createStore() {
     const report = selectedExternalReportFromState();
     if (!report) return "";
     const earningsText = String(state.earningsUpdate?.earningsText || "").trim();
+    const selection = earningsPeriodSelectionFromWorkflow(state.earningsUpdate);
     const prompt = [
-      buildNewEarningsAnalysisPrompt(report),
+      buildNewEarningsAnalysisPrompt(report, selection),
       "",
       "مواد إعلان الأرباح الجديدة التي ألصقها المستخدم:",
       earningsText || "- لم يتم لصق مواد أرباح بعد. اطلب من المستخدم تزويدك بتقرير الأرباح أو 10-Q أو نص مكالمة الإدارة قبل إخراج JSON.",
@@ -584,7 +591,7 @@ export function createStore() {
       notice: state.language === "ar" ? "جاري فحص JSON بدون أي إعادة تحليل..." : "Validating JSON without recalculating analysis..."
     });
     try {
-      const parsed = await parseExternalAnalysisInput(rawText);
+      const parsed = await parseExternalAnalysisInput(rawText, { currentReport });
       const report = parsed.report;
       const currentTicker = normalizeTickerHint(currentReport.company?.ticker);
       const incomingTicker = normalizeTickerHint(report.company?.ticker);
@@ -593,7 +600,12 @@ export function createStore() {
       if (currentTicker && incomingTicker && currentTicker !== incomingTicker) {
         errors.push({ field: "company.ticker", message: `Ticker mismatch. Expected ${currentTicker}, received ${incomingTicker}.` });
       }
-      const finalValidation = { ...validation, valid: validation.valid && errors.length === 0, errors };
+      const finalValidation = validateEarningsUpdateSelection(
+        report,
+        { ...validation, valid: validation.valid && errors.length === 0, errors },
+        state.earningsUpdate,
+        state.language
+      );
       const preview = createEarningsUpdatePreview(currentReport, report, finalValidation);
       set({
         loading: false,
@@ -631,7 +643,12 @@ export function createStore() {
   function saveEarningsUpdate() {
     const parsedReport = state.earningsUpdate?.parsedReport;
     if (!parsedReport) return;
-    const validation = validateExternalAnalysisReport(parsedReport);
+    const validation = validateEarningsUpdateSelection(
+      parsedReport,
+      validateExternalAnalysisReport(parsedReport),
+      state.earningsUpdate,
+      state.language
+    );
     if (!validation.valid) {
       set({
         earningsUpdate: { ...state.earningsUpdate, validation },
@@ -1533,6 +1550,9 @@ function createEarningsUpdateState() {
     step: 1,
     ticker: "",
     reportId: "",
+    selectedQuarter: null,
+    selectedYear: null,
+    selectedPeriod: "",
     earningsText: "",
     generatedPrompt: "",
     responseText: "",
@@ -1541,6 +1561,28 @@ function createEarningsUpdateState() {
     validation: { valid: false, errors: [], warnings: [] },
     error: ""
   };
+}
+
+function earningsPeriodSelectionFromWorkflow(workflow = {}) {
+  return resolveEarningsPeriodSelection({}, {
+    quarter: workflow.selectedQuarter,
+    year: workflow.selectedYear,
+    reportPeriod: workflow.selectedPeriod
+  });
+}
+
+function validateEarningsUpdateSelection(report = {}, validation = {}, workflow = {}, language = "ar") {
+  const errors = [...(validation.errors || [])];
+  const expectedPeriod = workflow.selectedPeriod || "";
+  if (!earningsPeriodMatches(report.reportPeriod, expectedPeriod)) {
+    errors.push({
+      field: "reportPeriod",
+      message: language === "ar"
+        ? `الربع غير مطابق. اخترت ${expectedPeriod} لكن JSON يحتوي على ${report.reportPeriod || "فترة غير محددة"}.`
+        : `Quarter mismatch. Expected ${expectedPeriod}, received ${report.reportPeriod || "an unspecified period"}.`
+    });
+  }
+  return { ...validation, valid: Boolean(validation.valid) && errors.length === 0, errors };
 }
 
 function createQuarterlyScorecardState() {
