@@ -128,6 +128,7 @@ function libraryHero() {
 
 function mobileAppHeader(state, isHome = false) {
   if (state.activePanel === "external-report") return externalReportAppBar(state);
+  if (isHome) return libraryAppHeader(state);
   const title = isHome ? uiLabel("My Stocks") : activePanelLabel(state.activePanel);
   return appHeaderMarkup({
     title,
@@ -138,6 +139,28 @@ function mobileAppHeader(state, isHome = false) {
   });
 }
 
+function libraryAppHeader(state) {
+  return `
+    <header class="mobile-app-header library-app-header v31-library-header">
+      <div class="v31-library-heading">
+        <strong>${isArabicUi() ? "فرانكلين" : "Franklin"}</strong>
+        <span dir="ltr">FRANKLIN RESEARCH</span>
+      </div>
+      <div class="v31-library-controls">
+        <button class="header-icon-button header-add-button" data-action="open-external-import" aria-label="${uiLabel("إضافة سهم")}" title="${uiLabel("إضافة سهم")}"><span aria-hidden="true">+</span></button>
+        <label class="v31-library-sort">
+          <span>${isArabicUi() ? "ترتيب" : "Sort"} <b aria-hidden="true">•</b> <bdi dir="ltr">Sort</bdi></span>
+          <select data-library-sort aria-label="${uiLabel("Sort")}">
+            ${watchlistFilterOption("latest", uiLabel("Latest Update"), state.librarySort)}
+            ${watchlistFilterOption("upside", uiLabel("Highest Upside"), state.librarySort)}
+            ${watchlistFilterOption("ticker", uiLabel("Ticker"), state.librarySort)}
+          </select>
+        </label>
+      </div>
+    </header>
+  `;
+}
+
 function externalReportAppBar(state) {
   const selection = state.externalReportSelection || {};
   const report = getExternalAnalysis(state.externalAnalyses || {}, selection.ticker, selection.reportId);
@@ -146,17 +169,8 @@ function externalReportAppBar(state) {
   const updated = report?.reportPeriod || report?.analysisDate || "—";
   const moreLabel = uiLabel("More");
   return `
-    <header class="mobile-app-header report-app-bar">
+    <header class="mobile-app-header report-app-bar v31-report-app-bar">
       <button class="header-icon-button report-back-button" data-panel="home" aria-label="${uiLabel("Back to My Stocks")}" title="${uiLabel("Back to My Stocks")}"><span aria-hidden="true">‹</span></button>
-      <div class="report-app-identity">
-        <strong dir="auto">${escapeHtml(companyName)}</strong>
-        <span>
-          ${report?.companyProfile
-            ? `<button class="report-profile-link" data-profile-ticker="${escapeHtml(ticker)}" data-profile-report-id="${escapeHtml(report.id || "latest")}"><bdi dir="ltr">${escapeHtml(ticker)}</bdi></button>`
-            : `<bdi dir="ltr">${escapeHtml(ticker)}</bdi>`}
-          <i aria-hidden="true">•</i><bdi dir="ltr">${escapeHtml(updated)}</bdi>
-        </span>
-      </div>
       <details class="mobile-app-menu">
         <summary aria-label="${escapeHtml(moreLabel)}" title="${escapeHtml(moreLabel)}"><span aria-hidden="true">•••</span></summary>
         <div>
@@ -168,6 +182,15 @@ function externalReportAppBar(state) {
           <button class="icon-btn" data-action="toggle-theme">${state.theme === "dark" ? uiLabel("Light") : uiLabel("Dark")}</button>
         </div>
       </details>
+      <div class="report-app-identity">
+        <div>
+          <strong dir="auto">${escapeHtml(companyName)}</strong>
+          ${report?.companyProfile
+            ? `<button class="report-profile-link" data-profile-ticker="${escapeHtml(ticker)}" data-profile-report-id="${escapeHtml(report.id || "latest")}"><bdi dir="ltr">${escapeHtml(ticker)}</bdi></button>`
+            : `<span class="report-ticker-pill"><bdi dir="ltr">${escapeHtml(ticker)}</bdi></span>`}
+        </div>
+        <span>${isArabicUi() ? "آخر تحديث" : "Last update"}: <bdi dir="ltr">${escapeHtml(updated)}</bdi></span>
+      </div>
     </header>
   `;
 }
@@ -211,18 +234,9 @@ function externalAnalysesHomeSection(state) {
   const totalReports = Object.values(state.externalAnalyses || {}).reduce((sum, list) => sum + (Array.isArray(list) ? list.length : 0), 0);
   return `
     <section class="evaluated-panel external-home-panel library-panel">
-      <div class="table-title">
-        <div>
-          <h2>${uiLabel("My Stocks")}</h2>
-        </div>
-        <div class="library-stats">
-          <span>${allReports.length} ${uiLabel("Stocks")}</span>
-          <span>${totalReports} ${uiLabel("Analyses")}</span>
-        </div>
-      </div>
       ${watchlistToolbar(state)}
       ${reports.length ? `
-        <div class="library-card-grid">
+        <div class="library-card-grid" data-stock-count="${allReports.length}" data-analysis-count="${totalReports}">
           ${reports.map((report) => externalHomeCard(report)).join("")}
         </div>
       ` : externalLibraryEmptyState()}
@@ -231,38 +245,27 @@ function externalAnalysesHomeSection(state) {
 }
 
 function externalHomeCard(report) {
-  const lastUpdate = report.reportPeriod || report.analysisDate || "-";
-  const completion = report.completionStatus || {};
-  const completionLabel = completion.status === "complete"
-    ? (isArabicUi() ? "مكتمل" : "Complete")
-    : (isArabicUi() ? "يحتاج استكمال" : "Needs completion");
   return `
-    <article class="company-card external-company-card library-company-card terminal-watchlist-row figma-library-row" data-franklin-v2="true" data-external-ticker="${escapeHtml(report.ticker)}" data-external-report-id="${escapeHtml(report.id)}" data-library-card data-search-text="${escapeHtml(`${report.ticker} ${report.companyName}`.toLowerCase())}">
-      <div class="figma-library-primary">
-        <div class="library-target-snapshot">
+    <article class="company-card external-company-card library-company-card terminal-watchlist-row figma-library-row v31-library-stock-row" data-franklin-v2="true" data-external-ticker="${escapeHtml(report.ticker)}" data-external-report-id="${escapeHtml(report.id)}" data-library-card data-search-text="${escapeHtml(`${report.ticker} ${report.companyName}`.toLowerCase())}">
+      <div class="v31-library-price-block">
+        <div class="v31-current-price">
+          <strong dir="ltr">${money(report.currentPrice, 0)}</strong>
+          <span>${uiLabel("Current Price")}</span>
+        </div>
+        <div class="v31-fair-value-line">
           <strong dir="ltr">${money(report.baseFairValue, 0)}</strong>
-          <span>Base Fair Value</span>
+          <span>${uiLabel("Fair Value")}</span>
           <b class="${colorClass(upsideColorCategory(numericValue(report.upsideToBasePct)), "tone")}" dir="ltr">${formatExternalPercent(report.upsideToBasePct)}</b>
         </div>
-        <div class="library-company-identity">
-          ${companyLogoMarkup({ ticker: report.ticker, name: report.companyName })}
-          <div>
-            <strong dir="auto">${escapeHtml(report.companyName || uiLabel("Company"))}</strong>
-            <span><bdi dir="ltr">${escapeHtml(report.ticker)}</bdi></span>
-          </div>
-        </div>
-      </div>
-      <div class="figma-library-secondary">
-        <span><small>${uiLabel("Current Price")}</small><strong dir="ltr">${money(report.currentPrice, 2)}</strong></span>
-        <span class="bear"><small>Bear</small><strong dir="ltr">${money(report.bearFairValue, 0)}</strong></span>
-        <span class="bull"><small>Bull</small><strong dir="ltr">${money(report.bullFairValue, 0)}</strong></span>
-        <span class="period"><small>${uiLabel("Last Update")}</small><strong dir="auto">${escapeHtml(lastUpdate)}</strong></span>
-      </div>
-      <div class="figma-library-footer">
         <em class="${colorClass(recommendationColorCategory(report.verdict), "badge")}">${escapeHtml(localizedExternalText(report.verdict) || "-")}</em>
-        <span class="library-data-status ${completionStatusClass(completion.status)}">${escapeHtml(completionLabel)}</span>
+      </div>
+      <div class="library-company-identity">
+        ${companyLogoMarkup({ ticker: report.ticker, name: report.companyName })}
+        <div>
+          <strong dir="auto">${escapeHtml(report.companyName || uiLabel("Company"))}</strong>
+          <span><bdi dir="ltr">${escapeHtml(report.ticker)}</bdi></span>
+        </div>
         ${report.hasCompanyProfile ? `<button class="profile-pill" data-profile-ticker="${escapeHtml(report.ticker)}" data-profile-report-id="${escapeHtml(report.id)}">${uiLabel("Company Profile")}</button>` : ""}
-        <b aria-hidden="true">‹</b>
       </div>
     </article>
   `;
@@ -270,11 +273,10 @@ function externalHomeCard(report) {
 
 function watchlistToolbar(state) {
   const filters = [
-    ["all", uiLabel("All")],
-    ["buy", decisionLabel("BUY")],
-    ["add", decisionLabel("ADD")],
-    ["hold", decisionLabel("HOLD")],
-    ["watch", decisionLabel("WATCH")]
+    ["all", isArabicUi() ? "الكل • All" : "All"],
+    ["buy", isArabicUi() ? "شراء • Buy" : "Buy"],
+    ["hold", isArabicUi() ? "احتفاظ • Hold" : "Hold"],
+    ["watch", isArabicUi() ? "مراقبة • Watch" : "Watch"]
   ];
   return `
     <div class="watchlist-toolbar">
@@ -291,14 +293,6 @@ function watchlistToolbar(state) {
       <div class="library-filter-chips" role="group" aria-label="${uiLabel("Filter")}">
         ${filters.map(([value, label]) => `<button class="${state.libraryFilter === value ? "active" : ""}" type="button" data-library-filter-button="${value}" aria-pressed="${state.libraryFilter === value}">${escapeHtml(label)}</button>`).join("")}
       </div>
-      <label class="library-sort-control">
-        <span aria-hidden="true">↕</span>
-        <select data-library-sort>
-          ${watchlistFilterOption("latest", uiLabel("Latest Update"), state.librarySort)}
-          ${watchlistFilterOption("upside", uiLabel("Highest Upside"), state.librarySort)}
-          ${watchlistFilterOption("ticker", uiLabel("Ticker"), state.librarySort)}
-        </select>
-      </label>
     </div>
   `;
 }
@@ -1606,12 +1600,12 @@ function externalAnalysisReportView(state) {
       ${stockDecisionHeader(reportWithCompletion, completion)}
       ${dataHealthTerminalGuard(reportWithCompletion, completion)}
       <section class="stock-decision-flow">
-        ${stockSection(uiLabel("فرصة الاستثمار"), investmentSummaryWorkspace(report))}
-        ${qualityGrowthRiskPanel(report)}
-        ${estimateRevisionsCard(report.estimateRevisions)}
+        ${valuationRangeDashboard(report)}
+        ${stockSection(isArabicUi() ? "فرصة الاستثمار • Investment Opportunity" : "Investment Opportunity", investmentSummaryWorkspace(report), "investment-opportunity-section")}
+        ${companyAssessmentPanel(report)}
+        ${stockSection(isArabicUi() ? "بيانات الاستثمار" : "Investment Data", investmentDataTableArea(report), "v31-investment-tabs-section")}
         ${latestEarningsWorkspace(report)}
-        ${stockSection(uiLabel("بيانات الاستثمار"), investmentDataTableArea(report))}
-        ${stockSection(uiLabel("طرق التقييم"), valuationMethodsDashboard(report))}
+        ${estimateRevisionsCard(report.estimateRevisions)}
         ${stockSection(uiLabel("المزايا والمخاطر"), strengthsRisksDashboard(report))}
         ${stockSection(uiLabel("المحفزات"), catalystsDashboard(report))}
         ${stockSection(uiLabel("قائمة المتابعة"), monitoringChecklistDashboard(report))}
@@ -1904,40 +1898,66 @@ function stockDecisionHeader(report = {}, completion = {}) {
   const action = externalRecommendationAction(report);
   const current = report.fairValueSummary?.currentPrice;
   const upside = report.fairValueSummary?.upsideDownsidePercent;
-  const potential = derivedUpsidePercent(report.fairValueSummary?.fairValueHigh, current) ?? upside;
   const priceAtAnalysis = report.market?.priceAtAnalysis;
   return `
-    <header id="stock-report-top" class="panel stock-decision-header terminal-stock-header figma-decision-card" data-franklin-v2="true">
-      <div class="decision-card-heading">
+    <header id="stock-report-top" class="panel stock-decision-header terminal-stock-header figma-decision-card v31-stock-decision" data-franklin-v2="true">
+      <div class="v31-current-price-hero">
+        <span>${isArabicUi() ? "السعر الحالي" : "Current Price"} <b aria-hidden="true">•</b> <bdi dir="ltr">Current Price</bdi></span>
+        <strong dir="ltr">${money(current, 0)}</strong>
+        <small>
+          <bdi dir="ltr">${escapeHtml(report.market?.currency || report.company?.currency || "USD")}</bdi>
+          <i aria-hidden="true">•</i>
+          ${isArabicUi() ? "تاريخ التحليل" : "Analysis date"}
+          <bdi dir="ltr">${escapeHtml(report.analysisDate || report.reportPeriod || "—")}</bdi>
+        </small>
+      </div>
+      <div class="v31-recommendation-banner ${colorClass(recommendationColorCategory(action), "tone")}">
+        <strong>${escapeHtml(localizedExternalText(action) || "-")}</strong>
+      </div>
+      <div class="v31-base-value-card">
         <div>
-          <span>${isArabicUi() ? "قرار الاستثمار" : "INVESTMENT DECISION"}</span>
-          <small>${escapeHtml(report.reportPeriod || report.analysisDate || "—")}</small>
+          <span>${isArabicUi() ? "القيمة العادلة الأساسية" : "Base Fair Value"}</span>
+          <small>Base Fair Value</small>
         </div>
-        <em class="decision-action ${colorClass(recommendationColorCategory(action), "badge")}">${escapeHtml(localizedExternalText(action) || "-")}</em>
-      </div>
-      <div class="decision-primary-values">
-        <article class="decision-base-value">
-          <span>Base Fair Value</span>
+        <div class="v31-base-value-number">
           <strong dir="ltr">${money(report.fairValueSummary?.fairValueBase, 0)}</strong>
-          <small class="${colorClass(upsideColorCategory(numericValue(upside)), "tone")}" dir="ltr">${formatExternalPercent(upside)} ${isArabicUi() ? "من السعر الحالي" : "from current price"}</small>
-        </article>
-        <article class="decision-current-value">
-          <span>${uiLabel("Current Price")}</span>
-          <strong dir="ltr">${money(current, 2)}</strong>
-          ${Number.isFinite(numericValue(priceAtAnalysis)) ? `<small>${uiLabel("Price at Analysis")}: <bdi dir="ltr">${money(priceAtAnalysis, 2)}</bdi></small>` : ""}
-        </article>
-      </div>
-      <div class="valuation-range-visual" aria-label="Bear Base Bull">
-        <div class="valuation-range-title"><span>${isArabicUi() ? "نطاق القيمة العادلة" : "VALUATION RANGE"}</span><b dir="ltr">${formatExternalPercent(potential)} ${isArabicUi() ? "أقصى عائد" : "max potential"}</b></div>
-        <div class="valuation-range-track" aria-hidden="true"><i class="bear"></i><i class="base"></i><i class="bull"></i></div>
-        <div class="valuation-range-values">
-          ${stockSummaryMetric("Bear", money(report.fairValueSummary?.fairValueLow, 0), "bear")}
-          ${stockSummaryMetric("Base", money(report.fairValueSummary?.fairValueBase, 0), "base")}
-          ${stockSummaryMetric("Bull", money(report.fairValueSummary?.fairValueHigh, 0), "bull")}
+          <em class="${colorClass(upsideColorCategory(numericValue(upside)), "tone")}" dir="ltr">${formatExternalPercent(upside)}</em>
         </div>
+        ${Number.isFinite(numericValue(priceAtAnalysis)) ? `<p>${uiLabel("Price at Analysis")}: <bdi dir="ltr">${money(priceAtAnalysis, 0)}</bdi></p>` : ""}
       </div>
     </header>
   `;
+}
+
+function valuationRangeDashboard(report = {}) {
+  const fairValue = report.fairValueSummary || {};
+  const current = fairValue.currentPrice;
+  const upside = fairValue.upsideDownsidePercent;
+  const absoluteUpside = Number.isFinite(numericValue(upside)) ? `${Math.abs(numericValue(upside)).toFixed(1)}%` : "";
+  const relation = Number.isFinite(numericValue(upside))
+    ? numericValue(upside) >= 0
+      ? (isArabicUi() ? `يتداول بأقل من القيمة الأساسية بنسبة ${absoluteUpside}` : `Trading below Base by ${absoluteUpside}`)
+      : (isArabicUi() ? `يتداول بأعلى من القيمة الأساسية بنسبة ${absoluteUpside}` : `Trading above Base by ${absoluteUpside}`)
+    : "";
+  return `
+    <section class="v31-report-block v31-valuation-section">
+      <h3>${isArabicUi() ? "نطاق التقييم" : "Valuation Range"} <span aria-hidden="true">•</span> <bdi dir="ltr">Valuation Range</bdi></h3>
+      <div class="v31-valuation-range-card">
+        <div class="v31-range-line" aria-hidden="true"><i></i></div>
+        <div class="v31-range-values">
+          ${v31RangeMetric("Bear", fairValue.fairValueLow, "bear")}
+          ${v31RangeMetric("Base", fairValue.fairValueBase, "base")}
+          ${v31RangeMetric(isArabicUi() ? "السعر الحالي" : "Current", current, "current")}
+          ${v31RangeMetric("Bull", fairValue.fairValueHigh, "bull")}
+        </div>
+        ${relation ? `<p>${escapeHtml(relation)} <span aria-hidden="true">|</span> <bdi dir="ltr">Fair Value</bdi></p>` : ""}
+      </div>
+    </section>
+  `;
+}
+
+function v31RangeMetric(label, value, tone) {
+  return `<article class="${escapeHtml(tone)}"><strong dir="ltr">${money(value, 0)}</strong><span>${escapeHtml(label)}</span></article>`;
 }
 
 function dataHealthTerminalGuard(report = {}, completion = {}) {
@@ -1973,10 +1993,10 @@ function stockSummaryMetric(label, value, tone = "neutral") {
   return `<article class="stock-summary-metric ${escapeHtml(tone)}"><span>${escapeHtml(label)}</span><strong><bdi>${escapeHtml(String(value || "—"))}</bdi></strong></article>`;
 }
 
-function stockSection(title, body) {
+function stockSection(title, body, className = "") {
   if (!hasRenderableContent(body)) return "";
   return `
-    <section class="panel stock-report-section">
+    <section class="panel stock-report-section ${escapeHtml(className)}">
       <header><h3>${escapeHtml(title)}</h3></header>
       <div>${body}</div>
     </section>
@@ -2157,6 +2177,95 @@ function fairValueScenario(label, value, currentPrice, featured = false) {
       <strong dir="ltr">${money(value, 0)}</strong>
       <em dir="ltr">${Number.isFinite(upside) ? formatExternalPercent(upside) : "—"}</em>
     </article>
+  `;
+}
+
+function companyAssessmentPanel(report = {}) {
+  const overall = numericValue(report.decision?.investmentScore);
+  const overallPct = Number.isFinite(overall) ? Math.max(0, Math.min(100, overall)) : 0;
+  const rows = [
+    {
+      ar: "النمو",
+      en: "Growth",
+      value: report.scores?.growth,
+      tone: "positive",
+      detail: compactGrowthWorkspace(report)
+    },
+    {
+      ar: "التقييم",
+      en: "Valuation",
+      value: report.scores?.valuation,
+      tone: "positive",
+      detail: valuationMethodsDashboard(report)
+    },
+    {
+      ar: "الجودة المالية",
+      en: "Financial Quality",
+      value: report.scores?.quality,
+      tone: "positive",
+      detail: compactQualityWorkspace(report)
+    },
+    {
+      ar: "الإدارة",
+      en: "Management",
+      value: report.scores?.management,
+      tone: "positive",
+      detail: paragraphBlock([report.quality?.capitalAllocation])
+    },
+    {
+      ar: "الميزة التنافسية",
+      en: "Moat",
+      value: report.scores?.moat,
+      tone: "warning",
+      detail: paragraphBlock([report.quality?.moat])
+    },
+    {
+      ar: "المخاطر",
+      en: "Risk",
+      value: report.scores?.risk,
+      tone: "risk",
+      detail: paragraphBlock([riskCompactSummary(report)])
+    }
+  ].filter((row) => Number.isFinite(numericValue(row.value)) || hasRenderableContent(row.detail));
+  if (!rows.length && !Number.isFinite(overall)) return "";
+  return `
+    <section class="v31-report-block v31-company-assessment">
+      <h3>${isArabicUi() ? "تقييم الشركة" : "Company Assessment"} <span aria-hidden="true">•</span> <bdi dir="ltr">Company Assessment</bdi></h3>
+      <div class="v31-assessment-card">
+        <header>
+          <div>
+            <strong>${isArabicUi() ? "التقييم الشامل" : "Overall Assessment"}</strong>
+            <span dir="ltr">Overall Quality Score</span>
+          </div>
+          <div class="v31-overall-ring" style="--overall:${overallPct}%">
+            <strong dir="ltr">${Number.isFinite(overall) ? Math.round(overall) : "—"}</strong>
+          </div>
+        </header>
+        <div class="v31-assessment-rows">
+          ${rows.map((row) => companyAssessmentRow(row)).join("")}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function companyAssessmentRow(row = {}) {
+  const score = numericValue(row.value);
+  const pct = Number.isFinite(score) ? Math.max(0, Math.min(100, score * 10)) : 0;
+  const content = `
+    <div class="v31-assessment-label">
+      <strong>${escapeHtml(isArabicUi() ? row.ar : row.en)}</strong>
+      <span dir="ltr">${escapeHtml(row.en)}</span>
+    </div>
+    <b dir="ltr">${Number.isFinite(score) ? `${score.toFixed(1)}/10` : "—"}</b>
+    <i><u style="width:${pct}%"></u></i>
+  `;
+  if (!hasRenderableContent(row.detail)) return `<div class="v31-assessment-row ${escapeHtml(row.tone)}">${content}</div>`;
+  return `
+    <details class="v31-assessment-row ${escapeHtml(row.tone)}">
+      <summary>${content}</summary>
+      <div>${row.detail}</div>
+    </details>
   `;
 }
 
@@ -3364,40 +3473,39 @@ function guidanceView(guidance = []) {
 function investmentDataTableArea(report = {}) {
   const panels = [
     {
-      key: "requirements",
-      label: uiLabel("Price Target Requirements"),
+      key: "thesis",
+      label: isArabicUi() ? "الفرضية • Thesis" : "Thesis",
       body: priceTargetRequirementsView(report.priceTargetRequirements, {
         ticker: report.company?.ticker,
-        reportId: report.id
+        reportId: report.id,
+        fairValue: report.fairValueSummary?.fairValueBase,
+        assessment: report.requirementsAssessment
       }) || emptyCompactDataView(uiLabel("Price Target Requirements"))
     },
     {
-      key: "guidance",
-      label: uiLabel("Guidance"),
-      body: guidanceTableView(report) || emptyCompactDataView(uiLabel("Guidance"))
-    },
-    {
       key: "financials",
-      label: uiLabel("Financial Performance"),
-      body: financialPerformanceTableView(report) || emptyCompactDataView(uiLabel("Financial Performance"))
+      label: isArabicUi() ? "المالية • Financials" : "Financials",
+      body: [
+        financialPerformanceTableView(report),
+        guidanceTableView(report),
+        companyKpisTableView(report.companySpecificKpis)
+      ].filter(Boolean).join("") || emptyCompactDataView(uiLabel("Financial Performance"))
     },
     {
-      key: "kpis",
-      label: uiLabel("Company KPIs"),
-      body: companyKpisTableView(report.companySpecificKpis) || emptyCompactDataView(uiLabel("Company KPIs"))
+      key: "valuation",
+      label: isArabicUi() ? "التقييم • Valuation" : "Valuation",
+      body: valuationMethodsDashboard(report) || emptyCompactDataView(uiLabel("Valuation"))
     }
   ];
   if (!panels.length) return "";
   return `
     <section class="investment-data-area">
-      <header class="investment-data-head">
-        <label class="compact-data-select-label">
-          <span>${uiLabel("العرض")}</span>
-          <select class="compact-data-select" data-investment-data-select aria-label="${uiLabel("Investment Data")}">
-            ${panels.map((panel, index) => `<option value="${escapeHtml(panel.key)}" ${index === 0 ? "selected" : ""}>${escapeHtml(panel.label)}</option>`).join("")}
-          </select>
-        </label>
-      </header>
+      <select class="compact-data-select v31-hidden-select" data-investment-data-select aria-label="${uiLabel("Investment Data")}" tabindex="-1">
+        ${panels.map((panel, index) => `<option value="${escapeHtml(panel.key)}" ${index === 0 ? "selected" : ""}>${escapeHtml(panel.label)}</option>`).join("")}
+      </select>
+      <div class="v31-report-tabs" role="tablist" aria-label="${uiLabel("Investment Data")}">
+        ${panels.map((panel, index) => `<button type="button" role="tab" class="${index === 0 ? "active" : ""}" data-investment-data-tab="${escapeHtml(panel.key)}" aria-selected="${index === 0}">${escapeHtml(panel.label)}</button>`).join("")}
+      </div>
       <div class="data-view-tabs compact-data-selector" aria-label="${uiLabel("Investment Data")}">
         <div class="data-view-panels">
           ${panels.map((panel, index) => `
@@ -3610,31 +3718,45 @@ function priceTargetRequirementsView(requirementsBlock = {}, context = {}) {
   const targetValue = requirementsBlock.targetValue ?? requirementsBlock.nextTargetValue;
   const previousQuarter = requirementsBlock.previousQuarter || uiLabel("Previous Quarter");
   const targetQuarter = requirementsBlock.targetQuarter || requirementsBlock.earningsPeriod || uiLabel("Target Quarter");
+  const assessment = context.assessment || requirementsBlock.requirementsAssessment || {};
+  const progress = numericValue(assessment.weightedAchievement);
+  const displayedProgress = Number.isFinite(progress) ? boundedPercent(progress) : null;
+  const overallStatus = requirementsStatusLabel(assessment.overallStatus);
+  const periods = [...new Set([previousQuarter, targetQuarter].filter((period) => period && period !== "—"))];
+  const passed = assessment.passedRequirements ?? assessment.passed;
+  const reported = assessment.reportedRequirements;
+  const total = assessment.totalRequirements;
   return `
     <div class="price-requirements-block figma-thesis-tracker" data-franklin-v2="true">
-      <div class="next-target-bridge thesis-tracker-summary">
-        <div class="tracker-summary-title">
-          <span>${isArabicUi() ? "متتبع الفرضية" : "THESIS TRACKER"}</span>
-          <strong>${uiLabel("What must the company deliver to justify")} <bdi dir="ltr">${money(targetValue, 0)}</bdi>${isArabicUi() ? "؟" : "?"}</strong>
+      <header class="v31-tracker-header">
+        <div>
+          <h4>${isArabicUi() ? "متتبع الفرضية" : "Thesis Tracker"}</h4>
+          <span dir="ltr">${escapeHtml(context.ticker || "—")} • Thesis Tracker</span>
         </div>
-        <article class="tracker-target-value">
-          <span>${uiLabel("Next Target")}</span>
-          <strong dir="ltr">${money(targetValue, 0)}</strong>
-        </article>
-        <div class="tracker-context-grid">
-          <article>
-            <span>${uiLabel("Current Justified Value")}</span>
-            <strong dir="ltr">${money(requirementsBlock.currentJustifiedValue, 0)}</strong>
-          </article>
-          <article>
-            <span>${uiLabel("Target Scenario")}</span>
-            <strong dir="auto"><bdi>${escapeHtml(targetScenarioLabel(requirementsBlock.targetScenario))}</bdi></strong>
-          </article>
-          <article>
-            <span>${uiLabel("Earnings Period")}</span>
-            <strong dir="ltr">${escapeHtml(requirementsBlock.earningsPeriod || "—")}</strong>
-          </article>
+        <strong><span>${isArabicUi() ? "القيمة العادلة" : "Fair Value"}</span> <bdi dir="ltr">${money(context.fairValue, 0)}</bdi></strong>
+      </header>
+      <section class="v31-tracker-progress-card">
+        <div class="v31-tracker-ring" style="--progress:${displayedProgress ?? 0}%">
+          <strong dir="ltr">${displayedProgress === null ? "—" : `${displayedProgress}%`}</strong>
         </div>
+        <div>
+          <span>${isArabicUi() ? "نسبة الإنجاز" : "Progress"} • Progress</span>
+          <strong class="${requirementsStatusClass(assessment.overallStatus)}">${escapeHtml(overallStatus)}</strong>
+          <small>${isArabicUi() ? "مسار التنفيذ" : "Execution Path"} • Execution Path</small>
+        </div>
+      </section>
+      ${periods.length ? `
+        <section class="v31-quarter-progress" aria-label="${isArabicUi() ? "التقدم ربع السنوي" : "Quarterly Progress"}">
+          <header><strong>${isArabicUi() ? "ربع سنوي" : "Quarterly Progress"} • Quarterly Progress</strong></header>
+          <div>${periods.map((period, index) => `<span class="${index === periods.length - 1 ? "active" : ""}"><i aria-hidden="true"></i><bdi dir="ltr">${escapeHtml(period)}</bdi></span>`).join("")}</div>
+        </section>
+      ` : ""}
+      <div class="v31-requirements-heading">
+        <div>
+          <h4>${isArabicUi() ? "متطلبات الأداء" : "KPI Requirements"} • KPI Requirements</h4>
+          <span>${isArabicUi() ? "المقياس والمطلوب" : "Metric & Required"} • Metric & Required</span>
+        </div>
+        <strong>${uiLabel("What must the company deliver to justify")} <bdi dir="ltr">${money(targetValue, 0)}</bdi>${isArabicUi() ? "؟" : "?"}</strong>
       </div>
       <div class="requirements-cycle-copy">
         ${requirementsBlock.summary || requirementsBlock.targetDescription ? `<p>${escapeHtml(localizedExternalText(requirementsBlock.summary || requirementsBlock.targetDescription))}</p>` : ""}
@@ -3642,9 +3764,19 @@ function priceTargetRequirementsView(requirementsBlock = {}, context = {}) {
       ${requirementsComparisonView(requirements, {
         previousQuarter,
         targetQuarter,
-        targetValue,
-        pending: true
-      })}
+          targetValue,
+          pending: true
+        })}
+      <section class="v31-achievement-summary">
+        <div>
+          <span>${isArabicUi() ? "المتطلبات المحققة" : "Requirements met"}</span>
+          <strong dir="ltr">${assessmentCountText(passed, total)}</strong>
+        </div>
+        <b dir="ltr">${displayedProgress === null ? "—" : `${displayedProgress}%`} ${isArabicUi() ? "نجاح" : "Success"}</b>
+        <i aria-hidden="true"><u style="width:${displayedProgress ?? 0}%"></u></i>
+        ${Number.isFinite(numericValue(reported)) ? `<small>${isArabicUi() ? "المتطلبات المعلنة" : "Reported requirements"}: <bdi dir="ltr">${assessmentCountText(reported, total)}</bdi></small>` : ""}
+      </section>
+      <button class="primary-btn v31-analyze-announcement" data-action="open-earnings-update">${isArabicUi() ? "تحليل إعلان جديد" : "Analyze New Announcement"} • Analyze New Announcement</button>
       <button class="quarterly-scorecard-entry" data-action="open-quarterly-scorecard" data-scorecard-ticker="${escapeHtml(context.ticker || "")}" data-scorecard-report-id="${escapeHtml(context.reportId || "latest")}">
         <span>${uiLabel("Quarterly Scorecard")}</span>
         <small>Quarterly Scorecard</small>
@@ -6172,9 +6304,16 @@ function bind(root, store, actions) {
   root.querySelectorAll("[data-investment-data-select]").forEach((select) => {
     select.addEventListener("change", () => {
       const area = select.closest(".investment-data-area");
-      area?.querySelectorAll("[data-data-view-panel]").forEach((panel) => {
-        panel.classList.toggle("active", panel.dataset.dataViewPanel === select.value);
-      });
+      activateInvestmentDataPanel(area, select.value);
+    });
+  });
+  root.querySelectorAll("[data-investment-data-tab]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const area = button.closest(".investment-data-area");
+      const value = button.dataset.investmentDataTab;
+      const select = area?.querySelector("[data-investment-data-select]");
+      if (select) select.value = value;
+      activateInvestmentDataPanel(area, value);
     });
   });
   root.querySelector("[data-action='copy-missing-requirements']")?.addEventListener("click", () => copyMissingRequirements(store));
@@ -6313,6 +6452,18 @@ function bind(root, store, actions) {
   });
   root.querySelectorAll("[data-result-ticker]").forEach((button) => {
     button.addEventListener("click", () => actions.loadCompany(button.dataset.resultTicker));
+  });
+}
+
+function activateInvestmentDataPanel(area, value) {
+  if (!area) return;
+  area.querySelectorAll("[data-data-view-panel]").forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.dataViewPanel === value);
+  });
+  area.querySelectorAll("[data-investment-data-tab]").forEach((button) => {
+    const active = button.dataset.investmentDataTab === value;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", String(active));
   });
 }
 

@@ -10,6 +10,29 @@ const homeSearchSource = components.slice(
 );
 
 assert.equal(homeSearchSource.includes("state.notice"), false, "Library Home must not reserve persistent layout space for save notices.");
+for (const contract of [
+  "v31-library-header",
+  "v31-library-stock-row",
+  "v31-stock-decision",
+  "v31-valuation-range-card",
+  "v31-company-assessment",
+  "v31-report-tabs",
+  "v31-tracker-progress-card",
+  "v31-analyze-announcement"
+]) {
+  assert.ok(components.includes(contract), `Franklin V3.1 presentation contract missing: ${contract}`);
+}
+for (const selector of [
+  ".v31-library-stock-row",
+  ".v31-stock-decision",
+  ".v31-valuation-range-card",
+  ".v31-assessment-card",
+  ".v31-report-tabs",
+  ".v31-tracker-progress-card",
+  ".v31-achievement-summary"
+]) {
+  assert.ok(mobileStyles.includes(selector), `Franklin V3.1 style missing: ${selector}`);
+}
 assert.ok(mobileStyles.includes("--mobile-card-title-size: 18px"), "Mobile report cards must share one title scale.");
 assert.ok(mobileStyles.includes("--mobile-card-body-size: 14px"), "Mobile report cards must share one body scale.");
 assert.ok(mobileStyles.includes("--mobile-card-label-size: 10px"), "Mobile report labels must remain legible without assistive zoom.");
