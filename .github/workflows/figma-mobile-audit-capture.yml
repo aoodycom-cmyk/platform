@@ -20,34 +20,10 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install project
-        run: npm install --ignore-scripts
-
-      - name: Build public bundle
-        run: npm run build
-
       - name: Install Playwright
         run: |
           npm install --no-save --ignore-scripts playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Start Franklin
-        run: |
-          npm start > /tmp/franklin-server.log 2>&1 &
-          for i in {1..45}; do
-            if curl -fsS http://127.0.0.1:4321/api/health >/dev/null; then exit 0; fi
-            sleep 1
-          done
-          cat /tmp/franklin-server.log
-          exit 1
-
-      - name: Capture mobile implementation screens
+      - name: Capture current mobile implementation into Figma
         run: node scripts/figma-audit-capture.mjs
-
-      - name: Upload audit screenshots
-        uses: actions/upload-artifact@v4
-        with:
-          name: franklin-mobile-figma-audit
-          path: audit-screens/*.png
-          if-no-files-found: error
-          retention-days: 1
