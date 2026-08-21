@@ -11,6 +11,18 @@ jobs:
   capture:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - state: report
+            capture_id: 282d5962-674a-4afb-ac1c-a5525f499db9
+          - state: quarterly
+            capture_id: 30d27f63-e0fd-461e-9337-778cd04d9bf3
+          - state: populated
+            capture_id: 07618985-4c26-4fe8-bebd-8e75e88999fd
+          - state: settings
+            capture_id: 8c8af560-f887-478a-8ec6-debc36576b81
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,5 +37,8 @@ jobs:
           npm install --no-save --ignore-scripts playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Capture current mobile implementation into Figma
+      - name: Capture current mobile state into Figma
+        env:
+          CAPTURE_STATE: ${{ matrix.state }}
+          CAPTURE_ID: ${{ matrix.capture_id }}
         run: node scripts/figma-audit-capture.mjs
