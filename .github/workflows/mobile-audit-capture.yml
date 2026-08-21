@@ -1,0 +1,116 @@
+name: Mobile Audit Capture
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Serve app and capture mobile screens
+        run: |
+          mkdir -p audit-screens
+          python3 -m http.server 4173 --directory docs > /tmp/franklin-server.log 2>&1 &
+          sleep 2
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          const browser = await chromium.launch({ headless: true });
+          const context = await browser.newContext({
+            viewport: { width: 390, height: 844 },
+            deviceScaleFactor: 2,
+            locale: 'ar-SA',
+            isMobile: true,
+            hasTouch: true,
+            colorScheme: 'dark'
+          });
+          const page = await context.newPage();
+
+          async function settle(ms = 350) {
+            await page.waitForTimeout(ms);
+            await page.evaluate(() => window.scrollTo(0, 0));
+            await page.waitForTimeout(100);
+          }
+
+          async function shot(name) {
+            await settle();
+            await page.screenshot({ path: `audit-screens/${name}.png`, fullPage: true });
+          }
+
+          await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+          await page.waitForFunction(() => Boolean(window.__equityResearchStore));
+          await page.evaluate(() => {
+            localStorage.removeItem('equityResearchV4State');
+            localStorage.removeItem('equityResearchLanguage');
+          });
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.waitForFunction(() => Boolean(window.__equityResearchStore));
+
+          await shot('01-library-empty');
+
+          await page.evaluate(() => window.__equityResearchStore.loadDemoExternalAnalysis());
+          await page.waitForFunction(() => window.__equityResearchStore.state.activePanel === 'external-report');
+          await shot('02-stock-detail');
+
+          const selection = await page.evaluate(() => ({ ...window.__equityResearchStore.state.externalReportSelection }));
+          if (!selection?.ticker) throw new Error('Demo report selection was not created.');
+
+          await page.evaluate(() => window.__equityResearchStore.set({ activePanel: 'home', notice: '' }));
+          await shot('03-library-populated');
+
+          await page.evaluate(({ ticker, reportId }) => window.__equityResearchStore.openQuarterlyScorecard(ticker, reportId), selection);
+          await page.waitForFunction(() => window.__equityResearchStore.state.activePanel === 'quarterly-scorecard');
+          await shot('04-thesis-scorecard');
+
+          await page.evaluate(({ ticker, reportId }) => window.__equityResearchStore.openCompanyProfile(ticker, reportId), selection);
+          await page.waitForTimeout(250);
+          if (await page.evaluate(() => window.__equityResearchStore.state.activePanel === 'company-profile')) {
+            await shot('05-company-profile');
+          }
+
+          await page.evaluate(() => window.__equityResearchStore.openExternalImport());
+          await page.waitForFunction(() => window.__equityResearchStore.state.activePanel === 'external-import');
+          await shot('06-import-analysis');
+
+          await page.evaluate(() => window.__equityResearchStore.set({ activePanel: 'history', notice: '' }));
+          await shot('07-history');
+
+          await page.evaluate(() => window.__equityResearchStore.set({ activePanel: 'settings', notice: '' }));
+          await shot('08-settings');
+
+          fs.writeFileSync('audit-screens/manifest.json', JSON.stringify({
+            viewport: '390x844',
+            generatedAt: new Date().toISOString(),
+            commit: process.env.GITHUB_SHA,
+            screens: fs.readdirSync('audit-screens').filter(x => x.endsWith('.png')).sort()
+          }, null, 2));
+
+          await browser.close();
+          NODE
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: franklin-mobile-audit-screens
+          path: audit-screens/
+          if-no-files-found: error
+          retention-days: 1
