@@ -5,10 +5,16 @@ const QUARTERLY_IMPORT_METHOD = "quarterly_earnings_lite";
 export function installDecisionReadinessUi(store, root = document.getElementById("app")) {
   if (!store || store.__decisionReadinessUiInstalled) return;
   store.__decisionReadinessUiInstalled = true;
-  const render = () => renderDecisionReadiness(store, root);
-  store.subscribe(render);
-  if (root) new MutationObserver(render).observe(root, { childList: true, subtree: true });
-  setTimeout(render, 0);
+
+  let frame = 0;
+  const schedule = () => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => renderDecisionReadiness(store, root));
+  };
+
+  store.subscribe(schedule);
+  if (root) new MutationObserver(schedule).observe(root, { childList: true, subtree: true });
+  setTimeout(schedule, 0);
 }
 
 export function classifyDecisionReadiness(report = {}) {
@@ -53,9 +59,13 @@ function renderDecisionReadiness(store, root) {
       badge.className = "franklin-card-readiness";
       card.append(badge);
     }
-    badge.dataset.status = readiness.status;
-    badge.textContent = readinessLabel(readiness, ar);
-    card.classList.toggle("franklin-decision-blocked", readiness.status === "blocked");
+    const label = readinessLabel(readiness, ar);
+    if (badge.dataset.status !== readiness.status) badge.dataset.status = readiness.status;
+    if (badge.textContent !== label) badge.textContent = label;
+    const blocked = readiness.status === "blocked";
+    if (card.classList.contains("franklin-decision-blocked") !== blocked) {
+      card.classList.toggle("franklin-decision-blocked", blocked);
+    }
   });
 }
 
