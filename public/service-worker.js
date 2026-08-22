@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v11-franklin-v38-20260822-local-recovery1";
+const CACHE_NAME = "franklin-research-v11-franklin-v39-20260822-static-rescue1";
 const STATIC_ASSETS = [
   "./",
   "./index.html",

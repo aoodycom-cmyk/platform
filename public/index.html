@@ -10,10 +10,10 @@
   <meta name="apple-mobile-web-app-title" content="Franklin Research">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png">
-  <link rel="manifest" href="./manifest.webmanifest?v=v11-franklin-v38-20260822-local-recovery1">
+  <link rel="manifest" href="./manifest.webmanifest?v=v11-franklin-v39-20260822-static-rescue1">
   <script>
     (function () {
-      var version = "v11-franklin-v38-20260822-local-recovery1";
+      var version = "v11-franklin-v39-20260822-static-rescue1";
       var marker = "franklin-cache-version-seen";
       if (!("serviceWorker" in navigator) || !("caches" in window)) return;
       try {
@@ -30,14 +30,14 @@
       ]);
     }());
   </script>
-  <link rel="stylesheet" href="./styles.css?v=v11-franklin-v38-20260822-local-recovery1">
-  <link rel="stylesheet" href="./styles-mobile-scorecard-figma.css?v=v11-franklin-v38-20260822-local-recovery1">
-  <link rel="stylesheet" href="./styles-quarterly-earnings-entry.css?v=v11-franklin-v38-20260822-local-recovery1">
-  <link rel="stylesheet" href="./styles-desktop.css?v=v11-franklin-v38-20260822-local-recovery1">
-  <link rel="stylesheet" href="./styles-premium.css?v=v11-franklin-v38-20260822-local-recovery1">
-  <link rel="stylesheet" href="./styles-v11-mobile-cleanup.css?v=v11-franklin-v38-20260822-local-recovery1">
-  <link rel="stylesheet" href="./styles-mobile2.css?v=v11-franklin-v38-20260822-local-recovery1">
-  <script src="./backend-config.js?v=v11-franklin-v38-20260822-local-recovery1"></script>
+  <link rel="stylesheet" href="./styles.css?v=v11-franklin-v39-20260822-static-rescue1">
+  <link rel="stylesheet" href="./styles-mobile-scorecard-figma.css?v=v11-franklin-v39-20260822-static-rescue1">
+  <link rel="stylesheet" href="./styles-quarterly-earnings-entry.css?v=v11-franklin-v39-20260822-static-rescue1">
+  <link rel="stylesheet" href="./styles-desktop.css?v=v11-franklin-v39-20260822-static-rescue1">
+  <link rel="stylesheet" href="./styles-premium.css?v=v11-franklin-v39-20260822-static-rescue1">
+  <link rel="stylesheet" href="./styles-v11-mobile-cleanup.css?v=v11-franklin-v39-20260822-static-rescue1">
+  <link rel="stylesheet" href="./styles-mobile2.css?v=v11-franklin-v39-20260822-static-rescue1">
+  <script src="./backend-config.js?v=v11-franklin-v39-20260822-static-rescue1"></script>
   <script>
     (function () {
       var originalUrlToString = URL.prototype.toString;
@@ -101,12 +101,91 @@
       });
     }());
   </script>
+  <script>
+    (function () {
+      var rescueVersion = "v11-franklin-v39-20260822-static-rescue1";
+      var resetParam = "franklin-reset";
+      var bootError = "";
+
+      window.addEventListener("error", function (event) {
+        bootError = event.message || "Script error";
+      });
+      window.addEventListener("unhandledrejection", function (event) {
+        bootError = String(event.reason?.message || event.reason || "Promise rejection");
+      });
+
+      if (new URLSearchParams(window.location.search).get(resetParam) === "1") {
+        resetFranklinState().finally(function () {
+          var next = new URL(window.location.href);
+          next.searchParams.delete(resetParam);
+          next.searchParams.set("v", rescueVersion);
+          next.searchParams.set("recovered", "1");
+          window.location.replace(next.toString());
+        });
+      }
+
+      window.addEventListener("DOMContentLoaded", function () {
+        window.setTimeout(function () {
+          var app = document.getElementById("app");
+          if (!app || app.children.length || app.textContent.trim()) return;
+          renderRescuePanel(app, bootError);
+        }, 3500);
+      });
+
+      async function resetFranklinState() {
+        try {
+          var previous = localStorage.getItem("equityResearchV4State");
+          if (previous !== null) {
+            localStorage.setItem("franklinManualResetBackup:" + new Date().toISOString(), previous);
+          }
+          localStorage.removeItem("equityResearchV4State");
+          localStorage.removeItem("franklin-cache-version-seen");
+          sessionStorage.removeItem("franklin-cache-reset");
+        } catch (_) {}
+
+        await Promise.allSettled([
+          "serviceWorker" in navigator
+            ? navigator.serviceWorker.getRegistrations().then(function (items) {
+                return Promise.allSettled(items.map(function (item) { return item.unregister(); }));
+              })
+            : Promise.resolve(),
+          "caches" in window
+            ? caches.keys().then(function (keys) {
+                return Promise.allSettled(keys.filter(function (key) {
+                  return key.indexOf("franklin-research") === 0;
+                }).map(function (key) { return caches.delete(key); }));
+              })
+            : Promise.resolve()
+        ]);
+      }
+
+      function renderRescuePanel(app, errorText) {
+        var resetUrl = new URL(window.location.href);
+        resetUrl.searchParams.set(resetParam, "1");
+        resetUrl.searchParams.set("v", rescueVersion);
+        app.innerHTML = '<main dir="rtl" style="min-height:100svh;display:grid;place-items:center;padding:24px;background:#07080d;color:#f8fafc;font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">' +
+          '<section style="width:min(100%,520px);border:1px solid rgba(148,163,184,.28);background:#111422;border-radius:18px;padding:22px;box-shadow:0 24px 80px rgba(0,0,0,.35)">' +
+          '<p style="margin:0 0 8px;color:#2dd4bf;font-weight:800">Franklin Research</p>' +
+          '<h1 style="margin:0 0 12px;font-size:24px;line-height:1.35">التطبيق موجود، لكن Chrome يفتح نسخة عالقة</h1>' +
+          '<p style="margin:0 0 16px;color:#cbd5e1;line-height:1.8">اضغط الزر لإصلاح كاش Franklin وبيانات التشغيل المحلية. سنحفظ نسخة احتياطية داخل المتصفح قبل المسح.</p>' +
+          '<a href="' + escapeHtml(resetUrl.toString()) + '" style="display:block;text-align:center;text-decoration:none;border:0;border-radius:14px;background:#2dd4bf;color:#07100f;font-weight:900;padding:14px 16px">إصلاح وفتح Franklin</a>' +
+          (errorText ? '<code dir="ltr" style="display:block;white-space:pre-wrap;word-break:break-word;margin-top:14px;background:#0b0d16;border:1px solid rgba(148,163,184,.22);border-radius:12px;padding:12px;color:#fca5a5">' + escapeHtml(errorText) + '</code>' : '') +
+          '</section></main>';
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, function (char) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
+        });
+      }
+    }());
+  </script>
 </head>
 <body>
   <div id="app"></div>
-  <script type="module" src="./src/main.js?v=v11-franklin-v38-20260822-local-recovery1"></script>
-  <script type="module" src="./src/ui/quarterlyScorecardMobileFigma.js?v=v11-franklin-v38-20260822-local-recovery1"></script>
-  <script type="module" src="./src/ui/quarterlyEarningsEntry.js?v=v11-franklin-v38-20260822-local-recovery1"></script>
-  <script type="module" src="./src/ui/quarterlyEarningsJsonPromptV2.js?v=v11-franklin-v38-20260822-local-recovery1"></script>
+  <script type="module" src="./src/main.js?v=v11-franklin-v39-20260822-static-rescue1"></script>
+  <script type="module" src="./src/ui/quarterlyScorecardMobileFigma.js?v=v11-franklin-v39-20260822-static-rescue1"></script>
+  <script type="module" src="./src/ui/quarterlyEarningsEntry.js?v=v11-franklin-v39-20260822-static-rescue1"></script>
+  <script type="module" src="./src/ui/quarterlyEarningsJsonPromptV2.js?v=v11-franklin-v39-20260822-static-rescue1"></script>
 </body>
 </html>
