@@ -37,6 +37,69 @@
   <link rel="stylesheet" href="./styles-v11-mobile-cleanup.css?v=v11-franklin-v34-20260822-cloud1">
   <link rel="stylesheet" href="./styles-mobile2.css?v=v11-franklin-v34-20260822-cloud1">
   <script src="./backend-config.js?v=v11-franklin-v34-20260822-cloud1"></script>
+  <script>
+    (function () {
+      var originalUrlToString = URL.prototype.toString;
+      var lastAuditUrl = "";
+
+      function showAuditLink(url) {
+        if (!url || url === lastAuditUrl) return;
+        lastAuditUrl = url;
+        sessionStorage.setItem("franklin-last-audit-url", url);
+        var existing = document.getElementById("franklin-audit-link-fallback");
+        if (existing) existing.remove();
+
+        var wrap = document.createElement("div");
+        wrap.id = "franklin-audit-link-fallback";
+        wrap.style.cssText = "position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.72);display:grid;place-items:end center;padding:16px;box-sizing:border-box";
+        wrap.innerHTML = '<section dir="rtl" style="width:min(100%,520px);background:#111422;color:#f1f3f9;border:1px solid #303851;border-radius:20px;padding:18px;font-family:system-ui;box-shadow:0 28px 70px rgba(0,0,0,.5)"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><strong style="font-size:17px">رابط فحص Franklin جاهز</strong><button type="button" data-audit-close style="width:44px;height:44px;border:0;border-radius:12px;background:#181c2e;color:#fff;font-size:22px">×</button></div><p style="font-size:13px;line-height:1.7;color:#c5cad8">احتفظ بهذا الرابط أو أرسله مباشرة. صلاحية الرابط 24 ساعة وهو للقراءة فقط.</p><textarea data-audit-url readonly dir="ltr" style="box-sizing:border-box;width:100%;min-height:96px;border:1px solid #303851;border-radius:12px;background:#0b0d16;color:#f1f3f9;padding:10px;font-size:13px;line-height:1.5;resize:none"></textarea><div style="display:grid;gap:10px;margin-top:12px"><button type="button" data-audit-copy style="min-height:48px;border:0;border-radius:12px;background:#2dd4bf;color:#07100f;font-weight:800">نسخ الرابط</button><button type="button" data-audit-share style="min-height:48px;border:1px solid #303851;border-radius:12px;background:#181c2e;color:#fff;font-weight:750">مشاركة الرابط</button></div></section>';
+        document.body.appendChild(wrap);
+        var field = wrap.querySelector("[data-audit-url]");
+        var copy = wrap.querySelector("[data-audit-copy]");
+        var share = wrap.querySelector("[data-audit-share]");
+        field.value = url;
+
+        copy.addEventListener("click", async function () {
+          var copied = false;
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              await navigator.clipboard.writeText(url);
+              copied = true;
+            }
+          } catch (_) {}
+          if (!copied) {
+            field.focus();
+            field.select();
+            field.setSelectionRange(0, field.value.length);
+            try { copied = document.execCommand("copy"); } catch (_) {}
+          }
+          copy.textContent = copied ? "تم النسخ ✓" : "حدد الرابط ثم اختر نسخ";
+        });
+
+        if (navigator.share) {
+          share.addEventListener("click", function () {
+            navigator.share({ title: "Franklin Audit", url: url }).catch(function () {});
+          });
+        } else {
+          share.style.display = "none";
+        }
+        wrap.querySelector("[data-audit-close]").addEventListener("click", function () { wrap.remove(); });
+      }
+
+      URL.prototype.toString = function () {
+        var value = originalUrlToString.call(this);
+        if (typeof value === "string" && value.indexOf("#audit=") !== -1) {
+          setTimeout(function () { showAuditLink(value); }, 0);
+        }
+        return value;
+      };
+
+      window.addEventListener("pageshow", function () {
+        var saved = sessionStorage.getItem("franklin-last-audit-url");
+        if (saved && saved.indexOf("#audit=") !== -1) lastAuditUrl = saved;
+      });
+    }());
+  </script>
 </head>
 <body>
   <div id="app"></div>
