@@ -30,6 +30,7 @@ const STATIC_ASSETS = [
   "./src/externalAnalysis/earningsPeriod.js",
   "./src/externalAnalysis/quarterlyScorecard.js",
   "./src/externalAnalysis/quarterlyEarningsLite.js",
+  "./src/externalAnalysis/earningsRevaluation.js",
   "./src/externalAnalysis/quarterlyForwardOutlook.js",
   "./src/externalAnalysis/fairValueAdapter.js",
   "./src/externalAnalysis/parser.js",
