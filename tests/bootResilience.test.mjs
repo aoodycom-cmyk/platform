@@ -9,6 +9,9 @@ const components = read("../src/ui/components.js");
 assert.ok(index.includes("franklin-cache-version-seen"), "PWA cache cleanup must be version-gated.");
 assert.equal(index.includes("window.location.reload()"), false, "PWA cache cleanup must not reload before app boot.");
 assert.ok(index.includes("Promise.allSettled"), "PWA cache cleanup must tolerate partial cache cleanup failures.");
+assert.ok(index.includes("franklin-reset"), "Static boot rescue reset URL must be available before app modules load.");
+assert.ok(index.includes("إصلاح وفتح Franklin"), "Static boot rescue panel must replace a black screen with an action.");
+assert.ok(index.includes("franklinManualResetBackup:"), "Static boot reset must preserve a local backup before clearing app state.");
 
 assert.equal(
   /import\s+\{\s*DEMO_ANALYSIS_FIXTURE\s*\}\s+from\s+["']\.\.\/data\/demoFlow\.js["']/.test(store),
