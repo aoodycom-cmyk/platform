@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v11-franklin-v35-20260822-safari-boot1";
+const CACHE_NAME = "franklin-research-v11-franklin-v35-20260822-report-freeze1";
 const STATIC_ASSETS = [
   "./offline.html",
   "./rescue.html",
