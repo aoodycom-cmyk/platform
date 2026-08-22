@@ -7,6 +7,7 @@ import { setQuarterlyEarningsLiteReportResolver } from "./externalAnalysis/parse
 import { registerServiceWorker, watchOfflineState } from "./pwa.js";
 import { bootstrapAuditSnapshot, mountCloudControls } from "./cloud/franklinCloud.js";
 import { installFinancialSafetyLayer } from "./financialSafety/financialSafety.js";
+import { installQuarterlySourceSafety } from "./financialSafety/quarterlySourceSafety.js";
 
 const root = document.getElementById("app");
 const APP_STATE_KEY = "equityResearchV4State";
@@ -41,6 +42,7 @@ const store = createStore();
 // Internal UI helpers can reuse the single live store without creating a second app state.
 window.__equityResearchStore = store;
 installFinancialSafetyLayer(store, root);
+installQuarterlySourceSafety(store, root);
 
 setQuarterlyEarningsLiteReportResolver((payload) => {
   const state = store.state;
