@@ -10,10 +10,109 @@
   <meta name="apple-mobile-web-app-title" content="Franklin Research">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png">
-  <link rel="manifest" href="./manifest.webmanifest?v=v11-franklin-v35-20260822-mobile-rescue1">
+  <link rel="manifest" href="./manifest.webmanifest?v=v11-franklin-v35-20260822-safari-boot1">
   <script>
     (function () {
-      var version = "v11-franklin-v35-20260822-mobile-rescue1";
+      var version = "v11-franklin-v35-20260822-safari-boot1";
+      window.__FRANKLIN_BOOT_VERSION = version;
+      window.__FRANKLIN_BOOT_EVENTS = [];
+
+      function escapeRegExp(value) {
+        return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      }
+
+      if (!String.prototype.replaceAll) {
+        String.prototype.replaceAll = function (search, replacement) {
+          var text = String(this);
+          if (search instanceof RegExp) {
+            if (!search.global) throw new TypeError("replaceAll requires a global RegExp");
+            return text.replace(search, replacement);
+          }
+          return text.replace(new RegExp(escapeRegExp(search), "g"), replacement);
+        };
+      }
+
+      if (!String.prototype.matchAll) {
+        String.prototype.matchAll = function (regexp) {
+          var source = String(this);
+          var flags = regexp instanceof RegExp ? regexp.flags : "";
+          if (flags.indexOf("g") === -1) flags += "g";
+          var matcher = regexp instanceof RegExp ? new RegExp(regexp.source, flags) : new RegExp(regexp, "g");
+          var matches = [];
+          var match;
+          while ((match = matcher.exec(source)) !== null) {
+            matches.push(match);
+            if (match[0] === "") matcher.lastIndex += 1;
+          }
+          return matches[Symbol.iterator]();
+        };
+      }
+
+      if (!Array.prototype.at) {
+        Array.prototype.at = function (index) {
+          var length = this.length >>> 0;
+          var offset = Number(index) || 0;
+          if (offset < 0) offset += length;
+          return offset < 0 || offset >= length ? undefined : this[offset];
+        };
+      }
+
+      if (window.Promise && !Promise.prototype.finally) {
+        Promise.prototype.finally = function (callback) {
+          var P = this.constructor || Promise;
+          return this.then(
+            function (value) { return P.resolve(callback()).then(function () { return value; }); },
+            function (reason) { return P.resolve(callback()).then(function () { throw reason; }); }
+          );
+        };
+      }
+
+      function recordBootIssue(type, detail) {
+        window.__FRANKLIN_BOOT_EVENTS.push({
+          type: type,
+          detail: String(detail && (detail.message || detail.reason || detail.error || detail) || "Unknown boot issue").slice(0, 260),
+          at: new Date().toISOString()
+        });
+      }
+
+      function escapeHtml(value) {
+        return String(value || "")
+          .replace(/[&<>"']/g, function (char) {
+            return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char];
+          });
+      }
+
+      function showBootFallback(reason) {
+        if (window.__FRANKLIN_APP_READY) return;
+        var root = document.getElementById("app");
+        if (!root || root.dataset.franklinMounted === "true") return;
+        var events = window.__FRANKLIN_BOOT_EVENTS || [];
+        var latest = events.length ? events[events.length - 1].detail : String(reason || "Safari did not finish loading Franklin.");
+        root.innerHTML = '<main style="min-height:100dvh;display:grid;place-items:center;padding:20px;background:#07080d;color:#f1f3f9;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Tahoma,Arial,sans-serif;box-sizing:border-box"><section dir="rtl" style="width:min(100%,430px);display:grid;gap:14px;padding:20px;border:1px solid #303851;border-radius:16px;background:#111422;box-shadow:0 20px 60px rgba(0,0,0,.36)"><p style="margin:0;color:#2dd4bf;font-size:12px;font-weight:800">Franklin Safari Guard</p><h1 style="margin:0;font-size:22px;line-height:1.35">Safari لم يكمل فتح Franklin</h1><p style="margin:0;color:#c5cad8;font-size:14px;line-height:1.7">لم يتم حذف بياناتك. يبدو أن Safari أوقف تشغيل ملف من ملفات التطبيق قبل أن تظهر الواجهة.</p><code dir="ltr" style="display:block;white-space:pre-wrap;word-break:break-word;padding:11px;border:1px solid #1f253b;border-radius:10px;background:#0b0d16;color:#9aa1b6;font-size:12px;line-height:1.5">' + escapeHtml(latest) + '</code><a href="./rescue.html?v=' + version + '&fresh=' + Date.now() + '" style="min-height:48px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:#2dd4bf;color:#07100f;text-decoration:none;font-weight:800">تنظيف Safari وفتح Franklin</a><button type="button" onclick="window.location.reload()" style="min-height:48px;border:1px solid #303851;border-radius:11px;background:#181c2e;color:#f1f3f9;font:inherit;font-weight:800">إعادة المحاولة</button></section></main>';
+      }
+
+      window.addEventListener("error", function (event) {
+        recordBootIssue("error", event.error || event.message);
+        window.setTimeout(function () { showBootFallback(event.message); }, 250);
+      });
+      window.addEventListener("unhandledrejection", function (event) {
+        recordBootIssue("unhandledrejection", event.reason);
+        window.setTimeout(function () { showBootFallback(event.reason); }, 250);
+      });
+      window.addEventListener("franklin:boot-ready", function () {
+        window.__FRANKLIN_APP_READY = true;
+      });
+      window.setTimeout(function () {
+        var root = document.getElementById("app");
+        if (!window.__FRANKLIN_APP_READY && root && root.dataset.franklinMounted !== "true") {
+          showBootFallback("Boot timed out before Franklin mounted.");
+        }
+      }, 6500);
+    }());
+  </script>
+  <script>
+    (function () {
+      var version = "v11-franklin-v35-20260822-safari-boot1";
       var forceReset = /(?:[?&](?:fresh|reset-pwa)=)/.test(window.location.search || "");
       if (!("serviceWorker" in navigator) || !("caches" in window)) return;
       if (!forceReset && sessionStorage.getItem("franklin-cache-reset") === version) return;
@@ -42,14 +141,14 @@
       });
     }());
   </script>
-  <link rel="stylesheet" href="./styles.css?v=v11-franklin-v35-20260822-mobile-rescue1">
-  <link rel="stylesheet" href="./styles-mobile-scorecard-figma.css?v=v11-franklin-v35-20260822-mobile-rescue1">
-  <link rel="stylesheet" href="./styles-quarterly-earnings-entry.css?v=v11-franklin-v35-20260822-mobile-rescue1">
-  <link rel="stylesheet" href="./styles-desktop.css?v=v11-franklin-v35-20260822-mobile-rescue1">
-  <link rel="stylesheet" href="./styles-premium.css?v=v11-franklin-v35-20260822-mobile-rescue1">
-  <link rel="stylesheet" href="./styles-v11-mobile-cleanup.css?v=v11-franklin-v35-20260822-mobile-rescue1">
-  <link rel="stylesheet" href="./styles-mobile2.css?v=v11-franklin-v35-20260822-mobile-rescue1">
-  <script src="./backend-config.js?v=v11-franklin-v35-20260822-mobile-rescue1"></script>
+  <link rel="stylesheet" href="./styles.css?v=v11-franklin-v35-20260822-safari-boot1">
+  <link rel="stylesheet" href="./styles-mobile-scorecard-figma.css?v=v11-franklin-v35-20260822-safari-boot1">
+  <link rel="stylesheet" href="./styles-quarterly-earnings-entry.css?v=v11-franklin-v35-20260822-safari-boot1">
+  <link rel="stylesheet" href="./styles-desktop.css?v=v11-franklin-v35-20260822-safari-boot1">
+  <link rel="stylesheet" href="./styles-premium.css?v=v11-franklin-v35-20260822-safari-boot1">
+  <link rel="stylesheet" href="./styles-v11-mobile-cleanup.css?v=v11-franklin-v35-20260822-safari-boot1">
+  <link rel="stylesheet" href="./styles-mobile2.css?v=v11-franklin-v35-20260822-safari-boot1">
+  <script src="./backend-config.js?v=v11-franklin-v35-20260822-safari-boot1"></script>
   <script>
     (function () {
       var originalUrlToString = URL.prototype.toString;
@@ -115,10 +214,14 @@
   </script>
 </head>
 <body>
-  <div id="app"></div>
-  <script type="module" src="./src/main.js?v=v11-franklin-v35-20260822-mobile-rescue1"></script>
-  <script type="module" src="./src/ui/quarterlyScorecardMobileFigma.js?v=v11-franklin-v35-20260822-mobile-rescue1"></script>
-  <script type="module" src="./src/ui/quarterlyEarningsEntry.js?v=v11-franklin-v35-20260822-mobile-rescue1"></script>
-  <script type="module" src="./src/ui/quarterlyEarningsJsonPromptV2.js?v=v11-franklin-v35-20260822-mobile-rescue1"></script>
+  <div id="app" data-franklin-boot-placeholder="true">
+    <main style="min-height:100dvh;display:grid;place-items:center;padding:20px;background:#07080d;color:#f1f3f9;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Tahoma,Arial,sans-serif;box-sizing:border-box">
+      <section dir="rtl" style="width:min(100%,430px);display:grid;gap:12px;padding:20px;border:1px solid #303851;border-radius:16px;background:#111422">
+        <h1 style="margin:0;font-size:22px;line-height:1.35">جاري فتح Franklin...</h1>
+        <p style="margin:0;color:#c5cad8;font-size:14px;line-height:1.7">إذا تأخر Safari سيظهر تشخيص بدل الشاشة السوداء.</p>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./src/main.js?v=v11-franklin-v35-20260822-safari-boot1"></script>
 </body>
 </html>

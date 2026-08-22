@@ -71,8 +71,8 @@ for (const generatedFile of ["styles-premium.css", "styles-v11-mobile-cleanup.cs
 }
 
 assert.ok(serviceWorker.includes('"./src/ui/foundation.js"'));
-assert.ok(mainSource.includes('import "./ui/mobile2Enhancer.js"'));
-assert.ok(mainSource.includes('import "./ui/quarterlyResultsEnhancer.js"'));
+assert.ok(mainSource.includes('loadOptional("./ui/mobile2Enhancer.js"'));
+assert.ok(mainSource.includes('loadOptional("./ui/quarterlyResultsEnhancer.js"'));
 assert.equal(/localStorage|indexedDB|removeItem|\.clear\s*\(/.test(foundationSource), false, "Presentation primitives must not touch persisted data.");
 
 assert.ok(componentSource.includes('class="library-hero"'), "Investment Library identity must remain visible on Home.");

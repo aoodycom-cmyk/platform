@@ -2,12 +2,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const index = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+const main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
 const styles = readFileSync(new URL("../styles-mobile-scorecard-figma.css", import.meta.url), "utf8");
 const enhancer = readFileSync(new URL("../src/ui/quarterlyScorecardMobileFigma.js", import.meta.url), "utf8");
 const syncScript = readFileSync(new URL("../scripts/sync-deploy.mjs", import.meta.url), "utf8");
 
 assert.ok(index.includes("styles-mobile-scorecard-figma.css"), "Figma mobile scorecard stylesheet must load.");
-assert.ok(index.includes("quarterlyScorecardMobileFigma.js"), "Figma mobile scorecard enhancer must load.");
+assert.ok(main.includes("quarterlyScorecardMobileFigma.js"), "Figma mobile scorecard enhancer must load from the guarded runtime.");
 assert.ok(syncScript.includes("styles-mobile-scorecard-figma.css"), "Deployment sync must include the Figma mobile stylesheet.");
 assert.ok(styles.includes("@media (max-width: 899px)"), "Figma scorecard layer must be mobile-only.");
 assert.ok(styles.includes("#0b0e14"), "Figma canvas color must be preserved.");
