@@ -1,0 +1,116 @@
+const STATE_KEY = "equityResearchV4State";
+const SESSION_KEY = "franklinSupabaseSessionV1";
+const META_KEY = "franklinCloudMetaV1";
+const DEVICE_KEY = "franklinCloudDeviceIdV1";
+const RESTORE_BACKUP_KEY = "franklinPreCloudRestoreBackupV1";
+const AUDIT_DEFAULT_HOURS = 24;
+
+function config() {
+  const url = String(window.FRANKLIN_SUPABASE_URL || "").replace(/\/$/, "");
+  const key = String(window.FRANKLIN_SUPABASE_PUBLISHABLE_KEY || "");
+  if (!url || !key) throw new Error("FRANKLIN_CLOUD_NOT_CONFIGURED");
+  return { url, key };
+}
+
+function parseJson(value, fallback = null) {
+  try { return JSON.parse(value); } catch { return fallback; }
+}
+
+function apiError(payload, fallback) {
+  return new Error(payload?.msg || payload?.message || payload?.error_description || payload?.error || fallback);
+}
+
+function saveSession(session) {
+  if (!session) { localStorage.removeItem(SESSION_KEY); return; }
+  const expiresAt = session.expires_at || (Math.floor(Date.now() / 1000) + Number(session.expires_in || 3600));
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ ...session, expires_at: expiresAt }));
+}
+
+export function getCloudSession() { return parseJson(localStorage.getItem(SESSION_KEY), null); }
+function saveMeta(patch) { const current = parseJson(localStorage.getItem(META_KEY), {}) || {}; const next = { ...current, ...patch }; localStorage.setItem(META_KEY, JSON.stringify(next)); return next; }
+function getMeta() { return parseJson(localStorage.getItem(META_KEY), {}) || {}; }
+function deviceId() { let value = localStorage.getItem(DEVICE_KEY); if (value) return value; value = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`; localStorage.setItem(DEVICE_KEY, value); return value; }
+function localSnapshot() { const state = parseJson(localStorage.getItem(STATE_KEY), {}); return state && typeof state === "object" && !Array.isArray(state) ? state : {}; }
+
+async function authRequest(path, body) {
+  const { url, key } = config();
+  const response = await fetch(`${url}${path}`, { method: "POST", headers: { apikey: key, "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(body) });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw apiError(payload, `AUTH_${response.status}`);
+  return payload;
+}
+
+export async function signUpCloud(email, password) { const payload = await authRequest("/auth/v1/signup", { email: String(email || "").trim(), password: String(password || "") }); if (payload.access_token) saveSession(payload); return payload; }
+export async function signInCloud(email, password) { const payload = await authRequest("/auth/v1/token?grant_type=password", { email: String(email || "").trim(), password: String(password || "") }); saveSession(payload); return payload; }
+export async function refreshCloudSession() { const current = getCloudSession(); if (!current?.refresh_token) return null; const payload = await authRequest("/auth/v1/token?grant_type=refresh_token", { refresh_token: current.refresh_token }); saveSession({ ...current, ...payload }); return getCloudSession(); }
+export async function ensureCloudSession() { let session = getCloudSession(); if (!session?.access_token) return null; const expiresAtMs = Number(session.expires_at || 0) * 1000; if (!expiresAtMs || expiresAtMs - Date.now() < 90000) { try { session = await refreshCloudSession(); } catch { saveSession(null); return null; } } return session; }
+export async function signOutCloud() { const session = await ensureCloudSession(); if (session?.access_token) { const { url, key } = config(); await fetch(`${url}/auth/v1/logout`, { method: "POST", headers: { apikey: key, Authorization: `Bearer ${session.access_token}` } }).catch(() => undefined); } saveSession(null); localStorage.removeItem(META_KEY); }
+
+async function authedFetch(path, options = {}) {
+  const session = await ensureCloudSession(); if (!session?.access_token) throw new Error("AUTH_REQUIRED");
+  const { url, key } = config();
+  const response = await fetch(`${url}${path}`, { ...options, headers: { apikey: key, Authorization: `Bearer ${session.access_token}`, Accept: "application/json", ...(options.body ? { "Content-Type": "application/json" } : {}), ...(options.headers || {}) } });
+  const text = await response.text(); const payload = text ? parseJson(text, { message: text }) : null; if (!response.ok) throw apiError(payload, `CLOUD_${response.status}`); return payload;
+}
+
+export async function loadCloudState() { const rows = await authedFetch("/rest/v1/franklin_user_state?select=state,revision,updated_at,device_id&limit=1"); const row = Array.isArray(rows) ? rows[0] : null; if (row) saveMeta({ revision: Number(row.revision || 0), lastRemoteUpdatedAt: row.updated_at || null }); return row; }
+export async function saveCloudState(snapshot = localSnapshot()) {
+  const meta = getMeta(); const expectedRevision = Number(meta.revision || 0);
+  try { const result = await authedFetch("/rest/v1/rpc/franklin_save_state", { method: "POST", body: JSON.stringify({ p_expected_revision: expectedRevision, p_state: snapshot, p_device_id: deviceId() }) }); const row = Array.isArray(result) ? result[0] : result; saveMeta({ revision: Number(row?.revision || expectedRevision + 1), lastSyncedAt: new Date().toISOString(), lastRemoteUpdatedAt: row?.updated_at || null, lastError: null }); return row; }
+  catch (error) { if (String(error?.message || "").includes("REVISION_CONFLICT")) { saveMeta({ lastError: "REVISION_CONFLICT", conflictAt: new Date().toISOString() }); throw new Error("REVISION_CONFLICT"); } saveMeta({ lastError: String(error?.message || error), errorAt: new Date().toISOString() }); throw error; }
+}
+export async function initializeCloudFromLocal() { const remote = await loadCloudState(); if (remote) return { mode: "remote-exists", remote }; const row = await saveCloudState(localSnapshot()); return { mode: "local-migrated", remote: row }; }
+export async function restoreCloudToThisDevice() { const remote = await loadCloudState(); if (!remote?.state) throw new Error("NO_CLOUD_STATE"); const current = localStorage.getItem(STATE_KEY); if (current) localStorage.setItem(RESTORE_BACKUP_KEY, current); localStorage.setItem(STATE_KEY, JSON.stringify(remote.state)); saveMeta({ revision: Number(remote.revision || 0), restoredAt: new Date().toISOString() }); return remote; }
+
+function base64Url(bytes) { let raw = ""; for (const byte of bytes) raw += String.fromCharCode(byte); return btoa(raw).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, ""); }
+async function sha256Hex(value) { const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)); return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join(""); }
+
+export async function createAuditSession(hours = AUDIT_DEFAULT_HOURS) {
+  const session = await ensureCloudSession(); if (!session?.user?.id) throw new Error("AUTH_REQUIRED"); await saveCloudState(localSnapshot());
+  const rawToken = base64Url(crypto.getRandomValues(new Uint8Array(32))); const tokenHash = await sha256Hex(rawToken); const expiresAt = new Date(Date.now() + Math.max(1, Math.min(Number(hours) || AUDIT_DEFAULT_HOURS, 168)) * 3600000).toISOString();
+  const body = { owner_user_id: session.user.id, token_hash: tokenHash, snapshot: localSnapshot(), label: "Franklin audit", expires_at: expiresAt };
+  const rows = await authedFetch("/rest/v1/franklin_audit_sessions?select=id,created_at,expires_at", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(body) });
+  const row = Array.isArray(rows) ? rows[0] : rows; const auditUrl = new URL(window.location.href); auditUrl.search = ""; auditUrl.hash = `audit=${rawToken}`; return { ...row, url: auditUrl.toString(), token: rawToken };
+}
+export async function listAuditSessions() { const rows = await authedFetch("/rest/v1/franklin_audit_sessions?select=id,label,created_at,expires_at,revoked_at,last_accessed_at,access_count&order=created_at.desc&limit=10"); return Array.isArray(rows) ? rows : []; }
+export async function revokeAuditSession(id) { await authedFetch(`/rest/v1/franklin_audit_sessions?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ revoked_at: new Date().toISOString() }) }); }
+
+export async function bootstrapAuditSnapshot() {
+  const hash = String(window.location.hash || ""); const match = hash.match(/(?:^#|&)audit=([^&]+)/); if (!match) return null; const token = decodeURIComponent(match[1]); const { url, key } = config();
+  const response = await fetch(`${url}/functions/v1/franklin-audit-read`, { method: "POST", headers: { apikey: key, "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ token }) });
+  const payload = await response.json().catch(() => ({})); if (!response.ok) throw apiError(payload, "AUDIT_READ_FAILED"); if (!payload?.snapshot || typeof payload.snapshot !== "object") throw new Error("AUDIT_SNAPSHOT_INVALID");
+  window.__FRANKLIN_AUDIT_MODE = { readOnly: true, createdAt: payload.createdAt, expiresAt: payload.expiresAt }; window.__FRANKLIN_BOOTSTRAP_STATE = payload.snapshot; return payload;
+}
+
+function h(value) { return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]); }
+function cloudStyles() {
+  if (document.getElementById("franklin-cloud-styles")) return; const style = document.createElement("style"); style.id = "franklin-cloud-styles";
+  style.textContent = `.franklin-cloud-trigger{position:fixed;left:16px;bottom:max(18px,env(safe-area-inset-bottom));z-index:9000;min-width:48px;height:48px;border-radius:999px;border:1px solid var(--line,#293047);background:rgba(17,20,34,.96);color:var(--ink,#fff);font:700 13px/1 system-ui;padding:0 14px}.franklin-cloud-backdrop{position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.66);display:grid;place-items:end center;padding:16px}.franklin-cloud-panel{width:min(100%,520px);max-height:88vh;overflow:auto;border:1px solid var(--line,#293047);border-radius:20px;background:var(--surface,#111422);color:var(--ink,#fff);padding:18px;font-family:system-ui}.franklin-cloud-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.franklin-cloud-head h2{font-size:18px;margin:0}.franklin-cloud-close{width:44px;height:44px;border:0;border-radius:12px;background:var(--surface-2,#181c2e);color:inherit;font-size:22px}.franklin-cloud-panel label{display:block;font-size:12px;color:var(--muted,#9aa1b6);margin:12px 0 6px}.franklin-cloud-panel input{box-sizing:border-box;width:100%;min-height:48px;border:1px solid var(--line,#293047);border-radius:12px;background:#0b0d16;color:inherit;padding:0 12px;font-size:16px}.franklin-cloud-actions{display:grid;gap:10px;margin-top:14px}.franklin-cloud-actions button{min-height:48px;border-radius:12px;border:1px solid var(--line,#293047);background:var(--surface-2,#181c2e);color:inherit;font-weight:750;padding:10px 14px}.franklin-cloud-actions button[data-primary=true]{background:var(--accent,#2dd4bf);color:#07100f;border-color:transparent}.franklin-cloud-status{margin:10px 0;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);font-size:13px;line-height:1.65;overflow-wrap:anywhere}.franklin-cloud-error{color:#fda4af}.franklin-cloud-ok{color:#6ee7b7}.franklin-cloud-audit-banner{position:sticky;top:0;z-index:9999;background:#7c2d12;color:#fff;padding:10px 14px;text-align:center;font:700 13px/1.5 system-ui}.franklin-cloud-audit-banner button{margin-inline-start:10px;min-height:36px;border:1px solid rgba(255,255,255,.35);border-radius:9px;background:transparent;color:#fff;padding:0 10px}.franklin-audit-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line,#293047);font-size:12px}.franklin-audit-row button{min-height:40px;border-radius:10px;border:1px solid var(--line,#293047);background:transparent;color:inherit}`;
+  document.head.appendChild(style);
+}
+function setPanelStatus(panel, message, type = "") { const el = panel.querySelector("[data-cloud-status]"); if (!el) return; el.textContent = message || ""; el.className = `franklin-cloud-status ${type === "error" ? "franklin-cloud-error" : type === "ok" ? "franklin-cloud-ok" : ""}`; }
+async function renderAuditRows(panel) { const host = panel.querySelector("[data-audit-list]"); if (!host) return; const rows = await listAuditSessions().catch(() => []); const active = rows.filter((row) => !row.revoked_at && Date.parse(row.expires_at) > Date.now()); host.innerHTML = active.length ? active.map((row) => `<div class="franklin-audit-row"><div>ينتهي: <bdi dir="ltr">${h(new Date(row.expires_at).toLocaleString())}</bdi><br>مرات الفتح: ${h(row.access_count || 0)}</div><button type="button" data-revoke-audit="${h(row.id)}">إلغاء</button></div>`).join("") : '<div class="franklin-cloud-status">لا توجد روابط فحص نشطة.</div>'; host.querySelectorAll("[data-revoke-audit]").forEach((button) => button.addEventListener("click", async () => { button.disabled = true; await revokeAuditSession(button.dataset.revokeAudit).catch(() => undefined); await renderAuditRows(panel); })); }
+
+async function buildPanel() {
+  const session = await ensureCloudSession(); const backdrop = document.createElement("div"); backdrop.className = "franklin-cloud-backdrop";
+  backdrop.innerHTML = `<section class="franklin-cloud-panel" role="dialog" aria-modal="true" aria-label="Franklin Cloud"><div class="franklin-cloud-head"><h2>Franklin Cloud</h2><button class="franklin-cloud-close" type="button" aria-label="إغلاق">×</button></div>${session ? `<div class="franklin-cloud-status">متصل بالحساب: <bdi dir="ltr">${h(session.user?.email || "")}</bdi></div><div data-cloud-status class="franklin-cloud-status">المزامنة السحابية مفعلة.</div><div class="franklin-cloud-actions"><button type="button" data-cloud-sync data-primary="true">مزامنة الآن</button><button type="button" data-cloud-restore>تنزيل النسخة السحابية لهذا الجهاز</button><button type="button" data-cloud-audit>إنشاء رابط فحص لمدة 24 ساعة</button><button type="button" data-cloud-signout>تسجيل الخروج</button></div><div data-audit-list></div>` : `<div data-cloud-status class="franklin-cloud-status">سجّل الدخول لتخزين بيانات Franklin على السحابة وإنشاء روابط فحص مؤقتة.</div><label for="franklin-cloud-email">البريد الإلكتروني</label><input id="franklin-cloud-email" type="email" autocomplete="email" inputmode="email"><label for="franklin-cloud-password">كلمة المرور</label><input id="franklin-cloud-password" type="password" autocomplete="current-password"><div class="franklin-cloud-actions"><button type="button" data-cloud-signin data-primary="true">تسجيل الدخول</button><button type="button" data-cloud-signup>إنشاء حساب</button></div>`}</section>`;
+  document.body.appendChild(backdrop); const panel = backdrop.querySelector(".franklin-cloud-panel"); const close = () => backdrop.remove(); backdrop.addEventListener("click", (event) => { if (event.target === backdrop) close(); }); panel.querySelector(".franklin-cloud-close").addEventListener("click", close);
+  if (!session) {
+    const credentials = () => ({ email: panel.querySelector("#franklin-cloud-email").value.trim(), password: panel.querySelector("#franklin-cloud-password").value });
+    panel.querySelector("[data-cloud-signin]").addEventListener("click", async () => { try { setPanelStatus(panel, "جاري تسجيل الدخول…"); await signInCloud(credentials().email, credentials().password); const result = await initializeCloudFromLocal(); setPanelStatus(panel, result.mode === "local-migrated" ? "تم رفع بيانات هذا الجهاز إلى السحابة." : "تم الاتصال. توجد نسخة سحابية سابقة.", "ok"); setTimeout(() => { close(); buildPanel(); }, 400); } catch (error) { setPanelStatus(panel, String(error?.message || error), "error"); } });
+    panel.querySelector("[data-cloud-signup]").addEventListener("click", async () => { try { setPanelStatus(panel, "جاري إنشاء الحساب…"); const result = await signUpCloud(credentials().email, credentials().password); if (result.access_token) { await initializeCloudFromLocal(); setPanelStatus(panel, "تم إنشاء الحساب ورفع بياناتك إلى السحابة.", "ok"); setTimeout(() => { close(); buildPanel(); }, 400); } else setPanelStatus(panel, "تم إنشاء الحساب. افتح رسالة التحقق في بريدك ثم سجّل الدخول.", "ok"); } catch (error) { setPanelStatus(panel, String(error?.message || error), "error"); } });
+    return;
+  }
+  panel.querySelector("[data-cloud-sync]").addEventListener("click", async () => { try { setPanelStatus(panel, "جاري المزامنة…"); await saveCloudState(localSnapshot()); setPanelStatus(panel, "تمت المزامنة بنجاح.", "ok"); } catch (error) { setPanelStatus(panel, error?.message === "REVISION_CONFLICT" ? "تم اكتشاف تعارض بين نسختين. لم تتم الكتابة فوق أي بيانات." : String(error?.message || error), "error"); } });
+  panel.querySelector("[data-cloud-restore]").addEventListener("click", async () => { try { setPanelStatus(panel, "جاري تنزيل النسخة السحابية…"); await restoreCloudToThisDevice(); window.location.reload(); } catch (error) { setPanelStatus(panel, String(error?.message || error), "error"); } });
+  panel.querySelector("[data-cloud-audit]").addEventListener("click", async () => { try { setPanelStatus(panel, "جاري إنشاء رابط الفحص…"); const audit = await createAuditSession(); await navigator.clipboard?.writeText(audit.url).catch(() => undefined); setPanelStatus(panel, `تم إنشاء الرابط ونسخه. ينتهي في ${new Date(audit.expires_at).toLocaleString()}`, "ok"); await renderAuditRows(panel); } catch (error) { setPanelStatus(panel, String(error?.message || error), "error"); } });
+  panel.querySelector("[data-cloud-signout]").addEventListener("click", async () => { await signOutCloud(); close(); }); await renderAuditRows(panel);
+}
+
+export function mountCloudControls(store) {
+  cloudStyles();
+  if (window.__FRANKLIN_AUDIT_MODE?.readOnly) { const banner = document.createElement("div"); banner.className = "franklin-cloud-audit-banner"; banner.innerHTML = `وضع فحص Franklin — قراءة فقط — ينتهي <bdi dir="ltr">${h(new Date(window.__FRANKLIN_AUDIT_MODE.expiresAt).toLocaleString())}</bdi><button type="button">خروج</button>`; banner.querySelector("button").addEventListener("click", () => { history.replaceState(null, "", `${location.pathname}${location.search}`); window.location.reload(); }); document.body.prepend(banner); return; }
+  const trigger = document.createElement("button"); trigger.type = "button"; trigger.className = "franklin-cloud-trigger"; trigger.setAttribute("aria-label", "Franklin Cloud"); trigger.textContent = "☁ Cloud"; trigger.addEventListener("click", () => buildPanel()); document.body.appendChild(trigger);
+  let timer = null; store.subscribe(() => { clearTimeout(timer); timer = setTimeout(async () => { const session = await ensureCloudSession(); if (!session) return; try { await saveCloudState(localSnapshot()); } catch (error) { if (error?.message === "REVISION_CONFLICT") document.dispatchEvent(new CustomEvent("franklin:cloud-conflict")); } }, 1800); });
+  setInterval(() => ensureCloudSession().catch(() => null), 10 * 60 * 1000);
+}
