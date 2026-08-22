@@ -2,7 +2,6 @@ import { normalizeExternalAnalysisReport } from "./schema.js";
 import { upsertQuarterlyEarningsDigestSupplement } from "./quarterlyEarningsDigest.js";
 import { inflateQuarterlyEarningsLitePayload, isQuarterlyEarningsLitePayload } from "./quarterlyEarningsLite.js";
 
-const EARNINGS_REVALUATION_SCHEMA = "earnings-revaluation/v1";
 let quarterlyEarningsLiteReportResolver = null;
 
 export function setQuarterlyEarningsLiteReportResolver(resolver) {
@@ -15,29 +14,6 @@ export async function parseExternalAnalysisInput(text, { parseUnstructured, now 
 
   const localJson = parseJsonCandidate(rawAnalysis);
   if (localJson.ok) {
-    if (localJson.value?.schemaVersion === EARNINGS_REVALUATION_SCHEMA) {
-      const baseReport = currentReport || await resolveQuarterlyEarningsLiteReport(localJson.value);
-      if (!baseReport) {
-        const error = new Error("Earnings revaluation JSON requires an existing saved report for this ticker.");
-        error.userMessage = "هذا JSON إعادة تقييم بعد الأرباح ويحتاج فتح السهم المحفوظ من شاشة التقرير قبل الاستيراد.";
-        throw error;
-      }
-
-      // Load the smart earnings module only when the user actually imports this
-      // payload. A missing/slow optional module must never prevent Franklin from
-      // booting and rendering the library.
-      const { inflateEarningsRevaluationPayload } = await import("./earningsRevaluation.js");
-      const inflated = inflateEarningsRevaluationPayload(baseReport, localJson.value, rawAnalysis, now);
-      return {
-        report: {
-          ...inflated,
-          supplements: upsertQuarterlyEarningsDigestSupplement(inflated.supplements, inflated.reportPeriod, localJson.value)
-        },
-        parserSource: "Earnings Revaluation Parser",
-        usedAi: false
-      };
-    }
-
     if (isQuarterlyEarningsLitePayload(localJson.value)) {
       const baseReport = currentReport || await resolveQuarterlyEarningsLiteReport(localJson.value);
       if (!baseReport) {

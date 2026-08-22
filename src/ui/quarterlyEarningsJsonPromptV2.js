@@ -1,4 +1,4 @@
-import { buildEarningsRevaluationPrompt } from "../externalAnalysis/earningsRevaluation.js";
+import { buildQuarterlyEarningsLitePrompt } from "../externalAnalysis/quarterlyEarningsLite.js";
 
 const CONTEXT_KEY = "quarterlyEarningsEntryContext";
 const BUTTON_ATTR = "data-copy-quarterly-json-prompt";
@@ -28,7 +28,7 @@ function selectedReport(store) {
   return reports.find((item) => item.id === selection.reportId) || reports[0] || null;
 }
 
-function ensureSmartPromptButton() {
+function ensureLitePromptButton() {
   const context = selectedQuarterContext();
   const store = currentStore();
   const sheet = document.querySelector(".earnings-update-sheet");
@@ -47,33 +47,27 @@ function ensureSmartPromptButton() {
   button.type = "button";
   button.className = "primary-btn";
   button.setAttribute(BUTTON_ATTR, "");
-  button.innerHTML = `تحليل وإعادة تقييم <span dir="ltr">Q${context.quarter} ${context.year}</span>`;
-  button.addEventListener("click", () => copySmartPrompt(context, pasteStep));
+  button.innerHTML = `نسخ برومبت <span dir="ltr">Q${context.quarter} ${context.year}</span>`;
+  button.addEventListener("click", () => copyLitePrompt(context, pasteStep));
   actions.prepend(button);
 
   const hint = document.createElement("p");
   hint.className = "compact-empty-state quarterly-json-prompt-hint";
-  hint.innerHTML = "دورة ذكية: تقييم المتطلبات السابقة ← تحديث <bdi dir=\"ltr\">Bear / Base / Bull</bdi> والقرار ← إنشاء متطلبات الربع القادم تلقائيًا.";
+  hint.textContent = "وضع خفيف: نتائج الربع + تقدم الأهداف + Guidance + Forward Outlook. بدون تقييم سهم كامل أو Fair Value جديد.";
   actions.insertAdjacentElement("beforebegin", hint);
 }
 
-async function copySmartPrompt(context, pasteStep) {
+async function copyLitePrompt(context, pasteStep) {
   const store = currentStore();
   const report = selectedReport(store);
   const earningsInput = pasteStep.querySelector("[data-earnings-field='earningsText']");
   if (!store || !report || !earningsInput) return;
 
-  let prompt = "";
-  try {
-    prompt = buildEarningsRevaluationPrompt(report, {
-      quarter: context.quarter,
-      year: context.year,
-      earningsText: earningsInput.value || ""
-    });
-  } catch (error) {
-    showLocalFeedback(error?.message || "تعذر بناء برومبت إعادة التقييم.", true);
-    return;
-  }
+  const prompt = buildQuarterlyEarningsLitePrompt(report, {
+    quarter: context.quarter,
+    year: context.year,
+    earningsText: earningsInput.value || ""
+  });
 
   try {
     if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
@@ -86,7 +80,7 @@ async function copySmartPrompt(context, pasteStep) {
       },
       notice: ""
     });
-    showLocalFeedback(`تم نسخ برومبت إعادة التقييم لـ Q${context.quarter} ${context.year} ✓`);
+    showLocalFeedback(`تم نسخ البرومبت المختصر لـ Q${context.quarter} ${context.year} ✓`);
   } catch {
     store.set({
       earningsUpdate: {
@@ -96,7 +90,7 @@ async function copySmartPrompt(context, pasteStep) {
       },
       notice: ""
     });
-    showLocalFeedback("تعذر النسخ التلقائي. ظهر برومبت إعادة التقييم لنسخه يدويًا.", true);
+    showLocalFeedback("تعذر النسخ التلقائي. ظهر البرومبت المختصر لنسخه يدويًا.", true);
   }
 }
 
@@ -127,10 +121,10 @@ function showLocalFeedback(message, isError = false) {
   feedback.style.borderColor = isError ? "rgba(248,113,113,.45)" : "rgba(52,211,153,.40)";
   feedback.textContent = message;
   clearTimeout(showLocalFeedback.timer);
-  showLocalFeedback.timer = setTimeout(() => feedback.remove(), 2800);
+  showLocalFeedback.timer = setTimeout(() => feedback.remove(), 2600);
 }
 
-const observer = new MutationObserver(ensureSmartPromptButton);
+const observer = new MutationObserver(ensureLitePromptButton);
 observer.observe(document.documentElement, { childList: true, subtree: true });
-window.addEventListener("pageshow", ensureSmartPromptButton);
-ensureSmartPromptButton();
+window.addEventListener("pageshow", ensureLitePromptButton);
+ensureLitePromptButton();

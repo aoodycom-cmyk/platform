@@ -1,4 +1,6 @@
 import { createCompanyShell } from "../data/sampleData.js";
+import { DEMO_ANALYSIS_FIXTURE } from "../data/demoFlow.js";
+import { createDemoExternalAnalysisReport, createDemoExternalAnalysisScenario } from "../data/externalDemo.js";
 import { buildUnifiedDataCompany, mergeCompanyDataHistory } from "../dataPlatform/dataPlatform.js";
 import { buildEvaluatedCompany, upsertEvaluatedCompany } from "../domain/evaluatedCompanies.js";
 import { toNumber } from "../domain/financialMetrics.js";
@@ -57,22 +59,20 @@ import {
 } from "../valuationWorkflow/workflow.js";
 
 const STORAGE_KEY = "equityResearchV4State";
-const EMPTY_MANUAL_INPUTS = { averageCost: "", morningstarFairValue: "", notes: "" };
 
 export function createStore() {
   const saved = load();
   const initialLanguage = normalizeLanguage(saved.language || localStorage.getItem("equityResearchLanguage") || "ar");
   setLanguageContext(initialLanguage);
-  const initialManualInputs = objectOr(saved.manualInputs, EMPTY_MANUAL_INPUTS);
-  const initialEvaluatedCompanies = rankEvaluatedCompanies(arrayOrEmpty(saved.evaluatedCompanies)).map(({ rankingPosition, ...item }) => item);
+  const initialManualInputs = saved.manualInputs || { averageCost: "", morningstarFairValue: "", notes: "" };
+  const initialEvaluatedCompanies = rankEvaluatedCompanies(saved.evaluatedCompanies || []).map(({ rankingPosition, ...item }) => item);
   const initialEvaluatedSort = normalizeEvaluatedSort(saved.evaluatedSort);
-  const initialExternalAnalyses = normalizeExternalAnalysesCollection(objectOr(saved.externalAnalyses, {}));
-  const initialHistoricalRequirementSets = normalizeHistoricalRequirementSets(objectOr(saved.historicalRequirementSets, {}), initialExternalAnalyses);
-  const savedCompany = objectOr(saved.company, null);
-  const initialCompany = buildUnifiedDataCompany(savedCompany || createCompanyShell("NVDA"), {
+  const initialExternalAnalyses = normalizeExternalAnalysesCollection(saved.externalAnalyses || {});
+  const initialHistoricalRequirementSets = normalizeHistoricalRequirementSets(saved.historicalRequirementSets || {}, initialExternalAnalyses);
+  const initialCompany = buildUnifiedDataCompany(saved.company || createCompanyShell("NVDA"), {
     manualInputs: initialManualInputs,
-    previousCompany: savedCompany,
-    providers: arrayOrEmpty(savedCompany?.dataPlatform?.providers)
+    previousCompany: saved.company || null,
+    providers: saved.company?.dataPlatform?.providers || []
   });
   const state = {
     company: initialCompany,
@@ -92,20 +92,20 @@ export function createStore() {
     evaluatedSort: initialEvaluatedSort,
     rankingFilter: saved.rankingFilter || "all",
     sectorFilter: saved.sectorFilter || "all",
-    compareSelectedTickers: arrayOrEmpty(saved.compareSelectedTickers),
+    compareSelectedTickers: saved.compareSelectedTickers || [],
     comparisonOpen: saved.comparisonOpen || false,
     evaluatedCompanies: initialEvaluatedCompanies,
     externalAnalyses: initialExternalAnalyses,
     historicalRequirementSets: initialHistoricalRequirementSets,
     externalImport: createExternalImportState(),
     earningsUpdate: createEarningsUpdateState(),
-    externalReportSelection: objectOr(saved.externalReportSelection, null),
+    externalReportSelection: saved.externalReportSelection || null,
     quarterlyScorecard: createQuarterlyScorecardState(),
     restorePreview: null,
-    valuationWorkspace: objectOr(saved.valuationWorkspace, null),
-    history: arrayOrEmpty(saved.history),
-    watchList: arrayOrEmpty(saved.watchList),
-    watchDraft: objectOr(saved.watchDraft, { thesis: "", targetPrice: "", reviewDate: "", notes: "" })
+    valuationWorkspace: saved.valuationWorkspace || null,
+    history: saved.history || [],
+    watchList: saved.watchList || [],
+    watchDraft: saved.watchDraft || { thesis: "", targetPrice: "", reviewDate: "", notes: "" }
   };
   state.institutionalResearch = buildInstitutionalResearch(state.research);
 
@@ -180,91 +180,69 @@ export function createStore() {
     });
   }
 
-  async function loadDemoAnalysis() {
-    try {
-      const { DEMO_ANALYSIS_FIXTURE } = await import("../data/demoFlow.js");
-      let workspace = createValuationWorkspace(DEMO_ANALYSIS_FIXTURE.company);
-      workspace = updateAnalystBrainPaste(workspace, DEMO_ANALYSIS_FIXTURE.pasteText);
-      for (const [field, value] of Object.entries(DEMO_ANALYSIS_FIXTURE.fields)) {
-        workspace = updateWorkspaceField(workspace, field, value, {
-          source: DEMO_ANALYSIS_FIXTURE.source,
-          sourceDate: DEMO_ANALYSIS_FIXTURE.sourceDate,
-          mode: "Automatic",
-          confidence: 0.96,
-          userConfirmed: true,
-          originalTextReference: "Loaded from demo fixture"
-        });
-      }
-      set({
-        company: DEMO_ANALYSIS_FIXTURE.company,
-        valuationWorkspace: workspace,
-        activePanel: "workspace",
-        loading: false,
-        processingStage: "idle",
-        notice: state.language === "ar"
-          ? "تم تحميل بيانات تجريبية. راجع البيانات ثم شغّل التحليل."
-          : "Demo data loaded. Review the data, then run the analysis.",
-        searchResults: []
-      });
-    } catch {
-      set({
-        loading: false,
-        processingStage: "idle",
-        notice: state.language === "ar"
-          ? "تعذر تحميل بيانات الديمو الآن. التطبيق الأساسي يعمل ويمكنك بدء تحليل جديد."
-          : "Demo data could not load right now. The main app is still available."
+  function loadDemoAnalysis() {
+    let workspace = createValuationWorkspace(DEMO_ANALYSIS_FIXTURE.company);
+    workspace = updateAnalystBrainPaste(workspace, DEMO_ANALYSIS_FIXTURE.pasteText);
+    for (const [field, value] of Object.entries(DEMO_ANALYSIS_FIXTURE.fields)) {
+      workspace = updateWorkspaceField(workspace, field, value, {
+        source: DEMO_ANALYSIS_FIXTURE.source,
+        sourceDate: DEMO_ANALYSIS_FIXTURE.sourceDate,
+        mode: "Automatic",
+        confidence: 0.96,
+        userConfirmed: true,
+        originalTextReference: "Loaded from demo fixture"
       });
     }
+    set({
+      company: DEMO_ANALYSIS_FIXTURE.company,
+      valuationWorkspace: workspace,
+      activePanel: "workspace",
+      loading: false,
+      processingStage: "idle",
+      notice: state.language === "ar"
+        ? "تم تحميل بيانات تجريبية. راجع البيانات ثم شغّل التحليل."
+        : "Demo data loaded. Review the data, then run the analysis.",
+      searchResults: []
+    });
   }
 
-  async function loadDemoExternalAnalysis() {
-    try {
-      const { createDemoExternalAnalysisReport, createDemoExternalAnalysisScenario } = await import("../data/externalDemo.js");
-      const reports = createDemoExternalAnalysisScenario();
-      let externalAnalyses = state.externalAnalyses;
-      let historicalRequirementSets = state.historicalRequirementSets;
-      let latestReport = null;
-      for (const report of reports) {
-        const validation = validateExternalAnalysisReport(report);
-        const prepared = prepareExternalDraftReport(report, validation, historicalRequirementSets);
-        const reportForSave = prepareExternalReportForSave(prepared.report);
-        const result = saveExternalAnalysis(externalAnalyses, reportForSave, {
-          allowDuplicate: true,
-          now: new Date(reportForSave.metadata?.importedAt || reportForSave.analysisDate || Date.now())
-        });
-        externalAnalyses = result.collection;
-        historicalRequirementSets = applyHistoricalRequirementLifecycle(
-          historicalRequirementSets,
-          result.report,
-          prepared.requirementMatch,
-          new Date(reportForSave.metadata?.importedAt || Date.now())
-        );
-        latestReport = result.report;
-      }
-      const selectedReport = latestReport || createDemoExternalAnalysisReport();
-      set({
-        externalAnalyses,
+  function loadDemoExternalAnalysis() {
+    const reports = createDemoExternalAnalysisScenario();
+    let externalAnalyses = state.externalAnalyses;
+    let historicalRequirementSets = state.historicalRequirementSets;
+    let latestReport = null;
+    for (const report of reports) {
+      const validation = validateExternalAnalysisReport(report);
+      const prepared = prepareExternalDraftReport(report, validation, historicalRequirementSets);
+      const reportForSave = prepareExternalReportForSave(prepared.report);
+      const result = saveExternalAnalysis(externalAnalyses, reportForSave, {
+        allowDuplicate: true,
+        now: new Date(reportForSave.metadata?.importedAt || reportForSave.analysisDate || Date.now())
+      });
+      externalAnalyses = result.collection;
+      historicalRequirementSets = applyHistoricalRequirementLifecycle(
         historicalRequirementSets,
-        externalImport: createExternalImportState(),
-        externalReportSelection: { ticker: selectedReport.company.ticker, reportId: selectedReport.id },
-        company: externalReportCompanyShell(selectedReport),
-        activePanel: "external-report",
-        loading: false,
-        processingStage: "idle",
-        notice: state.language === "ar"
-          ? "تم فتح سيناريو DEMO خارجي يحتوي على تقرير سابق وتقرير أرباح يقيّم المتطلبات."
-          : "DEMO external scenario opened with a prior report and an earnings report that evaluates requirements.",
-        searchResults: []
-      });
-    } catch {
-      set({
-        loading: false,
-        processingStage: "idle",
-        notice: state.language === "ar"
-          ? "تعذر تحميل سيناريو الديمو الآن. التطبيق الأساسي يعمل ويمكنك استيراد تحليل جديد."
-          : "The demo scenario could not load right now. The main app is still available."
-      });
+        result.report,
+        prepared.requirementMatch,
+        new Date(reportForSave.metadata?.importedAt || Date.now())
+      );
+      latestReport = result.report;
     }
+    const selectedReport = latestReport || createDemoExternalAnalysisReport();
+    set({
+      externalAnalyses,
+      historicalRequirementSets,
+      externalImport: createExternalImportState(),
+      externalReportSelection: { ticker: selectedReport.company.ticker, reportId: selectedReport.id },
+      company: externalReportCompanyShell(selectedReport),
+      activePanel: "external-report",
+      loading: false,
+      processingStage: "idle",
+      notice: state.language === "ar"
+        ? "تم فتح سيناريو DEMO خارجي يحتوي على تقرير سابق وتقرير أرباح يقيّم المتطلبات."
+        : "DEMO external scenario opened with a prior report and an earnings report that evaluates requirements.",
+      searchResults: []
+    });
   }
 
   function openExternalImport() {
@@ -1483,19 +1461,10 @@ function normalizeEvaluatedSort(sort) {
 
 function load() {
   try {
-    const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-    return objectOr(value, {});
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
   } catch {
     return {};
   }
-}
-
-function objectOr(value, fallback) {
-  return value && typeof value === "object" && !Array.isArray(value) ? value : fallback;
-}
-
-function arrayOrEmpty(value) {
-  return Array.isArray(value) ? value : [];
 }
 
 function persist(state) {

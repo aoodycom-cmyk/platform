@@ -8,12 +8,12 @@ const parser = readFileSync(new URL("../src/externalAnalysis/parser.js", import.
 
 assert.ok(index.includes("quarterlyEarningsJsonPromptV2.js"));
 assert.ok(sw.includes("./src/ui/quarterlyEarningsJsonPromptV2.js"));
-assert.ok(script.includes("تحليل وإعادة تقييم"));
-assert.ok(script.includes("buildEarningsRevaluationPrompt"));
-assert.ok(parser.includes("inflateEarningsRevaluationPayload"));
-assert.ok(parser.includes("Earnings Revaluation Parser"));
+assert.ok(sw.includes("./src/externalAnalysis/quarterlyEarningsLite.js"));
+assert.ok(script.includes("نسخ برومبت"));
+assert.ok(script.includes("buildQuarterlyEarningsLitePrompt"));
+assert.ok(parser.includes("inflateQuarterlyEarningsLitePayload"));
 assert.ok(script.includes("step: 3"));
-assert.ok(script.includes("Bear / Base / Bull"));
-assert.ok(script.includes("إنشاء متطلبات الربع القادم تلقائيًا"));
+assert.ok(script.includes("Forward Outlook"));
+assert.ok(script.includes("بدون تقييم سهم كامل أو Fair Value جديد"));
 
-console.log("Quarterly JSON prompt V2 earnings-revaluation tests passed.");
+console.log("Quarterly JSON prompt V2 lite-mode tests passed.");
