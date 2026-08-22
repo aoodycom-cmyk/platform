@@ -5,8 +5,16 @@ import "./ui/quarterlyResultsEnhancer.js";
 import { getExternalAnalysis } from "./externalAnalysis/storage.js";
 import { setQuarterlyEarningsLiteReportResolver } from "./externalAnalysis/parser.js";
 import { registerServiceWorker, watchOfflineState } from "./pwa.js";
+import { bootstrapAuditSnapshot, mountCloudControls } from "./cloud/franklinCloud.js";
 
 const root = document.getElementById("app");
+let auditBootstrapError = null;
+try {
+  await bootstrapAuditSnapshot();
+} catch (error) {
+  auditBootstrapError = error;
+}
+
 const store = createStore();
 
 // Internal UI helpers can reuse the single live store without creating a second app state.
@@ -27,6 +35,16 @@ setQuarterlyEarningsLiteReportResolver((payload) => {
 });
 
 mountApp(root, store);
+mountCloudControls(store);
+
+if (auditBootstrapError) {
+  store.set({
+    notice: store.state.language === "ar"
+      ? `تعذر فتح جلسة الفحص: ${String(auditBootstrapError?.message || auditBootstrapError)}`
+      : `Could not open audit session: ${String(auditBootstrapError?.message || auditBootstrapError)}`
+  });
+}
+
 registerServiceWorker();
 watchOfflineState((offline) => {
   if (offline) {
