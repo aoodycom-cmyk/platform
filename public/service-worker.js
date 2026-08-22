@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v11-franklin-v39-20260822-static-rescue1";
+const CACHE_NAME = "franklin-research-v11-franklin-v35-20260822-financial-safety1";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -30,7 +30,6 @@ const STATIC_ASSETS = [
   "./src/externalAnalysis/earningsPeriod.js",
   "./src/externalAnalysis/quarterlyScorecard.js",
   "./src/externalAnalysis/quarterlyEarningsLite.js",
-  "./src/externalAnalysis/earningsRevaluation.js",
   "./src/externalAnalysis/quarterlyForwardOutlook.js",
   "./src/externalAnalysis/fairValueAdapter.js",
   "./src/externalAnalysis/parser.js",
@@ -65,7 +64,7 @@ const STATIC_ASSETS = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cacheStaticAssets).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {
@@ -103,10 +102,6 @@ function fetchAndCache(request, url) {
     }
     return response;
   });
-}
-
-function cacheStaticAssets(cache) {
-  return Promise.allSettled(STATIC_ASSETS.map((asset) => cache.add(asset)));
 }
 
 function isVersionedAppAsset(url) {
