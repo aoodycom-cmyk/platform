@@ -6,6 +6,7 @@ import { getExternalAnalysis } from "./externalAnalysis/storage.js";
 import { setQuarterlyEarningsLiteReportResolver } from "./externalAnalysis/parser.js";
 import { registerServiceWorker, watchOfflineState } from "./pwa.js";
 import { bootstrapAuditSnapshot, mountCloudControls } from "./cloud/franklinCloud.js";
+import { installFinancialSafetyLayer } from "./financialSafety/financialSafety.js";
 
 const root = document.getElementById("app");
 const APP_STATE_KEY = "equityResearchV4State";
@@ -39,6 +40,7 @@ const store = createStore();
 
 // Internal UI helpers can reuse the single live store without creating a second app state.
 window.__equityResearchStore = store;
+installFinancialSafetyLayer(store, root);
 
 setQuarterlyEarningsLiteReportResolver((payload) => {
   const state = store.state;
@@ -69,7 +71,7 @@ registerServiceWorker();
 watchOfflineState((offline) => {
   if (offline) {
     store.set({ notice: store.state.language === "ar"
-      ? "أنت غير متصل. لن يتم عرض أسعار قديمة كأنها حالية."
-      : "You are offline. Stale market prices will not be shown as current." });
+      ? "أنت غير متصل. الأسعار المعروضة في التقارير هي أسعار وقت التحليل وليست أسعارًا حية."
+      : "You are offline. Prices shown in saved reports are prices at analysis, not live quotes." });
   }
 });
