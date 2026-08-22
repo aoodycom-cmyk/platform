@@ -57,20 +57,22 @@ import {
 } from "../valuationWorkflow/workflow.js";
 
 const STORAGE_KEY = "equityResearchV4State";
+const EMPTY_MANUAL_INPUTS = { averageCost: "", morningstarFairValue: "", notes: "" };
 
 export function createStore() {
   const saved = load();
   const initialLanguage = normalizeLanguage(saved.language || localStorage.getItem("equityResearchLanguage") || "ar");
   setLanguageContext(initialLanguage);
-  const initialManualInputs = saved.manualInputs || { averageCost: "", morningstarFairValue: "", notes: "" };
-  const initialEvaluatedCompanies = rankEvaluatedCompanies(saved.evaluatedCompanies || []).map(({ rankingPosition, ...item }) => item);
+  const initialManualInputs = objectOr(saved.manualInputs, EMPTY_MANUAL_INPUTS);
+  const initialEvaluatedCompanies = rankEvaluatedCompanies(arrayOrEmpty(saved.evaluatedCompanies)).map(({ rankingPosition, ...item }) => item);
   const initialEvaluatedSort = normalizeEvaluatedSort(saved.evaluatedSort);
-  const initialExternalAnalyses = normalizeExternalAnalysesCollection(saved.externalAnalyses || {});
-  const initialHistoricalRequirementSets = normalizeHistoricalRequirementSets(saved.historicalRequirementSets || {}, initialExternalAnalyses);
-  const initialCompany = buildUnifiedDataCompany(saved.company || createCompanyShell("NVDA"), {
+  const initialExternalAnalyses = normalizeExternalAnalysesCollection(objectOr(saved.externalAnalyses, {}));
+  const initialHistoricalRequirementSets = normalizeHistoricalRequirementSets(objectOr(saved.historicalRequirementSets, {}), initialExternalAnalyses);
+  const savedCompany = objectOr(saved.company, null);
+  const initialCompany = buildUnifiedDataCompany(savedCompany || createCompanyShell("NVDA"), {
     manualInputs: initialManualInputs,
-    previousCompany: saved.company || null,
-    providers: saved.company?.dataPlatform?.providers || []
+    previousCompany: savedCompany,
+    providers: arrayOrEmpty(savedCompany?.dataPlatform?.providers)
   });
   const state = {
     company: initialCompany,
@@ -90,20 +92,20 @@ export function createStore() {
     evaluatedSort: initialEvaluatedSort,
     rankingFilter: saved.rankingFilter || "all",
     sectorFilter: saved.sectorFilter || "all",
-    compareSelectedTickers: saved.compareSelectedTickers || [],
+    compareSelectedTickers: arrayOrEmpty(saved.compareSelectedTickers),
     comparisonOpen: saved.comparisonOpen || false,
     evaluatedCompanies: initialEvaluatedCompanies,
     externalAnalyses: initialExternalAnalyses,
     historicalRequirementSets: initialHistoricalRequirementSets,
     externalImport: createExternalImportState(),
     earningsUpdate: createEarningsUpdateState(),
-    externalReportSelection: saved.externalReportSelection || null,
+    externalReportSelection: objectOr(saved.externalReportSelection, null),
     quarterlyScorecard: createQuarterlyScorecardState(),
     restorePreview: null,
-    valuationWorkspace: saved.valuationWorkspace || null,
-    history: saved.history || [],
-    watchList: saved.watchList || [],
-    watchDraft: saved.watchDraft || { thesis: "", targetPrice: "", reviewDate: "", notes: "" }
+    valuationWorkspace: objectOr(saved.valuationWorkspace, null),
+    history: arrayOrEmpty(saved.history),
+    watchList: arrayOrEmpty(saved.watchList),
+    watchDraft: objectOr(saved.watchDraft, { thesis: "", targetPrice: "", reviewDate: "", notes: "" })
   };
   state.institutionalResearch = buildInstitutionalResearch(state.research);
 
@@ -1481,10 +1483,19 @@ function normalizeEvaluatedSort(sort) {
 
 function load() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    return objectOr(value, {});
   } catch {
     return {};
   }
+}
+
+function objectOr(value, fallback) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : fallback;
+}
+
+function arrayOrEmpty(value) {
+  return Array.isArray(value) ? value : [];
 }
 
 function persist(state) {
