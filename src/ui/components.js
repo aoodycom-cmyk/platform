@@ -10,7 +10,6 @@ import {
   upsideColorCategory
 } from "../domain/marketColorSystem.js";
 import { rankEvaluatedCompanies } from "../engines/rankingEngine.js";
-import { DEMO_ANALYSIS_FIXTURE } from "../data/demoFlow.js";
 import { copyableExternalAnalysisJson, externalAnalysisToHomeCard, externalReportWithCompletionStatus } from "../externalAnalysis/reportAdapter.js";
 import { analyzeExternalAnalysisCompletion, FIELD_PRIORITY, FIELD_REQUIREMENTS } from "../externalAnalysis/missingFields.js";
 import { getExternalAnalysis, listLatestExternalAnalyses } from "../externalAnalysis/storage.js";

@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v11-franklin-v36-20260822-earnings-loop1";
+const CACHE_NAME = "franklin-research-v11-franklin-v37-20260822-boot-cache1";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -65,7 +65,7 @@ const STATIC_ASSETS = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE_NAME).then(cacheStaticAssets).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {
@@ -103,6 +103,10 @@ function fetchAndCache(request, url) {
     }
     return response;
   });
+}
+
+function cacheStaticAssets(cache) {
+  return Promise.allSettled(STATIC_ASSETS.map((asset) => cache.add(asset)));
 }
 
 function isVersionedAppAsset(url) {
