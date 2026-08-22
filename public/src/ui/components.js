@@ -1611,6 +1611,7 @@ function externalAnalysisReportView(state) {
       ${dataHealthTerminalGuard(reportWithCompletion, completion)}
       <section class="stock-decision-flow">
         ${valuationRangeDashboard(report)}
+        ${canonicalFinancialCycleSection(report)}
         ${stockSection(isArabicUi() ? "فرصة الاستثمار • Investment Opportunity" : "Investment Opportunity", investmentSummaryWorkspace(report), "investment-opportunity-section")}
         ${companyAssessmentPanel(report)}
         ${stockSection(isArabicUi() ? "بيانات الاستثمار" : "Investment Data", investmentDataTableArea(report), "v31-investment-tabs-section")}
@@ -1966,6 +1967,33 @@ function valuationRangeDashboard(report = {}) {
   `;
 }
 
+function canonicalFinancialCycleSection(report = {}) {
+  const meta = report.metadata?.franklinV3;
+  if (!meta) return "";
+  const canonical = report.metadata?.franklinV3Report || {};
+  const previous = canonical.valuation?.previous || {};
+  const current = canonical.valuation?.current || {};
+  const next = canonical.nextRequirements || {};
+  const assessment = report.previousRequirementsEvaluation?.requirementsAssessment || {};
+  const isRevaluation = meta.analysisType === "EARNINGS_REVALUATION";
+  const body = `
+    <div class="preview-summary earnings-preview-summary">
+      ${isRevaluation ? compactCardMetric(uiLabel("Previous Base"), money(previous.base, 0)) : ""}
+      ${compactCardMetric(uiLabel("New Base"), money(current.base ?? report.fairValueSummary?.fairValueBase, 0))}
+      ${compactCardMetric(uiLabel("Valuation Review"), meta.reviewStatus || "—")}
+      ${compactCardMetric(uiLabel("Thesis Status"), meta.thesisStatus || "—")}
+      ${compactCardMetric(uiLabel("Current Justified Value"), money(next.currentJustifiedValue ?? report.priceTargetRequirements?.currentJustifiedValue, 0))}
+      ${compactCardMetric(uiLabel("Next Target"), money(next.targetValue ?? report.priceTargetRequirements?.targetValue, 0))}
+      ${compactCardMetric(uiLabel("Requirement Mode"), next.mode || report.priceTargetRequirements?.mode || "—")}
+      ${Number.isFinite(numericValue(assessment.coverageWeightPct)) ? compactCardMetric(uiLabel("Coverage"), `${Math.round(numericValue(assessment.coverageWeightPct))}%`) : ""}
+      ${Number.isFinite(numericValue(assessment.achievementOfReportedWeightPct)) ? compactCardMetric(uiLabel("Reported Achievement"), `${Math.round(numericValue(assessment.achievementOfReportedWeightPct))}%`) : ""}
+      ${Number.isFinite(numericValue(assessment.achievementOfTotalWeightPct)) ? compactCardMetric(uiLabel("Total Achievement"), `${Math.round(numericValue(assessment.achievementOfTotalWeightPct))}%`) : ""}
+    </div>
+    ${meta.valuationBridge?.whyBaseChangedOrNot ? `<p class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(meta.valuationBridge.whyBaseChangedOrNot)}</p>` : ""}
+  `;
+  return stockSection(isArabicUi() ? "دورة التقييم v3" : "Valuation Cycle v3", body, "canonical-cycle-section");
+}
+
 function v31RangeMetric(label, value, tone) {
   return `<article class="${escapeHtml(tone)}"><strong dir="ltr">${money(value, 0)}</strong><span>${escapeHtml(label)}</span></article>`;
 }
@@ -2081,7 +2109,9 @@ function latestEarningsWorkspace(report = {}) {
         ${compactCardMetric(uiLabel("Passed"), assessmentNumberText(assessment.passedRequirements ?? assessment.passed))}
         ${compactCardMetric(uiLabel("Partially Passed"), assessmentNumberText(assessment.partiallyPassedRequirements ?? assessment.partiallyPassed))}
         ${compactCardMetric(uiLabel("Failed"), assessmentNumberText(assessment.failedRequirements ?? assessment.failed))}
-        ${compactCardMetric(uiLabel("Requirement achievement"), Number.isFinite(numericValue(assessment.weightedAchievement)) ? `${Math.round(numericValue(assessment.weightedAchievement))}%` : "—")}
+        ${compactCardMetric(uiLabel("Requirement achievement"), Number.isFinite(numericValue(assessment.achievementOfReportedWeightPct ?? assessment.weightedAchievement)) ? `${Math.round(numericValue(assessment.achievementOfReportedWeightPct ?? assessment.weightedAchievement))}%` : "—")}
+        ${Number.isFinite(numericValue(assessment.coverageWeightPct)) ? compactCardMetric(uiLabel("Coverage"), `${Math.round(numericValue(assessment.coverageWeightPct))}%`) : ""}
+        ${Number.isFinite(numericValue(assessment.achievementOfTotalWeightPct)) ? compactCardMetric(uiLabel("Total Achievement"), `${Math.round(numericValue(assessment.achievementOfTotalWeightPct))}%`) : ""}
       </div>
       ${assessment.overallStatus ? `<p class="earnings-overall">${escapeHtml(requirementsStatusLabel(assessment.overallStatus))}</p>` : ""}
       ${rows.length ? externalDetail(uiLabel("Earnings Snapshot"), metricRows(rows)) : ""}
@@ -3782,7 +3812,9 @@ function priceTargetRequirementsView(requirementsBlock = {}, context = {}) {
   const targetQuarter = context.actualQuarter || requirementsBlock.targetQuarter || requirementsBlock.earningsPeriod || uiLabel("Target Quarter");
   const pending = context.pending !== false;
   const assessment = pending ? {} : (context.assessment || requirementsBlock.requirementsAssessment || {});
-  const progress = numericValue(assessment.weightedAchievement);
+  const progress = numericValue(assessment.achievementOfReportedWeightPct ?? assessment.weightedAchievement);
+  const coverage = numericValue(assessment.coverageWeightPct);
+  const totalAchievement = numericValue(assessment.achievementOfTotalWeightPct);
   const displayedProgress = Number.isFinite(progress) ? boundedPercent(progress) : null;
   const overallStatus = pending
     ? (isArabicUi() ? `بانتظار إعلان ${targetQuarter}` : `Awaiting ${targetQuarter} earnings`)
@@ -3815,6 +3847,12 @@ function priceTargetRequirementsView(requirementsBlock = {}, context = {}) {
           <small>${pending
             ? (isArabicUi() ? `تظهر النتيجة بعد استيراد إعلان ${targetQuarter}` : `Results appear after importing ${targetQuarter}`)
             : (isArabicUi() ? "تقييم ChatGPT المحفوظ" : "Stored ChatGPT assessment")}</small>
+          ${!pending && (Number.isFinite(coverage) || Number.isFinite(totalAchievement)) ? `
+            <small dir="ltr">
+              ${Number.isFinite(coverage) ? `Coverage ${boundedPercent(coverage)}%` : ""}
+              ${Number.isFinite(totalAchievement) ? ` / Total ${boundedPercent(totalAchievement)}%` : ""}
+            </small>
+          ` : ""}
         </div>
       </section>
       ${periods.length ? `
@@ -4342,6 +4380,7 @@ function guidanceDirectionLabel(value) {
     maintained: uiLabel("Maintained"),
     lowered: uiLabel("Lowered"),
     new: uiLabel("New"),
+    not_reported: uiLabel("Not Reported"),
     not_applicable: uiLabel("Not Applicable")
   };
   return labels[String(value || "not_applicable")] || uiLabel("Not Applicable");

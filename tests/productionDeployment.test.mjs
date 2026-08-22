@@ -137,9 +137,9 @@ try {
   assert.equal(app.status, 200);
   assert.ok(app.text.includes("Franklin Research 11.0.0"));
   assert.ok(app.text.includes("apple-mobile-web-app-title"));
-  assert.ok(app.text.includes("styles.css?v=v11-franklin-v35-20260822-restore-freeze2"));
-  assert.ok(app.text.includes("styles-mobile2.css?v=v11-franklin-v35-20260822-restore-freeze2"));
-  assert.ok(app.text.includes("src/main.js?v=v11-franklin-v35-20260822-restore-freeze2"));
+  assert.ok(app.text.includes("styles.css?v=v11-franklin-v36-20260823-financial-contract-v3"));
+  assert.ok(app.text.includes("styles-mobile2.css?v=v11-franklin-v36-20260823-financial-contract-v3"));
+  assert.ok(app.text.includes("src/main.js?v=v11-franklin-v36-20260823-financial-contract-v3"));
   assert.ok(app.text.includes("franklin-cache-reset"));
 
   const search = await inject(server, { method: "POST", path: "/api/search", headers: { cookie }, body: { query: "AAPL" } });
@@ -173,7 +173,7 @@ try {
 
   const serviceWorker = await inject(server, { path: "/service-worker.js", headers: { cookie } });
   assert.equal(serviceWorker.status, 200);
-  assert.ok(serviceWorker.text.includes("franklin-research-v11-franklin-v35-20260822-restore-freeze2"));
+  assert.ok(serviceWorker.text.includes("franklin-research-v11-franklin-v36-20260823-financial-contract-v3"));
   assert.ok(serviceWorker.text.includes("src/cloud/franklinCloud.js"));
   assert.ok(serviceWorker.text.includes("src/financialSafety/financialSafety.js"));
   assert.ok(serviceWorker.text.includes("src/financialSafety/quarterlySourceSafety.js"));
@@ -182,6 +182,9 @@ try {
   assert.ok(serviceWorker.text.includes("styles-v11-mobile-cleanup.css"));
   assert.ok(serviceWorker.text.includes("isVersionedAppAsset"));
   assert.ok(serviceWorker.text.includes("fairValueAdapter.js"));
+  assert.ok(serviceWorker.text.includes("v3Contract.js"));
+  assert.ok(serviceWorker.text.includes("v3Adapter.js"));
+  assert.ok(serviceWorker.text.includes("v3Validator.js"));
   assert.ok(serviceWorker.text.includes("earningsPeriod.js"));
   assert.ok(serviceWorker.text.includes("offline.html"));
   assert.equal(serviceWorker.text.includes("/api/search"), false);

@@ -1,5 +1,7 @@
 import { fairValueAnalysisToExternalReport, isFairValueAnalysisReport } from "./fairValueAdapter.js";
 import { setByPath } from "./fieldPaths.js";
+import { franklinV3ToExternalReport } from "./v3Adapter.js";
+import { isFranklinV3Report } from "./v3Contract.js";
 import {
   normalizeCompanySpecificKpis,
   normalizeExternalRecommendation,
@@ -137,6 +139,7 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
       previousQuarter: null,
       targetQuarter: null,
       earningsPeriod: null,
+      mode: null,
       requirements: []
     },
     previousRequirementsEvaluation: {
@@ -200,6 +203,9 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
 
 export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", options = {}) {
   const originalInput = input && typeof input === "object" ? input : {};
+  if (isFranklinV3Report(originalInput)) {
+    input = franklinV3ToExternalReport(originalInput, rawAnalysis);
+  }
   if (isFairValueAnalysisReport(originalInput)) {
     input = fairValueAnalysisToExternalReport(originalInput);
   }
@@ -294,7 +300,10 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
       fairValueDataConfidence: input.metadata?.fairValueDataConfidence ?? null,
       primaryValuationMethod: input.metadata?.primaryValuationMethod ?? null,
       valuationSelectionReason: input.metadata?.valuationSelectionReason ?? null,
-      fairValueLimitations: Array.isArray(input.metadata?.fairValueLimitations) ? input.metadata.fairValueLimitations : []
+      fairValueLimitations: Array.isArray(input.metadata?.fairValueLimitations) ? input.metadata.fairValueLimitations : [],
+      analysisType: input.metadata?.analysisType ?? null,
+      franklinV3Report: input.metadata?.franklinV3Report ?? null,
+      franklinV3: input.metadata?.franklinV3 ?? null
     }
   };
   return attachLegacyReadAliases(preserveNulls(report));

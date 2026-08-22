@@ -107,8 +107,9 @@ assert.equal(report.priceTargetRequirements.requirements[1].impact, "negative");
 assert.equal(normalizeNextQuarterGuidance(report.nextQuarterGuidance).items[0].guidance, "$62M-$66M");
 
 const earningsPrompt = buildNewEarningsAnalysisPrompt(report);
-assert.ok(earningsPrompt.includes("direction: up أو down أو flat أو unknown"));
-assert.ok(earningsPrompt.includes("impact: positive أو negative أو mixed أو neutral أو unknown"));
+assert.ok(earningsPrompt.includes("status يجب أن يكون NOT_REPORTED أو FAILED أو PARTIALLY_PASSED أو PASSED أو EXCEEDED"));
+assert.ok(earningsPrompt.includes("PARTIALLY_PASSED فقط يستخدم partialCreditPct"));
+assert.ok(earningsPrompt.includes("coverageWeightPct"));
 assert.ok(earningsPrompt.includes("actualDisplay"));
 assert.ok(earningsPrompt.includes('"guidance"'));
 assert.ok(earningsPrompt.includes("previousValue"));

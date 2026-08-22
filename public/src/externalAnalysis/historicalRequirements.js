@@ -71,6 +71,7 @@ export function createRequirementSetFromReport(report = {}, now = new Date()) {
     nextTargetValue: block.nextTargetValue || block.targetValue,
     targetScenario: block.targetScenario,
     targetDescription: block.targetDescription,
+    mode: block.mode || null,
     summary: block.summary,
     status,
     evaluatedByAnalysisId: block.evaluatedByAnalysisId || null,
@@ -287,6 +288,7 @@ function normalizeRequirementSet(input = {}) {
     nextTargetValue: numberOrNull(input.nextTargetValue ?? input.targetValue),
     targetScenario: textOrNull(input.targetScenario),
     targetDescription: textOrNull(input.targetDescription),
+    mode: textOrNull(input.mode),
     summary: textOrNull(input.summary),
     status,
     evaluatedByAnalysisId: input.evaluatedByAnalysisId || null,
@@ -308,7 +310,9 @@ function freezeRequirementSetRequirements(requirements = [], status = "OPEN") {
         direction: "unknown",
         impact: "unknown",
         status: "NOT_REPORTED",
-        evaluationNote: null
+        partialCreditPct: null,
+        evaluationNote: null,
+        sourceId: null
       };
     }
     return requirement;
@@ -327,7 +331,9 @@ function mergeEvaluatedRequirements(original = [], evaluated = []) {
       direction: result.direction || "unknown",
       impact: result.impact || "unknown",
       status: result.status,
-      evaluationNote: result.evaluationNote || null
+      partialCreditPct: result.partialCreditPct ?? null,
+      evaluationNote: result.evaluationNote || null,
+      sourceId: result.sourceId || null
     };
   });
 }
