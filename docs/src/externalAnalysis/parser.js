@@ -1,6 +1,7 @@
 import { normalizeExternalAnalysisReport } from "./schema.js";
 import { upsertQuarterlyEarningsDigestSupplement } from "./quarterlyEarningsDigest.js";
 import { inflateQuarterlyEarningsLitePayload, isQuarterlyEarningsLitePayload } from "./quarterlyEarningsLite.js";
+import { inflateEarningsRevaluationPayload, isEarningsRevaluationPayload } from "./earningsRevaluation.js";
 
 let quarterlyEarningsLiteReportResolver = null;
 
@@ -14,6 +15,24 @@ export async function parseExternalAnalysisInput(text, { parseUnstructured, now 
 
   const localJson = parseJsonCandidate(rawAnalysis);
   if (localJson.ok) {
+    if (isEarningsRevaluationPayload(localJson.value)) {
+      const baseReport = currentReport || await resolveQuarterlyEarningsLiteReport(localJson.value);
+      if (!baseReport) {
+        const error = new Error("Earnings revaluation JSON requires an existing saved report for this ticker.");
+        error.userMessage = "هذا JSON إعادة تقييم بعد الأرباح ويحتاج فتح السهم المحفوظ من شاشة التقرير قبل الاستيراد.";
+        throw error;
+      }
+      const inflated = inflateEarningsRevaluationPayload(baseReport, localJson.value, rawAnalysis, now);
+      return {
+        report: {
+          ...inflated,
+          supplements: upsertQuarterlyEarningsDigestSupplement(inflated.supplements, inflated.reportPeriod, localJson.value)
+        },
+        parserSource: "Earnings Revaluation Parser",
+        usedAi: false
+      };
+    }
+
     if (isQuarterlyEarningsLitePayload(localJson.value)) {
       const baseReport = currentReport || await resolveQuarterlyEarningsLiteReport(localJson.value);
       if (!baseReport) {
