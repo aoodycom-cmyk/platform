@@ -1,7 +1,5 @@
-const CACHE_NAME = "franklin-research-v11-franklin-v35-20260822-financial-safety1";
+const CACHE_NAME = "franklin-research-v11-franklin-v35-20260822-safe-recovery1";
 const STATIC_ASSETS = [
-  "./",
-  "./index.html",
   "./offline.html",
   "./backend-config.js",
   "./styles.css",
@@ -110,7 +108,6 @@ function isVersionedAppAsset(url) {
 
 function isSafeStaticAsset(url) {
   return [
-    ".html",
     ".css",
     ".js",
     ".json",

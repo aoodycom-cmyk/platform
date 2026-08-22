@@ -1,4 +1,5 @@
 import { normalizeExternalAnalysesCollection } from "./storage.js";
+import { migrateFranklinState, summarizeFranklinState } from "../state/migration.js";
 
 export const FRANKLIN_BACKUP_SCHEMA_VERSION = "franklin-investment-backup/v1";
 
@@ -16,6 +17,7 @@ const RESTORABLE_KEYS = [
   "externalAnalyses",
   "externalReportSelection",
   "historicalRequirementSets",
+  "stateSchemaVersion",
   "history",
   "watchList"
 ];
@@ -52,6 +54,22 @@ export function parseInvestmentDataBackup(text) {
   } catch {
     return { valid: false, errors: ["Backup JSON is invalid."], backup: null, preview: null };
   }
+  if (isRawFranklinState(parsed)) {
+    const migrated = migrateFranklinState(parsed);
+    const backup = {
+      schemaVersion: FRANKLIN_BACKUP_SCHEMA_VERSION,
+      appName: "Franklin Research",
+      exportedAt: parsed.metadata?.exportedAt || parsed.__franklinBackupCreatedAt || null,
+      data: migrated.state,
+      diagnostics: migrated.diagnostics
+    };
+    return {
+      valid: true,
+      errors: [],
+      backup,
+      preview: previewInvestmentDataBackup(backup)
+    };
+  }
   const errors = validateInvestmentDataBackup(parsed);
   return {
     valid: errors.length === 0,
@@ -72,14 +90,13 @@ export function validateInvestmentDataBackup(backup = {}) {
 
 export function previewInvestmentDataBackup(backup = {}) {
   const data = backup.data || {};
-  const externalAnalyses = data.externalAnalyses && typeof data.externalAnalyses === "object" ? data.externalAnalyses : {};
-  const companyCount = Object.keys(externalAnalyses).length;
-  const externalReportCount = Object.values(externalAnalyses).reduce((sum, reports) => sum + (Array.isArray(reports) ? reports.length : 0), 0);
+  const summary = summarizeFranklinState(data);
   return {
     exportedAt: backup.exportedAt || null,
-    companyCount,
-    externalReportCount,
-    historicalRequirementSets: Object.values(data.historicalRequirementSets || {}).reduce((sum, sets) => sum + (Array.isArray(sets) ? sets.length : 0), 0),
+    companyCount: summary.tickerCount,
+    externalReportCount: summary.reportCount,
+    historicalRequirementSets: summary.historicalRequirementSetCount,
+    supplementCount: summary.supplementCount,
     evaluatedCompanies: Array.isArray(data.evaluatedCompanies) ? data.evaluatedCompanies.length : 0,
     historyItems: Array.isArray(data.history) ? data.history.length : 0,
     watchListItems: Array.isArray(data.watchList) ? data.watchList.length : 0,
@@ -124,6 +141,22 @@ export function replaceInvestmentDataBackup(currentState = {}, backup = {}) {
 function pickScalarRestorable(input = {}) {
   const scalarKeys = ["language", "theme", "evaluatedSort", "rankingFilter", "sectorFilter", "compareSelectedTickers", "comparisonOpen"];
   return Object.fromEntries(scalarKeys.filter((key) => input[key] !== undefined).map((key) => [key, input[key]]));
+}
+
+function isRawFranklinState(value) {
+  return Boolean(
+    value
+    && typeof value === "object"
+    && !Array.isArray(value)
+    && value.schemaVersion !== FRANKLIN_BACKUP_SCHEMA_VERSION
+    && (
+      value.externalAnalyses
+      || value.historicalRequirementSets
+      || value.evaluatedCompanies
+      || value.company
+      || value.manualInputs
+    )
+  );
 }
 
 function mergeExternalAnalyses(current = {}, incoming = {}) {

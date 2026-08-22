@@ -1,3 +1,11 @@
+import {
+  createLocalStateBackup,
+  migrateFranklinState,
+  shouldBlockCloudPush,
+  summarizeFranklinState,
+  validateRestoredCandidate
+} from "../state/migration.js";
+
 const STATE_KEY = "equityResearchV4State";
 const SESSION_KEY = "franklinSupabaseSessionV1";
 const META_KEY = "franklinCloudMetaV1";
@@ -58,7 +66,7 @@ function deviceId() {
 
 function localSnapshot() {
   const state = parseJson(localStorage.getItem(STATE_KEY), {});
-  return state && typeof state === "object" && !Array.isArray(state) ? state : {};
+  return migrateFranklinState(state && typeof state === "object" && !Array.isArray(state) ? state : {}).state;
 }
 
 async function authRequest(path, body) {
@@ -155,7 +163,25 @@ export async function loadCloudState() {
   return row;
 }
 
-export async function saveCloudState(snapshot = localSnapshot()) {
+export async function saveCloudState(snapshot = localSnapshot(), options = {}) {
+  const candidate = migrateFranklinState(snapshot).state;
+  if (!options.allowDestructiveOverwrite) {
+    const remote = await loadCloudState();
+    if (remote?.state) {
+      const guard = shouldBlockCloudPush(candidate, migrateFranklinState(remote.state).state);
+      if (guard.blocked) {
+        saveMeta({
+          lastError: guard.reason,
+          blockedAt: new Date().toISOString(),
+          localReportCount: guard.local.reportCount,
+          remoteReportCount: guard.remote.reportCount
+        });
+        const error = new Error(guard.reason);
+        error.details = guard;
+        throw error;
+      }
+    }
+  }
   const meta = getMeta();
   const expectedRevision = Number(meta.revision || 0);
   try {
@@ -163,7 +189,7 @@ export async function saveCloudState(snapshot = localSnapshot()) {
       method: "POST",
       body: JSON.stringify({
         p_expected_revision: expectedRevision,
-        p_state: snapshot,
+        p_state: candidate,
         p_device_id: deviceId()
       })
     });
@@ -195,10 +221,33 @@ export async function initializeCloudFromLocal() {
 export async function restoreCloudToThisDevice() {
   const remote = await loadCloudState();
   if (!remote?.state) throw new Error("NO_CLOUD_STATE");
+  const currentState = localSnapshot();
+  const candidate = migrateFranklinState(remote.state).state;
+  const validation = validateRestoredCandidate(remote.state, candidate);
+  if (!validation.valid) {
+    const error = new Error("CLOUD_RESTORE_VALIDATION_FAILED");
+    error.details = validation;
+    throw error;
+  }
+  const remoteSummary = summarizeFranklinState(remote.state);
+  const candidateSummary = summarizeFranklinState(candidate);
+  if (remoteSummary.reportCount !== candidateSummary.reportCount) {
+    const error = new Error("CLOUD_RESTORE_REPORT_COUNT_CHANGED");
+    error.details = { remote: remoteSummary, candidate: candidateSummary };
+    throw error;
+  }
   const current = localStorage.getItem(STATE_KEY);
-  if (current) localStorage.setItem(RESTORE_BACKUP_KEY, current);
-  localStorage.setItem(STATE_KEY, JSON.stringify(remote.state));
-  saveMeta({ revision: Number(remote.revision || 0), restoredAt: new Date().toISOString() });
+  if (current) {
+    localStorage.setItem(RESTORE_BACKUP_KEY, current);
+    createLocalStateBackup(localStorage, current, "pre-cloud-restore");
+  }
+  localStorage.setItem(STATE_KEY, JSON.stringify(candidate));
+  saveMeta({
+    revision: Number(remote.revision || 0),
+    restoredAt: new Date().toISOString(),
+    restoredReportCount: candidateSummary.reportCount,
+    previousLocalReportCount: summarizeFranklinState(currentState).reportCount
+  });
   return remote;
 }
 

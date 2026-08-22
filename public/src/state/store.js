@@ -23,6 +23,13 @@ import {
   replaceInvestmentDataBackup
 } from "../externalAnalysis/backup.js";
 import {
+  createLocalStateBackup,
+  findLocalFranklinBackups,
+  migrateFranklinState,
+  readLocalFranklinBackup,
+  validateRestoredCandidate
+} from "./migration.js";
+import {
   attachRequirementSetIdentityToReport,
   applyHistoricalRequirementLifecycle,
   normalizeHistoricalRequirementSets,
@@ -65,7 +72,7 @@ export function createStore() {
   const initialLanguage = normalizeLanguage(saved.language || localStorage.getItem("equityResearchLanguage") || "ar");
   setLanguageContext(initialLanguage);
   const initialManualInputs = saved.manualInputs || { averageCost: "", morningstarFairValue: "", notes: "" };
-  const initialEvaluatedCompanies = rankEvaluatedCompanies(saved.evaluatedCompanies || []).map(({ rankingPosition, ...item }) => item);
+  const initialEvaluatedCompanies = rankEvaluatedCompanies(Array.isArray(saved.evaluatedCompanies) ? saved.evaluatedCompanies : []).map(({ rankingPosition, ...item }) => item);
   const initialEvaluatedSort = normalizeEvaluatedSort(saved.evaluatedSort);
   const initialExternalAnalyses = normalizeExternalAnalysesCollection(saved.externalAnalyses || {});
   const initialHistoricalRequirementSets = normalizeHistoricalRequirementSets(saved.historicalRequirementSets || {}, initialExternalAnalyses);
@@ -92,20 +99,25 @@ export function createStore() {
     evaluatedSort: initialEvaluatedSort,
     rankingFilter: saved.rankingFilter || "all",
     sectorFilter: saved.sectorFilter || "all",
-    compareSelectedTickers: saved.compareSelectedTickers || [],
+    compareSelectedTickers: Array.isArray(saved.compareSelectedTickers) ? saved.compareSelectedTickers : [],
     comparisonOpen: saved.comparisonOpen || false,
     evaluatedCompanies: initialEvaluatedCompanies,
     externalAnalyses: initialExternalAnalyses,
     historicalRequirementSets: initialHistoricalRequirementSets,
+    stateSchemaVersion: saved.stateSchemaVersion || 1,
+    bootDiagnostics: saved.__franklinMigration || null,
+    localBackupRegistry: findLocalFranklinBackups(localStorage),
     externalImport: createExternalImportState(),
     earningsUpdate: createEarningsUpdateState(),
     externalReportSelection: saved.externalReportSelection || null,
     quarterlyScorecard: createQuarterlyScorecardState(),
     restorePreview: null,
     valuationWorkspace: saved.valuationWorkspace || null,
-    history: saved.history || [],
-    watchList: saved.watchList || [],
-    watchDraft: saved.watchDraft || { thesis: "", targetPrice: "", reviewDate: "", notes: "" }
+    history: Array.isArray(saved.history) ? saved.history : [],
+    watchList: Array.isArray(saved.watchList) ? saved.watchList : [],
+    watchDraft: saved.watchDraft && typeof saved.watchDraft === "object" && !Array.isArray(saved.watchDraft)
+      ? saved.watchDraft
+      : { thesis: "", targetPrice: "", reviewDate: "", notes: "" }
   };
   state.institutionalResearch = buildInstitutionalResearch(state.research);
 
@@ -1183,6 +1195,7 @@ export function createStore() {
   }
 
   function clearLocalData() {
+    createLocalStateBackup(localStorage, localStorage.getItem(STORAGE_KEY), "manual-clear");
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem("equityResearchLanguage");
     window.sessionStorage?.clear();
@@ -1191,6 +1204,49 @@ export function createStore() {
 
   function createInvestmentBackup() {
     return createInvestmentDataBackup(state);
+  }
+
+  function refreshLocalBackupRegistry() {
+    set({ localBackupRegistry: findLocalFranklinBackups(localStorage) });
+  }
+
+  function previewLocalBackupRestore(key) {
+    const result = readLocalFranklinBackup(localStorage, key);
+    if (!result.valid) {
+      set({
+        restorePreview: { valid: false, errors: result.errors || ["Backup could not be read."], backup: null, preview: null },
+        notice: state.language === "ar" ? "تعذر قراءة النسخة المحلية." : "Could not read the local backup."
+      });
+      return;
+    }
+    const backup = {
+      schemaVersion: "franklin-investment-backup/v1",
+      appName: "Franklin Research",
+      exportedAt: result.preview.exportedAt,
+      data: result.state,
+      diagnostics: result.diagnostics,
+      localBackupKey: key
+    };
+    set({
+      restorePreview: {
+        valid: true,
+        errors: [],
+        backup,
+        preview: {
+          exportedAt: result.preview.exportedAt,
+          companyCount: result.preview.tickerCount,
+          externalReportCount: result.preview.reportCount,
+          historicalRequirementSets: result.preview.historicalRequirementSetCount,
+          supplementCount: result.preview.supplementCount,
+          evaluatedCompanies: result.preview.evaluatedCompanyCount,
+          currentReportCount: Object.values(state.externalAnalyses || {}).reduce((sum, list) => sum + (Array.isArray(list) ? list.length : 0), 0),
+          source: "localStorage"
+        }
+      },
+      notice: state.language === "ar"
+        ? "تم العثور على نسخة محلية قابلة للاستعادة. راجع الملخص قبل الاستعادة."
+        : "A local recovery backup is ready. Review the preview before restoring."
+    });
   }
 
   function previewInvestmentRestore(text) {
@@ -1212,11 +1268,23 @@ export function createStore() {
     const next = mode === "replace"
       ? replaceInvestmentDataBackup(state, state.restorePreview.backup)
       : mergeInvestmentDataBackup(state, state.restorePreview.backup);
-    const normalizedExternalAnalyses = normalizeExternalAnalysesCollection(next.externalAnalyses || {});
+    const migrated = migrateFranklinState(next).state;
+    const validation = validateRestoredCandidate(state.restorePreview.backup.data || {}, migrated);
+    if (!validation.valid) {
+      set({
+        notice: state.language === "ar"
+          ? "أوقفت الاستعادة لأن التحقق وجد أن تقارير أو متطلبات ستنقص."
+          : "Restore was stopped because validation detected dropped reports or requirements."
+      });
+      return;
+    }
+    createLocalStateBackup(localStorage, localStorage.getItem(STORAGE_KEY), "pre-restore");
+    const normalizedExternalAnalyses = normalizeExternalAnalysesCollection(migrated.externalAnalyses || {});
     set({
-      ...next,
+      ...migrated,
       externalAnalyses: normalizedExternalAnalyses,
-      historicalRequirementSets: normalizeHistoricalRequirementSets(next.historicalRequirementSets || {}, normalizedExternalAnalyses),
+      historicalRequirementSets: normalizeHistoricalRequirementSets(migrated.historicalRequirementSets || {}, normalizedExternalAnalyses),
+      localBackupRegistry: findLocalFranklinBackups(localStorage),
       restorePreview: null,
       notice: state.language === "ar"
         ? (mode === "replace" ? "تم استبدال بيانات Franklin من النسخة الاحتياطية." : "تم دمج النسخة الاحتياطية مع بيانات Franklin الحالية.")
@@ -1428,6 +1496,8 @@ export function createStore() {
     setManualInput,
     clearLocalData,
     createInvestmentBackup,
+    refreshLocalBackupRegistry,
+    previewLocalBackupRestore,
     previewInvestmentRestore,
     cancelInvestmentRestore,
     restoreInvestmentBackup,
@@ -1461,14 +1531,18 @@ function normalizeEvaluatedSort(sort) {
 
 function load() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-  } catch {
-    return {};
+    const raw = localStorage.getItem(STORAGE_KEY) || "{}";
+    return migrateFranklinState(JSON.parse(raw)).state;
+  } catch (error) {
+    return migrateFranklinState({
+      __franklinMigrationError: String(error?.message || error)
+    }).state;
   }
 }
 
 function persist(state) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    stateSchemaVersion: state.stateSchemaVersion || 1,
     company: state.company,
     manualInputs: state.manualInputs,
     language: state.language,

@@ -426,6 +426,8 @@ button:disabled {
 .supplement-sheet,
 .manual-missing-panel,
 .backup-restore-panel,
+.local-backup-registry,
+.local-backup-card,
 .restore-preview-card,
 .save-confirmation-banner {
   width: 100%;
@@ -2132,10 +2134,53 @@ label {
 .supplement-sheet,
 .manual-missing-panel,
 .backup-restore-panel,
+.local-backup-registry,
+.local-backup-card,
 .restore-preview-card {
   padding: 13px;
   display: grid;
   gap: 12px;
+}
+
+.local-backup-list {
+  display: grid;
+  gap: 10px;
+}
+
+.local-backup-card {
+  box-shadow: none;
+  background: var(--surface-2);
+}
+
+.local-backup-card > div:first-child,
+.restore-preview-card > div:first-child {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.local-backup-card span,
+.restore-safety-note {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.boot-failure-panel {
+  gap: 14px;
+}
+
+.boot-error-message {
+  display: block;
+  padding: 10px;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--danger);
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .missing-data-head > strong {

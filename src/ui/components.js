@@ -6101,6 +6101,7 @@ function settingsPanel(state) {
           <span>${uiLabel("Restore Investment Data")}</span>
           <input type="file" accept="application/json,.json" data-restore-investment-backup>
         </label>
+        ${localRecoveryBackupsPanel(state.localBackupRegistry || [])}
         ${restorePreviewPanel(state.restorePreview)}
       </section>
       <button class="icon-btn" data-action="load-external-demo">${uiLabel("Open DEMO External Report")}</button>
@@ -6109,6 +6110,35 @@ function settingsPanel(state) {
         ${analysisText("API keys are stored only as server-side environment variables. Imported reports remain local in this browser until cleared. Franklin stores research knowledge and does not create investment analysis.")}
       </div>
     </section>
+  `;
+}
+
+function localRecoveryBackupsPanel(backups = []) {
+  const usable = backups.filter((backup) => backup.valid && backup.reportCount > 0);
+  if (!usable.length) return "";
+  return `
+    <div class="local-backup-registry">
+      <div>
+        <strong>${uiLabel("Local Recovery Backups")}</strong>
+        <p>${uiLabel("Franklin found saved local recovery snapshots. Preview before restoring; cloud data will not be changed.")}</p>
+      </div>
+      <div class="local-backup-list">
+        ${usable.slice(0, 6).map((backup) => `
+          <article class="local-backup-card">
+            <div>
+              <strong>${escapeHtml(backup.reason || "recovery")}</strong>
+              <span>${escapeHtml(backup.createdAt || "-")}</span>
+            </div>
+            <div class="settings-grid">
+              ${compactCardMetric(uiLabel("Companies"), backup.tickerCount)}
+              ${compactCardMetric(uiLabel("Analyses"), backup.reportCount)}
+              ${compactCardMetric(uiLabel("Historical Requirements"), backup.requirementSetCount)}
+            </div>
+            <button class="icon-btn" data-local-backup-key="${escapeHtml(backup.key)}">${uiLabel("Preview Restore")}</button>
+          </article>
+        `).join("")}
+      </div>
+    </div>
   `;
 }
 
@@ -6134,9 +6164,11 @@ function restorePreviewPanel(result) {
         ${compactCardMetric(uiLabel("Companies"), preview.companyCount ?? 0)}
         ${compactCardMetric(uiLabel("Analyses"), preview.externalReportCount ?? 0)}
         ${compactCardMetric(uiLabel("Historical Requirements"), preview.historicalRequirementSets ?? 0)}
+        ${preview.currentReportCount !== undefined ? compactCardMetric(uiLabel("Current Device Reports"), preview.currentReportCount ?? 0) : ""}
         ${compactCardMetric(uiLabel("Evaluated Companies"), preview.evaluatedCompanies ?? 0)}
         ${compactCardMetric(uiLabel("Watchlist"), preview.watchListItems ?? 0)}
       </div>
+      <p class="restore-safety-note">${uiLabel("Restore replaces or merges local browser data only. Cloud data is not modified.")}</p>
       <div class="restore-actions">
         <button class="primary-btn" data-action="confirm-restore-merge">${uiLabel("Merge Backup")}</button>
         <button class="icon-btn warning-action" data-action="confirm-restore-replace">${uiLabel("Replace Local Data")}</button>
@@ -6532,6 +6564,9 @@ function bind(root, store, actions) {
   });
   root.querySelector("[data-action='clear-local-data']")?.addEventListener("click", store.clearLocalData);
   root.querySelector("[data-action='export-all-investment-data']")?.addEventListener("click", () => exportAllInvestmentData(store));
+  root.querySelectorAll("[data-local-backup-key]").forEach((button) => {
+    button.addEventListener("click", () => store.previewLocalBackupRestore(button.dataset.localBackupKey));
+  });
   root.querySelector("[data-restore-investment-backup]")?.addEventListener("change", (event) => {
     const file = event.target.files?.[0];
     if (file) readInvestmentBackupFile(store, file);
