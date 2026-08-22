@@ -8,9 +8,29 @@ import { registerServiceWorker, watchOfflineState } from "./pwa.js";
 import { bootstrapAuditSnapshot, mountCloudControls } from "./cloud/franklinCloud.js";
 
 const root = document.getElementById("app");
+const APP_STATE_KEY = "equityResearchV4State";
+const AUDIT_PREVIOUS_STATE_KEY = "franklinAuditPreviousLocalStateV1";
+const hasAuditToken = /(?:^#|&)audit=/.test(String(window.location.hash || ""));
+
+// Audit snapshots temporarily seed only the viewer's browser state. The original
+// state is restored automatically after the audit fragment is removed.
+if (!hasAuditToken && sessionStorage.getItem(AUDIT_PREVIOUS_STATE_KEY) !== null) {
+  const previous = sessionStorage.getItem(AUDIT_PREVIOUS_STATE_KEY);
+  if (previous === "__FRANKLIN_NONE__") localStorage.removeItem(APP_STATE_KEY);
+  else localStorage.setItem(APP_STATE_KEY, previous);
+  sessionStorage.removeItem(AUDIT_PREVIOUS_STATE_KEY);
+}
+
 let auditBootstrapError = null;
 try {
   await bootstrapAuditSnapshot();
+  if (window.__FRANKLIN_AUDIT_MODE?.readOnly && window.__FRANKLIN_BOOTSTRAP_STATE) {
+    if (sessionStorage.getItem(AUDIT_PREVIOUS_STATE_KEY) === null) {
+      const previous = localStorage.getItem(APP_STATE_KEY);
+      sessionStorage.setItem(AUDIT_PREVIOUS_STATE_KEY, previous === null ? "__FRANKLIN_NONE__" : previous);
+    }
+    localStorage.setItem(APP_STATE_KEY, JSON.stringify(window.__FRANKLIN_BOOTSTRAP_STATE));
+  }
 } catch (error) {
   auditBootstrapError = error;
 }
