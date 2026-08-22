@@ -27,7 +27,7 @@ const baseReport = {
     fairValueLow: 80,
     fairValueBase: 125,
     fairValueHigh: 160,
-    probabilityWeightedFairValue: 121.5,
+    probabilityWeightedFairValue: 123,
     upsideDownsidePercent: 25,
     marginOfSafetyPercent: 20
   },
