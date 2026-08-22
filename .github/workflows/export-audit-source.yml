@@ -1,0 +1,28 @@
+name: Export audit workspace
+
+on:
+  push:
+    branches:
+      - audit/source-export-v2
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Package source
+        run: |
+          tar --exclude=.git -czf franklin-audit-source.tar.gz .
+      - name: Upload source artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: franklin-audit-source
+          path: franklin-audit-source.tar.gz
+          retention-days: 1
