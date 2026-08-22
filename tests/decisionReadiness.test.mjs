@@ -40,6 +40,20 @@ const inheritedReadiness = classifyDecisionReadiness(quarterlyInherited);
 assert.equal(inheritedReadiness.status, "quarterly_inherited");
 assert.equal(inheritedReadiness.asOfDate, "2026-08-19");
 
+const revalued = {
+  ...full,
+  analysisDate: "2026-08-20",
+  metadata: {
+    importMethod: "earnings_revaluation",
+    decisionAsOfDate: "2026-08-20",
+    valuationAsOfDate: "2026-08-20"
+  }
+};
+const revaluedReadiness = classifyDecisionReadiness(revalued);
+assert.equal(revaluedReadiness.status, "earnings_revalued");
+assert.equal(revaluedReadiness.asOfDate, "2026-08-20");
+assert.ok(revaluedReadiness.reasons.includes("POST_EARNINGS_REVALUATION"));
+
 const missingSources = {
   ...quarterlyInherited,
   metadata: { importMethod: "quarterly_earnings_lite", baseAnalysisDate: "2026-08-19" }
