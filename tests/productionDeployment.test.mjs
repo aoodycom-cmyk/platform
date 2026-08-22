@@ -137,9 +137,9 @@ try {
   assert.equal(app.status, 200);
   assert.ok(app.text.includes("Franklin Research 11.0.0"));
   assert.ok(app.text.includes("apple-mobile-web-app-title"));
-  assert.ok(app.text.includes("styles.css?v=v11-franklin-v34-20260822-cloud1"));
-  assert.ok(app.text.includes("styles-mobile2.css?v=v11-franklin-v34-20260822-cloud1"));
-  assert.ok(app.text.includes("src/main.js?v=v11-franklin-v34-20260822-cloud1"));
+  assert.ok(app.text.includes("styles.css?v=v11-franklin-v35-20260822-financial-safety1"));
+  assert.ok(app.text.includes("styles-mobile2.css?v=v11-franklin-v35-20260822-financial-safety1"));
+  assert.ok(app.text.includes("src/main.js?v=v11-franklin-v35-20260822-financial-safety1"));
   assert.ok(app.text.includes("franklin-cache-reset"));
 
   const search = await inject(server, { method: "POST", path: "/api/search", headers: { cookie }, body: { query: "AAPL" } });
@@ -173,8 +173,11 @@ try {
 
   const serviceWorker = await inject(server, { path: "/service-worker.js", headers: { cookie } });
   assert.equal(serviceWorker.status, 200);
-  assert.ok(serviceWorker.text.includes("franklin-research-v11-franklin-v34-20260822-cloud1"));
+  assert.ok(serviceWorker.text.includes("franklin-research-v11-franklin-v35-20260822-financial-safety1"));
   assert.ok(serviceWorker.text.includes("src/cloud/franklinCloud.js"));
+  assert.ok(serviceWorker.text.includes("src/financialSafety/financialSafety.js"));
+  assert.ok(serviceWorker.text.includes("src/financialSafety/quarterlySourceSafety.js"));
+  assert.ok(serviceWorker.text.includes("src/financialSafety/decisionReadinessUi.js"));
   assert.ok(serviceWorker.text.includes("src/ui/foundation.js"));
   assert.ok(serviceWorker.text.includes("styles-v11-mobile-cleanup.css"));
   assert.ok(serviceWorker.text.includes("isVersionedAppAsset"));
@@ -197,7 +200,10 @@ try {
     "../public/src/state/store.js",
     "../public/src/ui/components.js",
     "../public/src/main.js",
-    "../public/src/pwa.js"
+    "../public/src/pwa.js",
+    "../public/src/financialSafety/financialSafety.js",
+    "../public/src/financialSafety/quarterlySourceSafety.js",
+    "../public/src/financialSafety/decisionReadinessUi.js"
   ].map((file) => readFileSync(new URL(file, import.meta.url), "utf8")).join("\n");
   for (const forbidden of ["apiKey", "apiKeys", "financialmodelingprep", "api.openai.com", "Authorization", "equityResearchFmpKey", "equityResearchOpenAiKey"]) {
     assert.equal(frontendFiles.includes(forbidden), false, `${forbidden} must not appear in frontend bundles.`);
