@@ -102,9 +102,26 @@ export function prepareHistoricalRequirementEvaluation(report = {}, requirementS
 export function applyHistoricalRequirementLifecycle(collection = {}, report = {}, match = {}, now = new Date()) {
   let next = normalizeHistoricalRequirementSets(collection);
   const evaluation = report.previousRequirementsEvaluation;
-  if (hasExplicitPreviousRequirementEvaluation(evaluation) && evaluationReachesTarget(evaluation, report)) {
+  const matchedOpenSet = match?.status === "matched" && match?.set?.status === "OPEN"
+    ? match.set
+    : null;
+  const evaluationMatchesOpenSet = Boolean(
+    matchedOpenSet
+    && evaluation?.requirementSetId
+    && matchedOpenSet.requirementSetId === evaluation.requirementSetId
+  );
+
+  // A report may carry an old or malformed evaluation block. Never let that
+  // block overwrite an already-closed set unless this import matched the open
+  // set during the current save flow and the report period reaches the target.
+  if (
+    evaluationMatchesOpenSet
+    && hasExplicitPreviousRequirementEvaluation(evaluation)
+    && evaluationReachesTarget(evaluation, report)
+  ) {
     next = markRequirementSetEvaluated(next, evaluation, report, now);
   }
+
   const nextSet = createRequirementSetFromReport(report, now);
   if (nextSet && !isSameSetAsPreviousEvaluation(nextSet, evaluation)) {
     next = upsertRequirementSet(next, nextSet);
@@ -212,7 +229,7 @@ function markRequirementSetEvaluated(collection, evaluation, report, now) {
   return {
     ...collection,
     [ticker]: sets.map((set) => {
-      if (set.requirementSetId !== evaluation.requirementSetId) return set;
+      if (set.requirementSetId !== evaluation.requirementSetId || set.status !== "OPEN") return set;
       return {
         ...set,
         status: "EVALUATED",
@@ -357,9 +374,17 @@ function hasExplicitPreviousRequirementEvaluation(evaluation = {}) {
 
 function evaluationReachesTarget(evaluation = {}, report = {}) {
   const target = normalizedEarningsPeriod(evaluation.targetQuarter);
-  if (!target) return true;
-  const reported = normalizedEarningsPeriod(evaluation.earningsPeriod || report.reportPeriod);
-  return reported ? reported === target : true;
+  const reportPeriod = normalizedEarningsPeriod(
+    report.reportPeriod || report.reportedEarningsPeriod || report.earningsPeriod
+  );
+  const evaluationPeriod = normalizedEarningsPeriod(evaluation.earningsPeriod);
+
+  // A payload must not be allowed to claim Q2 inside its evaluation block while
+  // the report itself is explicitly Q1. The report-level period is authoritative.
+  if (reportPeriod && evaluationPeriod && reportPeriod !== evaluationPeriod) return false;
+  const reported = reportPeriod || evaluationPeriod;
+  if (!reported) return false;
+  return target ? reported === target : true;
 }
 
 function isSameSetAsPreviousEvaluation(set, evaluation) {
@@ -370,10 +395,10 @@ function isSameSetAsPreviousEvaluation(set, evaluation) {
 }
 
 function extractReportedEarningsPeriod(report = {}) {
-  return report.previousRequirementsEvaluation?.earningsPeriod
-    || report.earningsPeriod
+  return report.reportPeriod
     || report.reportedEarningsPeriod
-    || report.reportPeriod
+    || report.earningsPeriod
+    || report.previousRequirementsEvaluation?.earningsPeriod
     || null;
 }
 

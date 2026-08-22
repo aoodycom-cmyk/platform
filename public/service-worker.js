@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v11-franklin-v34-20260822-cloud1";
+const CACHE_NAME = "franklin-research-v11-franklin-v35-20260822-financial-safety1";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -15,6 +15,9 @@ const STATIC_ASSETS = [
   "./src/main.js",
   "./src/pwa.js",
   "./src/cloud/franklinCloud.js",
+  "./src/financialSafety/financialSafety.js",
+  "./src/financialSafety/quarterlySourceSafety.js",
+  "./src/financialSafety/decisionReadinessUi.js",
   "./src/ui/foundation.js",
   "./src/ui/mobile2Enhancer.js",
   "./src/ui/quarterlyScorecardMobileFigma.js",

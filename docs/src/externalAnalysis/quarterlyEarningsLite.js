@@ -8,6 +8,15 @@ export const QUARTERLY_EARNINGS_LITE_SCHEMA = "quarterly-earnings-lite/v1";
 
 const REQUIREMENT_STATUSES = new Set(["EXCEEDED", "PASSED", "PARTIALLY_PASSED", "FAILED", "NOT_REPORTED"]);
 const GUIDANCE_DIRECTIONS = new Set(["raised", "maintained", "lowered", "new", "not_applicable"]);
+const ASSESSMENT_COUNT_FIELDS = [
+  "reportedRequirements",
+  "totalRequirements",
+  "passed",
+  "failed",
+  "exceeded",
+  "partiallyPassed",
+  "notReported"
+];
 
 export function parseQuarterlyEarningsContext(text = "") {
   const match = String(text || "").match(/\[Selected quarter:\s*Q([1-4])\s+(\d{4})\]/i);
@@ -102,6 +111,7 @@ export function buildQuarterlyEarningsLitePrompt(report = {}, options = {}) {
     "- قارن فقط المتطلبات السابقة المرفقة أدناه، ولا تنشئ متطلبات جديدة.",
     "- عند وصول الربع المستهدف، أرسل requirementsAssessment كما حسبته أنت من التحليل: لا تترك weightedAchievement أو أعداد النتائج فارغة إذا كانت قابلة للتقييم.",
     "- Franklin لا يعيد حساب requirementsAssessment ولا حالات المتطلبات؛ لذلك أرسل القيم والحالات النهائية كما توصلت إليها أنت.",
+    "- اجعل reportedRequirements وtotalRequirements وأعداد PASSED/FAILED/EXCEEDED/PARTIALLY_PASSED/NOT_REPORTED مطابقة حرفيًا لحالات requirements؛ Franklin سيتحقق من الاتساق ويرفض الحفظ عند التعارض.",
     "- إذا كان المتطلب هدفًا لربع لاحق، سجّل actualValue/actualDisplay لهذا الربع فقط عندما يكون نفس الـKPI قابلًا للمقارنة، لكن أبقِ status = NOT_REPORTED حتى يصل الربع المستهدف؛ هذا Observation للتقدم وليس حكمًا نهائيًا.",
     "- قبل الربع المستهدف اجعل حقول requirementsAssessment = null، ولا تحوّل ملاحظة التقدم إلى نسبة إنجاز نهائية.",
     "- لا تستخدم رقم الربع الحالي بدل متطلب يذكر ربعًا مستقبليًا صراحةً؛ مثال: Q1 Net Sales لا يملأ متطلب Q3 Net Sales.",
@@ -144,22 +154,35 @@ export function inflateQuarterlyEarningsLitePayload(currentReport = {}, payload 
   const year = Number(payload.year);
   if (!quarter || !Number.isInteger(year) || year < 2000 || year > 2100) throw new Error("Quarter/year are required for quarterly earnings lite JSON.");
   const reportPeriod = `${quarter} ${year}`;
+  const reportDate = validDate(payload.reportDate) || now.toISOString().slice(0, 10);
   const metrics = payload.metrics && typeof payload.metrics === "object" ? payload.metrics : {};
   const requirementBlock = currentReport.priceTargetRequirements || {};
   const requirements = mergeLiteRequirementResults(requirementBlock.requirements, payload.requirements);
   const requirementsAssessment = payload.requirementsAssessment && typeof payload.requirementsAssessment === "object" && !Array.isArray(payload.requirementsAssessment)
     ? normalizeRequirementsAssessment(payload.requirementsAssessment)
     : null;
+  validateQuarterlyAssessmentIntegrity({
+    reportPeriod,
+    targetPeriod: requirementBlock.targetQuarter || requirementBlock.earningsPeriod || null,
+    requirements,
+    requirementsAssessment
+  });
   const summary = trimText(payload.summary, 400);
   const guidance = normalizeLiteGuidance(payload.guidance).slice(0, 3);
   const companyKpis = normalizeLiteKpis(payload.companyKpis).slice(0, 4);
   const forwardOutlook = normalizeQuarterlyForwardOutlook(payload.forwardOutlook);
   const raw = String(rawText || JSON.stringify(payload));
+  const currentMetadata = currentReport.metadata || {};
+  const baseAnalysisId = currentMetadata.baseAnalysisId || currentReport.id || null;
+  const baseAnalysisDate = currentMetadata.baseAnalysisDate || currentReport.analysisDate || null;
+  const baseReportPeriod = currentMetadata.baseReportPeriod || currentReport.reportPeriod || null;
+  const valuationAsOfDate = currentMetadata.valuationAsOfDate || baseAnalysisDate;
+  const decisionAsOfDate = currentMetadata.decisionAsOfDate || baseAnalysisDate;
 
   return {
     ...currentReport,
     id: null,
-    analysisDate: validDate(payload.reportDate) || now.toISOString().slice(0, 10),
+    analysisDate: reportDate,
     reportPeriod,
     financialHighlights: {
       revenue: metricNumber(metrics.revenue),
@@ -213,13 +236,91 @@ export function inflateQuarterlyEarningsLitePayload(currentReport = {}, payload 
     rawAnalysis: raw,
     rawAnalysisOriginal: raw,
     metadata: {
-      ...(currentReport.metadata || {}),
+      ...currentMetadata,
       importedAt: null,
       updatedAt: null,
       rawHash: null,
-      importMethod: "quarterly_earnings_lite"
+      importMethod: "quarterly_earnings_lite",
+      analysisScope: "quarterly_earnings_update",
+      baseAnalysisId,
+      baseAnalysisDate,
+      baseReportPeriod,
+      earningsReportDate: reportDate,
+      valuationAsOfDate,
+      decisionAsOfDate
     }
   };
+}
+
+export function validateQuarterlyAssessmentIntegrity({
+  reportPeriod,
+  targetPeriod,
+  requirements = [],
+  requirementsAssessment = null
+} = {}) {
+  const reportQuarter = normalizeQuarterPeriod(reportPeriod);
+  const targetQuarter = normalizeQuarterPeriod(targetPeriod);
+  const items = Array.isArray(requirements) ? requirements : [];
+  const counts = requirementStatusCounts(items);
+  const atTarget = Boolean(reportQuarter && targetQuarter && reportQuarter === targetQuarter);
+  const beforeOrDifferentTarget = Boolean(reportQuarter && targetQuarter && reportQuarter !== targetQuarter);
+
+  if (beforeOrDifferentTarget) {
+    if (counts.reported > 0) {
+      throw new Error(`Quarterly requirement statuses must remain NOT_REPORTED before the target quarter (${targetQuarter}).`);
+    }
+    if (hasMaterialAssessment(requirementsAssessment)) {
+      throw new Error(`requirementsAssessment must remain null before the target quarter (${targetQuarter}).`);
+    }
+    return true;
+  }
+
+  if (!atTarget || counts.reported === 0) return true;
+  if (!requirementsAssessment || !hasMaterialAssessment(requirementsAssessment)) {
+    throw new Error("requirementsAssessment is required when the target quarter contains reported requirement results.");
+  }
+
+  if (!Number.isFinite(requirementsAssessment.weightedAchievement)
+    || requirementsAssessment.weightedAchievement < 0
+    || requirementsAssessment.weightedAchievement > 100) {
+    throw new Error("requirementsAssessment.weightedAchievement must be a number between 0 and 100 at the target quarter.");
+  }
+  for (const field of ASSESSMENT_COUNT_FIELDS) {
+    if (!Number.isInteger(requirementsAssessment[field]) || requirementsAssessment[field] < 0) {
+      throw new Error(`requirementsAssessment.${field} must be a non-negative integer at the target quarter.`);
+    }
+  }
+  if (!trimText(requirementsAssessment.overallStatus, 120)) {
+    throw new Error("requirementsAssessment.overallStatus is required at the target quarter.");
+  }
+  if (!trimText(requirementsAssessment.summary, 400)) {
+    throw new Error("requirementsAssessment.summary is required at the target quarter.");
+  }
+
+  const expected = {
+    totalRequirements: counts.total,
+    reportedRequirements: counts.reported,
+    passed: counts.passed,
+    failed: counts.failed,
+    exceeded: counts.exceeded,
+    partiallyPassed: counts.partiallyPassed,
+    notReported: counts.notReported
+  };
+  for (const [field, value] of Object.entries(expected)) {
+    if (requirementsAssessment[field] !== value) {
+      throw new Error(`requirementsAssessment.${field} (${requirementsAssessment[field]}) does not match requirement statuses (${value}).`);
+    }
+  }
+
+  const weights = items.map((item) => item?.weight);
+  if (weights.length && weights.some((weight) => !Number.isFinite(weight) || weight < 0)) {
+    throw new Error("Quarterly requirement definitions must preserve valid non-negative weights.");
+  }
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  if (weights.length && Math.abs(totalWeight - 100) > 0.01) {
+    throw new Error(`Quarterly requirement weights must total 100; received ${totalWeight}.`);
+  }
+  return true;
 }
 
 function compactRequirements(items = []) {
@@ -339,6 +440,43 @@ function normalizeResultText(value) {
   if (clean === "MISS") return "أقل من المتوقع";
   if (clean === "INLINE") return "متوافق مع المتوقع";
   return null;
+}
+
+function requirementStatusCounts(items = []) {
+  const counts = {
+    total: items.length,
+    reported: 0,
+    passed: 0,
+    failed: 0,
+    exceeded: 0,
+    partiallyPassed: 0,
+    notReported: 0
+  };
+  for (const item of items) {
+    const status = String(item?.status || "NOT_REPORTED").trim().toUpperCase();
+    if (status === "PASSED") counts.passed += 1;
+    else if (status === "FAILED") counts.failed += 1;
+    else if (status === "EXCEEDED") counts.exceeded += 1;
+    else if (status === "PARTIALLY_PASSED") counts.partiallyPassed += 1;
+    else counts.notReported += 1;
+  }
+  counts.reported = counts.total - counts.notReported;
+  return counts;
+}
+
+function hasMaterialAssessment(value) {
+  if (!value || typeof value !== "object") return false;
+  return value.weightedAchievement !== null
+    || ASSESSMENT_COUNT_FIELDS.some((field) => value[field] !== null)
+    || Boolean(trimText(value.overallStatus, 120))
+    || Boolean(trimText(value.summary, 400));
+}
+
+function normalizeQuarterPeriod(value) {
+  const text = String(value || "").trim().toUpperCase();
+  const quarter = text.match(/\bQ([1-4])\b/);
+  const year = text.match(/(20\d{2})/);
+  return quarter && year ? `Q${quarter[1]} ${year[1]}` : null;
 }
 
 function metricNumber(item) {
