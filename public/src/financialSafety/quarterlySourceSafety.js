@@ -8,10 +8,14 @@ export function installQuarterlySourceSafety(store, root = document.getElementBy
   wrapParser(store);
   wrapSave(store);
 
-  const render = () => renderSourceProvenanceWarning(store, root);
-  store.subscribe(render);
-  if (root) new MutationObserver(render).observe(root, { childList: true, subtree: true });
-  setTimeout(render, 0);
+  let frame = 0;
+  const schedule = () => {
+    cancelFrame(frame);
+    frame = nextFrame(() => renderSourceProvenanceWarning(store, root));
+  };
+  store.subscribe(schedule);
+  if (root) new MutationObserver(schedule).observe(root, { childList: true, subtree: true });
+  setTimeout(schedule, 0);
 }
 
 export function appendQuarterlySourceContract(prompt = "") {
@@ -160,13 +164,15 @@ function renderSourceProvenanceWarning(store, root) {
   }
   const ar = document.documentElement.dir === "rtl" || document.documentElement.lang === "ar";
   const banner = old || document.createElement("section");
-  banner.className = "franklin-quarterly-source-warning";
-  banner.innerHTML = `
+  const className = "franklin-quarterly-source-warning";
+  const html = `
     <strong>${ar ? "مصادر الربع غير موثقة" : "Quarterly sources are not traceable"}</strong>
     <p>${ar
       ? "قائمة المصادر الظاهرة قد تكون موروثة من التحليل الكامل السابق ولا تثبت مصدر أرقام هذا الربع. لا تعتمد على هذا التحديث لاتخاذ قرار قبل إعادة استيراده بمصدر رسمي أو مواد أرباح موثقة."
       : "The visible source list may be inherited from the prior full analysis and does not prove where this quarter's figures came from. Do not use this update for a decision until it is re-imported with an official source or traceable earnings materials."}</p>
   `;
+  setClassName(banner, className);
+  setHtml(banner, html);
   ensureStyles();
   if (!old) {
     const decisionBanner = root.querySelector(".franklin-financial-safety-banner");
@@ -218,6 +224,27 @@ function parseJsonObject(rawText) {
 function text(value, maxLength) {
   const clean = String(value ?? "").trim();
   return clean ? clean.slice(0, maxLength) : null;
+}
+
+function nextFrame(callback) {
+  if (typeof requestAnimationFrame === "function") return requestAnimationFrame(callback);
+  return setTimeout(callback, 0);
+}
+
+function cancelFrame(frame) {
+  if (!frame) return;
+  if (typeof cancelAnimationFrame === "function") cancelAnimationFrame(frame);
+  else clearTimeout(frame);
+}
+
+function setClassName(element, className) {
+  if (element.className !== className) element.className = className;
+}
+
+function setHtml(element, html) {
+  if (element.dataset.franklinContentKey === html) return;
+  element.innerHTML = html;
+  element.dataset.franklinContentKey = html;
 }
 
 function ensureStyles() {

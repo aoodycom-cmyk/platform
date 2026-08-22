@@ -16,6 +16,6 @@ assert.ok(rootCss.includes("1440px"), "scorecard desktop canvas must support the
 assert.ok(rootCss.includes('"detail annual"') && rootCss.includes('"detail main"'), "desktop scorecard must place detail panel beside annual summary and matrix");
 assert.ok(rootCss.includes(".quarterly-scorecard-layout") && rootCss.includes("display: contents"), "scorecard nested layout must participate in the Figma desktop grid");
 assert.ok(rootCss.includes(".quarterly-mobile-cards") && rootCss.includes("display: none"), "desktop scorecard must render the matrix instead of enlarged mobile cards");
-assert.ok(index.includes("styles-desktop.css?v=v11-franklin-v35-20260822-report-freeze1"), "app must load the desktop responsive layer after the existing styles");
+assert.ok(index.includes("styles-desktop.css?v=v11-franklin-v35-20260822-restore-freeze2"), "app must load the desktop responsive layer after the existing styles");
 
 console.log("Desktop responsive and Figma scorecard regression tests passed.");
