@@ -10,12 +10,13 @@
   <meta name="apple-mobile-web-app-title" content="Franklin Research">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png">
-  <link rel="manifest" href="./manifest.webmanifest?v=v11-franklin-v35-20260822-safe-recovery1">
+  <link rel="manifest" href="./manifest.webmanifest?v=v11-franklin-v35-20260822-mobile-rescue1">
   <script>
     (function () {
-      var version = "v11-franklin-v35-20260822-safe-recovery1";
+      var version = "v11-franklin-v35-20260822-mobile-rescue1";
+      var forceReset = /(?:[?&](?:fresh|reset-pwa)=)/.test(window.location.search || "");
       if (!("serviceWorker" in navigator) || !("caches" in window)) return;
-      if (sessionStorage.getItem("franklin-cache-reset") === version) return;
+      if (!forceReset && sessionStorage.getItem("franklin-cache-reset") === version) return;
       sessionStorage.setItem("franklin-cache-reset", version);
       Promise.all([
         navigator.serviceWorker.getRegistrations().then(function (items) {
@@ -25,18 +26,30 @@
           return Promise.all(keys.filter(function (key) { return key.indexOf("franklin-research") === 0; }).map(function (key) { return caches.delete(key); }));
         })
       ]).finally(function () {
-        window.location.reload();
+        if (!forceReset) {
+          window.location.reload();
+          return;
+        }
+        try {
+          var nextUrl = new URL(window.location.href);
+          nextUrl.searchParams.delete("fresh");
+          nextUrl.searchParams.delete("reset-pwa");
+          nextUrl.searchParams.set("v", version);
+          window.location.replace(nextUrl.toString());
+        } catch (_) {
+          window.location.replace("./?v=" + version);
+        }
       });
     }());
   </script>
-  <link rel="stylesheet" href="./styles.css?v=v11-franklin-v35-20260822-safe-recovery1">
-  <link rel="stylesheet" href="./styles-mobile-scorecard-figma.css?v=v11-franklin-v35-20260822-safe-recovery1">
-  <link rel="stylesheet" href="./styles-quarterly-earnings-entry.css?v=v11-franklin-v35-20260822-safe-recovery1">
-  <link rel="stylesheet" href="./styles-desktop.css?v=v11-franklin-v35-20260822-safe-recovery1">
-  <link rel="stylesheet" href="./styles-premium.css?v=v11-franklin-v35-20260822-safe-recovery1">
-  <link rel="stylesheet" href="./styles-v11-mobile-cleanup.css?v=v11-franklin-v35-20260822-safe-recovery1">
-  <link rel="stylesheet" href="./styles-mobile2.css?v=v11-franklin-v35-20260822-safe-recovery1">
-  <script src="./backend-config.js?v=v11-franklin-v35-20260822-safe-recovery1"></script>
+  <link rel="stylesheet" href="./styles.css?v=v11-franklin-v35-20260822-mobile-rescue1">
+  <link rel="stylesheet" href="./styles-mobile-scorecard-figma.css?v=v11-franklin-v35-20260822-mobile-rescue1">
+  <link rel="stylesheet" href="./styles-quarterly-earnings-entry.css?v=v11-franklin-v35-20260822-mobile-rescue1">
+  <link rel="stylesheet" href="./styles-desktop.css?v=v11-franklin-v35-20260822-mobile-rescue1">
+  <link rel="stylesheet" href="./styles-premium.css?v=v11-franklin-v35-20260822-mobile-rescue1">
+  <link rel="stylesheet" href="./styles-v11-mobile-cleanup.css?v=v11-franklin-v35-20260822-mobile-rescue1">
+  <link rel="stylesheet" href="./styles-mobile2.css?v=v11-franklin-v35-20260822-mobile-rescue1">
+  <script src="./backend-config.js?v=v11-franklin-v35-20260822-mobile-rescue1"></script>
   <script>
     (function () {
       var originalUrlToString = URL.prototype.toString;
@@ -103,9 +116,9 @@
 </head>
 <body>
   <div id="app"></div>
-  <script type="module" src="./src/main.js?v=v11-franklin-v35-20260822-safe-recovery1"></script>
-  <script type="module" src="./src/ui/quarterlyScorecardMobileFigma.js?v=v11-franklin-v35-20260822-safe-recovery1"></script>
-  <script type="module" src="./src/ui/quarterlyEarningsEntry.js?v=v11-franklin-v35-20260822-safe-recovery1"></script>
-  <script type="module" src="./src/ui/quarterlyEarningsJsonPromptV2.js?v=v11-franklin-v35-20260822-safe-recovery1"></script>
+  <script type="module" src="./src/main.js?v=v11-franklin-v35-20260822-mobile-rescue1"></script>
+  <script type="module" src="./src/ui/quarterlyScorecardMobileFigma.js?v=v11-franklin-v35-20260822-mobile-rescue1"></script>
+  <script type="module" src="./src/ui/quarterlyEarningsEntry.js?v=v11-franklin-v35-20260822-mobile-rescue1"></script>
+  <script type="module" src="./src/ui/quarterlyEarningsJsonPromptV2.js?v=v11-franklin-v35-20260822-mobile-rescue1"></script>
 </body>
 </html>

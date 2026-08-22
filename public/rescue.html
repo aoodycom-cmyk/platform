@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-store, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <title>Franklin Rescue</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
+      background: #07080d;
+      color: #f1f3f9;
+    }
+
+    body {
+      min-height: 100dvh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: #07080d;
+    }
+
+    main {
+      width: min(100%, 430px);
+      display: grid;
+      gap: 14px;
+      padding: 20px;
+      border: 1px solid #303851;
+      border-radius: 16px;
+      background: #111422;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.36);
+    }
+
+    h1,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 22px;
+      line-height: 1.35;
+    }
+
+    p {
+      color: #c5cad8;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .status {
+      min-height: 44px;
+      padding: 11px 12px;
+      border: 1px solid #1f253b;
+      border-radius: 10px;
+      background: #0b0d16;
+      color: #9aa1b6;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    a,
+    button {
+      min-height: 48px;
+      border: 0;
+      border-radius: 11px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      background: #2dd4bf;
+      color: #07100f;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .secondary {
+      border: 1px solid #303851;
+      background: #181c2e;
+      color: #f1f3f9;
+    }
+
+    .actions {
+      display: grid;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>تنظيف Franklin</h1>
+    <p>سيتم حذف كاش التطبيق القديم فقط، ثم فتح Franklin من نسخة جديدة. لا يتم حذف تحليلاتك أو بياناتك المحفوظة.</p>
+    <div id="status" class="status">جاري تنظيف الكاش...</div>
+    <div class="actions">
+      <a id="openApp" href="./?reset-pwa=1&v=v11-franklin-v35-20260822-mobile-rescue1">فتح Franklin</a>
+      <button id="retry" class="secondary" type="button">إعادة المحاولة</button>
+    </div>
+  </main>
+  <script>
+    (function () {
+      var version = "v11-franklin-v35-20260822-mobile-rescue1";
+      var status = document.getElementById("status");
+      var openApp = document.getElementById("openApp");
+      var retry = document.getElementById("retry");
+      var target = "./?reset-pwa=1&v=" + version + "&fresh=" + Date.now();
+      var redirected = false;
+
+      openApp.href = target;
+      retry.onclick = function () {
+        window.location.reload();
+      };
+
+      function setStatus(text) {
+        if (status) status.textContent = text;
+      }
+
+      function redirect() {
+        if (redirected) return;
+        redirected = true;
+        setStatus("تم التنظيف. جاري فتح Franklin...");
+        window.location.replace(target);
+      }
+
+      function finishSoon() {
+        window.setTimeout(redirect, 450);
+      }
+
+      try {
+        var tasks = [];
+        if ("serviceWorker" in navigator && navigator.serviceWorker.getRegistrations) {
+          tasks.push(navigator.serviceWorker.getRegistrations().then(function (registrations) {
+            return Promise.all(registrations.map(function (registration) {
+              return registration.unregister();
+            }));
+          }));
+        }
+        if ("caches" in window && caches.keys) {
+          tasks.push(caches.keys().then(function (keys) {
+            return Promise.all(keys.filter(function (key) {
+              return key.indexOf("franklin-research") === 0;
+            }).map(function (key) {
+              return caches.delete(key);
+            }));
+          }));
+        }
+        if (tasks.length === 0) {
+          finishSoon();
+        } else {
+          Promise.all(tasks).then(finishSoon).catch(finishSoon);
+        }
+      } catch (_) {
+        finishSoon();
+      }
+
+      window.setTimeout(redirect, 4000);
+    }());
+  </script>
+</body>
+</html>

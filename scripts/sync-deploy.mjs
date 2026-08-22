@@ -23,6 +23,7 @@ const GENERATED_FILES = [
   "service-worker.js",
   "manifest.webmanifest",
   "offline.html",
+  "rescue.html",
   "login.html",
   "backend-config.js",
   "CHANGELOG.md",
