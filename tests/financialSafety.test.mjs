@@ -9,6 +9,7 @@ import {
 } from "../src/externalAnalysis/quarterlyEarningsLite.js";
 import {
   auditFinancialReport,
+  installFinancialSafetyLayer,
   repairHistoricalRequirementSets
 } from "../src/financialSafety/financialSafety.js";
 
@@ -238,4 +239,173 @@ assert.equal(legacyAudit.valid, false);
 assert.ok(legacyAudit.errors.some((item) => item.code === "TARGET_ASSESSMENT_MISSING"));
 assert.ok(legacyAudit.warnings.some((item) => item.code === "INHERITED_DECISION_DATE_MISSING"));
 
+{
+  const writes = [];
+  const frames = [];
+  let subscribed = null;
+  const globals = installFinancialDomHarness(writes, frames);
+
+  try {
+    const root = fakeFinancialRoot(writes, legacyQuarterly);
+    const store = {
+      state: {
+        language: "ar",
+        externalReportSelection: { ticker: "SAFE", reportId: legacyQuarterly.id },
+        externalAnalyses: { SAFE: [legacyQuarterly, baseReport] },
+        historicalRequirementSets: {}
+      },
+      subscribe(listener) {
+        subscribed = listener;
+      }
+    };
+
+    installFinancialSafetyLayer(store, root);
+    flushFinancialFrames(frames);
+    const firstWriteCount = writes.length;
+
+    subscribed();
+    flushFinancialFrames(frames);
+    assert.equal(writes.length, firstWriteCount, "Financial safety warning must not rewrite unchanged DOM.");
+  } finally {
+    restoreFinancialGlobals(globals);
+  }
+}
+
 console.log("Financial safety and lifecycle regression tests passed.");
+
+function installFinancialDomHarness(writes, frames) {
+  const previous = {
+    document: globalThis.document,
+    window: globalThis.window,
+    MutationObserver: globalThis.MutationObserver,
+    requestAnimationFrame: globalThis.requestAnimationFrame,
+    setTimeout: globalThis.setTimeout,
+    structuredClone: globalThis.structuredClone
+  };
+  const elementsById = new Map();
+  globalThis.document = {
+    documentElement: { dir: "rtl", lang: "ar" },
+    head: {
+      append(element) {
+        if (element.id) elementsById.set(element.id, element);
+      }
+    },
+    getElementById(id) {
+      return elementsById.get(id) || null;
+    },
+    createElement(tagName) {
+      return fakeFinancialElement(writes, tagName);
+    }
+  };
+  globalThis.window = {};
+  globalThis.MutationObserver = class {
+    observe() {}
+  };
+  globalThis.requestAnimationFrame = (callback) => {
+    frames.push(callback);
+    return frames.length;
+  };
+  globalThis.setTimeout = (callback) => {
+    callback();
+    return 0;
+  };
+  globalThis.structuredClone = (value) => JSON.parse(JSON.stringify(value));
+  return previous;
+}
+
+function restoreFinancialGlobals(previous) {
+  globalThis.document = previous.document;
+  globalThis.window = previous.window;
+  globalThis.MutationObserver = previous.MutationObserver;
+  globalThis.requestAnimationFrame = previous.requestAnimationFrame;
+  globalThis.setTimeout = previous.setTimeout;
+  globalThis.structuredClone = previous.structuredClone;
+}
+
+function flushFinancialFrames(frames) {
+  while (frames.length) frames.shift()();
+}
+
+function fakeFinancialRoot(writes, report) {
+  let banner = null;
+  const priceLabel = fakeFinancialElement(writes, "span");
+  const upsideLabel = fakeFinancialElement(writes, "span");
+  const completionLabel = fakeFinancialElement(writes, "span");
+  const sortOption = fakeFinancialElement(writes, "option");
+  const host = fakeFinancialHost(writes);
+  const card = {
+    dataset: { externalReportId: report.id },
+    classList: {
+      contains(className) {
+        return className === "v31-library-stock-row";
+      }
+    },
+    querySelector(selector) {
+      return selector === ".v31-library-price-block" ? host : null;
+    }
+  };
+
+  return {
+    querySelector(selector) {
+      if (selector === ".franklin-financial-safety-banner") return banner;
+      if (selector === ".report-app-bar") return null;
+      return null;
+    },
+    querySelectorAll(selector) {
+      if (selector === ".v31-current-price > span") return [priceLabel];
+      if (selector === ".v31-upside-line > span") return [upsideLabel];
+      if (selector === ".library-completion-row > span") return [completionLabel];
+      if (selector === "select[data-library-sort] option[value='upside']") return [sortOption];
+      if (selector === "[data-external-report-id]") return [card];
+      return [];
+    },
+    prepend(element) {
+      banner = element;
+      writes.push("prepend:financial-warning");
+    }
+  };
+}
+
+function fakeFinancialHost(writes) {
+  let asOf = null;
+  return {
+    querySelector(selector) {
+      return selector === ".franklin-price-asof" ? asOf : null;
+    },
+    append(element) {
+      asOf = element;
+      writes.push("append:asof");
+    }
+  };
+}
+
+function fakeFinancialElement(writes) {
+  let className = "";
+  let innerHTML = "";
+  let textContent = "";
+  return {
+    dataset: {},
+    id: "",
+    get className() {
+      return className;
+    },
+    set className(value) {
+      writes.push(`class:${value}`);
+      className = String(value);
+    },
+    get innerHTML() {
+      return innerHTML;
+    },
+    set innerHTML(value) {
+      writes.push("html");
+      innerHTML = String(value);
+    },
+    get textContent() {
+      return textContent;
+    },
+    set textContent(value) {
+      writes.push(`text:${String(value)}`);
+      textContent = String(value);
+    }
+  };
+}

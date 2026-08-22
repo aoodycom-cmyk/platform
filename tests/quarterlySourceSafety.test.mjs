@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import {
   appendQuarterlySourceContract,
   attachQuarterlySources,
-  extractQuarterlySources
+  extractQuarterlySources,
+  installQuarterlySourceSafety
 } from "../src/financialSafety/quarterlySourceSafety.js";
 
 const prompt = appendQuarterlySourceContract("Quarterly prompt");
@@ -56,4 +57,128 @@ assert.ok(invalidUrl.errors.some((item) => item.field === "sources.0.url"));
 const smartQuotes = extractQuarterlySources("“sources”: []");
 assert.equal(smartQuotes.valid, false);
 
+{
+  const frames = [];
+  let subscribed = null;
+  const writes = [];
+  const globals = installDomHarness(writes);
+
+  try {
+    globalThis.requestAnimationFrame = (callback) => {
+      frames.push(callback);
+      return frames.length;
+    };
+    globalThis.cancelAnimationFrame = () => {};
+    globalThis.setTimeout = (callback) => {
+      callback();
+      return 0;
+    };
+    globalThis.MutationObserver = class {
+      observe() {}
+    };
+
+    const root = fakeRoot(writes);
+    const store = {
+      state: {
+        externalReportSelection: { ticker: "SAFE", reportId: "SAFE-q2" },
+        externalAnalyses: {
+          SAFE: [{
+            id: "SAFE-q2",
+            metadata: { importMethod: "quarterly_earnings_lite" }
+          }]
+        }
+      },
+      subscribe(listener) {
+        subscribed = listener;
+      }
+    };
+
+    installQuarterlySourceSafety(store, root);
+    flushFrames(frames);
+    const firstWriteCount = writes.length;
+
+    subscribed();
+    flushFrames(frames);
+    assert.equal(writes.length, firstWriteCount, "Quarterly source warning must not rewrite unchanged DOM.");
+  } finally {
+    restoreGlobals(globals);
+  }
+}
+
 console.log("Quarterly source provenance tests passed.");
+
+function installDomHarness(writes) {
+  const previous = {
+    document: globalThis.document,
+    MutationObserver: globalThis.MutationObserver,
+    requestAnimationFrame: globalThis.requestAnimationFrame,
+    cancelAnimationFrame: globalThis.cancelAnimationFrame,
+    setTimeout: globalThis.setTimeout
+  };
+  const elementsById = new Map();
+  globalThis.document = {
+    documentElement: { dir: "rtl", lang: "ar" },
+    head: {
+      append(element) {
+        if (element.id) elementsById.set(element.id, element);
+      }
+    },
+    getElementById(id) {
+      return elementsById.get(id) || null;
+    },
+    createElement() {
+      return fakeElement(writes);
+    }
+  };
+  return previous;
+}
+
+function restoreGlobals(previous) {
+  globalThis.document = previous.document;
+  globalThis.MutationObserver = previous.MutationObserver;
+  globalThis.requestAnimationFrame = previous.requestAnimationFrame;
+  globalThis.cancelAnimationFrame = previous.cancelAnimationFrame;
+  globalThis.setTimeout = previous.setTimeout;
+}
+
+function flushFrames(frames) {
+  while (frames.length) frames.shift()();
+}
+
+function fakeRoot(writes) {
+  let banner = null;
+  return {
+    querySelector(selector) {
+      if (selector === ".franklin-quarterly-source-warning") return banner;
+      return null;
+    },
+    prepend(element) {
+      banner = element;
+      writes.push("prepend:source-warning");
+    }
+  };
+}
+
+function fakeElement(writes) {
+  let className = "";
+  let innerHTML = "";
+  return {
+    dataset: {},
+    id: "",
+    textContent: "",
+    get className() {
+      return className;
+    },
+    set className(value) {
+      writes.push(`class:${value}`);
+      className = String(value);
+    },
+    get innerHTML() {
+      return innerHTML;
+    },
+    set innerHTML(value) {
+      writes.push("html");
+      innerHTML = String(value);
+    }
+  };
+}

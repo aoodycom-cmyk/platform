@@ -10,7 +10,7 @@ export function installFinancialSafetyLayer(store, root = document.getElementByI
   const schedule = () => {
     if (scheduled) return;
     scheduled = true;
-    requestAnimationFrame(() => {
+    nextFrame(() => {
       scheduled = false;
       renderFinancialSafetyUi(store, root);
     });
@@ -138,16 +138,16 @@ function renderFinancialSafetyUi(store, root) {
   const ar = document.documentElement.dir === "rtl" || document.documentElement.lang === "ar";
 
   root.querySelectorAll(".v31-current-price > span").forEach((label) => {
-    label.textContent = ar ? "سعر وقت التحليل" : "Price at analysis";
+    setText(label, ar ? "سعر وقت التحليل" : "Price at analysis");
   });
   root.querySelectorAll(".v31-upside-line > span").forEach((label) => {
-    label.textContent = ar ? "العائد إلى Base وقت التحليل" : "Return to Base at analysis";
+    setText(label, ar ? "العائد إلى Base وقت التحليل" : "Return to Base at analysis");
   });
   root.querySelectorAll(".library-completion-row > span").forEach((label) => {
-    label.textContent = ar ? "اكتمال الحقول" : "Field completeness";
+    setText(label, ar ? "اكتمال الحقول" : "Field completeness");
   });
   root.querySelectorAll("select[data-library-sort] option[value='upside']").forEach((option) => {
-    option.textContent = ar ? "أعلى عائد وقت التحليل" : "Highest upside at analysis";
+    setText(option, ar ? "أعلى عائد وقت التحليل" : "Highest upside at analysis");
   });
 
   root.querySelectorAll("[data-external-report-id]").forEach((card) => {
@@ -161,7 +161,7 @@ function renderFinancialSafetyUi(store, root) {
       asOf.className = "franklin-price-asof";
       host.append(asOf);
     }
-    asOf.textContent = `${ar ? "كما في" : "As of"} ${report.analysisDate || "—"}`;
+    setText(asOf, `${ar ? "كما في" : "As of"} ${report.analysisDate || "—"}`);
   });
 
   const oldBanner = root.querySelector(".franklin-financial-safety-banner");
@@ -177,8 +177,8 @@ function renderFinancialSafetyUi(store, root) {
   const baseFairValue = report.fairValueSummary?.fairValueBase ?? "—";
   const missingAssessment = readiness.errors.some((item) => item.code === "TARGET_ASSESSMENT_MISSING" || item.code === "TARGET_ASSESSMENT_INCONSISTENT");
   const banner = oldBanner || document.createElement("section");
-  banner.className = `franklin-financial-safety-banner ${missingAssessment ? "critical" : "warning"}`;
-  banner.innerHTML = `
+  const className = `franklin-financial-safety-banner ${missingAssessment ? "critical" : "warning"}`;
+  const html = `
     <strong>${ar ? "تنبيه سلامة القرار" : "Decision safety notice"}</strong>
     <p>${ar
       ? `هذا تحديث أرباح للربع ${escapeHtml(report.reportPeriod || "—")} فقط. Fair Value الأساسي (${escapeHtml(baseFairValue)}) وقرار ${escapeHtml(action)} موروثان من التحليل الكامل كما في ${escapeHtml(baseDate || "تاريخ غير محدد")}، ولم تتم إعادة تقييمهما بعد هذا الإعلان.`
@@ -187,6 +187,8 @@ function renderFinancialSafetyUi(store, root) {
       ? "تقييم المتطلبات الإجمالي ناقص رغم وجود نتائج قابلة للحكم؛ لا تعتمد على نسبة الإنجاز أو حكم Thesis Tracker حتى تصحيح JSON."
       : "The aggregate requirement assessment is missing despite reportable outcomes. Do not rely on the achievement percentage or Thesis Tracker verdict until the JSON is corrected."}</p>` : ""}
   `;
+  setClassName(banner, className);
+  setHtml(banner, html);
   if (!oldBanner) {
     const appBar = root.querySelector(".report-app-bar");
     if (appBar) appBar.insertAdjacentElement("afterend", banner);
@@ -286,6 +288,26 @@ function inheritedAsOfDate(report, collection) {
   if (explicit) return explicit;
   const sourceId = report.priceTargetRequirements?.createdFromAnalysisId || report.previousRequirementsEvaluation?.createdFromAnalysisId;
   return findReportById(collection, sourceId)?.analysisDate || null;
+}
+
+function nextFrame(callback) {
+  if (typeof requestAnimationFrame === "function") return requestAnimationFrame(callback);
+  return setTimeout(callback, 0);
+}
+
+function setText(element, text) {
+  const next = String(text ?? "");
+  if (element.textContent !== next) element.textContent = next;
+}
+
+function setClassName(element, className) {
+  if (element.className !== className) element.className = className;
+}
+
+function setHtml(element, html) {
+  if (element.dataset.franklinContentKey === html) return;
+  element.innerHTML = html;
+  element.dataset.franklinContentKey = html;
 }
 
 function findExactDuplicate(report, collection = {}) {
