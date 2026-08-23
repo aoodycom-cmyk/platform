@@ -247,6 +247,7 @@ assert.equal(initialPrompt.includes("fairValueSummary.fairValueBase"), false);
 assert.equal(initialPrompt.includes("thesis.shortSummary"), false);
 assert.ok(initialPrompt.includes("sourceType: Investor Relations | SEC | Earnings Call"));
 assert.ok(initialPrompt.includes("valuationRole: PRIMARY | SECONDARY | CROSS_CHECK"));
+assert.ok(initialPrompt.includes("```json"));
 
 const earningsPrompt = buildNewEarningsAnalysisPrompt(previousReport, { quarter: 2, year: 2026 });
 assert.ok(earningsPrompt.includes(previousReport.id));
@@ -264,7 +265,7 @@ assert.ok(earningsPrompt.includes("UPDATED أو UNCHANGED"));
 assert.ok(earningsPrompt.includes("nextRequirements جديدة بالكامل"));
 assert.ok(earningsPrompt.includes("nextRequirements.currentJustifiedValue يجب أن يساوي valuation.current.base"));
 assert.ok(earningsPrompt.includes("مصادر جديدة خاصة بهذا الربع"));
-assert.equal(earningsPrompt.includes("```"), false);
+assert.ok(earningsPrompt.includes("```json"));
 
 assert.deepEqual(FRANKLIN_V3_CANONICAL_ENUMS.analysisType, ["INITIAL", "EARNINGS_REVALUATION"]);
 assert.deepEqual(FRANKLIN_V3_CANONICAL_ENUMS.requirementOverallStatus, ["EXCEEDED", "PASSED", "MIXED", "FAILED", "INCOMPLETE"]);
