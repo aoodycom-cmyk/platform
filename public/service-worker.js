@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v11-franklin-v35-20260822-restore-freeze2";
+const CACHE_NAME = "franklin-research-v11-franklin-v36-20260823-financial-contract-v3";
 const STATIC_ASSETS = [
   "./offline.html",
   "./rescue.html",
@@ -31,6 +31,9 @@ const STATIC_ASSETS = [
   "./src/externalAnalysis/quarterlyEarningsLite.js",
   "./src/externalAnalysis/quarterlyForwardOutlook.js",
   "./src/externalAnalysis/fairValueAdapter.js",
+  "./src/externalAnalysis/v3Contract.js",
+  "./src/externalAnalysis/v3Adapter.js",
+  "./src/externalAnalysis/v3Validator.js",
   "./src/externalAnalysis/parser.js",
   "./src/externalAnalysis/externalAnalysisSchemaValidator.js",
   "./src/externalAnalysis/chatgptContract.js",

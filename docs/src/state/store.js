@@ -292,6 +292,7 @@ export function createStore() {
     });
     try {
       const parsed = await parseExternalAnalysisInput(rawText, {
+        expectedTicker: tickerHint || null,
         parseUnstructured: (inputText) => parseExternalAnalysisBlock({ text: inputText, language: state.language })
       });
       if (!parsed.report) throw new Error("External parser did not return a report.");
@@ -558,13 +559,14 @@ export function createStore() {
       buildNewEarningsAnalysisPrompt(report, selection),
       "",
       "مواد إعلان الأرباح الجديدة التي ألصقها المستخدم:",
-      earningsText || "- لم يتم لصق مواد أرباح بعد. اطلب من المستخدم تزويدك بتقرير الأرباح أو 10-Q أو نص مكالمة الإدارة قبل إخراج JSON.",
+      earningsText || "- لم يتم لصق مواد أرباح بعد. ابحث أولًا عن مصادر الربع المحدد الرسمية والموثوقة: Investor Relations، ملفات SEC، بيان الأرباح الرسمي، ومواد مكالمة الأرباح الرسمية. لا تستخدم ربعًا آخر. اطلب من المستخدم تزويدك بالمواد فقط إذا لم تتوفر معلومات رسمية موثوقة.",
       "",
       "تعليمات إضافية لـ Franklin:",
       "- أخرج JSON واحدًا فقط مطابقًا للقالب أعلاه.",
       "- لا تضع شرحًا خارج JSON.",
       "- اجعل كل التفسيرات والسرد باللغة العربية.",
-      "- حافظ على status وweightedAchievement وsummary كما ترى تحليليًا؛ Franklin سيحفظها ويعرضها فقط ولن يعيد حسابها."
+      "- أخرج franklin-fair-value/v3 فقط لمسار التحديث الأساسي.",
+      "- حافظ على status وpartialCreditPct وassessment كما تراها تحليليًا؛ Franklin سيتحقق من الحسابات فقط ولن يستبدل حكمك المالي."
     ].join("\n");
     set({
       earningsUpdate: {
@@ -603,7 +605,10 @@ export function createStore() {
       notice: state.language === "ar" ? "جاري فحص JSON بدون أي إعادة تحليل..." : "Validating JSON without recalculating analysis..."
     });
     try {
-      const parsed = await parseExternalAnalysisInput(rawText, { currentReport });
+      const parsed = await parseExternalAnalysisInput(rawText, {
+        currentReport,
+        expectedReportPeriod: state.earningsUpdate?.selectedPeriod
+      });
       const report = parsed.report;
       const currentTicker = normalizeTickerHint(currentReport.company?.ticker);
       const incomingTicker = normalizeTickerHint(report.company?.ticker);
@@ -1680,6 +1685,9 @@ function createEarningsUpdatePreview(currentReport = {}, incomingReport = {}, va
     ["fairValueSummary.fairValueHigh", "Bull Fair Value"],
     ["fairValueSummary.probabilityWeightedFairValue", "Weighted Fair Value"],
     ["fairValueSummary.upsideDownsidePercent", "Base Upside"],
+    ["metadata.franklinV3.reviewStatus", "Valuation Review"],
+    ["metadata.franklinV3.valuationBridge.whyBaseChangedOrNot", "Valuation Bridge"],
+    ["metadata.franklinV3.thesisStatus", "Thesis Status"],
     ["scores.quality", "Quality"],
     ["scores.growth", "Growth"],
     ["scores.valuation", "Valuation"],
@@ -1699,7 +1707,11 @@ function createEarningsUpdatePreview(currentReport = {}, incomingReport = {}, va
     ["growthHighlights.marginTrend", "Margin Trend"],
     ["previousRequirementsEvaluation.summary", "Earnings Summary"],
     ["previousRequirementsEvaluation.requirementsAssessment.weightedAchievement", "Requirement Achievement"],
+    ["previousRequirementsEvaluation.requirementsAssessment.coverageWeightPct", "Requirement Coverage"],
+    ["previousRequirementsEvaluation.requirementsAssessment.achievementOfTotalWeightPct", "Total Weight Achievement"],
     ["previousRequirementsEvaluation.requirementsAssessment.overallStatus", "Requirement Status"],
+    ["priceTargetRequirements.currentJustifiedValue", "Current Justified Value"],
+    ["priceTargetRequirements.mode", "Requirement Mode"],
     ["priceTargetRequirements.targetValue", "Next Target"]
   ];
   const changes = [];

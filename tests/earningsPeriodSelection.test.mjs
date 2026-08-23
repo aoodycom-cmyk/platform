@@ -36,7 +36,7 @@ assert.equal(resolveEarningsPeriodSelection({ reportPeriod: "Q4 2026" }).reportP
 const prompt = buildNewEarningsAnalysisPrompt(report, { quarter: 1, year: 2026 });
 assert.ok(prompt.includes("الربع الذي اختاره المستخدم لهذا التحديث: Q1 2026"));
 assert.ok(prompt.includes("حلل مواد Q1 2026 فقط"));
-assert.ok(prompt.includes('"reportPeriod": "Q1 2026"'));
-assert.ok(prompt.includes('"earningsPeriod": "Q1 2026"'));
+assert.ok(prompt.includes('"fiscalQuarter": "Q1"'));
+assert.ok(prompt.includes('"fiscalYear": 2026'));
 
 console.log("Selected earnings period contract tests passed.");

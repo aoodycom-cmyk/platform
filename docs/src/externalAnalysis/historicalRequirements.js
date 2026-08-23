@@ -43,6 +43,7 @@ export function normalizeHistoricalRequirementSets(input = {}, externalAnalyses 
 }
 
 export function createRequirementSetFromReport(report = {}, now = new Date()) {
+  if (isQuarterlyEarningsLiteReport(report)) return null;
   const block = normalizePriceTargetRequirements(report.priceTargetRequirements);
   if (!block.requirements.length) return null;
   const ticker = normalizeTicker(report.company?.ticker || report.ticker);
@@ -71,6 +72,7 @@ export function createRequirementSetFromReport(report = {}, now = new Date()) {
     nextTargetValue: block.nextTargetValue || block.targetValue,
     targetScenario: block.targetScenario,
     targetDescription: block.targetDescription,
+    mode: block.mode || null,
     summary: block.summary,
     status,
     evaluatedByAnalysisId: block.evaluatedByAnalysisId || null,
@@ -101,6 +103,7 @@ export function prepareHistoricalRequirementEvaluation(report = {}, requirementS
 
 export function applyHistoricalRequirementLifecycle(collection = {}, report = {}, match = {}, now = new Date()) {
   let next = normalizeHistoricalRequirementSets(collection);
+  const canMutateCanonicalLifecycle = !isQuarterlyEarningsLiteReport(report);
   const evaluation = report.previousRequirementsEvaluation;
   const matchedOpenSet = match?.status === "matched" && match?.set?.status === "OPEN"
     ? match.set
@@ -115,14 +118,16 @@ export function applyHistoricalRequirementLifecycle(collection = {}, report = {}
   // block overwrite an already-closed set unless this import matched the open
   // set during the current save flow and the report period reaches the target.
   if (
-    evaluationMatchesOpenSet
+    canMutateCanonicalLifecycle
+    && isCanonicalV3EarningsRevaluation(report)
+    && evaluationMatchesOpenSet
     && hasExplicitPreviousRequirementEvaluation(evaluation)
     && evaluationReachesTarget(evaluation, report)
   ) {
     next = markRequirementSetEvaluated(next, evaluation, report, now);
   }
 
-  const nextSet = createRequirementSetFromReport(report, now);
+  const nextSet = canMutateCanonicalLifecycle ? createRequirementSetFromReport(report, now) : null;
   if (nextSet && !isSameSetAsPreviousEvaluation(nextSet, evaluation)) {
     next = upsertRequirementSet(next, nextSet);
     if (nextSet.supersedesRequirementSetId) {
@@ -153,6 +158,22 @@ export function findRequirementSetMatch(report = {}, requirementSets = {}, optio
   const openSets = (requirementSets[ticker] || []).filter((set) => set.status === "OPEN");
   if (!openSets.length) return { status: "none", reason: "no_open_sets", candidates: [] };
 
+  if (isCanonicalV3EarningsRevaluation(report)) {
+    const explicitId = extractCanonicalPreviousRequirementSetId(report);
+    if (!explicitId) return { status: "none", reason: "canonical_previous_requirement_set_null", candidates: [] };
+    const explicit = openSets.find((set) => set.requirementSetId === explicitId);
+    if (!explicit) return { status: "none", reason: "explicit_requirement_set_not_open", candidates: [] };
+    if (normalizeTicker(explicit.ticker) !== ticker) {
+      return { status: "none", reason: "explicit_requirement_set_ticker_mismatch", candidates: [explicit] };
+    }
+    const reportedPeriod = normalizedEarningsPeriod(extractReportedEarningsPeriod(report));
+    const targetPeriod = normalizedEarningsPeriod(explicit.targetQuarter || explicit.earningsPeriod);
+    if (reportedPeriod && targetPeriod && reportedPeriod !== targetPeriod) {
+      return { status: "none", reason: "explicit_requirement_set_period_mismatch", candidates: [explicit] };
+    }
+    return matched(explicit, "canonical_explicit_requirement_set_id");
+  }
+
   const selected = options.selectedRequirementSetId
     ? openSets.find((set) => set.requirementSetId === options.selectedRequirementSetId)
     : null;
@@ -177,8 +198,9 @@ export function findRequirementSetMatch(report = {}, requirementSets = {}, optio
 
 export function buildRequirementEvaluation(requirementSet = {}, report = {}, match = {}) {
   const actualItems = extractActualRequirementResults(report, requirementSet);
+  const exactIdOnly = isCanonicalV3EarningsRevaluation(report);
   const requirements = (requirementSet.requirements || []).map((requirement) => {
-    const actual = findActualForRequirement(requirement, actualItems);
+    const actual = findActualForRequirement(requirement, actualItems, { exactIdOnly });
     const actualValue = actualValueFrom(actual);
     const actualDisplay = actual?.actualDisplay ?? actual?.displayValue ?? actual?.reportedDisplay ?? null;
     const actualRaw = actual?.actualRaw ?? actual?.raw ?? actual?.commentary ?? null;
@@ -191,7 +213,9 @@ export function buildRequirementEvaluation(requirementSet = {}, report = {}, mat
       direction: actual?.direction || "unknown",
       impact: actual?.impact || "unknown",
       status,
-      evaluationNote: actual?.evaluationNote || actual?.note || null
+      partialCreditPct: actual?.partialCreditPct ?? null,
+      evaluationNote: actual?.evaluationNote || actual?.note || null,
+      sourceId: actual?.sourceId || null
     };
   });
   const supplied = report.previousRequirementsEvaluation?.requirementsAssessment || report.requirementsAssessment || {};
@@ -235,7 +259,9 @@ function markRequirementSetEvaluated(collection, evaluation, report, now) {
         status: "EVALUATED",
         evaluatedByAnalysisId: report.id || null,
         evaluatedAt: now.toISOString(),
-        requirements: mergeEvaluatedRequirements(set.requirements, evaluation.requirements),
+        requirements: mergeEvaluatedRequirements(set.requirements, evaluation.requirements, {
+          exactIdOnly: isCanonicalV3EarningsRevaluation(report)
+        }),
         requirementsAssessment: evaluation.requirementsAssessment || null
       };
     })
@@ -287,6 +313,7 @@ function normalizeRequirementSet(input = {}) {
     nextTargetValue: numberOrNull(input.nextTargetValue ?? input.targetValue),
     targetScenario: textOrNull(input.targetScenario),
     targetDescription: textOrNull(input.targetDescription),
+    mode: textOrNull(input.mode),
     summary: textOrNull(input.summary),
     status,
     evaluatedByAnalysisId: input.evaluatedByAnalysisId || null,
@@ -308,16 +335,18 @@ function freezeRequirementSetRequirements(requirements = [], status = "OPEN") {
         direction: "unknown",
         impact: "unknown",
         status: "NOT_REPORTED",
-        evaluationNote: null
+        partialCreditPct: null,
+        evaluationNote: null,
+        sourceId: null
       };
     }
     return requirement;
   });
 }
 
-function mergeEvaluatedRequirements(original = [], evaluated = []) {
+function mergeEvaluatedRequirements(original = [], evaluated = [], options = {}) {
   return original.map((requirement) => {
-    const result = findActualForRequirement(requirement, evaluated);
+    const result = findActualForRequirement(requirement, evaluated, options);
     if (!result) return requirement;
     return {
       ...requirement,
@@ -327,7 +356,9 @@ function mergeEvaluatedRequirements(original = [], evaluated = []) {
       direction: result.direction || "unknown",
       impact: result.impact || "unknown",
       status: result.status,
-      evaluationNote: result.evaluationNote || null
+      partialCreditPct: result.partialCreditPct ?? null,
+      evaluationNote: result.evaluationNote || null,
+      sourceId: result.sourceId || null
     };
   });
 }
@@ -347,7 +378,12 @@ function extractActualRequirementResults(report = {}, requirementSet = {}) {
   return [];
 }
 
-function findActualForRequirement(requirement = {}, actualItems = []) {
+function findActualForRequirement(requirement = {}, actualItems = [], options = {}) {
+  if (options.exactIdOnly) {
+    const id = String(requirement?.id || "").trim();
+    if (!id) return null;
+    return (actualItems || []).find((item) => String(item?.id || "").trim() === id) || null;
+  }
   const keys = requirementKeys(requirement);
   return (actualItems || []).find((item) => {
     const actualKeys = requirementKeys(item);
@@ -387,6 +423,21 @@ function evaluationReachesTarget(evaluation = {}, report = {}) {
   return target ? reported === target : true;
 }
 
+function isQuarterlyEarningsLiteReport(report = {}) {
+  return report?.metadata?.importMethod === "quarterly_earnings_lite"
+    || report?.metadata?.analysisScope === "quarterly_earnings_update"
+    || report?.previousRequirementsEvaluation?.matchType === "quarterly_earnings_lite";
+}
+
+function isCanonicalV3EarningsRevaluation(report = {}) {
+  const metadata = report?.metadata || {};
+  const canonical = metadata.franklinV3Report;
+  return metadata.nativeSchemaVersion === "franklin-fair-value/v3"
+    && metadata.franklinV3?.analysisType === "EARNINGS_REVALUATION"
+    && canonical?.schemaVersion === "franklin-fair-value/v3"
+    && canonical?.analysisType === "EARNINGS_REVALUATION";
+}
+
 function isSameSetAsPreviousEvaluation(set, evaluation) {
   if (!set || !evaluation) return false;
   if (set.requirementSetId && set.requirementSetId === evaluation.requirementSetId) return true;
@@ -409,6 +460,14 @@ function extractExplicitRequirementSetId(report = {}) {
     || report.requirementSetId
     || report.metadata?.requirementSetId
     || null;
+}
+
+function extractCanonicalPreviousRequirementSetId(report = {}) {
+  const canonical = report?.metadata?.franklinV3Report || null;
+  if (canonical?.schemaVersion === "franklin-fair-value/v3") {
+    return canonical.reportIdentity?.previousRequirementSetId || null;
+  }
+  return report?.metadata?.franklinV3?.previousRequirementSetId || null;
 }
 
 function matched(set, matchType) {

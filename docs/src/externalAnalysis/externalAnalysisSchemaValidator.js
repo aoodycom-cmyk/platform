@@ -153,7 +153,7 @@ function validateArrays(report, errors) {
 }
 
 function validateGuidance(report, errors) {
-  const directions = new Set(["raised", "maintained", "lowered", "new", "not_applicable"]);
+  const directions = new Set(["raised", "maintained", "lowered", "new", "not_applicable", "not_reported"]);
   for (const [index, item] of (report.guidance || []).entries()) {
     if (item?.direction && !directions.has(item.direction)) {
       errors.push(fieldError(`guidance.${index}.direction`, "Guidance direction is not supported."));
@@ -183,11 +183,13 @@ function validatePriceTargetRequirements(report, errors) {
     if (!Number.isFinite(item.weight) || item.weight < 0) errors.push(fieldError(`priceTargetRequirements.requirements.${index}.weight`, "Requirement weight must be zero or greater."));
     if (item.direction && !directions.has(item.direction)) errors.push(fieldError(`priceTargetRequirements.requirements.${index}.direction`, "Requirement direction is not supported."));
     if (item.impact && !impacts.has(item.impact)) errors.push(fieldError(`priceTargetRequirements.requirements.${index}.impact`, "Requirement impact is not supported."));
+    if (item.partialCreditPct !== null && item.partialCreditPct !== undefined && (!Number.isFinite(item.partialCreditPct) || item.partialCreditPct < 0 || item.partialCreditPct > 100)) errors.push(fieldError(`priceTargetRequirements.requirements.${index}.partialCreditPct`, "partialCreditPct must be between 0 and 100 when present."));
   }
   for (const [index, item] of (report.previousRequirementsEvaluation?.requirements || []).entries()) {
     if (!statuses.has(item.status)) errors.push(fieldError(`previousRequirementsEvaluation.requirements.${index}.status`, "Requirement status is not supported."));
     if (item.direction && !directions.has(item.direction)) errors.push(fieldError(`previousRequirementsEvaluation.requirements.${index}.direction`, "Requirement direction is not supported."));
     if (item.impact && !impacts.has(item.impact)) errors.push(fieldError(`previousRequirementsEvaluation.requirements.${index}.impact`, "Requirement impact is not supported."));
+    if (item.partialCreditPct !== null && item.partialCreditPct !== undefined && (!Number.isFinite(item.partialCreditPct) || item.partialCreditPct < 0 || item.partialCreditPct > 100)) errors.push(fieldError(`previousRequirementsEvaluation.requirements.${index}.partialCreditPct`, "partialCreditPct must be between 0 and 100 when present."));
   }
 }
 

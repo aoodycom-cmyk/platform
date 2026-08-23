@@ -8,35 +8,36 @@ import {
 
 const prompt = buildFullAnalysisPrompt({ tickerHint: "aaoi" });
 assert.ok(prompt.includes("Fair value"), "Prompt must identify the Fair value ChatGPT system.");
-assert.ok(prompt.includes("company.ticker"), "Prompt must name required schema paths.");
+assert.ok(prompt.includes("reportIdentity"), "Prompt must name v3 report identity paths.");
 assert.ok(prompt.includes("companyProfile"), "Prompt must require the educational company profile object.");
 assert.ok(prompt.includes("للمستثمر الذكي"), "Prompt must ask for simple Arabic company-profile explanations.");
-assert.ok(prompt.includes("fairValueSummary"), "Prompt must include Fair value summary fields.");
-assert.ok(prompt.includes("Conservative"), "Prompt must document Fair value scenarios.");
-assert.ok(prompt.includes("previousValue قيمة مختصرة"), "Prompt must keep the previous KPI value concise for the card renderer.");
-assert.ok(prompt.includes("requirementsAssessment وweightedAchievement فارغين/null"), "Future targets must not carry a premature achievement assessment.");
+assert.ok(prompt.includes("valuation.current"), "Prompt must include canonical valuation fields.");
+assert.ok(prompt.includes("Bear وBase وBull"), "Prompt must document the three canonical scenarios.");
+assert.ok(prompt.includes("nextRequirements.currentJustifiedValue"), "Prompt must enforce currentJustifiedValue = Base.");
+assert.ok(prompt.includes("كل status في nextRequirements.requirements يجب أن يكون NOT_REPORTED"), "Future targets must not carry premature statuses.");
 assert.ok(prompt.includes('"ticker": "AAOI"'), "Prompt template must carry the entered ticker.");
 assert.equal(prompt.includes('"ticker": "TICKER"'), false, "Prompt must not use TICKER as a placeholder value.");
 assert.equal(prompt.includes("```"), false, "Prompt must not use Markdown fences.");
 
 const template = JSON.parse(buildExternalAnalysisJsonTemplate({ tickerHint: "msft" }));
-assert.equal(template.schemaVersion, "fair-value-analysis/v2");
-assert.equal(template.methodologyVersion, "fair-value-system/v1");
-assert.equal(template.company.ticker, "MSFT");
-assert.equal(Object.hasOwn(template.company, "currentPrice"), false);
-assert.equal(template.fairValueSummary.currentPrice, null);
+assert.equal(template.schemaVersion, "franklin-fair-value/v3");
+assert.equal(template.methodologyVersion, "fair-value-methodology/v2");
+assert.equal(template.analysisType, "INITIAL");
+assert.equal(template.reportIdentity.ticker, "MSFT");
+assert.equal(template.marketPrice.value, null);
 assert.equal(template.companyProfile.summary, null);
 assert.deepEqual(Object.keys(template.companyProfile.activities[0]), ["name", "arabicName", "description", "importance"]);
 assert.equal(template.businessQuality.score, null);
-assert.equal(template.fairValueSummary.fairValueBase, null);
-assert.deepEqual(template.risks, []);
+assert.equal(template.valuation.current.base, null);
+assert.equal(Array.isArray(template.risks), true);
+assert.equal(template.risks[0].title, null);
 assert.equal(template.decision.action, null);
-assert.equal(template.estimateRevisions.overallDirection, "unknown");
+assert.equal(template.nextRequirements.currentJustifiedValue, null);
 assert.equal(Object.hasOwn(template, "dashboardExport"), false);
 assert.equal(Object.hasOwn(template, "recommendation"), false);
 
 const blankTemplate = JSON.parse(buildExternalAnalysisJsonTemplate({ tickerHint: "TICKER" }));
-assert.equal(blankTemplate.company.ticker, null, "Placeholder ticker must normalize to null.");
+assert.equal(blankTemplate.reportIdentity.ticker, null, "Placeholder ticker must normalize to null.");
 
 const earningsPrompt = buildNewEarningsAnalysisPrompt({
   id: "MSFT-2026-08-01",
@@ -62,9 +63,9 @@ assert.ok(earningsPrompt.includes("تحليل إعلان أرباح جديد") |
 assert.ok(earningsPrompt.includes("azure_growth"), "Earnings prompt must include saved requirement IDs.");
 assert.ok(earningsPrompt.includes("MSFT_Q4_2026"), "Earnings prompt must include the historical requirement set ID.");
 assert.ok(earningsPrompt.includes("previousRequirementsEvaluation"), "Earnings prompt must include the importable previousRequirementsEvaluation template.");
-assert.ok(earningsPrompt.includes("currentJustifiedValue مساويًا للهدف السابق"), "A justified target must advance through a new ChatGPT-supplied target set.");
-assert.ok(earningsPrompt.includes("لا يرفع Franklin الهدف آليًا"), "Franklin must never invent or calculate the next target.");
-assert.ok(earningsPrompt.includes("ينقل متتبع الفرضية تلقائيًا إلى المرحلة التالية"), "The prompt must explain how the next requirement set advances tracking.");
+assert.ok(earningsPrompt.includes("nextRequirements.currentJustifiedValue يجب أن يساوي valuation.current.base"), "Current justified value must equal the new Base.");
+assert.ok(earningsPrompt.includes("Franklin لا يرفع الهدف آليًا ولا يحسب targetValue"), "Franklin must never invent or calculate the next target.");
+assert.ok(earningsPrompt.includes("UPDATED أو UNCHANGED"), "The prompt must require an explicit valuation review result.");
 assert.ok(earningsPrompt.includes('"ticker": "MSFT"'), "Earnings prompt template must carry the selected ticker.");
 assert.equal(/OPENAI_API|api\/|fetch\(/i.test(earningsPrompt), false, "Earnings prompt must not require an API call.");
 

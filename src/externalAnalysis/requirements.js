@@ -10,7 +10,7 @@ export function calculateRequirementsAssessment(requirementsInput = {}, supplied
 export function normalizeRequirementsAssessment(value = {}) {
   const suppliedAssessment = value && typeof value === "object" && !Array.isArray(value) ? value : {};
   return {
-    weightedAchievement: numberOrNull(suppliedAssessment.weightedAchievement),
+    weightedAchievement: numberOrNull(suppliedAssessment.weightedAchievement ?? suppliedAssessment.achievementOfReportedWeightPct),
     reportedRequirements: numberOrNull(suppliedAssessment.reportedRequirements),
     totalRequirements: numberOrNull(suppliedAssessment.totalRequirements),
     passed: numberOrNull(suppliedAssessment.passed ?? suppliedAssessment.passedRequirements),
@@ -18,6 +18,14 @@ export function normalizeRequirementsAssessment(value = {}) {
     exceeded: numberOrNull(suppliedAssessment.exceeded ?? suppliedAssessment.exceededRequirements),
     partiallyPassed: numberOrNull(suppliedAssessment.partiallyPassed ?? suppliedAssessment.partiallyPassedRequirements),
     notReported: numberOrNull(suppliedAssessment.notReported ?? suppliedAssessment.notReportedRequirements),
+    coverageWeightPct: numberOrNull(suppliedAssessment.coverageWeightPct),
+    achievementOfReportedWeightPct: numberOrNull(suppliedAssessment.achievementOfReportedWeightPct),
+    achievementOfTotalWeightPct: numberOrNull(suppliedAssessment.achievementOfTotalWeightPct),
+    exceededWeightPct: numberOrNull(suppliedAssessment.exceededWeightPct),
+    passedWeightPct: numberOrNull(suppliedAssessment.passedWeightPct),
+    partialWeightPct: numberOrNull(suppliedAssessment.partialWeightPct),
+    failedWeightPct: numberOrNull(suppliedAssessment.failedWeightPct),
+    notReportedWeightPct: numberOrNull(suppliedAssessment.notReportedWeightPct),
     overallStatus: normalizeStatusText(suppliedAssessment.overallStatus),
     summary: normalizeText(suppliedAssessment.summary),
     calculatedAt: normalizeText(suppliedAssessment.calculatedAt)
@@ -42,6 +50,7 @@ export function normalizePriceTargetRequirements(value = {}) {
       previousQuarter: null,
       targetQuarter: null,
       earningsPeriod: null,
+      mode: null,
       requirements: []
     };
   }
@@ -62,6 +71,7 @@ export function normalizePriceTargetRequirements(value = {}) {
     previousQuarter: normalizeText(value.previousQuarter ?? value.currentQuarter),
     targetQuarter,
     earningsPeriod: targetQuarter,
+    mode: normalizeText(value.mode),
     requirements: normalizeRequirementList(value.requirements),
     requirementsAssessment: value.requirementsAssessment && typeof value.requirementsAssessment === "object"
       ? normalizeRequirementsAssessment(value.requirementsAssessment)
@@ -128,6 +138,8 @@ export function normalizeRequirement(item, index = 0) {
     previousValue: valueOrNull(item.previousValue ?? item.currentLevel),
     previousDisplay: normalizeText(item.previousDisplay ?? item.currentDisplay),
     currentLevel: valueOrNull(item.currentLevel ?? item.previousValue),
+    baselineValue: valueOrNull(item.baselineValue),
+    baselineDisplay: normalizeText(item.baselineDisplay),
     requiredValue: valueOrNull(item.requiredValue),
     requiredDisplay: normalizeText(item.requiredDisplay),
     unit: normalizeText(item.unit),
@@ -140,7 +152,9 @@ export function normalizeRequirement(item, index = 0) {
     direction: normalizeRequirementDirection(item.direction),
     impact: normalizeRequirementImpact(item.impact),
     status: normalizeRequirementStatus(item.status),
-    evaluationNote: normalizeText(item.evaluationNote)
+    partialCreditPct: numberOrNull(item.partialCreditPct),
+    evaluationNote: normalizeText(item.evaluationNote),
+    sourceId: normalizeText(item.sourceId)
   };
 }
 
@@ -330,7 +344,7 @@ function normalizeRecommendationAction(value) {
 
 function normalizeGuidanceDirection(value) {
   const clean = String(value || "not_applicable").trim().toLowerCase();
-  return ["raised", "maintained", "lowered", "new", "not_applicable"].includes(clean) ? clean : "not_applicable";
+  return ["raised", "maintained", "lowered", "new", "not_applicable", "not_reported"].includes(clean) ? clean : "not_applicable";
 }
 
 function normalizeTrend(value) {

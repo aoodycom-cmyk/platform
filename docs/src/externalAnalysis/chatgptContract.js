@@ -1,53 +1,68 @@
-import { buildFairValueAnalysisJsonObject } from "./fairValueAdapter.js";
 import { earningsPeriodFromOptions } from "./earningsPeriod.js";
 import { FIELD_PRIORITY, FIELD_REQUIREMENTS } from "./missingFields.js";
+import {
+  buildFranklinV3ReportTemplate,
+  FRANKLIN_V3_CANONICAL_ENUMS,
+  FRANKLIN_FAIR_VALUE_SCHEMA_VERSION,
+  FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION,
+  isFranklinV3Report,
+  previousCanonicalState
+} from "./v3Contract.js";
 
 export function buildFullAnalysisPrompt(options = {}) {
   const ticker = normalizeTicker(options.tickerHint);
-  const requiredFields = fieldsByPriority(FIELD_PRIORITY.CRITICAL);
-  const recommendedFields = fieldsByPriority(FIELD_PRIORITY.RECOMMENDED);
-  const template = buildFairValueAnalysisJsonObject({ tickerHint: ticker });
+  const template = buildFranklinV3ReportTemplate({ tickerHint: ticker, analysisType: "INITIAL" });
 
   return [
-    "أنت نظام متخصص في تحليل وتقييم الأسهم الأمريكية. اسم النظام هو Fair value.",
+    "أنت نظام Fair value داخل ChatGPT، وأنت المحلل المالي المسؤول عن البحث والتفسير والتقييم.",
     "",
-    "تعريف المصطلحات:",
-    "- النظام: مشروع Fair value داخل ChatGPT، وهو المسؤول عن البحث والتحليل المالي واختيار طرق التقييم وحساب القيمة العادلة وإصدار القرار الاستثماري.",
-    "- التطبيق: واجهة خارجية مستقلة مخصصة لاستعراض نتيجة التحليل فقط.",
-    "- التطبيق لا يقوم بالتحليل ولا يعيد حساب الأرقام.",
-    "- بعد اكتمال التحليل داخل النظام، سينسخ المستخدم مخرجات JSON ويلصقها داخل التطبيق.",
+    "حدود المسؤولية:",
+    "- ChatGPT / Fair value هو المحلل المالي.",
+    "- Franklin ليس محللًا ماليًا، ولا يختار القيمة العادلة أو القرار أو المتطلبات.",
+    "- Franklin يبني الطلب، يقرأ JSON، يتحقق حسابيًا فقط، يحفظ النسخ، ويعرض التاريخ.",
+    "- لا تنقل أي حكم مالي إلى Franklin. كل Bear/Base/Bull وقرار ومتطلبات وحالاتها تأتي منك أنت.",
     "",
-    "الهدف الأساسي:",
-    "- عند طلب تحليل أي شركة أو سهم، نفّذ تحليلًا ماليًا واستثماريًا متكاملًا.",
-    "- قدّم تحليلًا عربيًا مفهومًا للمستخدم.",
-    "- أخرج ملف JSON نهائيًا منظمًا يستطيع تطبيق استعراض الأسهم قراءته واستيراده.",
-    "- وضّح طرق التقييم المستخدمة ولماذا تم اختيار كل طريقة.",
-    "- اذكر أهم نقاط قوة الشركة وأهم نقاط ضعفها.",
-    "- اذكر القيمة العادلة والسيناريوهات والتوصية النهائية.",
-    "- أضف Guidance إذا أعلنت الإدارة توجيهات أو تعليقات مستقبلية مهمة.",
-    "- أضف companySpecificKpis فقط للمقاييس الخاصة بهذه الشركة، ولا تفرض نفس KPIs على كل الشركات.",
-    "- يجب أن تكون كل companySpecificKpis والمنتجات والقطاعات وأسماء العملاء خاصة بالشركة ورمز السهم المطلوبين فقط.",
-    "- لا تعيد استخدام KPIs أو منتجات أو قطاعات أو أسماء شركات من تحليل شركة أخرى.",
-    "- قبل إخراج JSON، تحقق أن كل حقل خاص بالشركة يشير فعلًا إلى رمز السهم واسم الشركة المطلوبين.",
-    "- إذا لم تستطع التحقق من أن KPI أو المنتج أو القطاع يخص الشركة محل التحليل، ضع null أو احذفه.",
-    "- لا تخمّن المقاييس الخاصة بالشركة ولا تنقلها من شركات مشابهة.",
-    "- أضف companyProfile كشرح تعليمي مبسط للشركة داخل نفس JSON، وليس في برومبت منفصل.",
-    "- أضف priceTargetRequirements لتحديد ما يجب أن تحققه الشركة لتبرير الانتقال إلى السيناريو الأعلى.",
-    "- إذا كان التحليل بعد إعلان أرباح، أضف actualValue وstatus لكل requirement سابق إذا توفر.",
+    "المطلوب:",
+    "- نفّذ تحليلًا أوليًا كاملًا للشركة أو السهم.",
+    "- اشرح نشاط الشركة ونموذج عملها بلغة عربية واضحة للمستثمر الذكي غير المتخصص.",
+    "- اختر KPIs خاصة بالشركة فقط، ولا تنسخ KPIs من شركات أخرى.",
+    "- حلل الجودة المالية، نقاط القوة، نقاط الضعف، المخاطر، المحفزات، والتوقعات.",
+    "- اختر طرق التقييم المناسبة للشركة، ولا تستخدم طريقة ثابتة لكل الشركات.",
+    "- أنشئ ثلاث سيناريوهات فقط: Bear وBase وBull.",
+    "- احسب probabilityWeighted Fair Value بناءً على احتمالات السيناريوهات التي تختارها أنت.",
+    "- احصل على سعر سوق قابل للتتبع مع sourceId واضح.",
+    "- أصدر قرارًا على مستوى السهم فقط: BUY أو ADD أو HOLD أو WATCH أو REDUCE أو SELL.",
+    "- أنشئ فرضية استثمار أولية.",
+    "- أنشئ nextRequirements كأول مجموعة متطلبات للربع القادم.",
     "",
     ticker ? `رمز السهم المطلوب: ${ticker}` : "رمز السهم: حدده من الشركة محل التحليل إذا كان معروفًا، وإلا ضع null.",
     "",
-    "قواعد البحث والبيانات:",
+    "صيغة العقد الإلزامية:",
+    `- schemaVersion يجب أن يكون ${FRANKLIN_FAIR_VALUE_SCHEMA_VERSION}`,
+    `- methodologyVersion يجب أن يكون ${FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION}`,
+    "- analysisType يجب أن يكون INITIAL.",
+    "- reportIdentity.previousAnalysisId = null.",
+    "- reportIdentity.previousRequirementSetId = null.",
+    "- previousRequirementsEvaluation = null.",
+    "- valuation.reviewStatus = INITIAL.",
+    "- valuation.previous = null.",
+    "- valuation.change = null.",
+    "- thesis.status = INITIAL.",
+    "- thesis.previousSummary = null.",
+    "- nextRequirements يجب أن تكون موجودة حتى في التحليل الأولي.",
+    "",
+    "قواعد البحث والمصادر:",
     "- استخدم أحدث البيانات المتاحة وقت التحليل.",
     "- أعط الأولوية لتقارير الشركة وInvestor Relations وملفات SEC ومكالمات الأرباح والتوجيهات الرسمية والمصادر المالية الموثوقة.",
     "- لا تخترع أي رقم أو معلومة.",
     "- ميّز بين reportedData وconsensusEstimates وanalystAssumptions.",
     "- إذا لم تتوفر معلومة ضرورية، استخدم null.",
     "- لا تعرض رقمًا تقديريًا على أنه رقم معلن.",
-    "- اذكر تاريخ التقييم وسعر السهم المستخدم في التقييم.",
-    "- حافظ على عملة الشركة الأساسية، ولا تخلط بين العملات.",
+    "- اذكر analysisDate وسعر marketPrice المستخدم ومصدره.",
+    "- حافظ على الفصل بين company.reportingCurrency وcompany.tradingCurrency.",
+    "- marketPrice.currency وvaluation.current.currency يجب أن يساويا company.tradingCurrency.",
     "",
-    "اختيار طريقة التقييم:",
+    "اختيار التقييم:",
     "- لا تستخدم طريقة تقييم ثابتة لجميع الشركات.",
     "- صنّف الشركة أولًا حسب طبيعة أعمالها ومرحلتها المالية.",
     "- اختر طرق التقييم المناسبة فقط من DCF وReverse DCF وP/E وPEG وEV/EBITDA وEV/EBIT وP/S وEV/Sales وP/FCF وSOTP وDividend Discount Model وPrice to Book وComparable Companies وHistorical Multiples.",
@@ -57,11 +72,20 @@ export function buildFullAnalysisPrompt(options = {}) {
     "- استخدم SOTP عندما تكون الشركة مكونة من قطاعات مختلفة تحتاج إلى تقييم مستقل.",
     "- استخدم Reverse DCF لمعرفة مقدار النمو والهوامش التي يسعرها السوق حاليًا.",
     "",
-    "يجب أن يحتوي valuationMethodology على primaryMethod وsecondaryMethods وexcludedMethods وselectionReason وmethodExplanations وexclusionReasons وmodelWeights وweightReasoning وlimitations.",
-    "لكل طريقة تقييم مستخدمة اذكر الدور، سبب الملاءمة، الافتراضات، المدخلات، Fair Value، الوزن، الثقة، ونقطة الضعف.",
+    "- valuation.methodology.modelWeights يجب أن تجمع 100%.",
+    "- لا تعطِ وزنًا لطريقة مستبعدة.",
+    "- Bear Fair Value <= Base Fair Value <= Bull Fair Value.",
+    "- احتمالات Bear/Base/Bull يجب أن تجمع 100%.",
+    "- valuation.current.bear/base/bull يجب أن تطابق valuation.scenarios.Bear/Base/Bull.fairValue.",
+    "- valuation.current.probabilityWeighted يجب أن يساوي المتوسط الاحتمالي للسيناريوهات.",
+    "- valuation.upsideToBasePct = (Base / marketPrice.value - 1) × 100.",
+    "- valuation.marginOfSafetyPct = ((Base - marketPrice.value) / Base) × 100.",
     "",
-    "تحليل جودة الشركة:",
-    "- حلل Revenue وEPS وFCF وGross Margin وOperating Margin وFCF Margin وROIC وCash Conversion وCapEx intensity والميزانية وStock-based Compensation وتخصيص رأس المال والميزة التنافسية والإدارة واستدامة النمو وحساسية الدورة الاقتصادية.",
+    "القيم المسموحة في العقد:",
+    canonicalEnumSection(),
+    "",
+    "قواعد المصادر داخل JSON:",
+    ...sourceProvenancePromptLines(),
     "",
     "شرح الشركة التعليمي:",
     "- اكتب companyProfile للمستثمر الذكي الذي لا يعرف صناعة الشركة أو مصطلحاتها التقنية.",
@@ -76,62 +100,38 @@ export function buildFullAnalysisPrompt(options = {}) {
     "- أنشئ weaknesses من 3 إلى 7 نقاط فعلية مع title وexplanation وevidence وseverity وpersistence وvaluationImpact وmonitoringIndicator وconfidence.",
     "- ميّز بين weaknesses كنقاط ضعف حالية وrisks كأحداث مستقبلية محتملة.",
     "",
-    "السيناريوهات:",
-    "- أنشئ Conservative وBase وOptimistic وExceptional.",
-    "- Exceptional يكون enabled=false إلا إذا كان له مبرر واقعي.",
-    "- لكل سيناريو اذكر probability وfairValue وupsideDownsidePercent والافتراضات وrequiredOutcomes وthesis وkeyRisks.",
-    "- يجب أن يكون مجموع احتمالات السيناريوهات المفعلة 100%.",
-    "",
-    "متطلبات السعر التالي:",
-    "- priceTargetRequirements يحدد متطلبات كانت معروفة قبل الأرباح لتبرير Target أعلى.",
-    "- لا تغيّر المتطلبات القديمة بأثر رجعي؛ إذا كان التحليل بعد أرباح، املأ actualValue وstatus فقط.",
-    "- في مجموعة متطلبات مستقبلية جديدة: ضع previousQuarter وtargetQuarter بوضوح، واجعل previousValue قيمة مختصرة قابلة للمقارنة فقط.",
-    "- لا تكرر اسم الربع أو التعليق التفسيري داخل previousDisplay؛ ضع الشرح في whyItMatters، لأن التطبيق يعرض اسم الربع في عنوان مستقل.",
-    "- قبل صدور targetQuarter اجعل status لكل المتطلبات NOT_REPORTED، واجعل requirementsAssessment وweightedAchievement فارغين/null؛ هذه أهداف مستقبلية وليست نتيجة إنجاز.",
-    "- status يجب أن يكون: NOT_REPORTED أو PASSED أو PARTIALLY_PASSED أو FAILED أو EXCEEDED.",
-    "- NOT_REPORTED لا يدخل في مقام Weighted Achievement.",
-    "- requirementsAssessment يمكن أن يحتوي summary وoverallStatus، لكن لا تجعل التوصية مبنية على هذه النسبة وحدها.",
-    "",
-    "القيمة العادلة والقرار:",
-    "- احسب fairValueLow وfairValueBase وfairValueHigh وprobabilityWeightedFairValue وcurrentPrice وupsideDownsidePercent وmarginOfSafety وconfidenceLevel.",
-    "- لا تستخدم متوسطًا بسيطًا لطرق التقييم إلا إذا كان ذلك مبررًا.",
-    "- استخدم decision.action بقيمة واحدة فقط: BUY أو ADD أو HOLD أو WATCH أو REDUCE أو SELL.",
-    "- معنى ADD: زيادة مركز قائم. معنى WATCH: المراقبة دون شراء حتى تتحقق الشروط.",
-    "- decision هو المصدر الوحيد للتوصية والثقة وسبب القرار ومحفزات الترقية أو الخفض.",
-    "- لا تجعل جودة الشركة وحدها سببًا للشراء؛ يجب مراعاة السعر الحالي مقارنة بالقيمة العادلة.",
+    "متطلبات الربع القادم:",
+    "- nextRequirements يجب أن تحتوي 4 إلى 8 متطلبات فقط.",
+    "- أوزان المتطلبات الجديدة يجب أن تجمع 100%.",
+    "- كل status في nextRequirements.requirements يجب أن يكون NOT_REPORTED.",
+    "- nextRequirements.currentJustifiedValue يجب أن يساوي valuation.current.base دائمًا.",
+    "- اختر mode من: ADVANCE_TARGET أو DEFEND_BASE أو RECOVERY.",
+    "- استخدم متطلبات قابلة للقياس وموضوعية ومادية للتقييم، ولا تستخدم عبارات فضفاضة.",
     "",
     "المراقبة المستقبلية:",
-    "- أنشئ monitoringChecklist من 5 إلى 8 عناصر تشمل metric وcurrentValue وexpectedRange وupgradeTrigger وdowngradeTrigger وthesisBreak وrevaluationEvent.",
+    "- أنشئ monitoringChecklist من 5 إلى 8 عناصر تشمل metric وcurrentValue وexpectedRange وupgradeTrigger وdowngradeTrigger وthesisBreak.",
     "",
     "صيغة الإخراج:",
-    "- بعد انتهاء التحليل، اعرض للمستخدم أولًا ملخصًا عربيًا واضحًا، ثم ضع ملف JSON كاملًا في مربع كود مستقل.",
-    "- يجب أن يكون JSON صالحًا للنسخ واللصق مباشرة في التطبيق.",
+    "- أخرج كائن JSON واحدًا فقط مطابقًا للعقد.",
+    "- لا تضف Markdown ولا شرحًا خارج JSON.",
     "- ممنوع داخل JSON: Markdown أو تعليقات برمجية أو نصوص خارج الكائن أو NaN أو Infinity أو trailing commas أو undefined.",
     "- استخدم null عند غياب البيانات.",
     "- لا تختصر أسماء الحقول ولا تغيّرها من تحليل إلى آخر.",
     "- يجب أن تكون جميع الشروحات النصية داخل JSON باللغة العربية، مع الإبقاء على المصطلحات المالية القياسية بالإنجليزية مثل DCF وFCF وROIC وEPS وP/E وEV/EBITDA وWACC وSOTP.",
     "",
-    "الحد الأدنى الذي يحتاجه التطبيق لاعتبار التقرير مكتملًا:",
-    ...fieldLines(requiredFields),
-    "",
-    "حقول مستحسنة ترفع جودة العرض لكنها لا تمنع الحفظ:",
-    ...fieldLines(recommendedFields),
-    "",
     "فحص نهائي إلزامي قبل الإخراج:",
     "- JSON صالح تقنيًا.",
     "- رمز السهم واسم الشركة صحيحان.",
-    "- تاريخ التحليل والسعر الحالي موجودان.",
+    "- reportIdentity والتحليل والسعر الحالي والمصادر موجودة.",
     "- طريقة التقييم الرئيسية وسبب اختيارها موجودان.",
-    "- أسباب استبعاد الطرق غير الملائمة موجودة.",
     "- مجموع أوزان طرق التقييم المستخدمة يساوي 100%.",
-    "- مجموع احتمالات السيناريوهات المفعلة يساوي 100%.",
+    "- مجموع احتمالات السيناريوهات يساوي 100%.",
+    "- probabilityWeighted وupside وmarginOfSafety متسقة حسابيًا.",
     "- أهم نقاط القوة والضعف موجودة.",
     "- المخاطر منفصلة عن نقاط الضعف.",
-    "- القيمة العادلة متسقة في جميع الأقسام.",
-    "- نسبة الصعود أو الهبوط محسوبة من السعر المستخدم في التحليل.",
+    "- nextRequirements.currentJustifiedValue يساوي Base.",
     "- لا توجد بيانات مختلقة.",
     "- كل معلومة غير متوفرة ممثلة بـ null.",
-    "- لا يتعارض القرار النهائي مع القيمة العادلة أو بوابات المخاطر.",
     "- لا تخرج قالبًا فارغًا؛ يجب ملء كل ما يمكن توثيقه فعليًا.",
     "",
     "مخطط JSON الإلزامي:",
@@ -141,7 +141,7 @@ export function buildFullAnalysisPrompt(options = {}) {
 }
 
 export function buildExternalAnalysisJsonTemplate(options = {}) {
-  return JSON.stringify(buildFairValueAnalysisJsonObject(options), null, 2);
+  return JSON.stringify(buildFranklinV3ReportTemplate({ ...options, analysisType: "INITIAL" }), null, 2);
 }
 
 export function buildNewEarningsAnalysisPrompt(report = {}, options = {}) {
@@ -150,38 +150,40 @@ export function buildNewEarningsAnalysisPrompt(report = {}, options = {}) {
   const requirementsBlock = report.priceTargetRequirements || {};
   const requirements = Array.isArray(requirementsBlock.requirements) ? requirementsBlock.requirements : [];
   const selectedPeriod = earningsPeriodFromOptions(options)?.reportPeriod || null;
-  const template = buildNewEarningsOutputTemplate(report, requirements, { selectedPeriod });
+  const previous = previousCanonicalState(report);
+  const previousInvestmentState = buildPreviousInvestmentState(report);
+  const template = buildFranklinV3ReportTemplate({
+    tickerHint: ticker,
+    analysisType: "EARNINGS_REVALUATION",
+    previousReport: report,
+    selectedPeriod
+  });
 
   return [
-    "أنت تعمل داخل مشروع Fair value لتحليل إعلان أرباح جديد بناءً على تقرير محفوظ سابقًا في Franklin.",
+    "أنت تعمل داخل Fair value لتحليل إعلان أرباح جديد بناءً على تقرير سابق محفوظ في Franklin.",
     "",
-    "مهم جدًا:",
-    "- ChatGPT هو المسؤول عن التحليل الاستثماري وقراءة مواد الأرباح الجديدة.",
-    "- Franklin لا يحسب ولا يفسر النتائج؛ Franklin سيستورد JSON النهائي فقط.",
-    "- لا تغيّر المتطلبات الأصلية المحفوظة أدناه.",
-    "- قارِن النتائج الفعلية مع المتطلبات السابقة فقط.",
-    "- إذا لم تُفصح الشركة عن معلومة، استخدم status = NOT_REPORTED وضع actualValue = null.",
-    "- لا تخترع أرقامًا أو توجيهات.",
-    "- اجعل كل الشروحات والسرد باللغة العربية، مع إبقاء المصطلحات المالية القياسية بالإنجليزية عند الحاجة.",
+    "حدود المسؤولية:",
+    "- ChatGPT / Fair value هو المحلل المالي الوحيد.",
+    "- Franklin لا يحدد القيمة العادلة ولا القرار ولا status لأي requirement.",
+    "- Franklin سيقرأ JSON النهائي، يتحقق من الحسابات الثابتة، يحفظ نسخة جديدة، ويربطها بالتقرير السابق.",
+    "- لا تغيّر التقرير السابق ولا المتطلبات المجمدة؛ قيّمها فقط.",
     "",
-    "بيانات التقرير الحالي المحفوظ في Franklin:",
+    "بيانات التقرير السابق المحفوظ في Franklin:",
     `- الشركة: ${companyName}`,
     `- الرمز: ${ticker || "-"}`,
-    `- تاريخ التحليل الحالي: ${formatPromptValue(report.analysisDate)}`,
-    `- فترة التقرير الحالية: ${formatPromptValue(report.reportPeriod)}`,
-    `- التوصية الحالية: ${formatPromptValue(report.decision?.action)}`,
-    `- Bear Fair Value الحالي: ${formatPromptValue(report.fairValueSummary?.fairValueLow)}`,
-    `- Base Fair Value الحالي: ${formatPromptValue(report.fairValueSummary?.fairValueBase)}`,
-    `- Bull Fair Value الحالي: ${formatPromptValue(report.fairValueSummary?.fairValueHigh)}`,
-    `- القيمة المبررة الحالية: ${formatPromptValue(requirementsBlock.currentJustifiedValue)}`,
-    `- الهدف التالي: ${formatPromptValue(requirementsBlock.targetValue)}`,
-    `- السيناريو المستهدف: ${formatPromptValue(requirementsBlock.targetScenario)}`,
-    `- الربع السابق المحفوظ: ${formatPromptValue(requirementsBlock.previousQuarter || report.reportPeriod)}`,
-    `- الربع المستهدف للتقييم: ${formatPromptValue(requirementsBlock.targetQuarter || requirementsBlock.earningsPeriod)}`,
-    `- فترة الأرباح المطلوب تقييمها: ${formatPromptValue(requirementsBlock.earningsPeriod)}`,
+    `- previous Analysis ID: ${formatPromptValue(previous.analysisId)}`,
+    `- previous Requirement Set ID: ${formatPromptValue(previous.requirementSetId)}`,
+    `- تاريخ التحليل السابق: ${formatPromptValue(report.analysisDate)}`,
+    `- فترة التقرير السابقة: ${formatPromptValue(report.reportPeriod)}`,
+    `- القرار السابق: ${formatPromptValue(report.decision?.action)}`,
+    `- Previous Bear Fair Value: ${formatPromptValue(report.fairValueSummary?.fairValueLow)}`,
+    `- Previous Base Fair Value: ${formatPromptValue(report.fairValueSummary?.fairValueBase)}`,
+    `- Previous Bull Fair Value: ${formatPromptValue(report.fairValueSummary?.fairValueHigh)}`,
+    `- Previous probability-weighted Fair Value: ${formatPromptValue(report.fairValueSummary?.probabilityWeightedFairValue)}`,
+    `- الربع المستهدف للمتطلبات السابقة: ${formatPromptValue(requirementsBlock.targetQuarter || requirementsBlock.earningsPeriod)}`,
     ...(selectedPeriod ? [
       `- الربع الذي اختاره المستخدم لهذا التحديث: ${selectedPeriod}`,
-      `- يجب أن تكون reportPeriod في JSON النهائي مساوية تمامًا لـ ${selectedPeriod}.`,
+      `- يجب أن تكون reportIdentity.fiscalQuarter وreportIdentity.fiscalYear مطابقين تمامًا لـ ${selectedPeriod}.`,
       `- حلل مواد ${selectedPeriod} فقط، ولا تستبدلها بربع آخر حتى لو وجدت نتائج أحدث.`
     ] : []),
     "",
@@ -192,41 +194,80 @@ export function buildNewEarningsAnalysisPrompt(report = {}, options = {}) {
     listForPrompt(report.risks, riskForPrompt),
     "",
     "Requirements to Justify Next Price Target المحفوظة سابقًا:",
-    requirements.length ? requirements.map(requirementForPrompt).join("\n\n") : "- لا توجد متطلبات محفوظة في هذا التقرير.",
+    requirements.length
+      ? requirements.map(requirementForPrompt).join("\n\n")
+      : "- لا توجد requirement set سابقة. لا تخترع واحدة. ابدأ دورة المتطلبات Canonical من nextRequirements فقط.",
     "",
-    "المطلوب منك بعد أن يزوّدك المستخدم بمواد الأرباح الجديدة / 10-Q / مكالمة الإدارة:",
-    "1. اقرأ مواد الأرباح الجديدة.",
-    "2. قارن النتائج الفعلية ضد PREVIOUSLY SAVED requirements أعلاه.",
-    "3. لا تعدّل requiredValue أو وزن المتطلب القديم.",
-    "4. لكل requirement أعد:",
-    "   - requirement ID",
-    "   - previousValue وrequiredValue كما هي من المتطلبات المحفوظة.",
-    "   - actualValue وactualDisplay من إعلان الأرباح الجديد.",
-    "   - direction: up أو down أو flat أو unknown.",
-    "   - direction يعني حركة الرقم فقط ولا يعني أن الحركة جيدة أو سيئة.",
-    "   - impact: positive أو negative أو mixed أو neutral أو unknown.",
-    "   - impact يعني أثر النتيجة على الفرضية الاستثمارية.",
-    "   - status: NOT_REPORTED أو PASSED أو PARTIALLY_PASSED أو FAILED أو EXCEEDED",
-    "   - Arabic evaluation note",
-    "5. لا تستخدم معادلة عامة؛ استخدم حكمًا تحليليًا مناسبًا للشركة والقطاع.",
-    "6. أعد weightedAchievement وoverallStatus وsummary كما تراها أنت بناءً على التحليل.",
-    "7. أعد earnings summary باللغة العربية.",
-    "8. أضف توجيهات الربع القادم إلى guidance مع period واضح إذا توفرت.",
-    "9. أعد updated guidance إذا تغيرت التوجيهات.",
-    "10. أعد updated company-specific KPIs عند الحاجة.",
-    "11. أعد updated risks إذا تغيرت ماديًا.",
-    "12. أعد decision المحدث.",
-    "13. أعد Bear/Base/Bull valuation فقط إذا كانت نتائج الأرباح تبرر تغييرًا جوهريًا؛ وإلا اشرح لماذا بقيت كما هي.",
-    "14. إذا خلص تحليلك إلى أن الهدف السابق أصبح مبررًا، أنشئ priceTargetRequirements جديدة للفترة القادمة: اجعل currentJustifiedValue مساويًا للهدف السابق، وحدد targetValue أعلى جديدًا من تحليلك، وحدد targetQuarter القادم ومتطلبات جديدة له.",
-    "15. لا يرفع Franklin الهدف آليًا ولا يحسب سعرًا جديدًا. أنت وحدك تحدد هل تحقق الهدف وما هو الهدف التالي بناءً على التقييم والنتائج.",
-    "16. إذا لم يصبح الهدف السابق مبررًا، فلا ترفعه ميكانيكيًا؛ أبقِ currentJustifiedValue المناسب وحدد بوضوح هل تستمر مراقبة الهدف نفسه أو تُنشأ متطلبات معدلة للفترة القادمة.",
+    "previousInvestmentState JSON:",
+    JSON.stringify(previousInvestmentState, null, 2),
     "",
-    "صيغة JSON النهائية التي يعرف Franklin استيرادها:",
-    "- أخرج JSON صالحًا فقط داخل كائن واحد.",
-    "- لا تستخدم Markdown داخل JSON.",
-    "- لا تضف نصًا خارج JSON النهائي.",
-    "- املأ previousRequirementsEvaluation بنتائج تقييم المتطلبات السابقة.",
-    "- املأ priceTargetRequirements فقط إذا كان هناك هدف ومتطلبات جديدة للفترة القادمة؛ هذا الكائن هو الذي ينقل متتبع الفرضية تلقائيًا إلى المرحلة التالية.",
+    "التسلسل الإلزامي لإعادة التقييم:",
+    "1. اقرأ إعلان الأرباح الجديد و10-Q ومكالمة الإدارة أو المواد التي يزوّدك بها المستخدم.",
+    "2. اقرأ Revenue وEPS والهوامش وFCF والسيولة والتوجيهات وKPIs الخاصة بالشركة.",
+    "3. قيّم فقط requirement set السابقة المجمدة أعلاه.",
+    "4. لا تغيّر requiredValue أو requiredDisplay أو weight أو metric أو targetQuarter لأي requirement سابق.",
+    "5. لكل requirement سابق املأ actualValue وactualDisplay وstatus وpartialCreditPct عند الحاجة وevaluationNote وsourceId.",
+    "6. status يجب أن يكون NOT_REPORTED أو FAILED أو PARTIALLY_PASSED أو PASSED أو EXCEEDED.",
+    "7. PARTIALLY_PASSED فقط يستخدم partialCreditPct بين 0 و100. باقي الحالات partialCreditPct = null.",
+    "8. احسب assessment كاملًا: coverageWeightPct وachievementOfReportedWeightPct وachievementOfTotalWeightPct وباقي أوزان الحالات.",
+    "9. NOT_REPORTED لا يدخل في مقام reported requirements.",
+    "10. حدّث Forward View والتوقعات والافتراضات المتغيرة.",
+    "11. أعد تقييم Bear/Base/Bull إلزاميًا في كل ربع.",
+    "12. valuation.reviewStatus يجب أن يكون UPDATED أو UNCHANGED فقط.",
+    "13. UNCHANGED يعني أنك راجعت الأدلة الجديدة وقررت أن التقييم السابق ما زال مبررًا؛ لا يعني أن التقييم تُرك بلا عمل.",
+    "14. أنشئ valuation.valuationBridge.whyBaseChangedOrNot إلزاميًا.",
+    "15. حدّث thesis.status إلى STRENGTHENED أو UNCHANGED أو WEAKENED أو BROKEN.",
+    "16. أصدر decision جديدًا على مستوى السهم.",
+    "17. أنشئ nextRequirements جديدة بالكامل للربع القادم.",
+    "18. nextRequirements.currentJustifiedValue يجب أن يساوي valuation.current.base الجديد دائمًا.",
+    "19. اختر mode من ADVANCE_TARGET أو DEFEND_BASE أو RECOVERY.",
+    "20. أضف 4 إلى 8 متطلبات جديدة قابلة للقياس، أوزانها تجمع 100%.",
+    "21. كل متطلبات nextRequirements الجديدة يجب أن تكون status = NOT_REPORTED.",
+    "22. أضف مصادر جديدة خاصة بهذا الربع، ولا تورّث مصادر الربع السابق كدليل للربع الحالي.",
+    "",
+    "القيم المسموحة في العقد:",
+    canonicalEnumSection(),
+    "",
+    "قواعد المصادر داخل JSON:",
+    ...sourceProvenancePromptLines(),
+    "",
+    "قواعد حساب assessment السابقة:",
+    "- totalWeight = sum of ALL original requirement weights.",
+    "- reportedWeight = sum of weights where status != NOT_REPORTED.",
+    "- earnedWeight = PASSED weights + EXCEEDED weights + Σ(PARTIALLY_PASSED weight × partialCreditPct / 100).",
+    "- coverageWeightPct = reportedWeight / totalWeight × 100.",
+    "- achievementOfReportedWeightPct = earnedWeight / reportedWeight × 100.",
+    "- achievementOfTotalWeightPct = earnedWeight / totalWeight × 100.",
+    "- exceededWeightPct = sum original weights with EXCEEDED.",
+    "- passedWeightPct = sum original weights with PASSED.",
+    "- partialWeightPct = sum original weights with PARTIALLY_PASSED. لا تضع الائتمان المكتسب هنا.",
+    "- failedWeightPct = sum original weights with FAILED.",
+    "- notReportedWeightPct = sum original weights with NOT_REPORTED.",
+    "- exceededWeightPct + passedWeightPct + partialWeightPct + failedWeightPct + notReportedWeightPct يجب أن يساوي 100%.",
+    "- EXCEEDED وPASSED يأخذان 100% credit فقط، ولا يأخذ EXCEEDED أكثر من 100%.",
+    "- FAILED = 0% credit.",
+    "- PARTIALLY_PASSED يستخدم partialCreditPct الذي تحدده أنت.",
+    "- NOT_REPORTED مستبعد من مقام achievementOfReportedWeightPct.",
+    "- achievement لا يتجاوز 100%.",
+    "",
+    "قواعد mode وtargetScenario للمتطلبات الجديدة:",
+    "- ADVANCE_TARGET يعني أن الربع القادم قد يبرر هدفًا أعلى من Base. targetScenario يجب أن يكون BULL أو INTERMEDIATE.",
+    "- إذا كان ADVANCE_TARGET مع BULL: nextRequirements.targetValue يجب أن يساوي valuation.current.bull.",
+    "- إذا كان ADVANCE_TARGET مع INTERMEDIATE: targetValue يجب أن يكون أكبر من Base وأقل من Bull، ويجب شرح targetDescription.",
+    "- DEFEND_BASE يعني أن المطلوب هو إثبات أن Base الحالي ما زال مبررًا. targetScenario يجب أن يكون BASE_DEFENSE وtargetValue يجب أن يساوي valuation.current.base.",
+    "- RECOVERY يعني أن السهم يحتاج دلائل تعافٍ بعد ضعف أو كسر في الفرضية. targetScenario يجب أن يكون RECOVERY وtargetValue يجب أن يكون أكبر من أو يساوي Base مع شرح recovery logic في targetDescription.",
+    "",
+    "قواعد مالية ممنوعة:",
+    "- لا تستخدم beat/miss بطريقة ميكانيكية مثل EPS beat 10% إذن القيمة ترتفع 10%.",
+    "- أي تغير في Fair Value يجب أن يمر عبر الأدلة الجديدة ثم افتراضات الإيراد/EPS/الهوامش/FCF والمخاطر والتوجيهات.",
+    "- Franklin لا يرفع الهدف آليًا ولا يحسب targetValue. أنت وحدك تحدد ذلك داخل JSON.",
+    "",
+    "صيغة JSON النهائية:",
+    `- أخرج JSON واحدًا فقط بصيغة ${FRANKLIN_FAIR_VALUE_SCHEMA_VERSION}.`,
+    "- analysisType يجب أن يكون EARNINGS_REVALUATION.",
+    "- reportIdentity.previousAnalysisId يجب أن يطابق previous Analysis ID أعلاه حرفيًا.",
+    "- reportIdentity.previousRequirementSetId يجب أن يطابق previous Requirement Set ID أعلاه إذا كان موجودًا.",
+    "- لا تستخدم Markdown ولا تضف نصًا خارج JSON.",
     "- استخدم null لأي معلومة غير متوفرة.",
     "",
     JSON.stringify(template, null, 2)
@@ -245,112 +286,104 @@ function fieldLines(fields) {
   return fields.map((field, index) => `${index + 1}. ${field.path} - ${field.labelAr} - ${field.expectedType}`);
 }
 
+function canonicalEnumSection() {
+  return Object.entries(FRANKLIN_V3_CANONICAL_ENUMS).map(([key, value]) => {
+    if (Array.isArray(value)) return `- ${key}: ${value.join(" | ")}`;
+    return `- ${key}: ${Object.entries(value).map(([field, values]) => `${field} = ${values.join(" | ")}`).join("; ")}`;
+  }).join("\n");
+}
+
+function sourceProvenancePromptLines() {
+  return [
+    '- مصدر سعر السوق: sources[].usedFor يجب أن يحتوي "marketPrice".',
+    '- مصدر أرباح الربع الحالي: sources[].usedFor يجب أن يحتوي واحدًا على الأقل من "latestQuarter" أو "previousRequirementsEvaluation" أو "currentQuarterEarnings".',
+    "- إذا كان المصدر يدعم أكثر من جزء، يمكن أن يحتوي usedFor على عدة tokens.",
+    "- كل sourceId أو sourceIds غير null في التقرير يجب أن يطابق sources[].id موجودًا.",
+    "- source.type يجب أن يكون من sourceType في القيم المسموحة أعلاه.",
+    "- User Provided يمكن أن يكون url = null.",
+    "- المصادر الرسمية أو الويب يجب أن تحفظ URL الفعلي عند توفره."
+  ];
+}
+
+function buildPreviousInvestmentState(report = {}) {
+  const canonical = isFranklinV3Report(report?.metadata?.franklinV3Report)
+    ? report.metadata.franklinV3Report
+    : null;
+  if (canonical) {
+    return pickObject(canonical, {
+      reportIdentity: true,
+      company: ["reportingCurrency", "tradingCurrency", "securityUnit"],
+      latestQuarter: ["companySpecificKpis", "guidance", "forwardOutlook"],
+      forecast: ["yearlyForecast", "estimateRevisions", "changedAssumptions", "wacc", "terminalGrowth", "sensitivity", "summary"],
+      valuation: ["current", "methodology", "valuationResults", "scenarios", "valuationBridge"],
+      thesis: true,
+      decision: true,
+      risks: true,
+      catalysts: true,
+      monitoringChecklist: true,
+      nextRequirements: true
+    });
+  }
+  return compactObject({
+    reportIdentity: compactObject({
+      ticker: report.company?.ticker || null,
+      companyName: report.company?.name || null,
+      reportPeriod: report.reportPeriod || null,
+      analysisDate: report.analysisDate || null
+    }),
+    company: compactObject({
+      reportingCurrency: report.metadata?.franklinV3?.reportingCurrency || null,
+      tradingCurrency: report.company?.currency || report.metadata?.franklinV3?.tradingCurrency || null,
+      securityUnit: report.metadata?.franklinV3?.securityUnit || null
+    }),
+    valuation: compactObject({
+      current: compactObject({
+        bear: report.fairValueSummary?.fairValueLow ?? null,
+        base: report.fairValueSummary?.fairValueBase ?? null,
+        bull: report.fairValueSummary?.fairValueHigh ?? null,
+        probabilityWeighted: report.fairValueSummary?.probabilityWeightedFairValue ?? null,
+        currency: report.company?.currency || null,
+        securityUnit: report.metadata?.franklinV3?.securityUnit || null
+      }),
+      methodology: report.valuationMethodology || null,
+      valuationResults: report.valuationResults || null,
+      scenarios: report.scenarios || null
+    }),
+    thesis: report.thesis || null,
+    decision: report.decision || null,
+    risks: report.risks || null,
+    catalysts: report.catalysts || null,
+    monitoringChecklist: report.monitoringChecklist || null,
+    nextRequirements: report.priceTargetRequirements || null
+  });
+}
+
+function pickObject(source = {}, shape = {}) {
+  const result = {};
+  for (const [key, selector] of Object.entries(shape)) {
+    if (selector === true) {
+      result[key] = source?.[key] ?? null;
+    } else if (Array.isArray(selector)) {
+      result[key] = compactObject(Object.fromEntries(selector.map((field) => [field, source?.[key]?.[field] ?? null])));
+    }
+  }
+  return compactObject(result);
+}
+
+function compactObject(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  return Object.fromEntries(Object.entries(value).filter(([, entry]) => {
+    if (entry === null || entry === undefined) return false;
+    if (Array.isArray(entry)) return entry.length > 0;
+    if (typeof entry === "object") return Object.keys(entry).length > 0;
+    return true;
+  }));
+}
+
 function normalizeTicker(value) {
   const clean = String(value || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "");
   if (!clean || ["TICKER", "SYMBOL"].includes(clean)) return "";
   return clean.slice(0, 12);
-}
-
-function buildNewEarningsOutputTemplate(report = {}, requirements = [], options = {}) {
-  const ticker = normalizeTicker(report.company?.ticker);
-  const requirementsBlock = report.priceTargetRequirements || {};
-  const selectedPeriod = options.selectedPeriod || null;
-  const template = buildFairValueAnalysisJsonObject({ tickerHint: ticker });
-  template.analysisDate = "YYYY-MM-DD";
-  template.reportPeriod = selectedPeriod;
-  template.company.name = report.company?.name || null;
-  template.company.currency = report.company?.currency || "USD";
-  template.fairValueSummary.currentPrice = null;
-  template.fairValueSummary.fairValueLow = numberOrNull(report.fairValueSummary?.fairValueLow);
-  template.fairValueSummary.fairValueBase = numberOrNull(report.fairValueSummary?.fairValueBase);
-  template.fairValueSummary.fairValueHigh = numberOrNull(report.fairValueSummary?.fairValueHigh);
-  template.decision.action = report.decision?.action || null;
-  template.previousRequirementsEvaluation = {
-    requirementSetId: requirementsBlock.requirementSetId || null,
-    ticker: ticker || null,
-    previousQuarter: requirementsBlock.previousQuarter || report.reportPeriod || null,
-    targetQuarter: requirementsBlock.targetQuarter || requirementsBlock.earningsPeriod || null,
-    earningsPeriod: selectedPeriod || requirementsBlock.targetQuarter || requirementsBlock.earningsPeriod || null,
-    createdAt: requirementsBlock.createdAt || null,
-    createdFromAnalysisId: requirementsBlock.createdFromAnalysisId || report.id || null,
-    targetValue: numberOrNull(requirementsBlock.targetValue),
-    targetScenario: requirementsBlock.targetScenario || null,
-    targetDescription: requirementsBlock.targetDescription || null,
-    summary: null,
-    matchType: "external_chatgpt_supplied",
-    requirements: requirements.map((item, index) => ({
-      id: item.id || `requirement_${index + 1}`,
-      name: item.name || item.metric || null,
-      arabicName: item.arabicName || null,
-      metric: item.metric || item.name || null,
-      type: item.type || "text",
-      previousValue: item.previousValue ?? item.currentLevel ?? null,
-      previousDisplay: item.previousDisplay || null,
-      currentLevel: item.currentLevel ?? item.previousValue ?? null,
-      requiredValue: item.requiredValue ?? null,
-      requiredDisplay: item.requiredDisplay || null,
-      unit: item.unit || null,
-      importance: item.importance || "medium",
-      weight: numberOrNull(item.weight),
-      whyItMatters: item.whyItMatters || null,
-      actualValue: null,
-      actualDisplay: null,
-      actualRaw: null,
-      direction: "unknown",
-      impact: "unknown",
-      status: "NOT_REPORTED",
-      evaluationNote: null
-    })),
-    requirementsAssessment: {
-      weightedAchievement: null,
-      reportedRequirements: null,
-      totalRequirements: requirements.length || null,
-      passed: null,
-      failed: null,
-      exceeded: null,
-      partiallyPassed: null,
-      notReported: null,
-      overallStatus: null,
-      summary: null
-    }
-  };
-  template.priceTargetRequirements = {
-    currentJustifiedValue: null,
-    targetValue: null,
-    nextTargetValue: null,
-    targetScenario: null,
-    targetDescription: null,
-    summary: null,
-    createdAt: null,
-    previousQuarter: requirementsBlock.targetQuarter || requirementsBlock.earningsPeriod || null,
-    targetQuarter: null,
-    earningsPeriod: null,
-    requirements: []
-  };
-  template.guidance = [{
-    period: null,
-    topic: null,
-    arabicTopic: null,
-    currentGuidance: null,
-    previousGuidance: null,
-    direction: "not_applicable",
-    type: "text",
-    interpretation: null,
-    importance: "medium"
-  }];
-  template.requirementsAssessment = {
-    weightedAchievement: null,
-    reportedRequirements: null,
-    totalRequirements: null,
-    passed: null,
-    failed: null,
-    exceeded: null,
-    partiallyPassed: null,
-    notReported: null,
-    overallStatus: null,
-    summary: null
-  };
-  return template;
 }
 
 function requirementForPrompt(item = {}, index = 0) {

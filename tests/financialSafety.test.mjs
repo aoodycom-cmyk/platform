@@ -173,8 +173,8 @@ let lifecycle = applyHistoricalRequirementLifecycle(
   { status: "matched", matchType: "exact_earnings_period", set: openSet },
   new Date("2026-08-20T12:00:00.000Z")
 );
-assert.equal(lifecycle.SAFE[0].status, "EVALUATED");
-assert.equal(lifecycle.SAFE[0].evaluatedByAnalysisId, "SAFE-q2-results");
+assert.equal(lifecycle.SAFE[0].status, "OPEN");
+assert.equal(lifecycle.SAFE[0].evaluatedByAnalysisId, null);
 
 const staleQ1 = {
   ...q2Report,
@@ -193,8 +193,8 @@ lifecycle = applyHistoricalRequirementLifecycle(
   { status: "matched", matchType: "explicit_requirement_set_id", set: openSet },
   new Date("2026-08-21T12:00:00.000Z")
 );
-assert.equal(lifecycle.SAFE[0].evaluatedByAnalysisId, "SAFE-q2-results", "An old Q1 report must not overwrite a Q2 evaluation.");
-assert.equal(lifecycle.SAFE[0].requirements[0].status, "PASSED");
+assert.equal(lifecycle.SAFE[0].evaluatedByAnalysisId, null, "Lite observations must not become canonical evaluations.");
+assert.equal(lifecycle.SAFE[0].requirements[0].status, "NOT_REPORTED");
 
 const corrupted = {
   SAFE: [{

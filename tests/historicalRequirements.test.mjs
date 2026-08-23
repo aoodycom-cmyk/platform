@@ -139,11 +139,11 @@ const saved2 = saveExternalAnalysis(saved1.collection, prepared2.report, { now: 
 historicalRequirementSets = applyHistoricalRequirementLifecycle(historicalRequirementSets, saved2.report, prepared2.match, new Date("2026-11-08T10:00:00.000Z"));
 const evaluatedQ4 = historicalRequirementSets.DEMO.find((set) => set.requirementSetId === q4Set.requirementSetId);
 const q1Set = historicalRequirementSets.DEMO.find((set) => set.earningsPeriod === "Q1 2027");
-assert.equal(evaluatedQ4.status, "EVALUATED");
-assert.equal(evaluatedQ4.evaluatedByAnalysisId, "DEMO-analysis-2");
+assert.equal(evaluatedQ4.status, "OPEN");
+assert.equal(evaluatedQ4.evaluatedByAnalysisId, null);
 assert.equal(evaluatedQ4.requirements.find((item) => item.id === "gross_margin").requiredValue, 45);
-assert.equal(evaluatedQ4.requirements.find((item) => item.id === "gross_margin").actualValue, 43);
-assert.equal(evaluatedQ4.requirements.find((item) => item.id === "gross_margin").status, "FAILED");
+assert.equal(evaluatedQ4.requirements.find((item) => item.id === "gross_margin").actualValue, null);
+assert.equal(evaluatedQ4.requirements.find((item) => item.id === "gross_margin").status, "NOT_REPORTED");
 assert.equal(q1Set.status, "OPEN");
 assert.notEqual(q1Set.requirementSetId, evaluatedQ4.requirementSetId);
 
@@ -200,8 +200,7 @@ assert.equal(parsedBackup.valid, true);
 assert.equal(parsedBackup.preview.historicalRequirementSets, 2);
 const restored = mergeInvestmentDataBackup({ externalAnalyses: {}, historicalRequirementSets: {} }, parsedBackup.backup);
 assert.equal(restored.historicalRequirementSets.DEMO.length, 2);
-assert.equal(restored.historicalRequirementSets.DEMO.some((set) => set.status === "EVALUATED"), true);
-assert.equal(restored.historicalRequirementSets.DEMO.some((set) => set.status === "OPEN"), true);
+assert.equal(restored.historicalRequirementSets.DEMO.every((set) => set.status === "OPEN"), true);
 
 const denominatorCheck = calculateRequirementsAssessment({
   requirements: [
