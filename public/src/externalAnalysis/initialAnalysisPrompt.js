@@ -64,6 +64,14 @@ export function buildInitialAnalysisPrompt(options = {}) {
       language: "العربية للنصوص، مع إبقاء المصطلحات المالية القياسية بالإنجليزية عند الحاجة",
       missingValue: null,
       forbidden: ["نص قبل JSON", "نص بعد JSON", "تعليقات برمجية", "undefined", "NaN", "Infinity", "trailing commas", "حقول مخترعة خارج العقد"],
+      validatorCompatibility: [
+        `schemaVersion يجب أن يكون ${FRANKLIN_FAIR_VALUE_SCHEMA_VERSION}`,
+        `methodologyVersion يجب أن يكون ${FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION}`,
+        "analysisType يجب أن يكون INITIAL",
+        "previousRequirementsEvaluation = null",
+        "nextRequirements.currentJustifiedValue يجب أن يساوي valuation.current.base",
+        "marketPrice.currency وvaluation.current.currency يجب أن يساويا company.tradingCurrency"
+      ],
       initialRules: {
         previousAnalysisId: null,
         previousRequirementSetId: null,
