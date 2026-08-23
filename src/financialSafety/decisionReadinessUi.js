@@ -1,10 +1,12 @@
 import { auditFinancialReport } from "./financialSafety.js";
+import { installCommercialUx } from "./commercialUx.js";
 
 const QUARTERLY_IMPORT_METHOD = "quarterly_earnings_lite";
 
 export function installDecisionReadinessUi(store, root = document.getElementById("app")) {
   if (!store || store.__decisionReadinessUiInstalled) return;
   store.__decisionReadinessUiInstalled = true;
+  installCommercialUx(store, root);
 
   let frame = 0;
   const schedule = () => {
@@ -72,14 +74,12 @@ function renderDecisionReadiness(store, root) {
 function readinessLabel(readiness, ar) {
   const date = readiness.asOfDate || "—";
   if (readiness.status === "blocked") {
-    return ar ? "غير جاهز للقرار — راجع تنبيهات التقرير" : "Not decision-ready — review report warnings";
+    return ar ? "يحتاج مراجعة" : "Review needed";
   }
   if (readiness.status === "quarterly_inherited") {
-    return ar
-      ? `تحديث أرباح — القرار وFair Value موروثان كما في ${date}`
-      : `Earnings update — decision and fair value inherited as of ${date}`;
+    return ar ? `تحديث ربع سنوي · ${date}` : `Quarterly update · ${date}`;
   }
-  return ar ? `تحليل كامل كما في ${date}` : `Full analysis as of ${date}`;
+  return ar ? `تحليل كامل · ${date}` : `Full analysis · ${date}`;
 }
 
 function inheritedDecisionDate(report = {}) {
@@ -102,10 +102,10 @@ function ensureStyles() {
   const style = document.createElement("style");
   style.id = "franklin-decision-readiness-styles";
   style.textContent = `
-    .franklin-card-readiness{grid-column:1/-1;margin-top:8px;padding:7px 9px;border-radius:10px;border:1px solid rgba(96,165,250,.28);background:rgba(96,165,250,.07);font-size:10px;line-height:1.45;color:var(--muted,#9aa1b6)}
-    .franklin-card-readiness[data-status="quarterly_inherited"]{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.08);color:#fcd34d}
-    .franklin-card-readiness[data-status="blocked"]{border-color:rgba(244,63,94,.52);background:rgba(244,63,94,.09);color:#fda4af;font-weight:750}
-    .v31-library-stock-row.franklin-decision-blocked{box-shadow:inset 0 0 0 1px rgba(244,63,94,.2)}
+    .franklin-card-readiness{grid-column:1/-1;margin-top:7px;width:max-content;max-width:100%;padding:5px 9px;border:0;border-radius:999px;background:rgba(59,130,246,.08);font-size:9px;line-height:1.35;font-weight:650;color:var(--muted,#94a3b8)}
+    .franklin-card-readiness[data-status="quarterly_inherited"]{background:rgba(245,158,11,.07);color:#d6a74c}
+    .franklin-card-readiness[data-status="blocked"]{background:rgba(244,63,94,.07);color:#e89aa8}
+    .v31-library-stock-row.franklin-decision-blocked{box-shadow:none}
   `;
   document.head.append(style);
 }
