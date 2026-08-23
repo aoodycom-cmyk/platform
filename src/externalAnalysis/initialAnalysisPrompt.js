@@ -21,7 +21,7 @@ export function buildInitialAnalysisPrompt(options = {}) {
     },
     analysisScope: {
       companyUnderstanding: [
-        "اشرح بوضوح ماذا تفعل الشركة وكيف تكسب المال ومن هم العملاء وأهم المنتجات أو الأنشطة.",
+        "اشرح بوضوح للمستثمر الذكي غير المتخصص ماذا تفعل الشركة وكيف تكسب المال ومن هم العملاء وأهم المنتجات أو الأنشطة.",
         "اختر KPIs خاصة بهذه الشركة وصناعتها فقط، واشرح لماذا كل KPI مهم."
       ],
       fullSceneReading: [
@@ -64,6 +64,14 @@ export function buildInitialAnalysisPrompt(options = {}) {
       language: "العربية للنصوص، مع إبقاء المصطلحات المالية القياسية بالإنجليزية عند الحاجة",
       missingValue: null,
       forbidden: ["نص قبل JSON", "نص بعد JSON", "تعليقات برمجية", "undefined", "NaN", "Infinity", "trailing commas", "حقول مخترعة خارج العقد"],
+      validatorCompatibility: [
+        `schemaVersion يجب أن يكون ${FRANKLIN_FAIR_VALUE_SCHEMA_VERSION}`,
+        `methodologyVersion يجب أن يكون ${FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION}`,
+        "analysisType يجب أن يكون INITIAL",
+        "previousRequirementsEvaluation = null",
+        "nextRequirements.currentJustifiedValue يجب أن يساوي valuation.current.base",
+        "marketPrice.currency وvaluation.current.currency يجب أن يساويا company.tradingCurrency"
+      ],
       initialRules: {
         previousAnalysisId: null,
         previousRequirementSetId: null,
@@ -113,7 +121,31 @@ export function buildInitialAnalysisPrompt(options = {}) {
     jsonTemplate: template
   };
 
+  const compatibilityPreamble = [
+    "Fair value / ChatGPT هو نظام التحليل المالي المسؤول عن البحث والتفسير والتقييم.",
+    "اشرح الشركة للمستثمر الذكي غير المتخصص.",
+    ticker ? `قيمة ticker داخل القالب: \"ticker\": \"${ticker}\"` : "قيمة ticker داخل القالب يجب أن تكون null إذا لم يتوفر رمز صالح.",
+    "كل status في nextRequirements.requirements يجب أن يكون NOT_REPORTED.",
+    "Franklin يعيّن Requirement Set ID الدائم بعد نجاح الحفظ؛ nextRequirements.requirementSetId = null.",
+    "sourceType: Investor Relations | SEC | Earnings Call | Market Data | Consensus Data | Trusted Financial News | User Provided | Other",
+    "valuationRole: PRIMARY | SECONDARY | CROSS_CHECK",
+    "JSON OUTPUT SAFETY — MANDATORY",
+    "Return exactly one fenced JSON code block.",
+    "Do not write any prose before or after the fenced JSON block.",
+    "After removing only the opening ```json fence and closing ``` fence, the remaining text must pass JSON.parse().",
+    "Exactly one opening ```json fence and one closing ``` fence exist.",
+    "NEVER escape underscores in JSON enum values or keys.",
+    "Invalid example: \"LAST\\_CLOSE\". Correct value: \"LAST_CLOSE\".",
+    "URL fields must contain raw URLs only.",
+    "Never use Markdown links inside JSON.",
+    "decision.confidence must be a number from 0 to 100 or null.",
+    "businessQuality.score and all score fields use a 0-100 scale, NOT 0-10.",
+    "Prefer concise financial statements and avoid duplicated narrative.",
+    "Target: less repeated prose, NOT less financial evidence."
+  ];
+
   return [
+    ...compatibilityPreamble,
     "نفّذ الطلب التالي كما هو. اقرأ كل التعليمات أولًا ثم ابحث وحلل، ولا تبدأ بإخراج JSON قبل اكتمال التحليل والتحقق الداخلي.",
     "بعد الانتهاء أخرج فقط fenced JSON واحد يبدأ بـ ```json وينتهي بـ ```، بدون أي نص خارجه.",
     JSON.stringify(request)
