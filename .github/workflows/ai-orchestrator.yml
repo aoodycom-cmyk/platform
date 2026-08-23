@@ -1,0 +1,174 @@
+name: Franklin AI Executive Orchestrator
+
+on:
+  pull_request:
+    paths:
+      - 'orchestrator/**'
+      - '.github/workflows/ai-orchestrator.yml'
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'High-level product or engineering task for the Executive AI'
+        required: true
+        type: string
+      max_rounds:
+        description: 'Maximum Codex repair rounds'
+        required: false
+        default: '3'
+        type: string
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: franklin-ai-executive-${{ github.event_name }}-${{ github.event.issue.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  self-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install orchestrator dependencies
+        working-directory: orchestrator
+        run: npm install --ignore-scripts
+
+      - name: Syntax check
+        working-directory: orchestrator
+        run: npm run check
+
+  orchestrate:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' &&
+       github.event.issue.user.login == github.repository_owner &&
+       startsWith(github.event.issue.title, '[AI BUILD]'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+      ORCHESTRATOR_TASK: ${{ github.event_name == 'workflow_dispatch' && inputs.task || format('{0}\n\n{1}', github.event.issue.title, github.event.issue.body) }}
+      ORCHESTRATOR_MAX_ROUNDS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_rounds || '3' }}
+      ORCHESTRATOR_OUTPUT_DIR: ${{ runner.temp }}/franklin-orchestrator
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Require OpenAI secret
+        shell: bash
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo 'Missing repository Actions secret: OPENAI_API_KEY' >&2
+            exit 1
+          fi
+
+      - name: Install Franklin dependencies
+        run: npm install --ignore-scripts
+
+      - name: Install orchestrator dependencies
+        working-directory: orchestrator
+        run: npm install --ignore-scripts
+
+      - name: Configure Git and create isolated work branch
+        shell: bash
+        run: |
+          git config user.name 'franklin-ai-executive[bot]'
+          git config user.email 'franklin-ai-executive[bot]@users.noreply.github.com'
+          branch="ai/exec-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git checkout -b "$branch"
+          echo "AI_BRANCH=$branch" >> "$GITHUB_ENV"
+
+      - name: Run Executive AI → Codex → review loop
+        id: orchestrator
+        continue-on-error: true
+        run: node orchestrator/src/run.mjs
+
+      - name: Publish executive report to job summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f "$ORCHESTRATOR_OUTPUT_DIR/report.md" ]; then
+            cat "$ORCHESTRATOR_OUTPUT_DIR/report.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Orchestrator did not produce a report.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload orchestration evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: franklin-ai-executive-${{ github.run_id }}
+          path: ${{ runner.temp }}/franklin-orchestrator
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Stop when executive gates did not approve
+        if: steps.orchestrator.outcome != 'success'
+        run: |
+          echo 'Executive AI did not approve this change; nothing will be pushed.' >&2
+          exit 1
+
+      - name: Verify Codex produced a repository change
+        shell: bash
+        run: |
+          if [ -z "$(git status --porcelain)" && git diff --quiet origin/main...HEAD; then
+            echo 'Approved run produced no repository changes.' >&2
+            exit 1
+          fi
+
+      - name: Commit and push approved change
+        shell: bash
+        run: |
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat(ai): apply executive orchestrator task'
+          fi
+          git push --set-upstream origin "$AI_BRANCH"
+
+      - name: Open approved Pull Request
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          title="$(printf '%s' "$ORCHESTRATOR_TASK" | head -n 1 | sed 's/^\[AI BUILD\][[:space:]]*//' | cut -c 1-90)"
+          [ -n "$title" ] || title='Franklin AI Executive change'
+          pr_url="$(gh pr create \
+            --base main \
+            --head "$AI_BRANCH" \
+            --title "AI Executive: $title" \
+            --body-file "$ORCHESTRATOR_OUTPUT_DIR/pr-body.md")"
+          echo "pr_url=$pr_url" >> "$GITHUB_OUTPUT"
+          echo "Opened: $pr_url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Reply to owner issue
+        if: github.event_name == 'issues'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ steps.pr.outputs.pr_url }}
+        shell: bash
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --body "Executive AI approved the implementation and opened: $PR_URL"
