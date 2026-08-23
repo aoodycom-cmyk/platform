@@ -17,7 +17,6 @@ assert.ok(prompt.includes("nextRequirements.currentJustifiedValue"), "Prompt mus
 assert.ok(prompt.includes("كل status في nextRequirements.requirements يجب أن يكون NOT_REPORTED"), "Future targets must not carry premature statuses.");
 assert.ok(prompt.includes('"ticker": "AAOI"'), "Prompt template must carry the entered ticker.");
 assert.equal(prompt.includes('"ticker": "TICKER"'), false, "Prompt must not use TICKER as a placeholder value.");
-assert.equal(prompt.includes("```"), false, "Prompt must not use Markdown fences.");
 assertPromptOutputSafety(prompt, "Initial prompt");
 
 const template = JSON.parse(buildExternalAnalysisJsonTemplate({ tickerHint: "msft" }));
@@ -102,11 +101,15 @@ console.log("External analysis ChatGPT contract tests passed.");
 
 function assertPromptOutputSafety(value, label) {
   assert.ok(value.includes("JSON.parse()"), `${label} must require JSON.parse validity.`);
+  assert.ok(value.includes("Return exactly one fenced JSON code block"), `${label} must require fenced JSON output.`);
+  assert.ok(value.includes("```json"), `${label} must require a json code fence.`);
+  assert.ok(value.includes("Do not write any prose before or after the fenced JSON block"), `${label} must forbid prose outside the code block.`);
+  assert.ok(value.includes("After removing only the opening ```json fence and closing ``` fence"), `${label} must keep the fenced content parseable as JSON.`);
   assert.ok(value.includes("NEVER escape underscores"), `${label} must prohibit escaped underscores.`);
   assert.ok(value.includes('"LAST\\_CLOSE"'), `${label} must show escaped underscores as invalid.`);
   assert.ok(value.includes("URL fields must contain raw URLs only"), `${label} must require raw URLs.`);
   assert.ok(value.includes("Never use Markdown links inside JSON"), `${label} must reject Markdown links.`);
-  assert.ok(value.includes("Do not use code fences"), `${label} must reject code fences.`);
+  assert.ok(value.includes("Exactly one opening ```json fence and one closing ``` fence exist"), `${label} must limit output to one fenced block.`);
   assert.ok(value.includes("decision.confidence must be a number from 0 to 100 or null"), `${label} must keep decision confidence numeric.`);
   assert.ok(value.includes("businessQuality.score"), `${label} must mention business quality score scale.`);
   assert.ok(value.includes("0-100 scale, NOT 0-10"), `${label} must force 0-100 numeric scores.`);
