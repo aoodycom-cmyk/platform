@@ -48,7 +48,7 @@ export function buildFranklinV3ReportTemplate(options = {}) {
       industry: previous.industry || null,
       reportingCurrency: null,
       tradingCurrency: previous.tradingCurrency || "USD",
-      securityUnit: previous.securityUnit || "share"
+      securityUnit: previous.securityUnit || null
     },
 
     companyProfile: {
@@ -61,7 +61,7 @@ export function buildFranklinV3ReportTemplate(options = {}) {
 
     dataQuality: {
       score: null,
-      confidence: "MEDIUM",
+      confidence: null,
       reportedDataThrough: null,
       missingCriticalFields: [],
       notes: []
@@ -73,13 +73,13 @@ export function buildFranklinV3ReportTemplate(options = {}) {
       cyclicality: null,
       capitalIntensity: null,
       evidence: [],
-      confidence: "MEDIUM"
+      confidence: null
     },
 
     businessQuality: {
       score: null,
       rating: null,
-      confidence: "MEDIUM",
+      confidence: null,
       components: {
         growth: null,
         profitability: null,
@@ -99,7 +99,7 @@ export function buildFranklinV3ReportTemplate(options = {}) {
       value: null,
       currency: previous.tradingCurrency || "USD",
       asOf: null,
-      priceType: "LAST_CLOSE",
+      priceType: null,
       sourceId: null
     },
 
@@ -107,10 +107,10 @@ export function buildFranklinV3ReportTemplate(options = {}) {
       summary: null,
       coreMetrics: {
         revenue: quarterMetricTemplate(true),
-        eps: quarterMetricTemplate(true),
-        grossMarginPct: quarterMetricTemplate(false),
-        operatingMarginPct: quarterMetricTemplate(false),
-        freeCashFlow: quarterMetricTemplate(true),
+        eps: epsMetricTemplate(),
+        grossMarginPct: marginMetricTemplate(),
+        operatingMarginPct: marginMetricTemplate(),
+        freeCashFlow: freeCashFlowMetricTemplate(),
         cash: simpleMetricTemplate(),
         debt: simpleMetricTemplate()
       },
@@ -130,7 +130,7 @@ export function buildFranklinV3ReportTemplate(options = {}) {
     },
 
     forecast: {
-      materiality: "MATERIAL",
+      materiality: null,
       yearlyForecast: [yearlyForecastTemplate()],
       estimateRevisions: [estimateRevisionTemplate()],
       changedAssumptions: [changedAssumptionTemplate()],
@@ -143,7 +143,7 @@ export function buildFranklinV3ReportTemplate(options = {}) {
     previousRequirementsEvaluation: isRevaluation ? previousRequirementsEvaluationTemplate(previous) : null,
 
     valuation: {
-      reviewStatus: isRevaluation ? "UPDATED" : "INITIAL",
+      reviewStatus: isRevaluation ? null : "INITIAL",
       previous: isRevaluation ? previous.valuation : null,
       current: {
         bear: null,
@@ -151,8 +151,8 @@ export function buildFranklinV3ReportTemplate(options = {}) {
         bull: null,
         probabilityWeighted: null,
         currency: previous.tradingCurrency || "USD",
-        securityUnit: previous.securityUnit || "share",
-        confidence: "MEDIUM"
+        securityUnit: previous.securityUnit || null,
+        confidence: null
       },
       change: isRevaluation ? { bearPct: null, basePct: null, bullPct: null, summary: null } : null,
       methodology: {
@@ -181,7 +181,7 @@ export function buildFranklinV3ReportTemplate(options = {}) {
     },
 
     thesis: {
-      status: isRevaluation ? "UNCHANGED" : "INITIAL",
+      status: isRevaluation ? null : "INITIAL",
       previousSummary: isRevaluation ? previous.thesisSummary : null,
       updatedSummary: null,
       changeReason: null,
@@ -204,12 +204,12 @@ export function buildFranklinV3ReportTemplate(options = {}) {
 
     nextRequirements: {
       requirementSetId: null,
-      mode: "ADVANCE_TARGET",
+      mode: null,
       previousQuarter: selectedPeriod.reportPeriod || previous.reportPeriod || null,
       targetQuarter: null,
       currentJustifiedValue: null,
       targetValue: null,
-      targetScenario: "BULL",
+      targetScenario: null,
       targetDescription: null,
       summary: null,
       requirements: [nextRequirementTemplate()]
@@ -261,7 +261,7 @@ export function previousCanonicalState(report = {}) {
     || report?.company?.currency
     || report?.market?.currency
     || "USD";
-  const securityUnit = canonical?.company?.securityUnit || "share";
+  const securityUnit = canonical?.company?.securityUnit || report?.metadata?.franklinV3?.securityUnit || null;
   const fairValue = report?.fairValueSummary || {};
   const requirements = Array.isArray(requirementBlock.requirements) ? requirementBlock.requirements : [];
   return {
@@ -333,10 +333,10 @@ function strengthTemplate() {
     title: null,
     explanation: null,
     evidence: [],
-    importance: "medium",
+    importance: null,
     durability: null,
     valuationImpact: null,
-    confidence: "MEDIUM",
+    confidence: null,
     sourceIds: []
   };
 }
@@ -346,11 +346,11 @@ function weaknessTemplate() {
     title: null,
     explanation: null,
     evidence: [],
-    severity: "medium",
+    severity: null,
     persistence: null,
     valuationImpact: null,
     monitoringIndicator: null,
-    confidence: "MEDIUM",
+    confidence: null,
     sourceIds: []
   };
 }
@@ -364,6 +364,38 @@ function quarterMetricTemplate(includeUnit) {
     yoyPct: null,
     ...(includeUnit ? { qoqPct: null } : {}),
     result: "NA",
+    sourceId: null
+  };
+}
+
+function epsMetricTemplate() {
+  return {
+    actualValue: null,
+    unit: null,
+    consensusValue: null,
+    priorYearValue: null,
+    yoyPct: null,
+    result: "NA",
+    sourceId: null
+  };
+}
+
+function marginMetricTemplate() {
+  return {
+    actualValue: null,
+    consensusValue: null,
+    priorYearValue: null,
+    result: "NA",
+    sourceId: null
+  };
+}
+
+function freeCashFlowMetricTemplate() {
+  return {
+    actualValue: null,
+    unit: null,
+    priorYearValue: null,
+    yoyPct: null,
     sourceId: null
   };
 }
@@ -383,7 +415,7 @@ function companyKpiTemplate() {
     yoyPct: null,
     qoqPct: null,
     result: "NA",
-    importance: "medium",
+    importance: null,
     interpretation: null,
     sourceId: null
   };
@@ -402,7 +434,7 @@ function guidanceTemplate() {
 }
 
 function yearlyForecastTemplate() {
-  const metric = { value: null, basis: "analyst_assumption" };
+  const metric = { value: null, basis: null };
   return {
     period: null,
     revenue: { ...metric },
@@ -420,7 +452,7 @@ function estimateRevisionTemplate() {
 }
 
 function changedAssumptionTemplate() {
-  return { metric: null, period: null, previousValue: null, updatedValue: null, unit: null, direction: "UNCHANGED", reason: null, sourceId: null };
+  return { metric: null, period: null, previousValue: null, updatedValue: null, unit: null, direction: null, reason: null, sourceId: null };
 }
 
 function valuationResultTemplate() {
@@ -429,7 +461,7 @@ function valuationResultTemplate() {
     role: "PRIMARY",
     fairValue: null,
     weight: null,
-    confidence: "MEDIUM",
+    confidence: null,
     inputs: {},
     assumptions: {},
     rationale: null,
@@ -447,13 +479,13 @@ function nextRequirementTemplate() {
     name: null,
     arabicName: null,
     metric: null,
-    type: "minimum",
+    type: null,
     baselineValue: null,
     baselineDisplay: null,
     requiredValue: null,
     requiredDisplay: null,
     unit: null,
-    importance: "medium",
+    importance: null,
     weight: null,
     whyItMatters: null,
     status: "NOT_REPORTED"
@@ -473,7 +505,7 @@ function monitoringItemTemplate() {
 }
 
 function sourceTemplate() {
-  return { id: "S1", title: null, type: "Investor Relations", date: null, url: null, usedFor: [] };
+  return { id: "S1", title: null, type: null, date: null, url: null, usedFor: [] };
 }
 
 function normalizeTicker(value) {

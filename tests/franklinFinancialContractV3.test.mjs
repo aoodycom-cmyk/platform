@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { buildFullAnalysisPrompt, buildNewEarningsAnalysisPrompt } from "../src/externalAnalysis/chatgptContract.js";
 import {
   applyHistoricalRequirementLifecycle,
@@ -17,7 +18,7 @@ import {
   validateFranklinV3Report
 } from "../src/externalAnalysis/v3Validator.js";
 
-const now = new Date("2026-04-25T10:00:00.000Z");
+const now = new Date("2026-07-25T10:00:00.000Z");
 
 const goldenA = initialV3();
 const parsedInitial = await parseExternalAnalysisInput(JSON.stringify(goldenA), { now });
@@ -126,7 +127,7 @@ const matrix = [
   ["46. margin-of-safety formula validation", () => expectInvalid(goldenA, (item) => { item.valuation.marginOfSafetyPct = -20; }, /marginOfSafetyPct/)],
   ["47. fresh quarterly sources accepted", () => assert.equal(validateFranklinV3Report(goldenB, context()).valid, true)],
   ["48. missing earnings provenance flagged", () => expectInvalid(goldenB, (item) => { item.sources = [source("S1", "Market Data", "2026-04-25", ["marketPrice"])]; }, /source provenance|earnings/i)],
-  ["49. previous-quarter sources are not silently treated as current-quarter evidence", () => assert.ok(validateFranklinV3Report(mutated(goldenB, (item) => { item.sources = item.sources.map((src) => ({ ...src, date: "2026-01-15" })); }), context()).warnings.some((warning) => /current earnings release/.test(warning.message)))],
+  ["49. previous-quarter sources are rejected as current-quarter evidence", () => expectInvalid(goldenB, (item) => { item.sources = item.sources.map((src) => ({ ...src, date: "2026-01-15" })); }, /fresh quarterly source provenance/i)],
   ["50. existing user reports remain unchanged", () => assert.equal(JSON.stringify(previousReport), previousSnapshot)]
 ];
 
@@ -134,6 +135,104 @@ assert.equal(matrix.length, 50);
 for (const [name, run] of matrix) {
   await run();
   assert.ok(name);
+}
+
+const componentsSource = readFileSync(new URL("../src/ui/components.js", import.meta.url), "utf8");
+const liteButtonSource = readFileSync(new URL("../src/ui/quarterlyEarningsJsonPromptV2.js", import.meta.url), "utf8");
+assert.ok(componentsSource.includes('data-action="prepare-earnings-prompt"'));
+assert.ok(componentsSource.includes("store.prepareEarningsUpdatePrompt"));
+assert.equal(liteButtonSource.includes("hidden = true"), false, "Lite must not hide the primary canonical earnings action.");
+assert.ok(liteButtonSource.includes("Quick Earnings Read"));
+assert.ok(liteButtonSource.includes("غير Canonical"));
+
+const primaryEarningsPrompt = buildNewEarningsAnalysisPrompt(previousReport, { quarter: 2, year: 2026 });
+assert.ok(primaryEarningsPrompt.includes("franklin-fair-value/v3"));
+assert.ok(primaryEarningsPrompt.includes("EARNINGS_REVALUATION"));
+assert.ok(primaryEarningsPrompt.includes("UPDATED أو UNCHANGED"));
+assert.ok(primaryEarningsPrompt.includes("nextRequirements.currentJustifiedValue"));
+
+const liteParsed = await parseLite(previousReport);
+const litePrepared = prepareHistoricalRequirementEvaluation(liteParsed.report, historicalRequirementSets);
+const liteReportForLifecycle = attachRequirementSetIdentityToReport({ ...litePrepared.report, id: "VTH-lite-q2" }, now);
+const liteLifecycle = applyHistoricalRequirementLifecycle(historicalRequirementSets, liteReportForLifecycle, litePrepared.match, now);
+assert.equal(liteLifecycle.VTH.find((set) => set.requirementSetId === previousSet.requirementSetId).status, "OPEN");
+assert.equal(liteLifecycle.VTH.length, historicalRequirementSets.VTH.length);
+
+const updatedLifecycle = await saveCanonicalEarnings(goldenB, previousReport, historicalRequirementSets);
+assert.equal(updatedLifecycle.historical.VTH.find((set) => set.requirementSetId === previousSet.requirementSetId).status, "EVALUATED");
+assert.equal(updatedLifecycle.historical.VTH.some((set) => set.status === "OPEN" && set.requirementSetId !== previousSet.requirementSetId), true);
+const unchangedLifecycle = await saveCanonicalEarnings(goldenC, previousReport, historicalRequirementSets);
+assert.equal(unchangedLifecycle.historical.VTH.find((set) => set.requirementSetId === previousSet.requirementSetId).status, "EVALUATED");
+assert.equal(unchangedLifecycle.historical.VTH.some((set) => set.status === "OPEN" && set.requirementSetId !== previousSet.requirementSetId), true);
+
+const partialAssessment = calculateV3RequirementAssessment([
+  { id: "partial", weight: 20, status: "PARTIALLY_PASSED", partialCreditPct: 50 },
+  { id: "passed", weight: 80, status: "PASSED" }
+]);
+assert.equal(partialAssessment.partialWeightPct, 20);
+assert.equal(partialAssessment.passedWeightPct, 80);
+assert.equal(partialAssessment.achievementOfReportedWeightPct, 90);
+expectInvalid(goldenB, (item) => {
+  item.previousRequirementsEvaluation.requirements[0].status = "PARTIALLY_PASSED";
+  item.previousRequirementsEvaluation.requirements[0].partialCreditPct = 50;
+  item.previousRequirementsEvaluation.assessment = {
+    ...calculateV3RequirementAssessment(item.previousRequirementsEvaluation.requirements),
+    partialWeightPct: 12.5,
+    overallStatus: "MIXED",
+    summary: "Wrong partial bucket."
+  };
+}, /partialWeightPct/);
+
+expectInvalid(goldenB, (item) => {
+  item.valuation.current.bear = item.valuation.previous.bear;
+  item.valuation.current.base = item.valuation.previous.base;
+  item.valuation.current.bull = item.valuation.previous.bull;
+  item.valuation.scenarios.Bear.fairValue = item.valuation.previous.bear;
+  item.valuation.scenarios.Base.fairValue = item.valuation.previous.base;
+  item.valuation.scenarios.Bull.fairValue = item.valuation.previous.bull;
+  item.valuation.current.probabilityWeighted = item.valuation.previous.probabilityWeighted;
+  item.valuation.change = { bearPct: 0, basePct: 0, bullPct: 0, summary: "No change." };
+  item.nextRequirements.currentJustifiedValue = item.valuation.previous.base;
+  item.nextRequirements.targetValue = item.valuation.previous.bull;
+}, /UPDATED requires/);
+expectInvalid(goldenC, (item) => {
+  item.valuation.current.base = 101;
+  item.valuation.scenarios.Base.fairValue = 101;
+  item.valuation.current.probabilityWeighted = 102.6;
+  item.valuation.change.basePct = 1;
+  item.nextRequirements.currentJustifiedValue = 101;
+  item.nextRequirements.targetValue = 101;
+}, /UNCHANGED requires|must be zero/);
+
+const adsReport = mutated(goldenA, (item) => {
+  item.company.reportingCurrency = "HKD";
+  item.company.tradingCurrency = "USD";
+  item.company.securityUnit = "ADS";
+  item.marketPrice.currency = "USD";
+  item.valuation.current.currency = "USD";
+  item.valuation.current.securityUnit = "ADS";
+  item.latestQuarter.coreMetrics.revenue.unit = "HKDm";
+  item.latestQuarter.coreMetrics.eps.unit = "HKD";
+});
+assertValidation(adsReport, {}, "ADR/ADS reporting/trading currency case must validate.");
+const parsedAds = await parseExternalAnalysisInput(JSON.stringify(adsReport), { now, expectedTicker: "VTH" });
+assert.equal(parsedAds.report.metadata.franklinV3.securityUnit, "ADS");
+assert.equal(parsedAds.report.metadata.franklinV3.reportingCurrency, "HKD");
+assert.equal(parsedAds.report.metadata.franklinV3.tradingCurrency, "USD");
+assert.equal(parsedAds.report.metadata.franklinV3Report.latestQuarter.coreMetrics.revenue.unit, "HKDm");
+assert.equal(parsedAds.report.fairValueSummary.fairValueBase, 100);
+assert.equal(parsedAds.report.company.currency, "USD");
+
+expectInvalid(goldenB, (item) => { item.reportIdentity.earningsReleaseDate = "2026-06-01"; }, /earningsReleaseDate must be on or after periodEndDate/);
+expectInvalid(goldenA, (item) => { item.valuation.scenarios.Bull.probability = null; item.valuation.scenarios.Base.probability = 80; }, /Scenario probabilities/);
+expectInvalid(goldenA, (item) => { item.valuation.valuationResults = item.valuation.valuationResults.filter((result) => result.method !== "P\/E"); }, /Missing valuationResult/);
+expectInvalid(goldenB, (item) => { item.sources[1].usedFor = ["valuation"]; }, /fresh quarterly source provenance/i);
+expectInvalid(goldenA, (item) => { item.audit.nextRequirementWeightTotalPct = 99; }, /nextRequirementWeightTotalPct/);
+{
+  const wrongTicker = mutated(goldenA, (item) => { item.reportIdentity.ticker = "WRONG"; });
+  const tickerValidation = validateFranklinV3Report(wrongTicker, { expectedTicker: "VTH" });
+  assert.equal(tickerValidation.valid, false);
+  assert.match(tickerValidation.errors.map((error) => error.message).join("\n"), /Ticker mismatch/);
 }
 
 const initialPrompt = buildFullAnalysisPrompt({ tickerHint: "VTH" });
@@ -296,8 +395,8 @@ function earningsV3(previousReport, options = {}) {
       fiscalQuarter: "Q2",
       fiscalYear: 2026,
       periodEndDate: "2026-06-30",
-      earningsReleaseDate: "2026-04-25",
-      analysisDate: "2026-04-25",
+      earningsReleaseDate: "2026-07-25",
+      analysisDate: "2026-07-25",
       previousAnalysisId: previousReport.id,
       previousRequirementSetId: previousReport.priceTargetRequirements.requirementSetId
     },
@@ -308,7 +407,7 @@ function earningsV3(previousReport, options = {}) {
     businessQuality: { score: 89, rating: "High", confidence: "HIGH", components: { growth: 86, profitability: 82, cashFlow: 80, balanceSheet: 82, capitalAllocation: 75, competitiveAdvantage: 84, management: 80 }, explanation: "الجودة ما زالت قوية." },
     strengths: [{ title: "ARR", explanation: "ARR قوي.", evidence: ["ARR"], importance: "high", durability: "high", valuationImpact: "supports base", confidence: "HIGH", sourceIds: ["S2"] }],
     weaknesses: [{ title: "Competition", explanation: "منافسة.", evidence: ["Market"], severity: "medium", persistence: "medium", valuationImpact: "limits multiple", monitoringIndicator: "Retention", confidence: "MEDIUM", sourceIds: ["S2"] }],
-    marketPrice: { value: price, currency: "USD", asOf: "2026-04-25", priceType: "LAST_CLOSE", sourceId: "S1" },
+    marketPrice: { value: price, currency: "USD", asOf: "2026-07-25", priceType: "LAST_CLOSE", sourceId: "S1" },
     latestQuarter: latestQuarter(),
     forecast: forecast(),
     previousRequirementsEvaluation: {
@@ -343,7 +442,7 @@ function earningsV3(previousReport, options = {}) {
     risks: [{ title: "Competition", severity: "medium", explanation: "ضغط الأسعار.", whatToMonitor: "Retention", thesisBreaker: "Retention below 100%", sourceIds: ["S2"] }],
     catalysts: [{ title: "ARR acceleration", explanation: "تسارع ARR.", timeframe: "next quarter", sourceIds: ["S2"] }],
     monitoringChecklist: [{ metric: "ARR growth", currentValue: "28%", expectedRange: "25-30%", upgradeTrigger: ">30%", downgradeTrigger: "<20%", thesisBreak: "<15%" }],
-    sources: [source("S1", "Market Data", "2026-04-25", ["marketPrice"]), source("S2", "Earnings Call", "2026-04-25", ["latestQuarter", "previousRequirementsEvaluation", "valuation"])],
+    sources: [source("S1", "Market Data", "2026-07-25", ["marketPrice"]), source("S2", "Earnings Call", "2026-07-25", ["latestQuarter", "previousRequirementsEvaluation", "valuation"])],
     limitations: [],
     audit: { scenarioProbabilityTotalPct: 100, valuationMethodWeightTotalPct: 100, previousRequirementWeightTotalPct: weightTotal(previousRequirements), nextRequirementWeightTotalPct: 100, consistencyNotes: [] }
   };
@@ -357,7 +456,10 @@ function valuation({ bear, base, bull, price, reviewStatus, previous, change }) 
     current: { bear, base, bull, probabilityWeighted, currency: "USD", securityUnit: "share", confidence: "HIGH" },
     change,
     methodology: { primaryMethod: "DCF", secondaryMethods: ["P/E"], excludedMethods: [{ method: "Price to Book", reason: "Not economically relevant." }], methodologyChanged: false, selectionReason: "FCF is observable.", modelWeights: [{ method: "DCF", weight: 70 }, { method: "P/E", weight: 30 }], weightReasoning: "DCF primary.", limitations: [] },
-    valuationResults: [{ method: "DCF", role: "PRIMARY", fairValue: base, weight: 70, confidence: "HIGH", inputs: {}, assumptions: {}, rationale: "Base method.", limitations: null }],
+    valuationResults: [
+      { method: "DCF", role: "PRIMARY", fairValue: base, weight: 70, confidence: "HIGH", inputs: {}, assumptions: {}, rationale: "Base method.", limitations: null },
+      { method: "P/E", role: "SECONDARY", fairValue: base, weight: 30, confidence: "MEDIUM", inputs: {}, assumptions: {}, rationale: "Secondary cross-check.", limitations: null }
+    ],
     scenarios: {
       Bear: { probability: 20, fairValue: bear, assumptions: ["Bear"], requiredOutcomes: [], keyRisks: [] },
       Base: { probability: 60, fairValue: base, assumptions: ["Base"], requiredOutcomes: [], keyRisks: [] },

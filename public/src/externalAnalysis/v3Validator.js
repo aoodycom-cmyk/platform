@@ -4,6 +4,7 @@ import {
   FRANKLIN_V3_ANALYSIS_TYPES,
   FRANKLIN_V3_CONFIDENCE_LEVELS,
   FRANKLIN_V3_DECISION_ACTIONS,
+  FRANKLIN_V3_GUIDANCE_DIRECTIONS,
   FRANKLIN_V3_INITIAL_REVIEW_STATUS,
   FRANKLIN_V3_NEXT_REQUIREMENT_MODES,
   FRANKLIN_V3_REQUIREMENT_STATUSES,
@@ -17,6 +18,39 @@ import {
 
 const WEIGHT_TOLERANCE = 0.01;
 const ASSESSMENT_TOLERANCE = 0.1;
+const REQUIREMENT_TYPES = ["minimum", "maximum", "range", "qualitative"];
+const IMPORTANCE_VALUES = ["critical", "high", "medium", "low"];
+const VALUATION_ROLES = ["PRIMARY", "SECONDARY", "CROSS_CHECK"];
+const MARKET_PRICE_TYPES = ["LIVE", "DELAYED", "LAST_CLOSE"];
+const FORECAST_MATERIALITY = ["MATERIAL", "IMMATERIAL", "MIXED", "NOT_MATERIAL"];
+const FORECAST_BASIS = ["reported_data", "consensus_estimate", "analyst_assumption"];
+const CHANGED_ASSUMPTION_DIRECTIONS = ["UP", "DOWN", "UNCHANGED", "MIXED"];
+const REQUIREMENT_OVERALL_STATUSES = ["INCOMPLETE", "PASSED", "MIXED", "FAILED"];
+const SOURCE_TYPES = [
+  "INVESTOR_RELATIONS",
+  "EARNINGS_RELEASE",
+  "EARNINGS_CALL",
+  "SEC_FILING",
+  "10-Q",
+  "10-K",
+  "MARKET_DATA",
+  "EXCHANGE",
+  "COMPANY_WEBSITE",
+  "PRESS_RELEASE",
+  "FINANCIAL_DATA_PROVIDER",
+  "ANALYST_CONSENSUS",
+  "OTHER"
+];
+const FORWARD_OUTLOOK_ENUMS = {
+  growthOutlook: ["accelerating", "stable", "slowing", "unclear"],
+  marginOutlook: ["improving", "stable", "pressured", "unclear"],
+  fcfOutlook: ["improving", "stable", "weakening", "unclear"],
+  demandOutlook: ["improving", "stable", "weakening", "unclear"],
+  capacityOutlook: ["adequate", "constrained", "excess", "unclear"],
+  executionOutlook: ["improving", "stable", "worsening", "unclear"],
+  guidanceTrend: ["raised", "maintained", "lowered", "mixed", "new", "not_reported"],
+  managementTone: ["positive", "neutral", "cautious", "mixed", "unclear"]
+};
 
 export function validateFranklinV3Report(input = {}, context = {}) {
   const errors = [];
@@ -34,11 +68,16 @@ export function validateFranklinV3Report(input = {}, context = {}) {
 
   validateRequiredSections(input, errors);
   validateFiscalIdentity(input, context, errors);
+  validateDateChronology(input, errors);
+  validateQualityAndClassification(input, errors);
+  validateLatestQuarter(input, errors);
+  validateForecast(input, errors);
   validateCompanyAndMarket(input, errors);
   validateValuation(input, errors);
   validateDecisionAndThesis(input, errors);
   validateNextRequirements(input, errors);
-  validateSources(input, errors, warnings);
+  validateAuditTotals(input, errors);
+  validateSources(input, errors);
 
   if (input.analysisType === "INITIAL") validateInitialRules(input, errors);
   if (input.analysisType === "EARNINGS_REVALUATION") validateEarningsRevaluationRules(input, context, errors, warnings);
@@ -80,10 +119,7 @@ export function calculateV3RequirementAssessment(requirements = []) {
     achievementOfTotalWeightPct: totalWeight > 0 ? (earnedWeight / totalWeight) * 100 : null,
     exceededWeightPct: buckets.EXCEEDED,
     passedWeightPct: buckets.PASSED,
-    partialWeightPct: items.reduce((sum, item) => {
-      if (String(item?.status || "").toUpperCase() !== "PARTIALLY_PASSED") return sum;
-      return sum + ((numberOrNull(item?.weight) || 0) * ((numberOrNull(item?.partialCreditPct) || 0) / 100));
-    }, 0),
+    partialWeightPct: buckets.PARTIALLY_PASSED,
     failedWeightPct: buckets.FAILED,
     notReportedWeightPct: buckets.NOT_REPORTED
   };
@@ -133,6 +169,89 @@ function validateFiscalIdentity(input, context, errors) {
   }
 }
 
+function validateDateChronology(input, errors) {
+  const identity = input.reportIdentity || {};
+  const analysisTime = dateTime(identity.analysisDate);
+  const periodEndTime = dateTime(identity.periodEndDate);
+  const releaseTime = dateTime(identity.earningsReleaseDate);
+  const marketTime = dateTime(input.marketPrice?.asOf);
+
+  if (input.analysisType === "EARNINGS_REVALUATION") {
+    if (!validDate(identity.periodEndDate)) errors.push(fieldError("reportIdentity.periodEndDate", "periodEndDate is required for EARNINGS_REVALUATION."));
+    if (!validDate(identity.earningsReleaseDate)) errors.push(fieldError("reportIdentity.earningsReleaseDate", "earningsReleaseDate is required for EARNINGS_REVALUATION."));
+    if (!validDate(identity.analysisDate)) errors.push(fieldError("reportIdentity.analysisDate", "analysisDate is required for EARNINGS_REVALUATION."));
+  }
+  if (periodEndTime && releaseTime && periodEndTime > releaseTime) {
+    errors.push(fieldError("reportIdentity.earningsReleaseDate", "earningsReleaseDate must be on or after periodEndDate."));
+  }
+  if (releaseTime && analysisTime && releaseTime > analysisTime) {
+    errors.push(fieldError("reportIdentity.analysisDate", "analysisDate must be on or after earningsReleaseDate."));
+  }
+  if (marketTime && analysisTime && marketTime > analysisTime) {
+    errors.push(fieldError("marketPrice.asOf", "marketPrice.asOf must not be later than analysisDate."));
+  }
+}
+
+function validateQualityAndClassification(input, errors) {
+  const dataQuality = input.dataQuality || {};
+  const classification = input.classification || {};
+  const businessQuality = input.businessQuality || {};
+  validateScore("dataQuality.score", dataQuality.score, errors);
+  validateEnum("dataQuality.confidence", dataQuality.confidence, FRANKLIN_V3_CONFIDENCE_LEVELS, errors, { optional: true });
+  validateEnum("classification.confidence", classification.confidence, FRANKLIN_V3_CONFIDENCE_LEVELS, errors, { optional: true });
+  validateScore("businessQuality.score", businessQuality.score, errors);
+  validateEnum("businessQuality.confidence", businessQuality.confidence, FRANKLIN_V3_CONFIDENCE_LEVELS, errors, { optional: true });
+  for (const [key, value] of Object.entries(businessQuality.components || {})) {
+    validateScore(`businessQuality.components.${key}`, value, errors);
+  }
+  validateNarrativeEnums(input, errors);
+}
+
+function validateNarrativeEnums(input, errors) {
+  for (const [section, items] of [
+    ["strengths", input.strengths],
+    ["weaknesses", input.weaknesses]
+  ]) {
+    for (const [index, item] of (Array.isArray(items) ? items : []).entries()) {
+      validateEnum(`${section}.${index}.confidence`, item?.confidence, FRANKLIN_V3_CONFIDENCE_LEVELS, errors, { optional: true });
+      if (item?.importance !== undefined) validateEnum(`${section}.${index}.importance`, item.importance, IMPORTANCE_VALUES, errors, { optional: true, lowercase: true });
+      if (item?.severity !== undefined) validateEnum(`${section}.${index}.severity`, item.severity, IMPORTANCE_VALUES, errors, { optional: true, lowercase: true });
+    }
+  }
+}
+
+function validateLatestQuarter(input, errors) {
+  const latestQuarter = input.latestQuarter || {};
+  const metrics = latestQuarter.coreMetrics || {};
+  validateExactMetricShape("latestQuarter.coreMetrics.revenue", metrics.revenue, ["actualValue", "unit", "consensusValue", "priorYearValue", "yoyPct", "qoqPct", "result", "sourceId"], errors);
+  validateExactMetricShape("latestQuarter.coreMetrics.eps", metrics.eps, ["actualValue", "unit", "consensusValue", "priorYearValue", "yoyPct", "result", "sourceId"], errors);
+  validateExactMetricShape("latestQuarter.coreMetrics.grossMarginPct", metrics.grossMarginPct, ["actualValue", "consensusValue", "priorYearValue", "result", "sourceId"], errors);
+  validateExactMetricShape("latestQuarter.coreMetrics.operatingMarginPct", metrics.operatingMarginPct, ["actualValue", "consensusValue", "priorYearValue", "result", "sourceId"], errors);
+  validateExactMetricShape("latestQuarter.coreMetrics.freeCashFlow", metrics.freeCashFlow, ["actualValue", "unit", "priorYearValue", "yoyPct", "sourceId"], errors);
+  validateExactMetricShape("latestQuarter.coreMetrics.cash", metrics.cash, ["actualValue", "unit", "sourceId"], errors);
+  validateExactMetricShape("latestQuarter.coreMetrics.debt", metrics.debt, ["actualValue", "unit", "sourceId"], errors);
+  for (const [index, item] of (Array.isArray(latestQuarter.guidance) ? latestQuarter.guidance : []).entries()) {
+    validateEnum(`latestQuarter.guidance.${index}.direction`, item?.direction, FRANKLIN_V3_GUIDANCE_DIRECTIONS, errors, { optional: true, lowercase: true });
+  }
+  const outlook = latestQuarter.forwardOutlook || {};
+  for (const [field, allowed] of Object.entries(FORWARD_OUTLOOK_ENUMS)) {
+    validateEnum(`latestQuarter.forwardOutlook.${field}`, outlook[field], allowed, errors, { optional: true, lowercase: true });
+  }
+}
+
+function validateForecast(input, errors) {
+  const forecast = input.forecast || {};
+  validateEnum("forecast.materiality", forecast.materiality, FORECAST_MATERIALITY, errors, { optional: true });
+  for (const [index, row] of (Array.isArray(forecast.yearlyForecast) ? forecast.yearlyForecast : []).entries()) {
+    for (const metric of ["revenue", "revenueGrowthPct", "eps", "ebitda", "ebitdaMarginPct", "freeCashFlow", "fcfMarginPct"]) {
+      validateEnum(`forecast.yearlyForecast.${index}.${metric}.basis`, row?.[metric]?.basis, FORECAST_BASIS, errors, { optional: true, lowercase: true });
+    }
+  }
+  for (const [index, item] of (Array.isArray(forecast.changedAssumptions) ? forecast.changedAssumptions : []).entries()) {
+    validateEnum(`forecast.changedAssumptions.${index}.direction`, item?.direction, CHANGED_ASSUMPTION_DIRECTIONS, errors, { optional: true });
+  }
+}
+
 function validateCompanyAndMarket(input, errors) {
   const company = input.company || {};
   const market = input.marketPrice || {};
@@ -143,8 +262,10 @@ function validateCompanyAndMarket(input, errors) {
   if (!positiveNumber(market.value)) errors.push(fieldError("marketPrice.value", "marketPrice.value is required and must be positive."));
   if (!market.currency) errors.push(fieldError("marketPrice.currency", "marketPrice.currency is required."));
   if (!validDate(market.asOf)) errors.push(fieldError("marketPrice.asOf", "marketPrice.asOf is required."));
-  if (!["LIVE", "DELAYED", "LAST_CLOSE"].includes(market.priceType)) errors.push(fieldError("marketPrice.priceType", "marketPrice.priceType is not supported."));
+  if (!MARKET_PRICE_TYPES.includes(market.priceType)) errors.push(fieldError("marketPrice.priceType", "marketPrice.priceType is not supported."));
   if (!market.sourceId) errors.push(fieldError("marketPrice.sourceId", "marketPrice.sourceId is required."));
+  if (!current.currency) errors.push(fieldError("valuation.current.currency", "valuation.current.currency is required."));
+  if (!FRANKLIN_V3_SECURITY_UNITS.includes(current.securityUnit)) errors.push(fieldError("valuation.current.securityUnit", "valuation.current.securityUnit is required and must be supported."));
   if (market.currency && company.tradingCurrency && market.currency !== company.tradingCurrency) {
     errors.push(fieldError("marketPrice.currency", "marketPrice.currency must equal company.tradingCurrency."));
   }
@@ -162,9 +283,10 @@ function validateValuation(input, errors) {
   const bear = numberOrNull(current.bear);
   const base = numberOrNull(current.base);
   const bull = numberOrNull(current.bull);
-  if (!positiveNumber(bear)) errors.push(fieldError("valuation.current.bear", "Bear Fair Value is required."));
-  if (!positiveNumber(base)) errors.push(fieldError("valuation.current.base", "Base Fair Value is required."));
-  if (!positiveNumber(bull)) errors.push(fieldError("valuation.current.bull", "Bull Fair Value is required."));
+  if (!Number.isFinite(bear) || bear < 0) errors.push(fieldError("valuation.current.bear", "Bear Fair Value is required and must be >= 0."));
+  if (!positiveNumber(base)) errors.push(fieldError("valuation.current.base", "Base Fair Value is required and must be > 0."));
+  if (!positiveNumber(bull)) errors.push(fieldError("valuation.current.bull", "Bull Fair Value is required and must be > 0."));
+  if (!Number.isFinite(numberOrNull(current.probabilityWeighted))) errors.push(fieldError("valuation.current.probabilityWeighted", "probabilityWeighted Fair Value is required."));
   if ([bear, base, bull].every(Number.isFinite) && !(bear <= base && base <= bull)) {
     errors.push(fieldError("valuation.current", "Bear/Base/Bull Fair Value must be ordered as Bear <= Base <= Bull."));
   }
@@ -173,13 +295,19 @@ function validateValuation(input, errors) {
   }
 
   const scenarios = valuation.scenarios || {};
+  const scenarioKeys = Object.keys(scenarios || {});
+  const extras = scenarioKeys.filter((key) => !["Bear", "Base", "Bull"].includes(key));
+  if (extras.length) errors.push(fieldError("valuation.scenarios", "Scenario set must contain exactly Bear, Base, and Bull."));
   for (const key of ["Bear", "Base", "Bull"]) {
     if (!scenarios[key] || typeof scenarios[key] !== "object") errors.push(fieldError(`valuation.scenarios.${key}`, `${key} scenario is required.`));
+    const probability = numberOrNull(scenarios[key]?.probability);
+    if (!Number.isFinite(probability) || probability < 0) errors.push(fieldError(`valuation.scenarios.${key}.probability`, `${key} scenario probability must be numeric and >= 0.`));
+    if (!Number.isFinite(numberOrNull(scenarios[key]?.fairValue))) errors.push(fieldError(`valuation.scenarios.${key}.fairValue`, `${key} scenario fairValue is required.`));
   }
   if (Number.isFinite(bear) && numberOrNull(scenarios.Bear?.fairValue) !== bear) errors.push(fieldError("valuation.scenarios.Bear.fairValue", "Bear scenario fairValue must match valuation.current.bear."));
   if (Number.isFinite(base) && numberOrNull(scenarios.Base?.fairValue) !== base) errors.push(fieldError("valuation.scenarios.Base.fairValue", "Base scenario fairValue must match valuation.current.base."));
   if (Number.isFinite(bull) && numberOrNull(scenarios.Bull?.fairValue) !== bull) errors.push(fieldError("valuation.scenarios.Bull.fairValue", "Bull scenario fairValue must match valuation.current.bull."));
-  assertWeightTotal("valuation.scenarios", ["Bear", "Base", "Bull"].map((key) => scenarios[key]?.probability), errors, "Scenario probabilities must sum to 100%.");
+  assertWeightTotal("valuation.scenarios", ["Bear", "Base", "Bull"].map((key) => scenarios[key]?.probability), errors, "Scenario probabilities must sum to 100%.", { requirePositive: false });
 
   const weighted = calculateProbabilityWeighted(scenarios);
   const suppliedWeighted = numberOrNull(current.probabilityWeighted);
@@ -187,18 +315,76 @@ function validateValuation(input, errors) {
     errors.push(fieldError("valuation.current.probabilityWeighted", "probabilityWeighted Fair Value arithmetic is inconsistent."));
   }
 
-  assertWeightTotal("valuation.methodology.modelWeights", (valuation.methodology?.modelWeights || []).map((item) => item?.weight), errors, "Valuation method weights must sum to 100%.");
+  validateValuationMethodology(valuation, errors);
   validateUpsideAndMargin(input, errors);
+}
+
+function validateValuationMethodology(valuation = {}, errors) {
+  const methodology = valuation.methodology || {};
+  const weights = Array.isArray(methodology.modelWeights) ? methodology.modelWeights : [];
+  if (!weights.length) errors.push(fieldError("valuation.methodology.modelWeights", "Valuation method weights must be supplied."));
+  assertWeightTotal("valuation.methodology.modelWeights", weights.map((item) => item?.weight), errors, "Valuation method weights must sum to 100%.");
+
+  const weightedMethods = new Map();
+  for (const [index, item] of weights.entries()) {
+    const method = normalizeMethodName(item?.method);
+    const weight = numberOrNull(item?.weight);
+    if (!method) errors.push(fieldError(`valuation.methodology.modelWeights.${index}.method`, "Weighted valuation method name is required."));
+    if (!Number.isFinite(weight) || weight <= 0) errors.push(fieldError(`valuation.methodology.modelWeights.${index}.weight`, "Weighted valuation method weight must be numeric and positive."));
+    if (method && Number.isFinite(weight) && weight > 0) weightedMethods.set(method, { raw: item.method, weight });
+  }
+
+  const results = Array.isArray(valuation.valuationResults) ? valuation.valuationResults : [];
+  if (!results.length) errors.push(fieldError("valuation.valuationResults", "valuationResults must represent every positively weighted valuation method."));
+  const represented = new Map();
+  for (const [index, result] of results.entries()) {
+    const method = normalizeMethodName(result?.method);
+    const weight = numberOrNull(result?.weight);
+    if (!method) errors.push(fieldError(`valuation.valuationResults.${index}.method`, "valuationResult method is required."));
+    if (!Number.isFinite(numberOrNull(result?.fairValue))) errors.push(fieldError(`valuation.valuationResults.${index}.fairValue`, "valuationResult fairValue is required."));
+    validateEnum(`valuation.valuationResults.${index}.role`, result?.role, VALUATION_ROLES, errors);
+    validateEnum(`valuation.valuationResults.${index}.confidence`, result?.confidence, FRANKLIN_V3_CONFIDENCE_LEVELS, errors, { optional: true });
+
+    const weighted = weightedMethods.get(method);
+    if (weighted) {
+      if (!Number.isFinite(weight) || !within(weighted.weight, weight, WEIGHT_TOLERANCE)) {
+        errors.push(fieldError(`valuation.valuationResults.${index}.weight`, "valuationResult weight must match valuation.methodology.modelWeights."));
+      }
+      represented.set(method, true);
+    } else if (Number.isFinite(weight) && weight > 0) {
+      errors.push(fieldError(`valuation.valuationResults.${index}.method`, "Positively weighted valuationResult method must appear in modelWeights."));
+    } else if (result?.role && result.role !== "CROSS_CHECK") {
+      errors.push(fieldError(`valuation.valuationResults.${index}.role`, "Unweighted valuationResult must be a CROSS_CHECK."));
+    }
+  }
+
+  for (const method of weightedMethods.keys()) {
+    if (!represented.has(method)) {
+      errors.push(fieldError("valuation.valuationResults", `Missing valuationResult for weighted method ${weightedMethods.get(method).raw}.`));
+    }
+  }
+  const primary = normalizeMethodName(methodology.primaryMethod);
+  if (!primary || !weightedMethods.has(primary)) {
+    errors.push(fieldError("valuation.methodology.primaryMethod", "primaryMethod must correspond to a positively weighted valuation method."));
+  }
+  for (const [index, method] of (Array.isArray(methodology.secondaryMethods) ? methodology.secondaryMethods : []).entries()) {
+    const normalized = normalizeMethodName(method);
+    if (normalized && !weightedMethods.has(normalized)) {
+      errors.push(fieldError(`valuation.methodology.secondaryMethods.${index}`, "secondaryMethods must not contradict the weighted methods."));
+    }
+  }
 }
 
 function validateUpsideAndMargin(input, errors) {
   const price = numberOrNull(input.marketPrice?.value);
   const base = numberOrNull(input.valuation?.current?.base);
+  const suppliedUpside = numberOrNull(input.valuation?.upsideToBasePct);
+  const suppliedMargin = numberOrNull(input.valuation?.marginOfSafetyPct);
+  if (!Number.isFinite(suppliedUpside)) errors.push(fieldError("valuation.upsideToBasePct", "upsideToBasePct is required."));
+  if (!Number.isFinite(suppliedMargin)) errors.push(fieldError("valuation.marginOfSafetyPct", "marginOfSafetyPct is required."));
   if (!(price > 0 && base > 0)) return;
   const expectedUpside = (base / price - 1) * 100;
   const expectedMargin = ((base - price) / base) * 100;
-  const suppliedUpside = numberOrNull(input.valuation?.upsideToBasePct);
-  const suppliedMargin = numberOrNull(input.valuation?.marginOfSafetyPct);
   if (Number.isFinite(suppliedUpside) && !within(expectedUpside, suppliedUpside, ASSESSMENT_TOLERANCE)) {
     errors.push(fieldError("valuation.upsideToBasePct", "upsideToBasePct arithmetic is inconsistent."));
   }
@@ -227,6 +413,10 @@ function validateNextRequirements(input, errors) {
   const requirements = Array.isArray(next.requirements) ? next.requirements : [];
   if (!FRANKLIN_V3_NEXT_REQUIREMENT_MODES.includes(next.mode)) errors.push(fieldError("nextRequirements.mode", "nextRequirements.mode is not supported."));
   if (!FRANKLIN_V3_TARGET_SCENARIOS.includes(next.targetScenario)) errors.push(fieldError("nextRequirements.targetScenario", "nextRequirements.targetScenario is not supported."));
+  if (!hasText(next.previousQuarter)) errors.push(fieldError("nextRequirements.previousQuarter", "nextRequirements.previousQuarter is required."));
+  if (!hasText(next.targetQuarter)) errors.push(fieldError("nextRequirements.targetQuarter", "nextRequirements.targetQuarter is required."));
+  if (!Number.isFinite(numberOrNull(next.currentJustifiedValue))) errors.push(fieldError("nextRequirements.currentJustifiedValue", "nextRequirements.currentJustifiedValue is required."));
+  if (!Number.isFinite(numberOrNull(next.targetValue))) errors.push(fieldError("nextRequirements.targetValue", "nextRequirements.targetValue is required."));
   if (requirements.length < 4) errors.push(fieldError("nextRequirements.requirements", "New requirement set must contain at least 4 requirements."));
   if (requirements.length > 8) errors.push(fieldError("nextRequirements.requirements", "New requirement set must contain no more than 8 requirements."));
   assertWeightTotal("nextRequirements.requirements.weight", requirements.map((item) => item?.weight), errors, "New requirement weights must sum to 100%.");
@@ -234,12 +424,22 @@ function validateNextRequirements(input, errors) {
     if (item?.status !== "NOT_REPORTED") errors.push(fieldError(`nextRequirements.requirements.${index}.status`, "New requirement statuses must be NOT_REPORTED."));
     if (!item?.id) errors.push(fieldError(`nextRequirements.requirements.${index}.id`, "New requirement id is required."));
     if (!item?.metric) errors.push(fieldError(`nextRequirements.requirements.${index}.metric`, "New requirement metric is required."));
+    validateEnum(`nextRequirements.requirements.${index}.type`, item?.type, REQUIREMENT_TYPES, errors, { lowercase: true });
+    validateEnum(`nextRequirements.requirements.${index}.importance`, item?.importance, IMPORTANCE_VALUES, errors, { lowercase: true });
+    if (!Number.isFinite(numberOrNull(item?.weight)) || numberOrNull(item?.weight) <= 0) errors.push(fieldError(`nextRequirements.requirements.${index}.weight`, "New requirement weight must be numeric and > 0."));
+    if (!hasText(item?.whyItMatters)) errors.push(fieldError(`nextRequirements.requirements.${index}.whyItMatters`, "whyItMatters is required."));
+    if ((item?.requiredValue === null || item?.requiredValue === undefined || item?.requiredValue === "") && !hasText(item?.requiredDisplay)) {
+      errors.push(fieldError(`nextRequirements.requirements.${index}.requiredValue`, "requiredValue or requiredDisplay is required."));
+    }
   }
   const base = numberOrNull(input.valuation?.current?.base);
+  const bull = numberOrNull(input.valuation?.current?.bull);
   const justified = numberOrNull(next.currentJustifiedValue);
   if (Number.isFinite(base) && Number.isFinite(justified) && !within(base, justified, 0.000001)) {
     errors.push(fieldError("nextRequirements.currentJustifiedValue", "nextRequirements.currentJustifiedValue must equal valuation.current.base."));
   }
+  validateNextQuarterProgression(input, errors);
+  validateNextRequirementTargetSemantics(next, { base, bull }, errors);
 }
 
 function validateInitialRules(input, errors) {
@@ -287,6 +487,7 @@ function validateEarningsRevaluationRules(input, context, errors, warnings) {
     errors.push(fieldError("reportIdentity.previousRequirementSetId", `previousRequirementSetId mismatch. Expected ${previousSet.requirementSetId}.`));
   }
   validatePreviousValuation(input, previous, errors);
+  validateRevaluationStatusAndChanges(input, errors);
   validatePreviousRequirements(input, previousSet, errors);
   validateFreshEarningsSources(input, errors, warnings);
 }
@@ -343,6 +544,9 @@ function validatePreviousRequirements(input, previousSet = {}, errors) {
 
   for (const [index, item] of evaluated.entries()) {
     validateEvaluatedRequirementStatus(item, `previousRequirementsEvaluation.requirements.${index}`, errors);
+    if (!Number.isFinite(numberOrNull(item?.weight)) || numberOrNull(item?.weight) <= 0) {
+      errors.push(fieldError(`previousRequirementsEvaluation.requirements.${index}.weight`, "Evaluated requirement weight must be numeric and > 0."));
+    }
   }
   validatePreviousRequirementsAssessment(evaluation, errors);
 }
@@ -366,6 +570,7 @@ function validatePreviousRequirementsAssessment(evaluation = {}, errors) {
     return;
   }
   const expected = calculateV3RequirementAssessment(evaluation.requirements || []);
+  validateEnum("previousRequirementsEvaluation.assessment.overallStatus", evaluation.assessment.overallStatus, REQUIREMENT_OVERALL_STATUSES, errors, { optional: true });
   for (const key of [
     "reportedRequirements",
     "totalRequirements",
@@ -392,6 +597,113 @@ function validatePreviousRequirementsAssessment(evaluation = {}, errors) {
   if (Number.isFinite(achievement) && achievement > 100 + ASSESSMENT_TOLERANCE) {
     errors.push(fieldError("previousRequirementsEvaluation.assessment.achievementOfReportedWeightPct", "Requirement achievement cannot exceed 100%."));
   }
+  const bucketTotal = [
+    evaluation.assessment.exceededWeightPct,
+    evaluation.assessment.passedWeightPct,
+    evaluation.assessment.partialWeightPct,
+    evaluation.assessment.failedWeightPct,
+    evaluation.assessment.notReportedWeightPct
+  ].map(numberOrNull).filter(Number.isFinite).reduce((sum, value) => sum + value, 0);
+  if (!within(bucketTotal, 100, ASSESSMENT_TOLERANCE)) {
+    errors.push(fieldError("previousRequirementsEvaluation.assessment", "Requirement status weight buckets must sum to 100%."));
+  }
+}
+
+function validateRevaluationStatusAndChanges(input, errors) {
+  const valuation = input.valuation || {};
+  const current = valuation.current || {};
+  const previous = valuation.previous || {};
+  const status = valuation.reviewStatus;
+  const changed = ["bear", "base", "bull"].map((field) => {
+    const before = numberOrNull(previous[field]);
+    const after = numberOrNull(current[field]);
+    if (!Number.isFinite(before) || !Number.isFinite(after)) return false;
+    return !within(before, after, ASSESSMENT_TOLERANCE);
+  });
+
+  if (status === "UNCHANGED" && changed.some(Boolean)) {
+    errors.push(fieldError("valuation.reviewStatus", "UNCHANGED requires current Bear/Base/Bull to match previous Bear/Base/Bull."));
+  }
+  if (status === "UPDATED" && !changed.some(Boolean)) {
+    errors.push(fieldError("valuation.reviewStatus", "UPDATED requires at least one Bear/Base/Bull Fair Value to materially differ from previous valuation."));
+  }
+  for (const field of ["bear", "base", "bull"]) {
+    const before = numberOrNull(previous[field]);
+    const after = numberOrNull(current[field]);
+    const supplied = numberOrNull(valuation.change?.[`${field}Pct`]);
+    if (!Number.isFinite(supplied)) {
+      errors.push(fieldError(`valuation.change.${field}Pct`, `${field}Pct is required.`));
+      continue;
+    }
+    const expected = pctChange(after, before);
+    if (Number.isFinite(expected) && !within(expected, supplied, ASSESSMENT_TOLERANCE)) {
+      errors.push(fieldError(`valuation.change.${field}Pct`, `${field}Pct arithmetic is inconsistent.`));
+    }
+    if (status === "UNCHANGED" && Number.isFinite(supplied) && !within(supplied, 0, ASSESSMENT_TOLERANCE)) {
+      errors.push(fieldError(`valuation.change.${field}Pct`, `${field}Pct must be zero for UNCHANGED reviewStatus.`));
+    }
+  }
+}
+
+function validateNextQuarterProgression(input, errors) {
+  const currentPeriod = reportPeriodFromV3Identity(input.reportIdentity || {});
+  const next = input.nextRequirements || {};
+  if (currentPeriod && normalizedPeriod(next.previousQuarter) !== normalizedPeriod(currentPeriod)) {
+    errors.push(fieldError("nextRequirements.previousQuarter", "nextRequirements.previousQuarter must equal the current canonical report period."));
+  }
+  const expectedTarget = nextFiscalQuarter(currentPeriod);
+  if (expectedTarget && normalizedPeriod(next.targetQuarter) !== normalizedPeriod(expectedTarget)) {
+    errors.push(fieldError("nextRequirements.targetQuarter", `nextRequirements.targetQuarter must be ${expectedTarget}.`));
+  }
+}
+
+function validateNextRequirementTargetSemantics(next = {}, values = {}, errors) {
+  const base = numberOrNull(values.base);
+  const bull = numberOrNull(values.bull);
+  const targetValue = numberOrNull(next.targetValue);
+  if (next.mode === "ADVANCE_TARGET") {
+    if (!["BULL", "INTERMEDIATE"].includes(next.targetScenario)) {
+      errors.push(fieldError("nextRequirements.targetScenario", "ADVANCE_TARGET requires BULL or INTERMEDIATE targetScenario."));
+      return;
+    }
+    if (next.targetScenario === "BULL" && Number.isFinite(targetValue) && Number.isFinite(bull) && !within(targetValue, bull, 0.000001)) {
+      errors.push(fieldError("nextRequirements.targetValue", "BULL targetValue must equal valuation.current.bull."));
+    }
+    if (next.targetScenario === "INTERMEDIATE") {
+      if (!(Number.isFinite(targetValue) && Number.isFinite(base) && Number.isFinite(bull) && targetValue > base && targetValue < bull)) {
+        errors.push(fieldError("nextRequirements.targetValue", "INTERMEDIATE targetValue must be > Base and < Bull."));
+      }
+      if (!hasText(next.targetDescription)) errors.push(fieldError("nextRequirements.targetDescription", "INTERMEDIATE targetDescription must explain the target."));
+    }
+  }
+  if (next.mode === "DEFEND_BASE") {
+    if (next.targetScenario !== "BASE_DEFENSE") errors.push(fieldError("nextRequirements.targetScenario", "DEFEND_BASE requires BASE_DEFENSE targetScenario."));
+    if (Number.isFinite(targetValue) && Number.isFinite(base) && !within(targetValue, base, 0.000001)) {
+      errors.push(fieldError("nextRequirements.targetValue", "BASE_DEFENSE targetValue must equal valuation.current.base."));
+    }
+  }
+  if (next.mode === "RECOVERY") {
+    if (next.targetScenario !== "RECOVERY") errors.push(fieldError("nextRequirements.targetScenario", "RECOVERY requires RECOVERY targetScenario."));
+    if (Number.isFinite(targetValue) && Number.isFinite(base) && targetValue < base) {
+      errors.push(fieldError("nextRequirements.targetValue", "RECOVERY targetValue must be >= valuation.current.base."));
+    }
+    if (!hasText(next.targetDescription)) errors.push(fieldError("nextRequirements.targetDescription", "RECOVERY targetDescription must explain the recovery logic."));
+  }
+}
+
+function validateAuditTotals(input, errors) {
+  const audit = input.audit || {};
+  const scenarios = input.valuation?.scenarios || {};
+  const scenarioTotal = ["Bear", "Base", "Bull"].reduce((sum, key) => sum + (numberOrNull(scenarios[key]?.probability) || 0), 0);
+  assertAuditValue("audit.scenarioProbabilityTotalPct", audit.scenarioProbabilityTotalPct, scenarioTotal, errors);
+  const methodTotal = sumWeights(input.valuation?.methodology?.modelWeights || []);
+  assertAuditValue("audit.valuationMethodWeightTotalPct", audit.valuationMethodWeightTotalPct, methodTotal, errors);
+  const nextRequirementTotal = sumWeights(input.nextRequirements?.requirements || []);
+  assertAuditValue("audit.nextRequirementWeightTotalPct", audit.nextRequirementWeightTotalPct, nextRequirementTotal, errors);
+  if (input.analysisType === "EARNINGS_REVALUATION") {
+    const previousRequirementTotal = sumWeights(input.previousRequirementsEvaluation?.requirements || []);
+    assertAuditValue("audit.previousRequirementWeightTotalPct", audit.previousRequirementWeightTotalPct, previousRequirementTotal, errors);
+  }
 }
 
 function validateSources(input, errors) {
@@ -404,37 +716,94 @@ function validateSources(input, errors) {
   for (const [index, source] of sources.entries()) {
     if (!source?.id) errors.push(fieldError(`sources.${index}.id`, "Source id is required."));
     if (!source?.title) errors.push(fieldError(`sources.${index}.title`, "Source title is required."));
-    if (!source?.type) errors.push(fieldError(`sources.${index}.type`, "Source type is required."));
+    validateEnum(`sources.${index}.type`, source?.type, SOURCE_TYPES, errors);
     if (!validDate(source?.date)) errors.push(fieldError(`sources.${index}.date`, "Source date is required."));
     if (!Array.isArray(source?.usedFor)) errors.push(fieldError(`sources.${index}.usedFor`, "Source usedFor must be an array."));
   }
+  const marketSource = sources.find((source) => source?.id && source.id === input.marketPrice?.sourceId);
+  if (input.marketPrice?.sourceId && !sourceUsedFor(marketSource, "marketPrice")) {
+    errors.push(fieldError("marketPrice.sourceId", "Market-price source must include marketPrice in usedFor."));
+  }
+  validateAllSourceReferences(input, sourceIds, errors);
 }
 
 function validateFreshEarningsSources(input, errors, warnings) {
   const releaseDate = dateTime(input.reportIdentity?.earningsReleaseDate);
   const sources = Array.isArray(input.sources) ? input.sources : [];
   const hasEarningsSource = sources.some((source) => {
-    const usedFor = (source?.usedFor || []).join(" ").toLowerCase();
-    const type = String(source?.type || "").toLowerCase();
-    return usedFor.includes("earnings") || usedFor.includes("latestquarter") || usedFor.includes("quarter") || type.includes("earnings") || type.includes("sec") || type.includes("investor");
+    const currentQuarterUsage = ["latestQuarter", "previousRequirementsEvaluation", "currentQuarterEarnings"].some((value) => sourceUsedFor(source, value));
+    if (!currentQuarterUsage) return false;
+    if (!releaseDate) return true;
+    const sourceDate = dateTime(source?.date);
+    return Boolean(sourceDate && sourceDate >= releaseDate);
   });
   if (!hasEarningsSource) {
     errors.push(fieldError("sources", "Earnings revaluation requires fresh quarterly source provenance."));
   }
-  if (releaseDate) {
-    const fresh = sources.some((source) => {
-      const sourceDate = dateTime(source?.date);
-      return sourceDate && sourceDate >= releaseDate - 1000 * 60 * 60 * 24;
-    });
-    if (!fresh) {
-      warnings.push(fieldError("sources", "No source date appears to cover the current earnings release."));
+}
+
+function validateAllSourceReferences(input, sourceIds, errors) {
+  const refs = [];
+  collectSourceRef(refs, "marketPrice.sourceId", input.marketPrice?.sourceId);
+  const metrics = input.latestQuarter?.coreMetrics || {};
+  for (const [metric, value] of Object.entries(metrics)) {
+    collectSourceRef(refs, `latestQuarter.coreMetrics.${metric}.sourceId`, value?.sourceId);
+  }
+  for (const [index, item] of (Array.isArray(input.latestQuarter?.companySpecificKpis) ? input.latestQuarter.companySpecificKpis : []).entries()) {
+    collectSourceRef(refs, `latestQuarter.companySpecificKpis.${index}.sourceId`, item?.sourceId);
+  }
+  for (const [index, item] of (Array.isArray(input.latestQuarter?.guidance) ? input.latestQuarter.guidance : []).entries()) {
+    collectSourceRef(refs, `latestQuarter.guidance.${index}.sourceId`, item?.sourceId);
+  }
+  for (const [section, items] of [
+    ["strengths", input.strengths],
+    ["weaknesses", input.weaknesses],
+    ["risks", input.risks],
+    ["catalysts", input.catalysts]
+  ]) {
+    for (const [index, item] of (Array.isArray(items) ? items : []).entries()) {
+      collectSourceRef(refs, `${section}.${index}.sourceId`, item?.sourceId);
+      collectSourceRefs(refs, `${section}.${index}.sourceIds`, item?.sourceIds);
     }
+  }
+  for (const [index, item] of (Array.isArray(input.previousRequirementsEvaluation?.requirements) ? input.previousRequirementsEvaluation.requirements : []).entries()) {
+    collectSourceRef(refs, `previousRequirementsEvaluation.requirements.${index}.sourceId`, item?.sourceId);
+  }
+  for (const [index, item] of (Array.isArray(input.forecast?.changedAssumptions) ? input.forecast.changedAssumptions : []).entries()) {
+    collectSourceRef(refs, `forecast.changedAssumptions.${index}.sourceId`, item?.sourceId);
+  }
+  for (const { path, id } of refs) {
+    if (!sourceIds.has(id)) errors.push(fieldError(path, `sourceId ${id} must reference an actual source in sources[].`));
   }
 }
 
-function assertWeightTotal(path, values = [], errors, message) {
-  const numbers = values.map(numberOrNull).filter(Number.isFinite);
-  if (!numbers.length) {
+function collectSourceRef(refs, path, id) {
+  if (id === null || id === undefined || id === "") return;
+  refs.push({ path, id: String(id) });
+}
+
+function collectSourceRefs(refs, path, ids) {
+  if (!Array.isArray(ids)) return;
+  ids.forEach((id, index) => collectSourceRef(refs, `${path}.${index}`, id));
+}
+
+function sourceUsedFor(source, expected) {
+  if (!source || !Array.isArray(source.usedFor)) return false;
+  const target = normalizeToken(expected);
+  return source.usedFor.some((item) => normalizeToken(item) === target);
+}
+
+function assertWeightTotal(path, values = [], errors, message, options = {}) {
+  const numbers = values.map(numberOrNull);
+  if (!numbers.length || numbers.some((value) => !Number.isFinite(value))) {
+    errors.push(fieldError(path, message));
+    return;
+  }
+  if (options.requirePositive !== false && numbers.some((value) => value <= 0)) {
+    errors.push(fieldError(path, message));
+    return;
+  }
+  if (options.requirePositive === false && numbers.some((value) => value < 0)) {
     errors.push(fieldError(path, message));
     return;
   }
@@ -460,6 +829,68 @@ function sumWeights(items = []) {
     const value = numberOrNull(item?.weight);
     return Number.isFinite(value) ? sum + value : sum;
   }, 0);
+}
+
+function validateScore(path, value, errors) {
+  if (value === null || value === undefined) return;
+  if (!boundedNumber(value, 0, 100)) errors.push(fieldError(path, `${path} must be between 0 and 100.`));
+}
+
+function validateEnum(path, value, allowed, errors, options = {}) {
+  if ((value === null || value === undefined || value === "") && options.optional) return;
+  const normalized = options.lowercase ? String(value || "").trim().toLowerCase() : normalizeEnum(value);
+  const expected = options.lowercase ? allowed.map((item) => String(item).toLowerCase()) : allowed.map(normalizeEnum);
+  if (!expected.includes(normalized)) errors.push(fieldError(path, `${path} is not supported.`));
+}
+
+function validateExactMetricShape(path, value, expectedKeys, errors) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    errors.push(fieldError(path, `${path} is required.`));
+    return;
+  }
+  const actual = Object.keys(value).sort();
+  const expected = [...expectedKeys].sort();
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    errors.push(fieldError(path, `${path} must use the approved v3 metric shape.`));
+  }
+}
+
+function assertAuditValue(path, supplied, calculated, errors) {
+  const value = numberOrNull(supplied);
+  if (!Number.isFinite(value)) {
+    errors.push(fieldError(path, `${path} is required.`));
+    return;
+  }
+  if (Number.isFinite(calculated) && !within(value, calculated, WEIGHT_TOLERANCE)) {
+    errors.push(fieldError(path, `${path} must match the canonical array total.`));
+  }
+}
+
+function nextFiscalQuarter(period) {
+  const match = String(period || "").toUpperCase().match(/Q\s*([1-4]).*?(20\d{2})/);
+  if (!match) return null;
+  const quarter = Number(match[1]);
+  const year = Number(match[2]);
+  if (quarter === 4) return `Q1 ${year + 1}`;
+  return `Q${quarter + 1} ${year}`;
+}
+
+function pctChange(next, previous) {
+  if (!Number.isFinite(next) || !Number.isFinite(previous)) return null;
+  if (previous === 0) return next === 0 ? 0 : null;
+  return ((next / previous) - 1) * 100;
+}
+
+function normalizeMethodName(value) {
+  return String(value || "").trim().toUpperCase().replace(/\s+/g, " ");
+}
+
+function normalizeEnum(value) {
+  return String(value || "").trim().toUpperCase().replace(/[\s-]+/g, "_");
+}
+
+function normalizeToken(value) {
+  return String(value || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 function within(actual, expected, tolerance) {

@@ -106,9 +106,9 @@ assert.deepEqual(
 
 sets = applyHistoricalRequirementLifecycle(sets, q2Prepared, q2PreparedResult.match, new Date("2025-07-23T00:00:00.000Z"));
 const evaluated = sets.TSLA.find((set) => set.requirementSetId === requirementSetId);
-assert.equal(evaluated.status, "EVALUATED");
-assert.equal(evaluated.evaluatedByAnalysisId, "TSLA-Q2-2025");
-assert.equal(evaluated.requirementsAssessment.weightedAchievement, 55);
+assert.equal(evaluated.status, "OPEN");
+assert.equal(evaluated.evaluatedByAnalysisId, null);
+assert.equal(evaluated.requirementsAssessment, null);
 
 const scorecard = buildQuarterlyScorecard({
   historicalRequirementSets: sets,

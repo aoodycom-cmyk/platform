@@ -270,7 +270,7 @@ function companyKpisFromLatestQuarter(latestQuarter = {}) {
         category: "company_specific",
         currentValue: item.actualDisplay || (item.actualValue ?? null),
         unit: "text",
-        trend: kpiTrendFromResult(item.result),
+        trend: item.trend || "unknown",
         importance: item.importance || "medium",
         interpretation: item.interpretation || null,
         source: item.sourceId || null,
@@ -348,14 +348,6 @@ function normalizeDate(value) {
   if (!value) return null;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? String(value).slice(0, 10) : String(value).slice(0, 10);
-}
-
-function kpiTrendFromResult(value) {
-  const clean = String(value || "").toUpperCase();
-  if (clean === "BEAT") return "improving";
-  if (clean === "MISS") return "deteriorating";
-  if (clean === "INLINE") return "stable";
-  return "unknown";
 }
 
 function trendFromChange(value) {

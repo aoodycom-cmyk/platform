@@ -40,20 +40,18 @@ function ensureLitePromptButton() {
   const actions = pasteStep.querySelector(".earnings-update-actions");
   if (!actions) return;
 
-  const oldNext = actions.querySelector("[data-action='prepare-earnings-prompt']");
-  if (oldNext) oldNext.hidden = true;
-
   const button = document.createElement("button");
   button.type = "button";
-  button.className = "primary-btn";
+  button.className = "icon-btn";
   button.setAttribute(BUTTON_ATTR, "");
-  button.innerHTML = `نسخ برومبت <span dir="ltr">Q${context.quarter} ${context.year}</span>`;
+  button.setAttribute("data-action", "copy-quick-earnings-read-prompt");
+  button.innerHTML = `Quick Earnings Read <span dir="ltr">Q${context.quarter} ${context.year}</span>`;
   button.addEventListener("click", () => copyLitePrompt(context, pasteStep));
-  actions.prepend(button);
+  actions.append(button);
 
   const hint = document.createElement("p");
   hint.className = "compact-empty-state quarterly-json-prompt-hint";
-  hint.textContent = "وضع خفيف: نتائج الربع + تقدم الأهداف + Guidance + Forward Outlook. بدون تقييم سهم كامل أو Fair Value جديد.";
+  hint.textContent = "اختياري وغير Canonical: قراءة سريعة للربع فقط، بدون تقييم سهم كامل أو Fair Value جديد.";
   actions.insertAdjacentElement("beforebegin", hint);
 }
 

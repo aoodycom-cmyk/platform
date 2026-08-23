@@ -10,14 +10,14 @@ export function setQuarterlyEarningsLiteReportResolver(resolver) {
   quarterlyEarningsLiteReportResolver = typeof resolver === "function" ? resolver : null;
 }
 
-export async function parseExternalAnalysisInput(text, { parseUnstructured, now = new Date(), currentReport = null, expectedReportPeriod = null } = {}) {
+export async function parseExternalAnalysisInput(text, { parseUnstructured, now = new Date(), currentReport = null, expectedTicker = null, expectedReportPeriod = null } = {}) {
   const rawAnalysis = String(text || "").trim();
   if (!rawAnalysis) throw new Error("Paste an external ChatGPT analysis first.");
 
   const localJson = parseJsonCandidate(rawAnalysis);
   if (localJson.ok) {
     if (isFranklinV3Report(localJson.value)) {
-      assertValidFranklinV3(localJson.value, { currentReport, expectedReportPeriod });
+      assertValidFranklinV3(localJson.value, { currentReport, expectedTicker, expectedReportPeriod });
       return {
         report: normalizeExternalAnalysisReport(localJson.value, rawAnalysis, { now, importMethod: "franklin_v3_json" }),
         parserSource: "Franklin v3 JSON Parser",
@@ -53,7 +53,7 @@ export async function parseExternalAnalysisInput(text, { parseUnstructured, now 
   }
   const parsed = await parseUnstructured(rawAnalysis);
   if (isFranklinV3Report(parsed.report || parsed)) {
-    assertValidFranklinV3(parsed.report || parsed, { currentReport, expectedReportPeriod });
+    assertValidFranklinV3(parsed.report || parsed, { currentReport, expectedTicker, expectedReportPeriod });
   }
   return {
     report: normalizeExternalAnalysisReport(parsed.report || parsed, rawAnalysis, { now, importMethod: "openai_backend_parser" }),
@@ -65,7 +65,7 @@ export async function parseExternalAnalysisInput(text, { parseUnstructured, now 
 function assertValidFranklinV3(value, context = {}) {
   const validation = validateFranklinV3Report(value, {
     currentReport: context.currentReport,
-    expectedTicker: context.currentReport?.company?.ticker,
+    expectedTicker: context.expectedTicker || context.currentReport?.company?.ticker,
     expectedReportPeriod: context.expectedReportPeriod
   });
   if (validation.valid) return;

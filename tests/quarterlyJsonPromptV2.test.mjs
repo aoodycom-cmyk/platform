@@ -10,11 +10,12 @@ const parser = readFileSync(new URL("../src/externalAnalysis/parser.js", import.
 assert.ok(main.includes("quarterlyEarningsJsonPromptV2.js"));
 assert.ok(sw.includes("./src/ui/quarterlyEarningsJsonPromptV2.js"));
 assert.ok(sw.includes("./src/externalAnalysis/quarterlyEarningsLite.js"));
-assert.ok(script.includes("نسخ برومبت"));
+assert.ok(script.includes("Quick Earnings Read"));
+assert.ok(script.includes("غير Canonical"));
 assert.ok(script.includes("buildQuarterlyEarningsLitePrompt"));
+assert.equal(script.includes("hidden = true"), false);
 assert.ok(parser.includes("inflateQuarterlyEarningsLitePayload"));
 assert.ok(script.includes("step: 3"));
-assert.ok(script.includes("Forward Outlook"));
 assert.ok(script.includes("بدون تقييم سهم كامل أو Fair Value جديد"));
 
 console.log("Quarterly JSON prompt V2 lite-mode tests passed.");

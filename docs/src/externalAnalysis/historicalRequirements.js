@@ -43,6 +43,7 @@ export function normalizeHistoricalRequirementSets(input = {}, externalAnalyses 
 }
 
 export function createRequirementSetFromReport(report = {}, now = new Date()) {
+  if (isQuarterlyEarningsLiteReport(report)) return null;
   const block = normalizePriceTargetRequirements(report.priceTargetRequirements);
   if (!block.requirements.length) return null;
   const ticker = normalizeTicker(report.company?.ticker || report.ticker);
@@ -102,6 +103,7 @@ export function prepareHistoricalRequirementEvaluation(report = {}, requirementS
 
 export function applyHistoricalRequirementLifecycle(collection = {}, report = {}, match = {}, now = new Date()) {
   let next = normalizeHistoricalRequirementSets(collection);
+  const canMutateCanonicalLifecycle = !isQuarterlyEarningsLiteReport(report);
   const evaluation = report.previousRequirementsEvaluation;
   const matchedOpenSet = match?.status === "matched" && match?.set?.status === "OPEN"
     ? match.set
@@ -116,14 +118,16 @@ export function applyHistoricalRequirementLifecycle(collection = {}, report = {}
   // block overwrite an already-closed set unless this import matched the open
   // set during the current save flow and the report period reaches the target.
   if (
-    evaluationMatchesOpenSet
+    canMutateCanonicalLifecycle
+    && isCanonicalV3EarningsRevaluation(report)
+    && evaluationMatchesOpenSet
     && hasExplicitPreviousRequirementEvaluation(evaluation)
     && evaluationReachesTarget(evaluation, report)
   ) {
     next = markRequirementSetEvaluated(next, evaluation, report, now);
   }
 
-  const nextSet = createRequirementSetFromReport(report, now);
+  const nextSet = canMutateCanonicalLifecycle ? createRequirementSetFromReport(report, now) : null;
   if (nextSet && !isSameSetAsPreviousEvaluation(nextSet, evaluation)) {
     next = upsertRequirementSet(next, nextSet);
     if (nextSet.supersedesRequirementSetId) {
@@ -391,6 +395,21 @@ function evaluationReachesTarget(evaluation = {}, report = {}) {
   const reported = reportPeriod || evaluationPeriod;
   if (!reported) return false;
   return target ? reported === target : true;
+}
+
+function isQuarterlyEarningsLiteReport(report = {}) {
+  return report?.metadata?.importMethod === "quarterly_earnings_lite"
+    || report?.metadata?.analysisScope === "quarterly_earnings_update"
+    || report?.previousRequirementsEvaluation?.matchType === "quarterly_earnings_lite";
+}
+
+function isCanonicalV3EarningsRevaluation(report = {}) {
+  const metadata = report?.metadata || {};
+  const canonical = metadata.franklinV3Report;
+  return metadata.nativeSchemaVersion === "franklin-fair-value/v3"
+    && metadata.franklinV3?.analysisType === "EARNINGS_REVALUATION"
+    && canonical?.schemaVersion === "franklin-fair-value/v3"
+    && canonical?.analysisType === "EARNINGS_REVALUATION";
 }
 
 function isSameSetAsPreviousEvaluation(set, evaluation) {
