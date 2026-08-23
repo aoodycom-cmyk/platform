@@ -1,6 +1,7 @@
 import { normalizeExternalAnalysisReport } from "./schema.js";
 import { upsertQuarterlyEarningsDigestSupplement } from "./quarterlyEarningsDigest.js";
 import { inflateQuarterlyEarningsLitePayload, isQuarterlyEarningsLitePayload } from "./quarterlyEarningsLite.js";
+import { normalizeFranklinV3Input } from "./v3InputNormalizer.js";
 import { isFranklinV3Report } from "./v3Contract.js";
 import { validateFranklinV3Report } from "./v3Validator.js";
 
@@ -17,9 +18,10 @@ export async function parseExternalAnalysisInput(text, { parseUnstructured, now 
   const localJson = parseJsonCandidate(rawAnalysis);
   if (localJson.ok) {
     if (isFranklinV3Report(localJson.value)) {
-      assertValidFranklinV3(localJson.value, { currentReport, expectedTicker, expectedReportPeriod });
+      const normalizedV3 = normalizeFranklinV3Input(localJson.value);
+      assertValidFranklinV3(normalizedV3, { currentReport, expectedTicker, expectedReportPeriod });
       return {
-        report: normalizeExternalAnalysisReport(localJson.value, rawAnalysis, { now, importMethod: "franklin_v3_json" }),
+        report: normalizeExternalAnalysisReport(normalizedV3, rawAnalysis, { now, importMethod: "franklin_v3_json" }),
         parserSource: "Franklin v3 JSON Parser",
         usedAi: false
       };
@@ -52,11 +54,13 @@ export async function parseExternalAnalysisInput(text, { parseUnstructured, now 
     throw new Error("External analysis parser is unavailable.");
   }
   const parsed = await parseUnstructured(rawAnalysis);
-  if (isFranklinV3Report(parsed.report || parsed)) {
-    assertValidFranklinV3(parsed.report || parsed, { currentReport, expectedTicker, expectedReportPeriod });
+  const parsedValue = parsed.report || parsed;
+  const normalizedParsedValue = isFranklinV3Report(parsedValue) ? normalizeFranklinV3Input(parsedValue) : parsedValue;
+  if (isFranklinV3Report(normalizedParsedValue)) {
+    assertValidFranklinV3(normalizedParsedValue, { currentReport, expectedTicker, expectedReportPeriod });
   }
   return {
-    report: normalizeExternalAnalysisReport(parsed.report || parsed, rawAnalysis, { now, importMethod: "openai_backend_parser" }),
+    report: normalizeExternalAnalysisReport(normalizedParsedValue, rawAnalysis, { now, importMethod: "openai_backend_parser" }),
     parserSource: parsed.source || "OpenAI Backend Parser",
     usedAi: true
   };
