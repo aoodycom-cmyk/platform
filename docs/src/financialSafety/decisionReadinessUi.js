@@ -1,12 +1,16 @@
 import { auditFinancialReport } from "./financialSafety.js";
 import { installCommercialUx } from "./commercialUx.js";
+import { installDecisionHeroUx } from "./decisionHeroUx.js";
 
 const QUARTERLY_IMPORT_METHOD = "quarterly_earnings_lite";
 
 export function installDecisionReadinessUi(store, root = document.getElementById("app")) {
   if (!store || store.__decisionReadinessUiInstalled) return;
   store.__decisionReadinessUiInstalled = true;
-  if (root?.querySelector) installCommercialUx(store, root);
+  if (root?.querySelector) {
+    installCommercialUx(store, root);
+    installDecisionHeroUx(store, root);
+  }
 
   let frame = 0;
   const schedule = () => {
