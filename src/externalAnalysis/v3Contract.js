@@ -360,7 +360,7 @@ function previousRequirementsEvaluationTemplate(previous) {
       partialWeightPct: 0,
       failedWeightPct: 0,
       notReportedWeightPct: null,
-      overallStatus: "INCOMPLETE",
+      overallStatus: null,
       summary: null
     }
   };

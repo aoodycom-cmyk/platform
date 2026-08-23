@@ -269,10 +269,12 @@ assert.equal(earningsPrompt.includes("```"), false);
 assert.deepEqual(FRANKLIN_V3_CANONICAL_ENUMS.analysisType, ["INITIAL", "EARNINGS_REVALUATION"]);
 assert.deepEqual(FRANKLIN_V3_CANONICAL_ENUMS.requirementOverallStatus, ["EXCEEDED", "PASSED", "MIXED", "FAILED", "INCOMPLETE"]);
 assert.deepEqual(FRANKLIN_V3_CANONICAL_ENUMS.sourceType, ["Investor Relations", "SEC", "Earnings Call", "Market Data", "Consensus Data", "Trusted Financial News", "User Provided", "Other"]);
-assert.equal(buildFranklinV3ReportTemplate({ analysisType: "EARNINGS_REVALUATION", previousReport }).valuation.reviewStatus, null);
-assert.equal(buildFranklinV3ReportTemplate({ analysisType: "EARNINGS_REVALUATION", previousReport }).valuation.methodology.methodologyChanged, null);
-assert.equal(buildFranklinV3ReportTemplate({ analysisType: "EARNINGS_REVALUATION", previousReport }).valuation.valuationResults[0].role, null);
-assert.equal(buildFranklinV3ReportTemplate({ analysisType: "EARNINGS_REVALUATION", previousReport }).risks[0].severity, null);
+const revaluationTemplate = buildFranklinV3ReportTemplate({ analysisType: "EARNINGS_REVALUATION", previousReport });
+assert.equal(revaluationTemplate.valuation.reviewStatus, null);
+assert.equal(revaluationTemplate.valuation.methodology.methodologyChanged, null);
+assert.equal(revaluationTemplate.valuation.valuationResults[0].role, null);
+assert.equal(revaluationTemplate.risks[0].severity, null);
+assert.equal(revaluationTemplate.previousRequirementsEvaluation.assessment.overallStatus, null);
 
 expectInvalid(goldenA, (item) => { item.latestQuarter.coreMetrics.revenue.result = "AHEAD"; }, /coreMetrics|result/);
 expectInvalid(goldenA, (item) => { item.latestQuarter.companySpecificKpis[0].importance = "important"; }, /importance/);
@@ -283,6 +285,13 @@ expectInvalid(goldenA, (item) => { item.valuation.valuationResults[0].role = "MA
 expectInvalid(goldenA, (item) => { item.marketPrice.priceType = "CLOSING"; }, /priceType/);
 expectInvalid(goldenA, (item) => { item.decision.scope = "PORTFOLIO"; }, /decision.scope/);
 expectInvalid(goldenB, (item) => { item.previousRequirementsEvaluation.assessment.overallStatus = "PARTIAL"; }, /overallStatus/);
+expectInvalid(goldenE, (item) => { item.previousRequirementsEvaluation.assessment.overallStatus = "PASSED"; }, /must be INCOMPLETE/);
+expectInvalid(goldenB, (item) => { item.previousRequirementsEvaluation.assessment.overallStatus = "INCOMPLETE"; }, /must not be INCOMPLETE/);
+for (const status of ["PASSED", "MIXED", "FAILED", "EXCEEDED"]) {
+  assertValidation(mutated(goldenB, (item) => {
+    item.previousRequirementsEvaluation.assessment.overallStatus = status;
+  }), context(), `Fully reported previous requirements may use ${status}.`);
+}
 expectInvalid(goldenA, (item) => { item.sources[0].type = "market data"; }, /sources.0.type/);
 expectInvalid(goldenA, (item) => { item.reportIdentity.fiscalQuarter = "Quarter 1"; }, /fiscalQuarter/);
 expectInvalid(goldenA, (item) => { item.reportIdentity.fiscalYear = 1999; }, /fiscalYear/);
@@ -322,6 +331,26 @@ assertValidation(mutated(earningsV3(noSetPrevious, { bear: 80, base: 115, bull: 
   item.audit.previousRequirementWeightTotalPct = null;
 }), { currentReport: noSetPrevious, expectedTicker: "VTH", expectedReportPeriod: "Q2 2026" }, "Earnings revaluation without a previous requirement set must not invent previousRequirementsEvaluation.");
 
+const noSetCanonical = mutated(earningsV3(noSetPrevious, { bear: 80, base: 115, bull: 155 }), (item) => {
+  item.reportIdentity.previousRequirementSetId = null;
+  item.previousRequirementsEvaluation = null;
+  item.audit.previousRequirementWeightTotalPct = null;
+});
+const parsedNoSetCanonical = await parseExternalAnalysisInput(JSON.stringify(noSetCanonical), {
+  now,
+  currentReport: noSetPrevious,
+  expectedReportPeriod: "Q2 2026"
+});
+const preparedNoSetCanonical = prepareHistoricalRequirementEvaluation(parsedNoSetCanonical.report, historicalRequirementSets);
+assert.equal(preparedNoSetCanonical.match.status, "none");
+assert.equal(preparedNoSetCanonical.match.reason, "canonical_previous_requirement_set_null");
+const noSetReportForSave = attachRequirementSetIdentityToReport({ ...preparedNoSetCanonical.report, id: "VTH-canonical-no-previous-set" }, now);
+const noSetSaved = saveExternalAnalysis({ VTH: [noSetPrevious] }, noSetReportForSave, { allowDuplicate: true, now });
+const noSetLifecycle = applyHistoricalRequirementLifecycle(historicalRequirementSets, noSetSaved.report, preparedNoSetCanonical.match, now);
+assert.equal(noSetLifecycle.VTH.find((set) => set.requirementSetId === previousSet.requirementSetId).status, "OPEN");
+assert.equal(noSetLifecycle.VTH.some((set) => set.status === "EVALUATED"), false);
+assert.equal(noSetLifecycle.VTH.some((set) => set.status === "OPEN" && set.requirementSetId !== previousSet.requirementSetId), true);
+
 const noSetTemplate = buildFranklinV3ReportTemplate({ analysisType: "EARNINGS_REVALUATION", previousReport: noSetPrevious, selectedPeriod: "Q2 2026" });
 assert.equal(noSetTemplate.previousRequirementsEvaluation, null);
 assert.equal(noSetTemplate.audit.previousRequirementWeightTotalPct, null);
@@ -346,6 +375,66 @@ const partialLifecycle = await saveCanonicalEarnings(earningsV3(previousReport, 
 const evaluatedPartial = partialLifecycle.historical.VTH.find((set) => set.requirementSetId === previousSet.requirementSetId).requirements[0];
 assert.equal(evaluatedPartial.partialCreditPct, 60);
 assert.equal(evaluatedPartial.sourceId, "S2");
+
+const sharedMetricInitial = mutated(initialV3(), (item) => {
+  item.nextRequirements.requirements[0] = {
+    ...item.nextRequirements.requirements[0],
+    id: "revenue_min",
+    name: "Revenue",
+    arabicName: "Revenue",
+    metric: "Revenue",
+    requiredValue: 100,
+    requiredDisplay: "100"
+  };
+  item.nextRequirements.requirements[1] = {
+    ...item.nextRequirements.requirements[1],
+    id: "revenue_growth",
+    name: "Revenue",
+    arabicName: "Revenue",
+    metric: "Revenue",
+    requiredValue: 30,
+    requiredDisplay: "30%"
+  };
+});
+const sharedParsed = await parseExternalAnalysisInput(JSON.stringify(sharedMetricInitial), { now });
+const sharedSaved = saveExternalAnalysis({}, sharedParsed.report, { now });
+const sharedPreviousReport = attachRequirementSetIdentityToReport(sharedSaved.report, now);
+const sharedHistorical = applyHistoricalRequirementLifecycle({}, sharedPreviousReport, {}, now);
+const sharedCanonical = mutated(earningsV3(sharedPreviousReport, {
+  statuses: ["FAILED", "PARTIALLY_PASSED", "PASSED", "PASSED"],
+  partialCredits: [null, 45, null, null],
+  actualValues: [90, 35, 120, 8]
+}), (item) => {
+  const requirements = item.previousRequirementsEvaluation.requirements;
+  requirements[0].actualDisplay = "$90m";
+  requirements[0].evaluationNote = "exact id revenue_min";
+  requirements[0].sourceId = "S2";
+  requirements[1].actualDisplay = "35%";
+  requirements[1].evaluationNote = "exact id revenue_growth";
+  requirements[1].sourceId = "S3";
+  item.previousRequirementsEvaluation.assessment = {
+    ...calculateV3RequirementAssessment(requirements),
+    overallStatus: "MIXED",
+    summary: "Exact ID merge test."
+  };
+  item.sources.push(source("S3", "Earnings Call", "2026-07-25", ["previousRequirementsEvaluation"]));
+});
+const sharedLifecycle = await saveCanonicalEarnings(sharedCanonical, sharedPreviousReport, sharedHistorical);
+const sharedEvaluatedSet = sharedLifecycle.historical.VTH.find((set) => set.requirementSetId === sharedPreviousReport.priceTargetRequirements.requirementSetId);
+const revenueMin = sharedEvaluatedSet.requirements.find((item) => item.id === "revenue_min");
+const revenueGrowth = sharedEvaluatedSet.requirements.find((item) => item.id === "revenue_growth");
+assert.equal(revenueMin.actualValue, 90);
+assert.equal(revenueMin.actualDisplay, "$90m");
+assert.equal(revenueMin.status, "FAILED");
+assert.equal(revenueMin.partialCreditPct, null);
+assert.equal(revenueMin.evaluationNote, "exact id revenue_min");
+assert.equal(revenueMin.sourceId, "S2");
+assert.equal(revenueGrowth.actualValue, 35);
+assert.equal(revenueGrowth.actualDisplay, "35%");
+assert.equal(revenueGrowth.status, "PARTIALLY_PASSED");
+assert.equal(revenueGrowth.partialCreditPct, 45);
+assert.equal(revenueGrowth.evaluationNote, "exact id revenue_growth");
+assert.equal(revenueGrowth.sourceId, "S3");
 
 const storeSource = readFileSync(new URL("../src/state/store.js", import.meta.url), "utf8");
 assert.ok(storeSource.includes("expectedTicker: tickerHint || null"));
@@ -478,7 +567,7 @@ function earningsV3(previousReport, options = {}) {
   }));
   const assessment = {
     ...calculateV3RequirementAssessment(evaluationRequirements),
-    overallStatus: statuses.includes("FAILED") ? "MIXED" : statuses.every((status) => status === "NOT_REPORTED") ? "INCOMPLETE" : "PASSED",
+    overallStatus: options.overallStatus || (statuses.includes("NOT_REPORTED") ? "INCOMPLETE" : statuses.includes("FAILED") || statuses.includes("PARTIALLY_PASSED") ? "MIXED" : "PASSED"),
     summary: "تم تقييم المتطلبات السابقة."
   };
   const previousBase = previousReport.fairValueSummary.fairValueBase;

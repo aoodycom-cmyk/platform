@@ -571,7 +571,7 @@ function validatePreviousRequirementsAssessment(evaluation = {}, errors) {
     return;
   }
   const expected = calculateV3RequirementAssessment(evaluation.requirements || []);
-  validateEnum("previousRequirementsEvaluation.assessment.overallStatus", evaluation.assessment.overallStatus, FRANKLIN_V3_REQUIREMENT_OVERALL_STATUSES, errors, { optional: true });
+  validateEnum("previousRequirementsEvaluation.assessment.overallStatus", evaluation.assessment.overallStatus, FRANKLIN_V3_REQUIREMENT_OVERALL_STATUSES, errors);
   for (const key of [
     "reportedRequirements",
     "totalRequirements",
@@ -607,6 +607,14 @@ function validatePreviousRequirementsAssessment(evaluation = {}, errors) {
   ].map(numberOrNull).filter(Number.isFinite).reduce((sum, value) => sum + value, 0);
   if (!within(bucketTotal, 100, ASSESSMENT_TOLERANCE)) {
     errors.push(fieldError("previousRequirementsEvaluation.assessment", "Requirement status weight buckets must sum to 100%."));
+  }
+  const notReportedWeight = numberOrNull(evaluation.assessment.notReportedWeightPct);
+  const overallStatus = String(evaluation.assessment.overallStatus || "").toUpperCase();
+  if (Number.isFinite(notReportedWeight) && notReportedWeight > ASSESSMENT_TOLERANCE && overallStatus !== "INCOMPLETE") {
+    errors.push(fieldError("previousRequirementsEvaluation.assessment.overallStatus", "overallStatus must be INCOMPLETE when notReportedWeightPct is greater than zero."));
+  }
+  if (Number.isFinite(notReportedWeight) && within(notReportedWeight, 0, ASSESSMENT_TOLERANCE) && overallStatus === "INCOMPLETE") {
+    errors.push(fieldError("previousRequirementsEvaluation.assessment.overallStatus", "overallStatus must not be INCOMPLETE when all previous requirements are reported."));
   }
 }
 

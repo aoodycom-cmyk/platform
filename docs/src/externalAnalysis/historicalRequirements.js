@@ -158,24 +158,26 @@ export function findRequirementSetMatch(report = {}, requirementSets = {}, optio
   const openSets = (requirementSets[ticker] || []).filter((set) => set.status === "OPEN");
   if (!openSets.length) return { status: "none", reason: "no_open_sets", candidates: [] };
 
+  if (isCanonicalV3EarningsRevaluation(report)) {
+    const explicitId = extractCanonicalPreviousRequirementSetId(report);
+    if (!explicitId) return { status: "none", reason: "canonical_previous_requirement_set_null", candidates: [] };
+    const explicit = openSets.find((set) => set.requirementSetId === explicitId);
+    if (!explicit) return { status: "none", reason: "explicit_requirement_set_not_open", candidates: [] };
+    if (normalizeTicker(explicit.ticker) !== ticker) {
+      return { status: "none", reason: "explicit_requirement_set_ticker_mismatch", candidates: [explicit] };
+    }
+    const reportedPeriod = normalizedEarningsPeriod(extractReportedEarningsPeriod(report));
+    const targetPeriod = normalizedEarningsPeriod(explicit.targetQuarter || explicit.earningsPeriod);
+    if (reportedPeriod && targetPeriod && reportedPeriod !== targetPeriod) {
+      return { status: "none", reason: "explicit_requirement_set_period_mismatch", candidates: [explicit] };
+    }
+    return matched(explicit, "canonical_explicit_requirement_set_id");
+  }
+
   const selected = options.selectedRequirementSetId
     ? openSets.find((set) => set.requirementSetId === options.selectedRequirementSetId)
     : null;
   if (selected) return matched(selected, "user_selected");
-
-  if (isCanonicalV3EarningsRevaluation(report)) {
-    const explicitId = extractExplicitRequirementSetId(report);
-    if (explicitId) {
-      const explicit = openSets.find((set) => set.requirementSetId === explicitId);
-      if (!explicit) return { status: "none", reason: "explicit_requirement_set_not_open", candidates: [] };
-      const reportedPeriod = normalizedEarningsPeriod(extractReportedEarningsPeriod(report));
-      const targetPeriod = normalizedEarningsPeriod(explicit.targetQuarter || explicit.earningsPeriod);
-      if (reportedPeriod && targetPeriod && reportedPeriod !== targetPeriod) {
-        return { status: "none", reason: "explicit_requirement_set_period_mismatch", candidates: [explicit] };
-      }
-      return matched(explicit, "canonical_explicit_requirement_set_id");
-    }
-  }
 
   const reportedPeriod = normalizedEarningsPeriod(extractReportedEarningsPeriod(report));
   if (reportedPeriod) {
@@ -257,7 +259,9 @@ function markRequirementSetEvaluated(collection, evaluation, report, now) {
         status: "EVALUATED",
         evaluatedByAnalysisId: report.id || null,
         evaluatedAt: now.toISOString(),
-        requirements: mergeEvaluatedRequirements(set.requirements, evaluation.requirements),
+        requirements: mergeEvaluatedRequirements(set.requirements, evaluation.requirements, {
+          exactIdOnly: isCanonicalV3EarningsRevaluation(report)
+        }),
         requirementsAssessment: evaluation.requirementsAssessment || null
       };
     })
@@ -340,9 +344,9 @@ function freezeRequirementSetRequirements(requirements = [], status = "OPEN") {
   });
 }
 
-function mergeEvaluatedRequirements(original = [], evaluated = []) {
+function mergeEvaluatedRequirements(original = [], evaluated = [], options = {}) {
   return original.map((requirement) => {
-    const result = findActualForRequirement(requirement, evaluated);
+    const result = findActualForRequirement(requirement, evaluated, options);
     if (!result) return requirement;
     return {
       ...requirement,
@@ -456,6 +460,14 @@ function extractExplicitRequirementSetId(report = {}) {
     || report.requirementSetId
     || report.metadata?.requirementSetId
     || null;
+}
+
+function extractCanonicalPreviousRequirementSetId(report = {}) {
+  const canonical = report?.metadata?.franklinV3Report || null;
+  if (canonical?.schemaVersion === "franklin-fair-value/v3") {
+    return canonical.reportIdentity?.previousRequirementSetId || null;
+  }
+  return report?.metadata?.franklinV3?.previousRequirementSetId || null;
 }
 
 function matched(set, matchType) {
