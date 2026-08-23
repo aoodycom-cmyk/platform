@@ -1,6 +1,7 @@
 import { auditFinancialReport } from "./financialSafety.js";
 import { installCommercialUx } from "./commercialUx.js";
 import { installDecisionHeroUx } from "./decisionHeroUx.js";
+import { installWorkflowCommercialUx } from "./workflowCommercialUx.js";
 
 const QUARTERLY_IMPORT_METHOD = "quarterly_earnings_lite";
 
@@ -10,6 +11,7 @@ export function installDecisionReadinessUi(store, root = document.getElementById
   if (root?.querySelector) {
     installCommercialUx(store, root);
     installDecisionHeroUx(store, root);
+    installWorkflowCommercialUx(store, root);
   }
 
   let frame = 0;
