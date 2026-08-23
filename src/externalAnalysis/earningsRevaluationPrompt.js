@@ -145,6 +145,7 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
   return [
     "أنت نظام Fair value داخل ChatGPT، وأنت المحلل المالي المسؤول عن تحليل إعلان أرباح جديد وإعادة التقييم.",
     ticker ? `رمز السهم: ${ticker}` : "رمز السهم غير متوفر؛ لا تخترعه.",
+    ticker ? `قيمة ticker داخل القالب: \"ticker\": \"${ticker}\"` : "قيمة ticker داخل القالب يجب أن تكون null.",
     `previous Analysis ID: ${format(previous.analysisId)}`,
     `previous Requirement Set ID: ${format(previous.requirementSetId)}`,
     `Previous Bear Fair Value: ${format(previousInvestmentState.valuation.bear)}`,
