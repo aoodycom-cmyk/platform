@@ -13,4 +13,4 @@ export {
 export {
   buildEarningsRevaluationPrompt as buildNewEarningsAnalysisPrompt,
   FRANKLIN_EARNINGS_PROMPT_VERSION
-} from "./earningsRevaluationPrompt.js";
+} from "./earningsRevaluationPolicyV2.js";
