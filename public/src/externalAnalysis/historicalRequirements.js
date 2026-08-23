@@ -163,6 +163,20 @@ export function findRequirementSetMatch(report = {}, requirementSets = {}, optio
     : null;
   if (selected) return matched(selected, "user_selected");
 
+  if (isCanonicalV3EarningsRevaluation(report)) {
+    const explicitId = extractExplicitRequirementSetId(report);
+    if (explicitId) {
+      const explicit = openSets.find((set) => set.requirementSetId === explicitId);
+      if (!explicit) return { status: "none", reason: "explicit_requirement_set_not_open", candidates: [] };
+      const reportedPeriod = normalizedEarningsPeriod(extractReportedEarningsPeriod(report));
+      const targetPeriod = normalizedEarningsPeriod(explicit.targetQuarter || explicit.earningsPeriod);
+      if (reportedPeriod && targetPeriod && reportedPeriod !== targetPeriod) {
+        return { status: "none", reason: "explicit_requirement_set_period_mismatch", candidates: [explicit] };
+      }
+      return matched(explicit, "canonical_explicit_requirement_set_id");
+    }
+  }
+
   const reportedPeriod = normalizedEarningsPeriod(extractReportedEarningsPeriod(report));
   if (reportedPeriod) {
     const exact = openSets.filter((set) => normalizedEarningsPeriod(set.earningsPeriod) === reportedPeriod);
@@ -182,8 +196,9 @@ export function findRequirementSetMatch(report = {}, requirementSets = {}, optio
 
 export function buildRequirementEvaluation(requirementSet = {}, report = {}, match = {}) {
   const actualItems = extractActualRequirementResults(report, requirementSet);
+  const exactIdOnly = isCanonicalV3EarningsRevaluation(report);
   const requirements = (requirementSet.requirements || []).map((requirement) => {
-    const actual = findActualForRequirement(requirement, actualItems);
+    const actual = findActualForRequirement(requirement, actualItems, { exactIdOnly });
     const actualValue = actualValueFrom(actual);
     const actualDisplay = actual?.actualDisplay ?? actual?.displayValue ?? actual?.reportedDisplay ?? null;
     const actualRaw = actual?.actualRaw ?? actual?.raw ?? actual?.commentary ?? null;
@@ -196,7 +211,9 @@ export function buildRequirementEvaluation(requirementSet = {}, report = {}, mat
       direction: actual?.direction || "unknown",
       impact: actual?.impact || "unknown",
       status,
-      evaluationNote: actual?.evaluationNote || actual?.note || null
+      partialCreditPct: actual?.partialCreditPct ?? null,
+      evaluationNote: actual?.evaluationNote || actual?.note || null,
+      sourceId: actual?.sourceId || null
     };
   });
   const supplied = report.previousRequirementsEvaluation?.requirementsAssessment || report.requirementsAssessment || {};
@@ -357,7 +374,12 @@ function extractActualRequirementResults(report = {}, requirementSet = {}) {
   return [];
 }
 
-function findActualForRequirement(requirement = {}, actualItems = []) {
+function findActualForRequirement(requirement = {}, actualItems = [], options = {}) {
+  if (options.exactIdOnly) {
+    const id = String(requirement?.id || "").trim();
+    if (!id) return null;
+    return (actualItems || []).find((item) => String(item?.id || "").trim() === id) || null;
+  }
   const keys = requirementKeys(requirement);
   return (actualItems || []).find((item) => {
     const actualKeys = requirementKeys(item);

@@ -232,19 +232,29 @@ function countRequirementStatuses(requirements = []) {
 function financialHighlightsFromLatestQuarter(latestQuarter = {}) {
   const metrics = latestQuarter.coreMetrics || {};
   return {
-    revenue: metrics.revenue?.actualValue ?? null,
+    revenue: metricDisplayValue(metrics.revenue),
     revenueGrowthPct: metrics.revenue?.yoyPct ?? null,
     operatingIncome: null,
     operatingIncomeGrowthPct: null,
     operatingMarginPct: metrics.operatingMarginPct?.actualValue ?? null,
-    epsReported: metrics.eps?.actualValue ?? null,
+    epsReported: metricDisplayValue(metrics.eps),
     epsNormalized: null,
     operatingCashFlow: null,
-    freeCashFlow: metrics.freeCashFlow?.actualValue ?? null,
+    freeCashFlow: metricDisplayValue(metrics.freeCashFlow),
     capex: null,
-    cash: metrics.cash?.actualValue ?? null,
-    debt: metrics.debt?.actualValue ?? null
+    cash: metricDisplayValue(metrics.cash),
+    debt: metricDisplayValue(metrics.debt)
   };
+}
+
+function metricDisplayValue(metric = {}) {
+  if (!metric || typeof metric !== "object") return null;
+  if (metric.actualDisplay) return metric.actualDisplay;
+  const value = metric.actualValue;
+  if (value === null || value === undefined || value === "") return null;
+  const unit = String(metric.unit || "").trim();
+  if (!unit || unit === "text" || unit === "other") return value;
+  return `${value} ${unit}`;
 }
 
 function growthHighlightsFromLatestQuarter(latestQuarter = {}) {

@@ -2,15 +2,15 @@ import { earningsPeriodFromOptions } from "./earningsPeriod.js";
 import { FIELD_PRIORITY, FIELD_REQUIREMENTS } from "./missingFields.js";
 import {
   buildFranklinV3ReportTemplate,
+  FRANKLIN_V3_CANONICAL_ENUMS,
   FRANKLIN_FAIR_VALUE_SCHEMA_VERSION,
   FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION,
+  isFranklinV3Report,
   previousCanonicalState
 } from "./v3Contract.js";
 
 export function buildFullAnalysisPrompt(options = {}) {
   const ticker = normalizeTicker(options.tickerHint);
-  const requiredFields = fieldsByPriority(FIELD_PRIORITY.CRITICAL);
-  const recommendedFields = fieldsByPriority(FIELD_PRIORITY.RECOMMENDED);
   const template = buildFranklinV3ReportTemplate({ tickerHint: ticker, analysisType: "INITIAL" });
 
   return [
@@ -81,6 +81,12 @@ export function buildFullAnalysisPrompt(options = {}) {
     "- valuation.upsideToBasePct = (Base / marketPrice.value - 1) × 100.",
     "- valuation.marginOfSafetyPct = ((Base - marketPrice.value) / Base) × 100.",
     "",
+    "القيم المسموحة في العقد:",
+    canonicalEnumSection(),
+    "",
+    "قواعد المصادر داخل JSON:",
+    ...sourceProvenancePromptLines(),
+    "",
     "شرح الشركة التعليمي:",
     "- اكتب companyProfile للمستثمر الذكي الذي لا يعرف صناعة الشركة أو مصطلحاتها التقنية.",
     "- لا تفترض أن القارئ يعرف الاختصارات أو المنتجات أو التقنيات أو مصطلحات الصناعة.",
@@ -112,12 +118,6 @@ export function buildFullAnalysisPrompt(options = {}) {
     "- استخدم null عند غياب البيانات.",
     "- لا تختصر أسماء الحقول ولا تغيّرها من تحليل إلى آخر.",
     "- يجب أن تكون جميع الشروحات النصية داخل JSON باللغة العربية، مع الإبقاء على المصطلحات المالية القياسية بالإنجليزية مثل DCF وFCF وROIC وEPS وP/E وEV/EBITDA وWACC وSOTP.",
-    "",
-    "مسارات العرض القديمة التي ما زال Franklin يراجع اكتمالها بعد التحويل:",
-    ...fieldLines(requiredFields),
-    "",
-    "حقول مستحسنة ترفع جودة العرض لكنها لا تمنع الحفظ:",
-    ...fieldLines(recommendedFields),
     "",
     "فحص نهائي إلزامي قبل الإخراج:",
     "- JSON صالح تقنيًا.",
@@ -151,6 +151,7 @@ export function buildNewEarningsAnalysisPrompt(report = {}, options = {}) {
   const requirements = Array.isArray(requirementsBlock.requirements) ? requirementsBlock.requirements : [];
   const selectedPeriod = earningsPeriodFromOptions(options)?.reportPeriod || null;
   const previous = previousCanonicalState(report);
+  const previousInvestmentState = buildPreviousInvestmentState(report);
   const template = buildFranklinV3ReportTemplate({
     tickerHint: ticker,
     analysisType: "EARNINGS_REVALUATION",
@@ -193,7 +194,12 @@ export function buildNewEarningsAnalysisPrompt(report = {}, options = {}) {
     listForPrompt(report.risks, riskForPrompt),
     "",
     "Requirements to Justify Next Price Target المحفوظة سابقًا:",
-    requirements.length ? requirements.map(requirementForPrompt).join("\n\n") : "- لا توجد متطلبات محفوظة في هذا التقرير.",
+    requirements.length
+      ? requirements.map(requirementForPrompt).join("\n\n")
+      : "- لا توجد requirement set سابقة. لا تخترع واحدة. ابدأ دورة المتطلبات Canonical من nextRequirements فقط.",
+    "",
+    "previousInvestmentState JSON:",
+    JSON.stringify(previousInvestmentState, null, 2),
     "",
     "التسلسل الإلزامي لإعادة التقييم:",
     "1. اقرأ إعلان الأرباح الجديد و10-Q ومكالمة الإدارة أو المواد التي يزوّدك بها المستخدم.",
@@ -218,6 +224,12 @@ export function buildNewEarningsAnalysisPrompt(report = {}, options = {}) {
     "20. أضف 4 إلى 8 متطلبات جديدة قابلة للقياس، أوزانها تجمع 100%.",
     "21. كل متطلبات nextRequirements الجديدة يجب أن تكون status = NOT_REPORTED.",
     "22. أضف مصادر جديدة خاصة بهذا الربع، ولا تورّث مصادر الربع السابق كدليل للربع الحالي.",
+    "",
+    "القيم المسموحة في العقد:",
+    canonicalEnumSection(),
+    "",
+    "قواعد المصادر داخل JSON:",
+    ...sourceProvenancePromptLines(),
     "",
     "قواعد حساب assessment السابقة:",
     "- totalWeight = sum of ALL original requirement weights.",
@@ -272,6 +284,100 @@ function fieldsByPriority(priority) {
 
 function fieldLines(fields) {
   return fields.map((field, index) => `${index + 1}. ${field.path} - ${field.labelAr} - ${field.expectedType}`);
+}
+
+function canonicalEnumSection() {
+  return Object.entries(FRANKLIN_V3_CANONICAL_ENUMS).map(([key, value]) => {
+    if (Array.isArray(value)) return `- ${key}: ${value.join(" | ")}`;
+    return `- ${key}: ${Object.entries(value).map(([field, values]) => `${field} = ${values.join(" | ")}`).join("; ")}`;
+  }).join("\n");
+}
+
+function sourceProvenancePromptLines() {
+  return [
+    '- مصدر سعر السوق: sources[].usedFor يجب أن يحتوي "marketPrice".',
+    '- مصدر أرباح الربع الحالي: sources[].usedFor يجب أن يحتوي واحدًا على الأقل من "latestQuarter" أو "previousRequirementsEvaluation" أو "currentQuarterEarnings".',
+    "- إذا كان المصدر يدعم أكثر من جزء، يمكن أن يحتوي usedFor على عدة tokens.",
+    "- كل sourceId أو sourceIds غير null في التقرير يجب أن يطابق sources[].id موجودًا.",
+    "- source.type يجب أن يكون من sourceType في القيم المسموحة أعلاه.",
+    "- User Provided يمكن أن يكون url = null.",
+    "- المصادر الرسمية أو الويب يجب أن تحفظ URL الفعلي عند توفره."
+  ];
+}
+
+function buildPreviousInvestmentState(report = {}) {
+  const canonical = isFranklinV3Report(report?.metadata?.franklinV3Report)
+    ? report.metadata.franklinV3Report
+    : null;
+  if (canonical) {
+    return pickObject(canonical, {
+      reportIdentity: true,
+      company: ["reportingCurrency", "tradingCurrency", "securityUnit"],
+      latestQuarter: ["companySpecificKpis", "guidance", "forwardOutlook"],
+      forecast: ["yearlyForecast", "estimateRevisions", "changedAssumptions", "wacc", "terminalGrowth", "sensitivity", "summary"],
+      valuation: ["current", "methodology", "valuationResults", "scenarios", "valuationBridge"],
+      thesis: true,
+      decision: true,
+      risks: true,
+      catalysts: true,
+      monitoringChecklist: true,
+      nextRequirements: true
+    });
+  }
+  return compactObject({
+    reportIdentity: compactObject({
+      ticker: report.company?.ticker || null,
+      companyName: report.company?.name || null,
+      reportPeriod: report.reportPeriod || null,
+      analysisDate: report.analysisDate || null
+    }),
+    company: compactObject({
+      reportingCurrency: report.metadata?.franklinV3?.reportingCurrency || null,
+      tradingCurrency: report.company?.currency || report.metadata?.franklinV3?.tradingCurrency || null,
+      securityUnit: report.metadata?.franklinV3?.securityUnit || null
+    }),
+    valuation: compactObject({
+      current: compactObject({
+        bear: report.fairValueSummary?.fairValueLow ?? null,
+        base: report.fairValueSummary?.fairValueBase ?? null,
+        bull: report.fairValueSummary?.fairValueHigh ?? null,
+        probabilityWeighted: report.fairValueSummary?.probabilityWeightedFairValue ?? null,
+        currency: report.company?.currency || null,
+        securityUnit: report.metadata?.franklinV3?.securityUnit || null
+      }),
+      methodology: report.valuationMethodology || null,
+      valuationResults: report.valuationResults || null,
+      scenarios: report.scenarios || null
+    }),
+    thesis: report.thesis || null,
+    decision: report.decision || null,
+    risks: report.risks || null,
+    catalysts: report.catalysts || null,
+    monitoringChecklist: report.monitoringChecklist || null,
+    nextRequirements: report.priceTargetRequirements || null
+  });
+}
+
+function pickObject(source = {}, shape = {}) {
+  const result = {};
+  for (const [key, selector] of Object.entries(shape)) {
+    if (selector === true) {
+      result[key] = source?.[key] ?? null;
+    } else if (Array.isArray(selector)) {
+      result[key] = compactObject(Object.fromEntries(selector.map((field) => [field, source?.[key]?.[field] ?? null])));
+    }
+  }
+  return compactObject(result);
+}
+
+function compactObject(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  return Object.fromEntries(Object.entries(value).filter(([, entry]) => {
+    if (entry === null || entry === undefined) return false;
+    if (Array.isArray(entry)) return entry.length > 0;
+    if (typeof entry === "object") return Object.keys(entry).length > 0;
+    return true;
+  }));
 }
 
 function normalizeTicker(value) {

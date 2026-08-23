@@ -13,6 +13,7 @@ import {
 import { normalizeExternalAnalysisReport } from "../src/externalAnalysis/schema.js";
 import { saveExternalAnalysis } from "../src/externalAnalysis/storage.js";
 import { QUARTERLY_EARNINGS_LITE_SCHEMA } from "../src/externalAnalysis/quarterlyEarningsLite.js";
+import { buildFranklinV3ReportTemplate, FRANKLIN_V3_CANONICAL_ENUMS } from "../src/externalAnalysis/v3Contract.js";
 import {
   calculateV3RequirementAssessment,
   validateFranklinV3Report
@@ -220,6 +221,8 @@ assert.equal(parsedAds.report.metadata.franklinV3.securityUnit, "ADS");
 assert.equal(parsedAds.report.metadata.franklinV3.reportingCurrency, "HKD");
 assert.equal(parsedAds.report.metadata.franklinV3.tradingCurrency, "USD");
 assert.equal(parsedAds.report.metadata.franklinV3Report.latestQuarter.coreMetrics.revenue.unit, "HKDm");
+assert.equal(parsedAds.report.financialHighlights.revenue, "120 HKDm");
+assert.equal(parsedAds.report.financialHighlights.epsReported, "1.2 HKD");
 assert.equal(parsedAds.report.fairValueSummary.fairValueBase, 100);
 assert.equal(parsedAds.report.company.currency, "USD");
 
@@ -240,11 +243,19 @@ assert.ok(initialPrompt.includes("franklin-fair-value/v3"));
 assert.ok(initialPrompt.includes("analysisType يجب أن يكون INITIAL"));
 assert.ok(initialPrompt.includes("nextRequirements.currentJustifiedValue"));
 assert.ok(initialPrompt.includes("marketPrice.currency وvaluation.current.currency"));
+assert.equal(initialPrompt.includes("fairValueSummary.fairValueBase"), false);
+assert.equal(initialPrompt.includes("thesis.shortSummary"), false);
+assert.ok(initialPrompt.includes("sourceType: Investor Relations | SEC | Earnings Call"));
+assert.ok(initialPrompt.includes("valuationRole: PRIMARY | SECONDARY | CROSS_CHECK"));
 
 const earningsPrompt = buildNewEarningsAnalysisPrompt(previousReport, { quarter: 2, year: 2026 });
 assert.ok(earningsPrompt.includes(previousReport.id));
 assert.ok(earningsPrompt.includes(previousReport.priceTargetRequirements.requirementSetId));
 assert.ok(earningsPrompt.includes("Q2 2026"));
+assert.ok(earningsPrompt.includes("previousInvestmentState JSON"));
+assert.ok(earningsPrompt.includes("valuationResults"));
+assert.ok(earningsPrompt.includes("valuationBridge"));
+assert.ok(earningsPrompt.includes("yearlyForecast"));
 assert.ok(earningsPrompt.includes("Previous Bear Fair Value"));
 assert.ok(earningsPrompt.includes("فرضية الاستثمار"));
 assert.ok(earningsPrompt.includes(previousReport.priceTargetRequirements.requirements[0].id));
@@ -254,6 +265,92 @@ assert.ok(earningsPrompt.includes("nextRequirements جديدة بالكامل"))
 assert.ok(earningsPrompt.includes("nextRequirements.currentJustifiedValue يجب أن يساوي valuation.current.base"));
 assert.ok(earningsPrompt.includes("مصادر جديدة خاصة بهذا الربع"));
 assert.equal(earningsPrompt.includes("```"), false);
+
+assert.deepEqual(FRANKLIN_V3_CANONICAL_ENUMS.analysisType, ["INITIAL", "EARNINGS_REVALUATION"]);
+assert.deepEqual(FRANKLIN_V3_CANONICAL_ENUMS.requirementOverallStatus, ["EXCEEDED", "PASSED", "MIXED", "FAILED", "INCOMPLETE"]);
+assert.deepEqual(FRANKLIN_V3_CANONICAL_ENUMS.sourceType, ["Investor Relations", "SEC", "Earnings Call", "Market Data", "Consensus Data", "Trusted Financial News", "User Provided", "Other"]);
+assert.equal(buildFranklinV3ReportTemplate({ analysisType: "EARNINGS_REVALUATION", previousReport }).valuation.reviewStatus, null);
+assert.equal(buildFranklinV3ReportTemplate({ analysisType: "EARNINGS_REVALUATION", previousReport }).valuation.methodology.methodologyChanged, null);
+assert.equal(buildFranklinV3ReportTemplate({ analysisType: "EARNINGS_REVALUATION", previousReport }).valuation.valuationResults[0].role, null);
+assert.equal(buildFranklinV3ReportTemplate({ analysisType: "EARNINGS_REVALUATION", previousReport }).risks[0].severity, null);
+
+expectInvalid(goldenA, (item) => { item.latestQuarter.coreMetrics.revenue.result = "AHEAD"; }, /coreMetrics|result/);
+expectInvalid(goldenA, (item) => { item.latestQuarter.companySpecificKpis[0].importance = "important"; }, /importance/);
+expectInvalid(goldenA, (item) => { item.forecast.materiality = "IMMATERIAL"; }, /materiality/);
+expectInvalid(goldenA, (item) => { item.forecast.yearlyForecast[0].revenue.basis = "guessed"; }, /basis/);
+expectInvalid(goldenA, (item) => { item.forecast.changedAssumptions[0].direction = "FLAT"; }, /direction/);
+expectInvalid(goldenA, (item) => { item.valuation.valuationResults[0].role = "MAIN"; }, /role/);
+expectInvalid(goldenA, (item) => { item.marketPrice.priceType = "CLOSING"; }, /priceType/);
+expectInvalid(goldenA, (item) => { item.decision.scope = "PORTFOLIO"; }, /decision.scope/);
+expectInvalid(goldenB, (item) => { item.previousRequirementsEvaluation.assessment.overallStatus = "PARTIAL"; }, /overallStatus/);
+expectInvalid(goldenA, (item) => { item.sources[0].type = "market data"; }, /sources.0.type/);
+expectInvalid(goldenA, (item) => { item.reportIdentity.fiscalQuarter = "Quarter 1"; }, /fiscalQuarter/);
+expectInvalid(goldenA, (item) => { item.reportIdentity.fiscalYear = 1999; }, /fiscalYear/);
+expectInvalid(goldenA, (item) => { item.nextRequirements.requirements[1].id = item.nextRequirements.requirements[0].id; }, /unique/);
+expectInvalid(goldenB, (item) => { item.previousRequirementsEvaluation.requirements[1].id = item.previousRequirementsEvaluation.requirements[0].id; }, /unique/);
+expectInvalid(goldenA, (item) => { item.valuation.methodology.modelWeights[1].method = "DCF"; }, /unique/);
+expectInvalid(goldenA, (item) => { item.valuation.methodology.excludedMethods.push({ method: "DCF", reason: "bad duplicate" }); }, /cannot also be excluded/);
+expectInvalid(goldenA, (item) => { item.valuation.valuationResults.push({ ...item.valuation.valuationResults[0] }); }, /exactly one/);
+
+assertValidation(mutated(goldenB, (item) => {
+  item.marketPrice.asOf = "2026-07-25T22:00:00.000Z";
+}), context(), "Date-only analysisDate must accept same calendar-day market timestamps.");
+expectInvalid(goldenB, (item) => {
+  item.marketPrice.asOf = "2026-07-26T00:01:00.000Z";
+}, /marketPrice.asOf/);
+
+const zeroBearPrevious = mutated(previousReport, (item) => {
+  item.fairValueSummary.fairValueLow = 0;
+  item.metadata.franklinV3Report.valuation.current.bear = 0;
+});
+assertValidation(mutated(earningsV3(zeroBearPrevious, { bear: 20, base: 115, bull: 155 }), (item) => {
+  item.valuation.previous.bear = 0;
+  item.valuation.change.bearPct = null;
+  item.valuation.change.summary = "Bear moved from zero after fresh evidence.";
+}), { currentReport: zeroBearPrevious, expectedTicker: "VTH", expectedReportPeriod: "Q2 2026" }, "Bear Fair Value can move from zero with a null percentage and narrative summary.");
+
+const noSetPrevious = mutated(previousReport, (item) => {
+  item.priceTargetRequirements = {
+    ...item.priceTargetRequirements,
+    requirementSetId: null,
+    requirements: []
+  };
+});
+assertValidation(mutated(earningsV3(noSetPrevious, { bear: 80, base: 115, bull: 155 }), (item) => {
+  item.reportIdentity.previousRequirementSetId = null;
+  item.previousRequirementsEvaluation = null;
+  item.audit.previousRequirementWeightTotalPct = null;
+}), { currentReport: noSetPrevious, expectedTicker: "VTH", expectedReportPeriod: "Q2 2026" }, "Earnings revaluation without a previous requirement set must not invent previousRequirementsEvaluation.");
+
+const noSetTemplate = buildFranklinV3ReportTemplate({ analysisType: "EARNINGS_REVALUATION", previousReport: noSetPrevious, selectedPeriod: "Q2 2026" });
+assert.equal(noSetTemplate.previousRequirementsEvaluation, null);
+assert.equal(noSetTemplate.audit.previousRequirementWeightTotalPct, null);
+assert.ok(buildNewEarningsAnalysisPrompt(noSetPrevious, { quarter: 2, year: 2026 }).includes("لا توجد requirement set سابقة. لا تخترع واحدة."));
+
+const duplicatePeriodSet = {
+  ...previousSet,
+  requirementSetId: "OTHER_Q2_SET",
+  createdAt: "2026-04-26T00:00:00.000Z"
+};
+const explicitPrepared = prepareHistoricalRequirementEvaluation(
+  (await parseExternalAnalysisInput(JSON.stringify(goldenB), { now, currentReport: previousReport, expectedReportPeriod: "Q2 2026" })).report,
+  { VTH: [duplicatePeriodSet, previousSet] }
+);
+assert.equal(explicitPrepared.match.matchType, "canonical_explicit_requirement_set_id");
+assert.equal(explicitPrepared.match.set.requirementSetId, previousSet.requirementSetId);
+
+const partialLifecycle = await saveCanonicalEarnings(earningsV3(previousReport, {
+  statuses: ["PARTIALLY_PASSED", "PASSED", "PASSED", "PASSED"],
+  partialCredits: [60, null, null, null]
+}), previousReport, historicalRequirementSets);
+const evaluatedPartial = partialLifecycle.historical.VTH.find((set) => set.requirementSetId === previousSet.requirementSetId).requirements[0];
+assert.equal(evaluatedPartial.partialCreditPct, 60);
+assert.equal(evaluatedPartial.sourceId, "S2");
+
+const storeSource = readFileSync(new URL("../src/state/store.js", import.meta.url), "utf8");
+assert.ok(storeSource.includes("expectedTicker: tickerHint || null"));
+assert.ok(storeSource.includes("ابحث أولًا عن مصادر الربع المحدد الرسمية والموثوقة"));
+assert.ok(storeSource.includes("اطلب من المستخدم تزويدك بالمواد فقط إذا لم تتوفر معلومات رسمية موثوقة"));
 
 console.log("Franklin financial contract v3 tests passed.");
 

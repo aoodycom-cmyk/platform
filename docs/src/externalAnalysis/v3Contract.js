@@ -2,16 +2,71 @@ export const FRANKLIN_FAIR_VALUE_SCHEMA_VERSION = "franklin-fair-value/v3";
 export const FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION = "fair-value-methodology/v2";
 
 export const FRANKLIN_V3_ANALYSIS_TYPES = ["INITIAL", "EARNINGS_REVALUATION"];
+export const FRANKLIN_V3_REVIEW_STATUSES = ["INITIAL", "UPDATED", "UNCHANGED"];
 export const FRANKLIN_V3_REVALUATION_REVIEW_STATUSES = ["UPDATED", "UNCHANGED"];
 export const FRANKLIN_V3_INITIAL_REVIEW_STATUS = "INITIAL";
 export const FRANKLIN_V3_THESIS_STATUSES = ["INITIAL", "STRENGTHENED", "UNCHANGED", "WEAKENED", "BROKEN"];
+export const FRANKLIN_V3_DECISION_SCOPES = ["STOCK_LEVEL"];
+export const FRANKLIN_V3_DECISION_ACTIONS = ["BUY", "ADD", "HOLD", "WATCH", "REDUCE", "SELL"];
 export const FRANKLIN_V3_REQUIREMENT_STATUSES = ["NOT_REPORTED", "FAILED", "PARTIALLY_PASSED", "PASSED", "EXCEEDED"];
 export const FRANKLIN_V3_NEXT_REQUIREMENT_MODES = ["ADVANCE_TARGET", "DEFEND_BASE", "RECOVERY"];
 export const FRANKLIN_V3_TARGET_SCENARIOS = ["BULL", "INTERMEDIATE", "BASE_DEFENSE", "RECOVERY"];
 export const FRANKLIN_V3_SECURITY_UNITS = ["share", "ADS", "ADR", "unit"];
 export const FRANKLIN_V3_CONFIDENCE_LEVELS = ["HIGH", "MEDIUM", "LOW"];
-export const FRANKLIN_V3_DECISION_ACTIONS = ["BUY", "ADD", "HOLD", "WATCH", "REDUCE", "SELL"];
+export const FRANKLIN_V3_IMPORTANCE_LEVELS = ["critical", "high", "medium", "low"];
+export const FRANKLIN_V3_REQUIREMENT_TYPES = ["minimum", "maximum", "range", "qualitative"];
+export const FRANKLIN_V3_VALUATION_ROLES = ["PRIMARY", "SECONDARY", "CROSS_CHECK"];
+export const FRANKLIN_V3_MARKET_PRICE_TYPES = ["LIVE", "DELAYED", "LAST_CLOSE"];
 export const FRANKLIN_V3_GUIDANCE_DIRECTIONS = ["raised", "maintained", "lowered", "new", "not_reported"];
+export const FRANKLIN_V3_METRIC_RESULTS = ["BEAT", "MISS", "INLINE", "NA"];
+export const FRANKLIN_V3_FORECAST_MATERIALITY = ["MATERIAL", "NON_MATERIAL"];
+export const FRANKLIN_V3_FORECAST_BASIS = ["reported", "consensus", "analyst_assumption"];
+export const FRANKLIN_V3_CHANGED_ASSUMPTION_DIRECTIONS = ["UP", "DOWN", "UNCHANGED"];
+export const FRANKLIN_V3_REQUIREMENT_OVERALL_STATUSES = ["EXCEEDED", "PASSED", "MIXED", "FAILED", "INCOMPLETE"];
+export const FRANKLIN_V3_FORWARD_OUTLOOK_ENUMS = {
+  growthOutlook: ["accelerating", "stable", "slowing", "unclear"],
+  marginOutlook: ["improving", "stable", "pressured", "unclear"],
+  fcfOutlook: ["improving", "stable", "pressured", "unclear"],
+  demandOutlook: ["improving", "stable", "slowing", "unclear"],
+  capacityOutlook: ["expanding", "adequate", "constrained", "unclear"],
+  executionOutlook: ["improving", "stable", "deteriorating", "unclear"],
+  guidanceTrend: ["raised", "maintained", "lowered", "mixed", "new", "not_reported"],
+  managementTone: ["positive", "neutral", "cautious", "mixed", "unclear"]
+};
+export const FRANKLIN_V3_SOURCE_TYPES = [
+  "Investor Relations",
+  "SEC",
+  "Earnings Call",
+  "Market Data",
+  "Consensus Data",
+  "Trusted Financial News",
+  "User Provided",
+  "Other"
+];
+export const FRANKLIN_V3_CANONICAL_ENUMS = {
+  analysisType: FRANKLIN_V3_ANALYSIS_TYPES,
+  reviewStatus: FRANKLIN_V3_REVIEW_STATUSES,
+  thesisStatus: FRANKLIN_V3_THESIS_STATUSES,
+  decisionScope: FRANKLIN_V3_DECISION_SCOPES,
+  decisionAction: FRANKLIN_V3_DECISION_ACTIONS,
+  requirementStatus: FRANKLIN_V3_REQUIREMENT_STATUSES,
+  nextRequirementMode: FRANKLIN_V3_NEXT_REQUIREMENT_MODES,
+  targetScenario: FRANKLIN_V3_TARGET_SCENARIOS,
+  securityUnit: FRANKLIN_V3_SECURITY_UNITS,
+  confidence: FRANKLIN_V3_CONFIDENCE_LEVELS,
+  importanceSeverity: FRANKLIN_V3_IMPORTANCE_LEVELS,
+  requirementType: FRANKLIN_V3_REQUIREMENT_TYPES,
+  valuationRole: FRANKLIN_V3_VALUATION_ROLES,
+  priceType: FRANKLIN_V3_MARKET_PRICE_TYPES,
+  guidanceDirection: FRANKLIN_V3_GUIDANCE_DIRECTIONS,
+  metricResult: FRANKLIN_V3_METRIC_RESULTS,
+  forecastMateriality: FRANKLIN_V3_FORECAST_MATERIALITY,
+  forecastBasis: FRANKLIN_V3_FORECAST_BASIS,
+  changedAssumptionDirection: FRANKLIN_V3_CHANGED_ASSUMPTION_DIRECTIONS,
+  requirementOverallStatus: FRANKLIN_V3_REQUIREMENT_OVERALL_STATUSES,
+  forwardOutlook: FRANKLIN_V3_FORWARD_OUTLOOK_ENUMS,
+  sourceType: FRANKLIN_V3_SOURCE_TYPES
+};
 
 export function isFranklinV3Report(input = {}) {
   return Boolean(input && typeof input === "object" && input.schemaVersion === FRANKLIN_FAIR_VALUE_SCHEMA_VERSION);
@@ -25,6 +80,7 @@ export function buildFranklinV3ReportTemplate(options = {}) {
   const selectedPeriod = parseReportPeriod(options.selectedPeriod);
   const previous = previousCanonicalState(options.previousReport);
   const isRevaluation = analysisType === "EARNINGS_REVALUATION";
+  const hasPreviousRequirementSet = Boolean(previous.requirementSetId && previous.requirements.length);
 
   return {
     schemaVersion: FRANKLIN_FAIR_VALUE_SCHEMA_VERSION,
@@ -140,7 +196,7 @@ export function buildFranklinV3ReportTemplate(options = {}) {
       summary: null
     },
 
-    previousRequirementsEvaluation: isRevaluation ? previousRequirementsEvaluationTemplate(previous) : null,
+    previousRequirementsEvaluation: isRevaluation && hasPreviousRequirementSet ? previousRequirementsEvaluationTemplate(previous) : null,
 
     valuation: {
       reviewStatus: isRevaluation ? null : "INITIAL",
@@ -159,7 +215,7 @@ export function buildFranklinV3ReportTemplate(options = {}) {
         primaryMethod: null,
         secondaryMethods: [],
         excludedMethods: [{ method: null, reason: null }],
-        methodologyChanged: false,
+        methodologyChanged: null,
         selectionReason: null,
         modelWeights: [{ method: null, weight: null }],
         weightReasoning: null,
@@ -223,7 +279,7 @@ export function buildFranklinV3ReportTemplate(options = {}) {
     audit: {
       scenarioProbabilityTotalPct: 100,
       valuationMethodWeightTotalPct: 100,
-      previousRequirementWeightTotalPct: isRevaluation ? previous.requirementWeightTotal : null,
+      previousRequirementWeightTotalPct: isRevaluation && hasPreviousRequirementSet ? previous.requirementWeightTotal : null,
       nextRequirementWeightTotalPct: 100,
       consistencyNotes: []
     }
@@ -458,7 +514,7 @@ function changedAssumptionTemplate() {
 function valuationResultTemplate() {
   return {
     method: null,
-    role: "PRIMARY",
+    role: null,
     fairValue: null,
     weight: null,
     confidence: null,
@@ -493,7 +549,7 @@ function nextRequirementTemplate() {
 }
 
 function riskTemplate() {
-  return { title: null, severity: "medium", explanation: null, whatToMonitor: null, thesisBreaker: null, sourceIds: [] };
+  return { title: null, severity: null, explanation: null, whatToMonitor: null, thesisBreaker: null, sourceIds: [] };
 }
 
 function catalystTemplate() {

@@ -2,55 +2,34 @@ import {
   FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION,
   FRANKLIN_FAIR_VALUE_SCHEMA_VERSION,
   FRANKLIN_V3_ANALYSIS_TYPES,
+  FRANKLIN_V3_CHANGED_ASSUMPTION_DIRECTIONS,
   FRANKLIN_V3_CONFIDENCE_LEVELS,
   FRANKLIN_V3_DECISION_ACTIONS,
+  FRANKLIN_V3_DECISION_SCOPES,
+  FRANKLIN_V3_FORECAST_BASIS,
+  FRANKLIN_V3_FORECAST_MATERIALITY,
+  FRANKLIN_V3_FORWARD_OUTLOOK_ENUMS,
   FRANKLIN_V3_GUIDANCE_DIRECTIONS,
+  FRANKLIN_V3_IMPORTANCE_LEVELS,
   FRANKLIN_V3_INITIAL_REVIEW_STATUS,
+  FRANKLIN_V3_MARKET_PRICE_TYPES,
+  FRANKLIN_V3_METRIC_RESULTS,
   FRANKLIN_V3_NEXT_REQUIREMENT_MODES,
+  FRANKLIN_V3_REQUIREMENT_OVERALL_STATUSES,
   FRANKLIN_V3_REQUIREMENT_STATUSES,
+  FRANKLIN_V3_REQUIREMENT_TYPES,
   FRANKLIN_V3_REVALUATION_REVIEW_STATUSES,
   FRANKLIN_V3_SECURITY_UNITS,
+  FRANKLIN_V3_SOURCE_TYPES,
   FRANKLIN_V3_TARGET_SCENARIOS,
   FRANKLIN_V3_THESIS_STATUSES,
+  FRANKLIN_V3_VALUATION_ROLES,
   isFranklinV3Report,
   reportPeriodFromV3Identity
 } from "./v3Contract.js";
 
 const WEIGHT_TOLERANCE = 0.01;
 const ASSESSMENT_TOLERANCE = 0.1;
-const REQUIREMENT_TYPES = ["minimum", "maximum", "range", "qualitative"];
-const IMPORTANCE_VALUES = ["critical", "high", "medium", "low"];
-const VALUATION_ROLES = ["PRIMARY", "SECONDARY", "CROSS_CHECK"];
-const MARKET_PRICE_TYPES = ["LIVE", "DELAYED", "LAST_CLOSE"];
-const FORECAST_MATERIALITY = ["MATERIAL", "IMMATERIAL", "MIXED", "NOT_MATERIAL"];
-const FORECAST_BASIS = ["reported_data", "consensus_estimate", "analyst_assumption"];
-const CHANGED_ASSUMPTION_DIRECTIONS = ["UP", "DOWN", "UNCHANGED", "MIXED"];
-const REQUIREMENT_OVERALL_STATUSES = ["INCOMPLETE", "PASSED", "MIXED", "FAILED"];
-const SOURCE_TYPES = [
-  "INVESTOR_RELATIONS",
-  "EARNINGS_RELEASE",
-  "EARNINGS_CALL",
-  "SEC_FILING",
-  "10-Q",
-  "10-K",
-  "MARKET_DATA",
-  "EXCHANGE",
-  "COMPANY_WEBSITE",
-  "PRESS_RELEASE",
-  "FINANCIAL_DATA_PROVIDER",
-  "ANALYST_CONSENSUS",
-  "OTHER"
-];
-const FORWARD_OUTLOOK_ENUMS = {
-  growthOutlook: ["accelerating", "stable", "slowing", "unclear"],
-  marginOutlook: ["improving", "stable", "pressured", "unclear"],
-  fcfOutlook: ["improving", "stable", "weakening", "unclear"],
-  demandOutlook: ["improving", "stable", "weakening", "unclear"],
-  capacityOutlook: ["adequate", "constrained", "excess", "unclear"],
-  executionOutlook: ["improving", "stable", "worsening", "unclear"],
-  guidanceTrend: ["raised", "maintained", "lowered", "mixed", "new", "not_reported"],
-  managementTone: ["positive", "neutral", "cautious", "mixed", "unclear"]
-};
 
 export function validateFranklinV3Report(input = {}, context = {}) {
   const errors = [];
@@ -154,8 +133,8 @@ function validateRequiredSections(input, errors) {
 function validateFiscalIdentity(input, context, errors) {
   const identity = input.reportIdentity || {};
   if (!validTicker(identity.ticker)) errors.push(fieldError("reportIdentity.ticker", "Ticker is required."));
-  if (!identity.fiscalQuarter) errors.push(fieldError("reportIdentity.fiscalQuarter", "fiscalQuarter is required."));
-  if (!identity.fiscalYear) errors.push(fieldError("reportIdentity.fiscalYear", "fiscalYear is required."));
+  if (!["Q1", "Q2", "Q3", "Q4"].includes(identity.fiscalQuarter)) errors.push(fieldError("reportIdentity.fiscalQuarter", "fiscalQuarter must be exactly Q1, Q2, Q3, or Q4."));
+  if (!Number.isInteger(identity.fiscalYear) || identity.fiscalYear < 2000 || identity.fiscalYear > 2100) errors.push(fieldError("reportIdentity.fiscalYear", "fiscalYear must be an integer between 2000 and 2100."));
   if (!validDate(identity.analysisDate)) errors.push(fieldError("reportIdentity.analysisDate", "analysisDate is required."));
   if (identity.periodEndDate && !validDate(identity.periodEndDate)) errors.push(fieldError("reportIdentity.periodEndDate", "periodEndDate must be valid when present."));
   if (identity.earningsReleaseDate && !validDate(identity.earningsReleaseDate)) errors.push(fieldError("reportIdentity.earningsReleaseDate", "earningsReleaseDate must be valid when present."));
@@ -184,10 +163,10 @@ function validateDateChronology(input, errors) {
   if (periodEndTime && releaseTime && periodEndTime > releaseTime) {
     errors.push(fieldError("reportIdentity.earningsReleaseDate", "earningsReleaseDate must be on or after periodEndDate."));
   }
-  if (releaseTime && analysisTime && releaseTime > analysisTime) {
+  if (releaseTime && analysisTime && isAfterAnalysisDate(identity.earningsReleaseDate, identity.analysisDate)) {
     errors.push(fieldError("reportIdentity.analysisDate", "analysisDate must be on or after earningsReleaseDate."));
   }
-  if (marketTime && analysisTime && marketTime > analysisTime) {
+  if (marketTime && analysisTime && isAfterAnalysisDate(input.marketPrice?.asOf, identity.analysisDate)) {
     errors.push(fieldError("marketPrice.asOf", "marketPrice.asOf must not be later than analysisDate."));
   }
 }
@@ -214,9 +193,12 @@ function validateNarrativeEnums(input, errors) {
   ]) {
     for (const [index, item] of (Array.isArray(items) ? items : []).entries()) {
       validateEnum(`${section}.${index}.confidence`, item?.confidence, FRANKLIN_V3_CONFIDENCE_LEVELS, errors, { optional: true });
-      if (item?.importance !== undefined) validateEnum(`${section}.${index}.importance`, item.importance, IMPORTANCE_VALUES, errors, { optional: true, lowercase: true });
-      if (item?.severity !== undefined) validateEnum(`${section}.${index}.severity`, item.severity, IMPORTANCE_VALUES, errors, { optional: true, lowercase: true });
+      if (item?.importance !== undefined) validateEnum(`${section}.${index}.importance`, item.importance, FRANKLIN_V3_IMPORTANCE_LEVELS, errors, { optional: true, lowercase: true });
+      if (item?.severity !== undefined) validateEnum(`${section}.${index}.severity`, item.severity, FRANKLIN_V3_IMPORTANCE_LEVELS, errors, { optional: true, lowercase: true });
     }
+  }
+  for (const [index, item] of (Array.isArray(input.risks) ? input.risks : []).entries()) {
+    validateEnum(`risks.${index}.severity`, item?.severity, FRANKLIN_V3_IMPORTANCE_LEVELS, errors, { optional: true, lowercase: true });
   }
 }
 
@@ -233,22 +215,29 @@ function validateLatestQuarter(input, errors) {
   for (const [index, item] of (Array.isArray(latestQuarter.guidance) ? latestQuarter.guidance : []).entries()) {
     validateEnum(`latestQuarter.guidance.${index}.direction`, item?.direction, FRANKLIN_V3_GUIDANCE_DIRECTIONS, errors, { optional: true, lowercase: true });
   }
+  for (const [metric, value] of Object.entries(metrics)) {
+    if (value && Object.hasOwn(value, "result")) validateEnum(`latestQuarter.coreMetrics.${metric}.result`, value.result, FRANKLIN_V3_METRIC_RESULTS, errors);
+  }
+  for (const [index, item] of (Array.isArray(latestQuarter.companySpecificKpis) ? latestQuarter.companySpecificKpis : []).entries()) {
+    validateEnum(`latestQuarter.companySpecificKpis.${index}.result`, item?.result, FRANKLIN_V3_METRIC_RESULTS, errors, { optional: true });
+    validateEnum(`latestQuarter.companySpecificKpis.${index}.importance`, item?.importance, FRANKLIN_V3_IMPORTANCE_LEVELS, errors, { optional: true, lowercase: true });
+  }
   const outlook = latestQuarter.forwardOutlook || {};
-  for (const [field, allowed] of Object.entries(FORWARD_OUTLOOK_ENUMS)) {
+  for (const [field, allowed] of Object.entries(FRANKLIN_V3_FORWARD_OUTLOOK_ENUMS)) {
     validateEnum(`latestQuarter.forwardOutlook.${field}`, outlook[field], allowed, errors, { optional: true, lowercase: true });
   }
 }
 
 function validateForecast(input, errors) {
   const forecast = input.forecast || {};
-  validateEnum("forecast.materiality", forecast.materiality, FORECAST_MATERIALITY, errors, { optional: true });
+  validateEnum("forecast.materiality", forecast.materiality, FRANKLIN_V3_FORECAST_MATERIALITY, errors, { optional: true });
   for (const [index, row] of (Array.isArray(forecast.yearlyForecast) ? forecast.yearlyForecast : []).entries()) {
     for (const metric of ["revenue", "revenueGrowthPct", "eps", "ebitda", "ebitdaMarginPct", "freeCashFlow", "fcfMarginPct"]) {
-      validateEnum(`forecast.yearlyForecast.${index}.${metric}.basis`, row?.[metric]?.basis, FORECAST_BASIS, errors, { optional: true, lowercase: true });
+      validateEnum(`forecast.yearlyForecast.${index}.${metric}.basis`, row?.[metric]?.basis, FRANKLIN_V3_FORECAST_BASIS, errors, { optional: true, lowercase: true });
     }
   }
   for (const [index, item] of (Array.isArray(forecast.changedAssumptions) ? forecast.changedAssumptions : []).entries()) {
-    validateEnum(`forecast.changedAssumptions.${index}.direction`, item?.direction, CHANGED_ASSUMPTION_DIRECTIONS, errors, { optional: true });
+    validateEnum(`forecast.changedAssumptions.${index}.direction`, item?.direction, FRANKLIN_V3_CHANGED_ASSUMPTION_DIRECTIONS, errors, { optional: true });
   }
 }
 
@@ -262,7 +251,7 @@ function validateCompanyAndMarket(input, errors) {
   if (!positiveNumber(market.value)) errors.push(fieldError("marketPrice.value", "marketPrice.value is required and must be positive."));
   if (!market.currency) errors.push(fieldError("marketPrice.currency", "marketPrice.currency is required."));
   if (!validDate(market.asOf)) errors.push(fieldError("marketPrice.asOf", "marketPrice.asOf is required."));
-  if (!MARKET_PRICE_TYPES.includes(market.priceType)) errors.push(fieldError("marketPrice.priceType", "marketPrice.priceType is not supported."));
+  validateEnum("marketPrice.priceType", market.priceType, FRANKLIN_V3_MARKET_PRICE_TYPES, errors);
   if (!market.sourceId) errors.push(fieldError("marketPrice.sourceId", "marketPrice.sourceId is required."));
   if (!current.currency) errors.push(fieldError("valuation.current.currency", "valuation.current.currency is required."));
   if (!FRANKLIN_V3_SECURITY_UNITS.includes(current.securityUnit)) errors.push(fieldError("valuation.current.securityUnit", "valuation.current.securityUnit is required and must be supported."));
@@ -333,6 +322,13 @@ function validateValuationMethodology(valuation = {}, errors) {
     if (!Number.isFinite(weight) || weight <= 0) errors.push(fieldError(`valuation.methodology.modelWeights.${index}.weight`, "Weighted valuation method weight must be numeric and positive."));
     if (method && Number.isFinite(weight) && weight > 0) weightedMethods.set(method, { raw: item.method, weight });
   }
+  assertUniqueValues("valuation.methodology.modelWeights.method", weights.map((item) => normalizeMethodName(item?.method)).filter(Boolean), errors);
+  const excluded = new Set((Array.isArray(methodology.excludedMethods) ? methodology.excludedMethods : [])
+    .map((item) => normalizeMethodName(item?.method))
+    .filter(Boolean));
+  for (const method of weightedMethods.keys()) {
+    if (excluded.has(method)) errors.push(fieldError("valuation.methodology.excludedMethods", `Weighted method ${weightedMethods.get(method).raw} cannot also be excluded.`));
+  }
 
   const results = Array.isArray(valuation.valuationResults) ? valuation.valuationResults : [];
   if (!results.length) errors.push(fieldError("valuation.valuationResults", "valuationResults must represent every positively weighted valuation method."));
@@ -342,7 +338,7 @@ function validateValuationMethodology(valuation = {}, errors) {
     const weight = numberOrNull(result?.weight);
     if (!method) errors.push(fieldError(`valuation.valuationResults.${index}.method`, "valuationResult method is required."));
     if (!Number.isFinite(numberOrNull(result?.fairValue))) errors.push(fieldError(`valuation.valuationResults.${index}.fairValue`, "valuationResult fairValue is required."));
-    validateEnum(`valuation.valuationResults.${index}.role`, result?.role, VALUATION_ROLES, errors);
+    validateEnum(`valuation.valuationResults.${index}.role`, result?.role, FRANKLIN_V3_VALUATION_ROLES, errors);
     validateEnum(`valuation.valuationResults.${index}.confidence`, result?.confidence, FRANKLIN_V3_CONFIDENCE_LEVELS, errors, { optional: true });
 
     const weighted = weightedMethods.get(method);
@@ -350,6 +346,7 @@ function validateValuationMethodology(valuation = {}, errors) {
       if (!Number.isFinite(weight) || !within(weighted.weight, weight, WEIGHT_TOLERANCE)) {
         errors.push(fieldError(`valuation.valuationResults.${index}.weight`, "valuationResult weight must match valuation.methodology.modelWeights."));
       }
+      if (represented.has(method)) errors.push(fieldError(`valuation.valuationResults.${index}.method`, "Every positively weighted method must have exactly one weighted valuationResult."));
       represented.set(method, true);
     } else if (Number.isFinite(weight) && weight > 0) {
       errors.push(fieldError(`valuation.valuationResults.${index}.method`, "Positively weighted valuationResult method must appear in modelWeights."));
@@ -396,7 +393,7 @@ function validateUpsideAndMargin(input, errors) {
 function validateDecisionAndThesis(input, errors) {
   const decision = input.decision || {};
   const thesis = input.thesis || {};
-  if (decision.scope !== "STOCK_LEVEL") errors.push(fieldError("decision.scope", "decision.scope must be STOCK_LEVEL."));
+  validateEnum("decision.scope", decision.scope, FRANKLIN_V3_DECISION_SCOPES, errors);
   if (!FRANKLIN_V3_DECISION_ACTIONS.includes(decision.action)) errors.push(fieldError("decision.action", "decision.action is not supported."));
   if (decision.confidence !== null && decision.confidence !== undefined && !boundedNumber(decision.confidence, 0, 100)) {
     errors.push(fieldError("decision.confidence", "decision.confidence must be between 0 and 100 when present."));
@@ -420,12 +417,13 @@ function validateNextRequirements(input, errors) {
   if (requirements.length < 4) errors.push(fieldError("nextRequirements.requirements", "New requirement set must contain at least 4 requirements."));
   if (requirements.length > 8) errors.push(fieldError("nextRequirements.requirements", "New requirement set must contain no more than 8 requirements."));
   assertWeightTotal("nextRequirements.requirements.weight", requirements.map((item) => item?.weight), errors, "New requirement weights must sum to 100%.");
+  assertUniqueValues("nextRequirements.requirements.id", requirements.map((item) => item?.id), errors);
   for (const [index, item] of requirements.entries()) {
     if (item?.status !== "NOT_REPORTED") errors.push(fieldError(`nextRequirements.requirements.${index}.status`, "New requirement statuses must be NOT_REPORTED."));
     if (!item?.id) errors.push(fieldError(`nextRequirements.requirements.${index}.id`, "New requirement id is required."));
     if (!item?.metric) errors.push(fieldError(`nextRequirements.requirements.${index}.metric`, "New requirement metric is required."));
-    validateEnum(`nextRequirements.requirements.${index}.type`, item?.type, REQUIREMENT_TYPES, errors, { lowercase: true });
-    validateEnum(`nextRequirements.requirements.${index}.importance`, item?.importance, IMPORTANCE_VALUES, errors, { lowercase: true });
+    validateEnum(`nextRequirements.requirements.${index}.type`, item?.type, FRANKLIN_V3_REQUIREMENT_TYPES, errors, { lowercase: true });
+    validateEnum(`nextRequirements.requirements.${index}.importance`, item?.importance, FRANKLIN_V3_IMPORTANCE_LEVELS, errors, { lowercase: true });
     if (!Number.isFinite(numberOrNull(item?.weight)) || numberOrNull(item?.weight) <= 0) errors.push(fieldError(`nextRequirements.requirements.${index}.weight`, "New requirement weight must be numeric and > 0."));
     if (!hasText(item?.whyItMatters)) errors.push(fieldError(`nextRequirements.requirements.${index}.whyItMatters`, "whyItMatters is required."));
     if ((item?.requiredValue === null || item?.requiredValue === undefined || item?.requiredValue === "") && !hasText(item?.requiredDisplay)) {
@@ -472,7 +470,6 @@ function validateEarningsRevaluationRules(input, context, errors, warnings) {
   if (!hasText(valuation.valuationBridge?.whyBaseChangedOrNot)) {
     errors.push(fieldError("valuation.valuationBridge.whyBaseChangedOrNot", "Valuation bridge explanation is required for every earnings revaluation."));
   }
-  if (!input.previousRequirementsEvaluation) errors.push(fieldError("previousRequirementsEvaluation", "EARNINGS_REVALUATION must evaluate the previous requirement set."));
   if (input.thesis?.status === "INITIAL" || !["STRENGTHENED", "UNCHANGED", "WEAKENED", "BROKEN"].includes(input.thesis?.status)) {
     errors.push(fieldError("thesis.status", "EARNINGS_REVALUATION thesis.status must be STRENGTHENED, UNCHANGED, WEAKENED, or BROKEN."));
   }
@@ -483,12 +480,15 @@ function validateEarningsRevaluationRules(input, context, errors, warnings) {
     errors.push(fieldError("reportIdentity.previousAnalysisId", `previousAnalysisId mismatch. Expected ${previous.id}.`));
   }
   const previousSet = previous?.priceTargetRequirements || {};
-  if (previousSet.requirementSetId && identity.previousRequirementSetId !== previousSet.requirementSetId) {
+  const hasPreviousSet = hasCanonicalPreviousRequirementSet(previousSet);
+  if (hasPreviousSet && identity.previousRequirementSetId !== previousSet.requirementSetId) {
     errors.push(fieldError("reportIdentity.previousRequirementSetId", `previousRequirementSetId mismatch. Expected ${previousSet.requirementSetId}.`));
   }
+  if (hasPreviousSet && !input.previousRequirementsEvaluation) errors.push(fieldError("previousRequirementsEvaluation", "EARNINGS_REVALUATION must evaluate the previous requirement set."));
+  if (!hasPreviousSet && input.previousRequirementsEvaluation !== null) errors.push(fieldError("previousRequirementsEvaluation", "No previous requirement set exists; previousRequirementsEvaluation must be null."));
   validatePreviousValuation(input, previous, errors);
   validateRevaluationStatusAndChanges(input, errors);
-  validatePreviousRequirements(input, previousSet, errors);
+  if (hasPreviousSet) validatePreviousRequirements(input, previousSet, errors);
   validateFreshEarningsSources(input, errors, warnings);
 }
 
@@ -529,6 +529,7 @@ function validatePreviousRequirements(input, previousSet = {}, errors) {
   if (previousRequirements.length && evaluated.length !== previousRequirements.length) {
     errors.push(fieldError("previousRequirementsEvaluation.requirements", "Every previous requirement must be evaluated exactly once."));
   }
+  assertUniqueValues("previousRequirementsEvaluation.requirements.id", evaluated.map((item) => item?.id), errors);
 
   for (const previous of previousRequirements) {
     const current = evaluated.find((item) => String(item?.id || "") === String(previous.id || ""));
@@ -570,7 +571,7 @@ function validatePreviousRequirementsAssessment(evaluation = {}, errors) {
     return;
   }
   const expected = calculateV3RequirementAssessment(evaluation.requirements || []);
-  validateEnum("previousRequirementsEvaluation.assessment.overallStatus", evaluation.assessment.overallStatus, REQUIREMENT_OVERALL_STATUSES, errors, { optional: true });
+  validateEnum("previousRequirementsEvaluation.assessment.overallStatus", evaluation.assessment.overallStatus, FRANKLIN_V3_REQUIREMENT_OVERALL_STATUSES, errors, { optional: true });
   for (const key of [
     "reportedRequirements",
     "totalRequirements",
@@ -631,11 +632,15 @@ function validateRevaluationStatusAndChanges(input, errors) {
     const before = numberOrNull(previous[field]);
     const after = numberOrNull(current[field]);
     const supplied = numberOrNull(valuation.change?.[`${field}Pct`]);
-    if (!Number.isFinite(supplied)) {
+    const expected = pctChange(after, before);
+    const undefinedBearPct = field === "bear" && before === 0 && after > 0 && valuation.change?.bearPct === null;
+    if (!Number.isFinite(supplied) && !undefinedBearPct) {
       errors.push(fieldError(`valuation.change.${field}Pct`, `${field}Pct is required.`));
       continue;
     }
-    const expected = pctChange(after, before);
+    if (undefinedBearPct && !hasText(valuation.change?.summary)) {
+      errors.push(fieldError("valuation.change.summary", "change.summary must explain Bear Fair Value movement from zero."));
+    }
     if (Number.isFinite(expected) && !within(expected, supplied, ASSESSMENT_TOLERANCE)) {
       errors.push(fieldError(`valuation.change.${field}Pct`, `${field}Pct arithmetic is inconsistent.`));
     }
@@ -701,8 +706,12 @@ function validateAuditTotals(input, errors) {
   const nextRequirementTotal = sumWeights(input.nextRequirements?.requirements || []);
   assertAuditValue("audit.nextRequirementWeightTotalPct", audit.nextRequirementWeightTotalPct, nextRequirementTotal, errors);
   if (input.analysisType === "EARNINGS_REVALUATION") {
-    const previousRequirementTotal = sumWeights(input.previousRequirementsEvaluation?.requirements || []);
-    assertAuditValue("audit.previousRequirementWeightTotalPct", audit.previousRequirementWeightTotalPct, previousRequirementTotal, errors);
+    if (input.previousRequirementsEvaluation) {
+      const previousRequirementTotal = sumWeights(input.previousRequirementsEvaluation.requirements || []);
+      assertAuditValue("audit.previousRequirementWeightTotalPct", audit.previousRequirementWeightTotalPct, previousRequirementTotal, errors);
+    } else if (audit.previousRequirementWeightTotalPct !== null && audit.previousRequirementWeightTotalPct !== undefined) {
+      errors.push(fieldError("audit.previousRequirementWeightTotalPct", "previousRequirementWeightTotalPct must be null when no previous requirement set exists."));
+    }
   }
 }
 
@@ -716,7 +725,7 @@ function validateSources(input, errors) {
   for (const [index, source] of sources.entries()) {
     if (!source?.id) errors.push(fieldError(`sources.${index}.id`, "Source id is required."));
     if (!source?.title) errors.push(fieldError(`sources.${index}.title`, "Source title is required."));
-    validateEnum(`sources.${index}.type`, source?.type, SOURCE_TYPES, errors);
+    validateEnum(`sources.${index}.type`, source?.type, FRANKLIN_V3_SOURCE_TYPES, errors, { exact: true });
     if (!validDate(source?.date)) errors.push(fieldError(`sources.${index}.date`, "Source date is required."));
     if (!Array.isArray(source?.usedFor)) errors.push(fieldError(`sources.${index}.usedFor`, "Source usedFor must be an array."));
   }
@@ -838,9 +847,18 @@ function validateScore(path, value, errors) {
 
 function validateEnum(path, value, allowed, errors, options = {}) {
   if ((value === null || value === undefined || value === "") && options.optional) return;
+  if (options.exact) {
+    if (!allowed.includes(String(value || "").trim())) errors.push(fieldError(path, `${path} is not supported.`));
+    return;
+  }
   const normalized = options.lowercase ? String(value || "").trim().toLowerCase() : normalizeEnum(value);
   const expected = options.lowercase ? allowed.map((item) => String(item).toLowerCase()) : allowed.map(normalizeEnum);
   if (!expected.includes(normalized)) errors.push(fieldError(path, `${path} is not supported.`));
+}
+
+function assertUniqueValues(path, values = [], errors) {
+  const clean = values.map((value) => String(value || "").trim()).filter(Boolean);
+  if (clean.length !== new Set(clean).size) errors.push(fieldError(path, `${path} must be unique.`));
 }
 
 function validateExactMetricShape(path, value, expectedKeys, errors) {
@@ -879,6 +897,31 @@ function pctChange(next, previous) {
   if (!Number.isFinite(next) || !Number.isFinite(previous)) return null;
   if (previous === 0) return next === 0 ? 0 : null;
   return ((next / previous) - 1) * 100;
+}
+
+function hasCanonicalPreviousRequirementSet(previousSet = {}) {
+  return Boolean(previousSet?.requirementSetId && Array.isArray(previousSet.requirements) && previousSet.requirements.length);
+}
+
+function isDateOnly(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || "").trim());
+}
+
+function isoDatePart(value) {
+  const text = String(value || "").trim();
+  if (isDateOnly(text)) return text;
+  const parsed = new Date(text);
+  return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString().slice(0, 10);
+}
+
+function isAfterAnalysisDate(value, analysisDate) {
+  if (!value || !analysisDate) return false;
+  if (isDateOnly(analysisDate)) {
+    return isoDatePart(value) > isoDatePart(analysisDate);
+  }
+  const valueTime = dateTime(value);
+  const analysisTime = dateTime(analysisDate);
+  return Boolean(valueTime && analysisTime && valueTime > analysisTime);
 }
 
 function normalizeMethodName(value) {

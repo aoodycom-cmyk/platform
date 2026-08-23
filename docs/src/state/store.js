@@ -292,6 +292,7 @@ export function createStore() {
     });
     try {
       const parsed = await parseExternalAnalysisInput(rawText, {
+        expectedTicker: tickerHint || null,
         parseUnstructured: (inputText) => parseExternalAnalysisBlock({ text: inputText, language: state.language })
       });
       if (!parsed.report) throw new Error("External parser did not return a report.");
@@ -558,7 +559,7 @@ export function createStore() {
       buildNewEarningsAnalysisPrompt(report, selection),
       "",
       "مواد إعلان الأرباح الجديدة التي ألصقها المستخدم:",
-      earningsText || "- لم يتم لصق مواد أرباح بعد. اطلب من المستخدم تزويدك بتقرير الأرباح أو 10-Q أو نص مكالمة الإدارة قبل إخراج JSON.",
+      earningsText || "- لم يتم لصق مواد أرباح بعد. ابحث أولًا عن مصادر الربع المحدد الرسمية والموثوقة: Investor Relations، ملفات SEC، بيان الأرباح الرسمي، ومواد مكالمة الأرباح الرسمية. لا تستخدم ربعًا آخر. اطلب من المستخدم تزويدك بالمواد فقط إذا لم تتوفر معلومات رسمية موثوقة.",
       "",
       "تعليمات إضافية لـ Franklin:",
       "- أخرج JSON واحدًا فقط مطابقًا للقالب أعلاه.",
