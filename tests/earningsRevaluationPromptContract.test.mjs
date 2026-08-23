@@ -89,6 +89,14 @@ assert.ok(request.revaluationScope.quarterReading.some((item) => item.includes("
 assert.ok(request.revaluationScope.frozenRequirementsEvaluation.some((item) => item.includes("NOT_REPORTED")));
 assert.ok(request.revaluationScope.valuationAndThesis.some((item) => item.includes("Bear/Base/Bull")));
 assert.ok(request.revaluationScope.nextRequirements.some((item) => item.includes("4 إلى 8")));
+assert.ok(request.revaluationScope.nextRequirements.some((item) => item.includes("baselineValue") && item.includes("أحدث Actual")));
+assert.ok(request.revaluationScope.nextRequirements.some((item) => item.includes("ADVANCE_TARGET") && item.includes("minimum requirement")));
+assert.ok(request.revaluationScope.nextRequirements.some((item) => item.includes("maintenance/defense floor")));
+assert.equal(request.revaluationScope.nextRequirementsBaselinePolicy.baselineSource, "latest reported actual from the earnings period being analyzed when directly comparable");
+assert.match(request.revaluationScope.nextRequirementsBaselinePolicy.advanceTargetRule, /minimum >= comparable baseline/);
+assert.match(request.revaluationScope.nextRequirementsBaselinePolicy.alreadyClearedRule, /not incremental evidence/);
+assert.ok(request.outputContract.rules.some((item) => item.includes("baselineValue/baselineDisplay")));
+assert.ok(request.outputContract.rules.some((item) => item.includes("ADVANCE_TARGET") && item.includes("مستوفى مسبقًا")));
 assert.ok(request.revaluationScope.provenance.some((item) => item.includes("مصادر")));
 
 assert.ok(prompt.length < 40000, `Earnings revaluation prompt is unexpectedly large: ${prompt.length} chars.`);
