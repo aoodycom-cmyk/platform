@@ -66,7 +66,8 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
         "افصل بين reported data وconsensus وanalyst assumptions، ولا تخترع رقمًا غير متاح."
       ],
       frozenRequirementsEvaluation: [
-        "قيّم فقط requirement set السابقة المجمدة في previousInvestmentState.frozenRequirements.",
+        "إذا لم توجد requirement set سابقة فلا تخترع واحدة؛ اترك previousRequirementsEvaluation وفق القالب وأنشئ الدورة الجديدة من nextRequirements فقط.",
+        "إذا وُجدت requirement set فقيّم فقط المجموعة السابقة المجمدة في previousInvestmentState.frozenRequirements.",
         "لا تغيّر id أو metric أو type أو requiredValue أو requiredDisplay أو weight أو targetQuarter لأي requirement سابق.",
         "لكل requirement املأ actualValue وactualDisplay وstatus وpartialCreditPct عند الحاجة وevaluationNote وsourceId.",
         "إذا لم تُفصح الشركة عن المعلومة: status = NOT_REPORTED وactualValue = null. لا تعتبرها FAILED.",
@@ -129,7 +130,7 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
       rules: [
         "reportIdentity.previousAnalysisId يطابق previousInvestmentState.analysisId حرفيًا.",
         "reportIdentity.previousRequirementSetId يطابق previousInvestmentState.requirementSetId إذا كان موجودًا.",
-        "previousRequirementsEvaluation يحافظ على تعريفات المتطلبات السابقة المجمدة.",
+        "previousRequirementsEvaluation يحافظ على تعريفات المتطلبات السابقة المجمدة إذا كانت موجودة.",
         "nextRequirements.requirementSetId = null.",
         "Bear <= Base <= Bull والاحتمالات تجمع 100%.",
         "valuation.current.probabilityWeighted يطابق المتوسط الاحتمالي للسيناريوهات.",
@@ -154,6 +155,7 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
     `فرضية الاستثمار: ${format(previousInvestmentState.thesis)}`,
     selectedPeriod ? `الربع الذي اختاره المستخدم لهذا التحديث: ${selectedPeriod}` : "الربع المحدد غير متوفر.",
     selectedPeriod ? `حلل مواد ${selectedPeriod} فقط، ولا تستبدلها بربع آخر حتى لو وجدت نتائج أحدث.` : "لا تستخدم ربعًا غير متوافق مع متطلبات التقرير السابق.",
+    previousRequirements.length ? `متطلبات سابقة مجمدة: ${previousRequirements.length}` : "لا توجد requirement set سابقة. لا تخترع واحدة.",
     "previousInvestmentState JSON",
     JSON.stringify(previousInvestmentState),
     "أعد تقييم Bear/Base/Bull إلزاميًا في كل ربع.",
