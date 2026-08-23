@@ -1,13 +1,16 @@
 // Canonical public entrypoint for Franklin ↔ ChatGPT contracts.
-// INITIAL analysis now uses a compact machine-readable request envelope.
-// Earnings/revaluation helpers remain preserved until their own migration step.
+// INITIAL and EARNINGS_REVALUATION use compact machine-readable request envelopes.
+// Legacy helper exports remain available for compatibility only.
 
 export * from "./chatgptContractLegacy.js";
 export {
-  buildExternalAnalysisJsonTemplate,
-  buildNewEarningsAnalysisPrompt
+  buildExternalAnalysisJsonTemplate
 } from "./chatgptContractLegacy.js";
 export {
   buildInitialAnalysisPrompt as buildFullAnalysisPrompt,
   FRANKLIN_INITIAL_PROMPT_VERSION
 } from "./initialAnalysisPrompt.js";
+export {
+  buildEarningsRevaluationPrompt as buildNewEarningsAnalysisPrompt,
+  FRANKLIN_EARNINGS_PROMPT_VERSION
+} from "./earningsRevaluationPrompt.js";
