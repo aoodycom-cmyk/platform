@@ -22,11 +22,112 @@ function currentStore() {
   return window.__equityResearchStore || null;
 }
 
+function workflowQuarterContext(store) {
+  const workflow = store?.state?.earningsUpdate || {};
+  const quarter = Number(workflow.selectedQuarter);
+  const year = Number(workflow.selectedYear);
+  if ([1, 2, 3, 4].includes(quarter) && Number.isInteger(year)) {
+    return {
+      ticker: String(workflow.ticker || store?.state?.externalReportSelection?.ticker || "").trim(),
+      quarter,
+      year
+    };
+  }
+  return selectedQuarterContext();
+}
+
 function selectedReport(store) {
   const selection = store?.state?.externalReportSelection;
   if (!selection?.ticker) return null;
   const reports = store.state.externalAnalyses?.[selection.ticker] || [];
   return reports.find((item) => item.id === selection.reportId) || reports[0] || null;
+}
+
+function periodKey(value) {
+  const match = String(value || "").trim().toUpperCase().match(/Q\s*([1-4]).*?(20\d{2})/);
+  if (!match) return null;
+  return Number(match[2]) * 4 + Number(match[1]);
+}
+
+function selectedPeriod(context) {
+  return context ? `Q${context.quarter} ${context.year}` : "";
+}
+
+function shouldUseQuarterObservation(report, context) {
+  if (!report || !context) return false;
+  const selected = periodKey(selectedPeriod(context));
+  if (!selected) return false;
+
+  const requirements = report.priceTargetRequirements || {};
+  const target = periodKey(requirements.targetQuarter || requirements.earningsPeriod);
+  const current = periodKey(report.reportPeriod);
+
+  // Full canonical revaluation is only safe for the open requirement-set quarter.
+  // Any other explicitly selected quarter becomes an observation/backfill so newer
+  // investment state is not rewritten from an out-of-sequence quarter.
+  if (target && selected !== target) return true;
+  if (!target && current && selected <= current) return true;
+  return false;
+}
+
+function buildQuarterObservationPrompt(report, context) {
+  const period = selectedPeriod(context);
+  return [
+    `هذه عملية تعبئة ربع تاريخي/خارج دورة إعادة التقييم الحالية للربع ${period}.`,
+    `حلل ${period} فقط حتى لو كانت نتائج Q2 أو Q3 أو Q4 أو أي نتائج أحدث متاحة اليوم.`,
+    "هذه القراءة لا تغيّر Fair Value ولا القرار ولا تعيد بناء nextRequirements الحالية؛ هدفها تسجيل ما حدث فعليًا في الربع المحدد ومقارنته بالمتطلبات فقط عندما يكون ذلك صالحًا.",
+    "ضع reportDate كتاريخ إعلان أرباح هذا الربع الفعلي، وليس تاريخ اليوم، حتى يبقى التسلسل التاريخي صحيحًا داخل Franklin.",
+    "",
+    buildQuarterlyEarningsLitePrompt(report, {
+      quarter: context.quarter,
+      year: context.year,
+      earningsText: ""
+    })
+  ].join("\n");
+}
+
+function ensureQuarterObservationPrompt() {
+  const store = currentStore();
+  const workflow = store?.state?.earningsUpdate;
+  if (!store || !workflow?.open || workflow.quarterlyObservationOnly) return;
+
+  const context = workflowQuarterContext(store);
+  const report = selectedReport(store);
+  if (!context || !report || !shouldUseQuarterObservation(report, context)) return;
+
+  const prompt = buildQuarterObservationPrompt(report, context);
+  store.set({
+    earningsUpdate: {
+      ...workflow,
+      generatedPrompt: prompt,
+      quarterlyObservationOnly: true,
+      historicalBackfill: periodKey(selectedPeriod(context)) <= (periodKey(report.reportPeriod) || Number.POSITIVE_INFINITY)
+    },
+    notice: ""
+  });
+}
+
+function decorateOnePageMode() {
+  const store = currentStore();
+  const workflow = store?.state?.earningsUpdate;
+  const sheet = document.querySelector(".earnings-update-sheet");
+  if (!workflow?.open || !workflow.quarterlyObservationOnly || !sheet) return;
+
+  const title = sheet.querySelector(".earnings-one-page-head h3");
+  if (title) title.textContent = "تحليل ربع تاريخي";
+  const note = sheet.querySelector(".earnings-one-page-note");
+  if (note) note.textContent = "سيقرأ ChatGPT الربع المحدد فقط. هذه العملية تسجل نتائج الربع ولا تغيّر Fair Value أو القرار الحالي.";
+  const periodLock = sheet.querySelector(".earnings-period-lock small");
+  if (periodLock) periodLock.textContent = "الربع مقفول تاريخيًا؛ لن يستبدله Franklin بربع أحدث.";
+}
+
+function syncCloudTriggerVisibility() {
+  const trigger = document.querySelector(".franklin-cloud-trigger");
+  if (!trigger) return;
+  const settingsVisible = Boolean(document.querySelector(".panel-settings"));
+  trigger.hidden = !settingsVisible;
+  trigger.tabIndex = settingsVisible ? 0 : -1;
+  trigger.setAttribute("aria-hidden", settingsVisible ? "false" : "true");
 }
 
 function ensureLitePromptButton() {
@@ -123,7 +224,14 @@ function showLocalFeedback(message, isError = false) {
   showLocalFeedback.timer = setTimeout(() => feedback.remove(), 2600);
 }
 
-const observer = new MutationObserver(ensureLitePromptButton);
+function syncEnhancements() {
+  ensureQuarterObservationPrompt();
+  ensureLitePromptButton();
+  decorateOnePageMode();
+  syncCloudTriggerVisibility();
+}
+
+const observer = new MutationObserver(syncEnhancements);
 observer.observe(document.documentElement, { childList: true, subtree: true });
-window.addEventListener("pageshow", ensureLitePromptButton);
-ensureLitePromptButton();
+window.addEventListener("pageshow", syncEnhancements);
+syncEnhancements();
