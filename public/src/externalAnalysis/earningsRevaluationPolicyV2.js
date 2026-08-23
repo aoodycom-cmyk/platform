@@ -45,11 +45,18 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
   };
 
   request.outputContract = request.outputContract || {};
+  request.outputContract.canonicalValueRules = {
+    confidenceFields: "استخدم HIGH أو MEDIUM أو LOW أو null فقط في حقول confidence النصية؛ لا تستخدم رقمًا مثل 0.9 أو 90.",
+    securityUnit: "استخدم فقط share أو ADS أو ADR أو unit؛ للسهم العادي استخدم share وليس common share.",
+    enumRule: "لا تستبدل قيم enums بوصف بشري أو نسبة رقمية. التزم بالقيم الموجودة في قالب V3 حرفيًا."
+  };
   const outputRules = Array.isArray(request.outputContract.rules) ? request.outputContract.rules : [];
   request.outputContract.rules = [
     ...outputRules,
     "عند توفر Actual قابل للمقارنة، nextRequirements.requirements[].baselineValue/baselineDisplay يعكسان الربع الجديد نفسه، وليس هدف requirement القديم.",
-    "ADVANCE_TARGET لا يعتمد على requirement رقمي مستوفى مسبقًا كدليل وحيد أو أساسي لتبرير targetValue أعلى؛ أي استثناء يجب أن يكون موثقًا صراحةً."
+    "ADVANCE_TARGET لا يعتمد على requirement رقمي مستوفى مسبقًا كدليل وحيد أو أساسي لتبرير targetValue أعلى؛ أي استثناء يجب أن يكون موثقًا صراحةً.",
+    "حقول dataQuality.confidence وclassification.confidence وbusinessQuality.confidence وvaluation.current.confidence وvaluationResults[].confidence تستخدم HIGH/MEDIUM/LOW/null فقط، وليست درجات رقمية.",
+    "company.securityUnit وvaluation.current.securityUnit يستخدمان share/ADS/ADR/unit فقط."
   ];
 
   return `${prefix}\n${JSON.stringify(request)}`;
