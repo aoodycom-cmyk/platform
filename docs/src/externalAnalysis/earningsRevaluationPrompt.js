@@ -71,7 +71,7 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
         "لا تغيّر id أو metric أو type أو requiredValue أو requiredDisplay أو weight أو targetQuarter لأي requirement سابق.",
         "لكل requirement املأ actualValue وactualDisplay وstatus وpartialCreditPct عند الحاجة وevaluationNote وsourceId.",
         "إذا لم تُفصح الشركة عن المعلومة: status = NOT_REPORTED وactualValue = null. لا تعتبرها FAILED.",
-        "status المسموح: NOT_REPORTED أو FAILED أو PARTIALLY_PASSED أو PASSED أو EXCEEDED.",
+        "status يجب أن يكون NOT_REPORTED أو FAILED أو PARTIALLY_PASSED أو PASSED أو EXCEEDED.",
         "PARTIALLY_PASSED فقط يستخدم partialCreditPct من 0 إلى 100؛ باقي الحالات partialCreditPct = null."
       ],
       assessmentMath: {
