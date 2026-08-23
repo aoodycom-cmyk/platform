@@ -18,4 +18,15 @@ assert.ok(parser.includes("inflateQuarterlyEarningsLitePayload"));
 assert.ok(script.includes("step: 3"));
 assert.ok(script.includes("بدون تقييم سهم كامل أو Fair Value جديد"));
 
-console.log("Quarterly JSON prompt V2 lite-mode tests passed.");
+assert.ok(script.includes("shouldUseQuarterObservation"));
+assert.ok(script.includes("selected !== target"));
+assert.ok(script.includes("quarterlyObservationOnly"));
+assert.ok(script.includes("حلل ${period} فقط حتى لو كانت نتائج Q2 أو Q3 أو Q4"));
+assert.ok(script.includes("ليس تاريخ اليوم"));
+assert.ok(script.includes("لا تغيّر Fair Value ولا القرار"));
+assert.ok(script.includes(".franklin-cloud-trigger"));
+assert.ok(script.includes(".panel-settings"));
+assert.ok(script.includes("trigger.hidden = !settingsVisible"));
+assert.ok(script.includes("trigger.tabIndex = settingsVisible ? 0 : -1"));
+
+console.log("Quarterly JSON prompt V2 historical-mode and cloud-visibility tests passed.");
