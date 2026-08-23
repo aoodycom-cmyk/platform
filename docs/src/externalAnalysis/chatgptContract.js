@@ -4,6 +4,10 @@
 
 export * from "./chatgptContractLegacy.js";
 export {
+  buildExternalAnalysisJsonTemplate,
+  buildNewEarningsAnalysisPrompt
+} from "./chatgptContractLegacy.js";
+export {
   buildInitialAnalysisPrompt as buildFullAnalysisPrompt,
   FRANKLIN_INITIAL_PROMPT_VERSION
 } from "./initialAnalysisPrompt.js";
