@@ -154,6 +154,8 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
     `Previous Bull Fair Value: ${format(previousInvestmentState.valuation.bull)}`,
     `فرضية الاستثمار: ${format(previousInvestmentState.thesis)}`,
     selectedPeriod ? `الربع الذي اختاره المستخدم لهذا التحديث: ${selectedPeriod}` : "الربع المحدد غير متوفر.",
+    selected?.quarter ? `\"fiscalQuarter\": \"Q${selected.quarter}\"` : "\"fiscalQuarter\": null",
+    selected?.year ? `\"fiscalYear\": ${selected.year}` : "\"fiscalYear\": null",
     selectedPeriod ? `حلل مواد ${selectedPeriod} فقط، ولا تستبدلها بربع آخر حتى لو وجدت نتائج أحدث.` : "لا تستخدم ربعًا غير متوافق مع متطلبات التقرير السابق.",
     previousRequirements.length ? `متطلبات سابقة مجمدة: ${previousRequirements.length}` : "لا توجد requirement set سابقة. لا تخترع واحدة.",
     "previousInvestmentState JSON",
