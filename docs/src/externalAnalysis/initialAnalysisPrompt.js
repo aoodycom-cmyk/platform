@@ -127,6 +127,8 @@ export function buildInitialAnalysisPrompt(options = {}) {
     ticker ? `قيمة ticker داخل القالب: \"ticker\": \"${ticker}\"` : "قيمة ticker داخل القالب يجب أن تكون null إذا لم يتوفر رمز صالح.",
     "كل status في nextRequirements.requirements يجب أن يكون NOT_REPORTED.",
     "Franklin يعيّن Requirement Set ID الدائم بعد نجاح الحفظ؛ nextRequirements.requirementSetId = null.",
+    "sourceType: Investor Relations | SEC | Earnings Call | Market Data | Consensus Data | Trusted Financial News | User Provided | Other",
+    "valuationRole: PRIMARY | SECONDARY | CROSS_CHECK",
     "JSON OUTPUT SAFETY — MANDATORY",
     "Return exactly one fenced JSON code block.",
     "Do not write any prose before or after the fenced JSON block.",
