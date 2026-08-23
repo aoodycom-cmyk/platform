@@ -18,6 +18,7 @@ assert.ok(prompt.includes("كل status في nextRequirements.requirements يجب
 assert.ok(prompt.includes('"ticker": "AAOI"'), "Prompt template must carry the entered ticker.");
 assert.equal(prompt.includes('"ticker": "TICKER"'), false, "Prompt must not use TICKER as a placeholder value.");
 assert.equal(prompt.includes("```"), false, "Prompt must not use Markdown fences.");
+assertPromptOutputSafety(prompt, "Initial prompt");
 
 const template = JSON.parse(buildExternalAnalysisJsonTemplate({ tickerHint: "msft" }));
 assert.equal(template.schemaVersion, "franklin-fair-value/v3");
@@ -32,6 +33,7 @@ assert.equal(template.valuation.current.base, null);
 assert.equal(Array.isArray(template.risks), true);
 assert.equal(template.risks[0].title, null);
 assert.equal(template.decision.action, null);
+assert.equal(template.nextRequirements.requirementSetId, null);
 assert.equal(template.nextRequirements.currentJustifiedValue, null);
 assert.equal(Object.hasOwn(template, "dashboardExport"), false);
 assert.equal(Object.hasOwn(template, "recommendation"), false);
@@ -68,6 +70,18 @@ assert.ok(earningsPrompt.includes("Franklin لا يرفع الهدف آليًا 
 assert.ok(earningsPrompt.includes("UPDATED أو UNCHANGED"), "The prompt must require an explicit valuation review result.");
 assert.ok(earningsPrompt.includes('"ticker": "MSFT"'), "Earnings prompt template must carry the selected ticker.");
 assert.equal(/OPENAI_API|api\/|fetch\(/i.test(earningsPrompt), false, "Earnings prompt must not require an API call.");
+assertPromptOutputSafety(earningsPrompt, "Earnings prompt");
+
+const invalidCanonicalOutputExamples = {
+  escapedEnum: "LAST\\_CLOSE",
+  markdownUrl: "[https://example.com/report](https://example.com/report)",
+  decision: {
+    confidence: "MEDIUM"
+  }
+};
+assert.equal(invalidCanonicalOutputExamples.escapedEnum.includes("\\_"), true);
+assert.equal(/\[[^\]]+\]\([^)]+\)/.test(invalidCanonicalOutputExamples.markdownUrl), true);
+assert.equal(typeof invalidCanonicalOutputExamples.decision.confidence, "string");
 
 const requiredFields = analysisContractRequiredFields().map((field) => field.path);
 for (const field of [
@@ -85,3 +99,19 @@ for (const field of [
 }
 
 console.log("External analysis ChatGPT contract tests passed.");
+
+function assertPromptOutputSafety(value, label) {
+  assert.ok(value.includes("JSON.parse()"), `${label} must require JSON.parse validity.`);
+  assert.ok(value.includes("NEVER escape underscores"), `${label} must prohibit escaped underscores.`);
+  assert.ok(value.includes('"LAST\\_CLOSE"'), `${label} must show escaped underscores as invalid.`);
+  assert.ok(value.includes("URL fields must contain raw URLs only"), `${label} must require raw URLs.`);
+  assert.ok(value.includes("Never use Markdown links inside JSON"), `${label} must reject Markdown links.`);
+  assert.ok(value.includes("Do not use code fences"), `${label} must reject code fences.`);
+  assert.ok(value.includes("decision.confidence must be a number from 0 to 100 or null"), `${label} must keep decision confidence numeric.`);
+  assert.ok(value.includes("businessQuality.score"), `${label} must mention business quality score scale.`);
+  assert.ok(value.includes("0-100 scale, NOT 0-10"), `${label} must force 0-100 numeric scores.`);
+  assert.ok(value.includes("nextRequirements.requirementSetId"), `${label} must define requirement set identity handling.`);
+  assert.ok(value.includes("Franklin يعيّن Requirement Set ID"), `${label} must prevent ChatGPT from inventing persistent requirement set IDs.`);
+  assert.ok(value.includes("Prefer concise financial statements"), `${label} must reduce repetitive narrative.`);
+  assert.ok(value.includes("less repeated prose, NOT less financial evidence"), `${label} must preserve financial depth while reducing output size.`);
+}
