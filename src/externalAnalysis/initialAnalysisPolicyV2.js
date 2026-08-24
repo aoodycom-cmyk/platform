@@ -26,6 +26,15 @@ export function buildInitialAnalysisPrompt(options = {}) {
     "forecast.yearlyForecast.*.basis: استخدم reported أو consensus أو analyst_assumption أو null فقط.",
     "forecast.changedAssumptions[].direction: استخدم UP أو DOWN أو UNCHANGED أو null فقط.",
     "company.securityUnit وvaluation.current.securityUnit: استخدم فقط share أو ADS أو ADR أو unit؛ للسهم العادي استخدم share.",
+    "decision.scope: استخدم STOCK_LEVEL فقط. decision.action: استخدم BUY أو ADD أو HOLD أو WATCH أو REDUCE أو SELL فقط.",
+    "valuation.reviewStatus: استخدم INITIAL فقط في التحليل الأولي. thesis.status: استخدم INITIAL فقط في التحليل الأولي.",
+    "valuationResults[].role: استخدم PRIMARY أو SECONDARY أو CROSS_CHECK فقط.",
+    "marketPrice.priceType: استخدم LIVE أو DELAYED أو LAST_CLOSE فقط.",
+    "nextRequirements.mode: استخدم ADVANCE_TARGET أو DEFEND_BASE أو RECOVERY فقط.",
+    "nextRequirements.targetScenario: استخدم BULL أو INTERMEDIATE أو BASE_DEFENSE أو RECOVERY فقط، ويجب أن يتوافق مع mode.",
+    "nextRequirements.requirements[].type: استخدم minimum أو maximum أو range أو qualitative فقط.",
+    "nextRequirements.requirements[].importance: استخدم critical أو high أو medium أو low فقط، وكل status يجب أن يكون NOT_REPORTED.",
+    "sources[].type: استخدم Investor Relations أو SEC أو Earnings Call أو Market Data أو Consensus Data أو Trusted Financial News أو User Provided أو Other فقط.",
     "أي enum في القالب يجب أن يستخدم القيم المحددة حرفيًا، ولا تستبدله بوصف بشري جديد."
   ].join("\n");
 
