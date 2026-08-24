@@ -15,12 +15,21 @@ const raw = {
   },
   thesis: { status: "strengthened" },
   decision: { scope: "stock level", action: "watch" },
-  strengths: [{ confidence: "low", importance: "High" }],
-  weaknesses: [{ confidence: 0.7, severity: "Medium" }],
-  risks: [{ severity: "High" }],
+  strengths: [
+    { confidence: "low", importance: "High" },
+    { confidence: "medium", importance: "strategic" }
+  ],
+  weaknesses: [
+    { confidence: 0.7, severity: "Medium" },
+    { confidence: "high", severity: "material" }
+  ],
+  risks: [{ severity: "very high" }],
   latestQuarter: {
     coreMetrics: { revenue: { result: "beat" } },
-    companySpecificKpis: [{ result: "inline", importance: "High" }],
+    companySpecificKpis: [
+      { result: "inline", importance: "High" },
+      { result: "beat", importance: "mission critical" }
+    ],
     guidance: [{ direction: "Raised" }],
     forwardOutlook: { growthOutlook: "Accelerating" }
   },
@@ -59,12 +68,15 @@ assert.equal(normalized.decision.action, "WATCH");
 assert.equal(normalized.marketPrice.priceType, "LAST_CLOSE");
 assert.equal(normalized.strengths[0].confidence, "LOW");
 assert.equal(normalized.strengths[0].importance, "high");
+assert.equal(normalized.strengths[1].importance, null, "unsupported optional strength importance should not reject the whole report");
 assert.equal(normalized.weaknesses[0].confidence, null);
 assert.equal(normalized.weaknesses[0].severity, "medium");
-assert.equal(normalized.risks[0].severity, "high");
+assert.equal(normalized.weaknesses[1].severity, null, "unsupported optional weakness severity should be dropped");
+assert.equal(normalized.risks[0].severity, null, "unsupported optional risk severity should be dropped");
 assert.equal(normalized.latestQuarter.coreMetrics.revenue.result, "BEAT");
 assert.equal(normalized.latestQuarter.companySpecificKpis[0].result, "INLINE");
 assert.equal(normalized.latestQuarter.companySpecificKpis[0].importance, "high");
+assert.equal(normalized.latestQuarter.companySpecificKpis[1].importance, null, "unsupported optional KPI importance should be dropped");
 assert.equal(normalized.latestQuarter.guidance[0].direction, "raised");
 assert.equal(normalized.latestQuarter.forwardOutlook.growthOutlook, "accelerating");
 assert.equal(normalized.forecast.materiality, "MATERIAL");
@@ -81,5 +93,6 @@ assert.equal(normalized.sources[0].type, "Investor Relations");
 
 assert.equal(raw.company.securityUnit, "common share", "normalization must not mutate the pasted raw object");
 assert.equal(raw.dataQuality.confidence, 0.91);
+assert.equal(raw.strengths[1].importance, "strategic");
 
 console.log("Franklin V3 input normalization regression: PASS");
