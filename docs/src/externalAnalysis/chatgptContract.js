@@ -9,7 +9,7 @@ export {
 export {
   buildInitialAnalysisPrompt as buildFullAnalysisPrompt,
   FRANKLIN_INITIAL_PROMPT_VERSION
-} from "./initialAnalysisPrompt.js";
+} from "./initialAnalysisPolicyV2.js";
 export {
   buildEarningsRevaluationPrompt as buildNewEarningsAnalysisPrompt,
   FRANKLIN_EARNINGS_PROMPT_VERSION

@@ -132,7 +132,14 @@ function canonicalEnum(value, allowed = []) {
   if (value === null || value === undefined || value === "") return value;
   const token = normalizeToken(value);
   const match = allowed.find((item) => normalizeToken(item) === token);
-  return match ?? value;
+  if (match !== undefined) return match;
+  // Narrative importance/severity fields are optional in V3. When an LLM returns an
+  // unsupported descriptive label (for example "strategic" or "very high"), drop
+  // only that optional presentation value rather than rejecting an otherwise valid report.
+  // Required importance fields (such as nextRequirements) still fail strict validation
+  // because null is not accepted there.
+  if (allowed === FRANKLIN_V3_IMPORTANCE_LEVELS) return null;
+  return value;
 }
 
 function normalizeToken(value) {
