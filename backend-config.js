@@ -27,3 +27,20 @@ window.FRANKLIN_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_5BLb5fpkzf4_7qgPb5smL
     observer.disconnect();
   }, { once: true });
 }());
+
+// Social image export is also bootstrapped from this generated file so the static
+// GitHub Pages /docs deployment receives the feature immediately after a merge.
+(function installSocialImageExportBootstrap() {
+  function load() {
+    import("./src/ui/socialImageExport.js?v=franklin-social-export-v1").catch(function (error) {
+      if (!Array.isArray(window.__FRANKLIN_BOOT_EVENTS)) window.__FRANKLIN_BOOT_EVENTS = [];
+      window.__FRANKLIN_BOOT_EVENTS.push({
+        type: "Social image export",
+        detail: String(error && (error.message || error) || "Could not load social image export").slice(0, 260),
+        at: new Date().toISOString()
+      });
+    });
+  }
+  if (window.__FRANKLIN_APP_READY) load();
+  else window.addEventListener("franklin:boot-ready", load, { once: true });
+}());
