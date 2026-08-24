@@ -1,0 +1,36 @@
+name: Sync Social Export Deploy Copies
+
+on:
+  push:
+    branches:
+      - feature/social-image-exports
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/social-image-exports
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Sync generated deploy copies
+        run: npm run build
+      - name: Commit generated public/docs copies
+        run: |
+          if git diff --quiet -- public docs; then
+            echo "Deploy copies already synchronized."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public docs
+          git commit -m "[skip ci] Sync social export deploy copies"
+          git push origin HEAD:feature/social-image-exports
