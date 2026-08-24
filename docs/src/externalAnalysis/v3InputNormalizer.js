@@ -48,35 +48,35 @@ export function normalizeFranklinV3Input(input = {}) {
 
   for (const item of list(value.strengths)) {
     normalizeOptionalConfidence(item);
-    item.importance = canonicalEnum(item.importance, FRANKLIN_V3_IMPORTANCE_LEVELS);
+    item.importance = optionalEnum(item.importance, FRANKLIN_V3_IMPORTANCE_LEVELS);
   }
   for (const item of list(value.weaknesses)) {
     normalizeOptionalConfidence(item);
-    item.severity = canonicalEnum(item.severity, FRANKLIN_V3_IMPORTANCE_LEVELS);
+    item.severity = optionalEnum(item.severity, FRANKLIN_V3_IMPORTANCE_LEVELS);
   }
-  for (const item of list(value.risks)) item.severity = canonicalEnum(item.severity, FRANKLIN_V3_IMPORTANCE_LEVELS);
+  for (const item of list(value.risks)) item.severity = optionalEnum(item.severity, FRANKLIN_V3_IMPORTANCE_LEVELS);
 
   const latestQuarter = value.latestQuarter || {};
   for (const metric of Object.values(latestQuarter.coreMetrics || {})) {
     if (metric && Object.hasOwn(metric, "result")) metric.result = canonicalEnum(metric.result, FRANKLIN_V3_METRIC_RESULTS);
   }
   for (const item of list(latestQuarter.companySpecificKpis)) {
-    item.result = canonicalEnum(item.result, FRANKLIN_V3_METRIC_RESULTS);
-    item.importance = canonicalEnum(item.importance, FRANKLIN_V3_IMPORTANCE_LEVELS);
+    item.result = optionalEnum(item.result, FRANKLIN_V3_METRIC_RESULTS);
+    item.importance = optionalEnum(item.importance, FRANKLIN_V3_IMPORTANCE_LEVELS);
   }
-  for (const item of list(latestQuarter.guidance)) item.direction = canonicalEnum(item.direction, FRANKLIN_V3_GUIDANCE_DIRECTIONS);
+  for (const item of list(latestQuarter.guidance)) item.direction = optionalEnum(item.direction, FRANKLIN_V3_GUIDANCE_DIRECTIONS);
   for (const [field, allowed] of Object.entries(FRANKLIN_V3_FORWARD_OUTLOOK_ENUMS)) {
-    if (latestQuarter.forwardOutlook) latestQuarter.forwardOutlook[field] = canonicalEnum(latestQuarter.forwardOutlook[field], allowed);
+    if (latestQuarter.forwardOutlook) latestQuarter.forwardOutlook[field] = optionalEnum(latestQuarter.forwardOutlook[field], allowed);
   }
 
   const forecast = value.forecast || {};
-  forecast.materiality = canonicalEnum(forecast.materiality, FRANKLIN_V3_FORECAST_MATERIALITY);
+  forecast.materiality = optionalEnum(forecast.materiality, FRANKLIN_V3_FORECAST_MATERIALITY);
   for (const row of list(forecast.yearlyForecast)) {
     for (const metric of ["revenue", "revenueGrowthPct", "eps", "ebitda", "ebitdaMarginPct", "freeCashFlow", "fcfMarginPct"]) {
-      if (row?.[metric]) row[metric].basis = canonicalEnum(row[metric].basis, FRANKLIN_V3_FORECAST_BASIS);
+      if (row?.[metric]) row[metric].basis = optionalEnum(row[metric].basis, FRANKLIN_V3_FORECAST_BASIS);
     }
   }
-  for (const item of list(forecast.changedAssumptions)) item.direction = canonicalEnum(item.direction, FRANKLIN_V3_CHANGED_ASSUMPTION_DIRECTIONS);
+  for (const item of list(forecast.changedAssumptions)) item.direction = optionalEnum(item.direction, FRANKLIN_V3_CHANGED_ASSUMPTION_DIRECTIONS);
 
   for (const item of list(value.valuation?.valuationResults)) {
     item.role = canonicalEnum(item.role, FRANKLIN_V3_VALUATION_ROLES);
@@ -102,8 +102,13 @@ export function normalizeFranklinV3Input(input = {}) {
 
 function normalizeOptionalConfidence(target) {
   if (!target || typeof target !== "object") return;
-  const normalized = canonicalEnum(target.confidence, FRANKLIN_V3_CONFIDENCE_LEVELS);
-  target.confidence = FRANKLIN_V3_CONFIDENCE_LEVELS.includes(normalized) ? normalized : null;
+  target.confidence = optionalEnum(target.confidence, FRANKLIN_V3_CONFIDENCE_LEVELS);
+}
+
+function optionalEnum(value, allowed = []) {
+  if (value === null || value === undefined || value === "") return null;
+  const normalized = canonicalEnum(value, allowed);
+  return allowed.includes(normalized) ? normalized : null;
 }
 
 function canonicalSecurityUnit(value) {
@@ -132,14 +137,7 @@ function canonicalEnum(value, allowed = []) {
   if (value === null || value === undefined || value === "") return value;
   const token = normalizeToken(value);
   const match = allowed.find((item) => normalizeToken(item) === token);
-  if (match !== undefined) return match;
-  // Narrative importance/severity fields are optional in V3. When an LLM returns an
-  // unsupported descriptive label (for example "strategic" or "very high"), drop
-  // only that optional presentation value rather than rejecting an otherwise valid report.
-  // Required importance fields (such as nextRequirements) still fail strict validation
-  // because null is not accepted there.
-  if (allowed === FRANKLIN_V3_IMPORTANCE_LEVELS) return null;
-  return value;
+  return match ?? value;
 }
 
 function normalizeToken(value) {
