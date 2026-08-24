@@ -64,7 +64,8 @@ async function installOptionalRuntime(store, cloud, auditBootstrapError) {
     loadOptional("./ui/quarterlyResultsEnhancer.js", "Quarterly results enhancer"),
     loadOptional("./ui/quarterlyScorecardMobileFigma.js", "Quarterly scorecard mobile UI"),
     loadOptional("./ui/quarterlyEarningsEntry.js", "Quarterly earnings entry"),
-    loadOptional("./ui/quarterlyEarningsJsonPromptV2.js", "Quarterly JSON prompt")
+    loadOptional("./ui/quarterlyEarningsJsonPromptV2.js", "Quarterly JSON prompt"),
+    loadOptional("./ui/socialImageExport.js", "Social image export")
   ]);
 
   await installFinancialGuards(store);

@@ -58,6 +58,7 @@ export function normalizeFranklinV3Input(input = {}) {
 
   const latestQuarter = value.latestQuarter || {};
   for (const metric of Object.values(latestQuarter.coreMetrics || {})) {
+    // Core-metric result is canonical/required when the approved metric shape contains it.
     if (metric && Object.hasOwn(metric, "result")) metric.result = canonicalEnum(metric.result, FRANKLIN_V3_METRIC_RESULTS);
   }
   for (const item of list(latestQuarter.companySpecificKpis)) {
