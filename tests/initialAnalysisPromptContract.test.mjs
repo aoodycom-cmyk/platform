@@ -13,6 +13,11 @@ assert.ok(prompt.includes("marketPrice.currency وvaluation.current.currency"));
 assert.ok(prompt.includes("CANONICAL ENUM VALUES — MANDATORY"));
 assert.ok(prompt.includes("strengths[].importance"));
 assert.ok(prompt.includes("critical أو high أو medium أو low أو null"));
+assert.ok(prompt.includes("latestQuarter.forwardOutlook.growthOutlook"));
+assert.ok(prompt.includes("latestQuarter.forwardOutlook.managementTone"));
+assert.ok(prompt.includes("forecast.materiality"));
+assert.ok(prompt.includes("forecast.yearlyForecast.*.basis"));
+assert.ok(prompt.includes("analyst_assumption"));
 assert.ok(prompt.includes("company.securityUnit"));
 assert.ok(prompt.includes("share أو ADS أو ADR أو unit"));
 assert.equal(prompt.includes("fairValueSummary.fairValueBase"), false, "Initial prompt must stay on the V3 contract and not leak legacy fairValueSummary paths.");
@@ -39,8 +44,6 @@ assert.ok(request.researchPolicy.sourcePriority.includes("Investor Relations"));
 assert.ok(request.outputContract.arithmeticChecks.some((item) => item.includes("probabilityWeighted")));
 assert.ok(request.completionChecklist.some((item) => item.includes("المشهد الصناعي")));
 
-// The request remains deep, but the compact JSON envelope prevents repeated prose from
-// ballooning to the previous very large prompt. This limit still leaves room for the V3 template.
-assert.ok(prompt.length < 33000, `Initial prompt is unexpectedly large: ${prompt.length} chars.`);
+assert.ok(prompt.length < 35000, `Initial prompt is unexpectedly large: ${prompt.length} chars.`);
 
 console.log(`Initial analysis prompt contract: PASS (${prompt.length} chars)`);
