@@ -40,7 +40,9 @@ export function installSocialImageExportQualityPatch(store, root = document.getE
       const renderer = button.dataset.socialImageExport === "investment"
         ? renderInvestmentInfographicPng
         : renderEarningsTrackerPng;
-      const blob = await renderAtNativeScale(renderer, report);
+      const exportReport = effectiveReport(report);
+      let blob = await renderAtNativeScale(renderer, exportReport);
+      if (report?.company?.logoUrl) blob = await overlayCompanyLogo(blob, report.company.logoUrl);
       const ticker = filePart(report?.company?.ticker || report?.metadata?.franklinV3Report?.reportIdentity?.ticker || "franklin");
       const suffix = button.dataset.socialImageExport === "investment" ? "investment-infographic" : "earnings-tracker";
       await deliver(blob, `franklin-${ticker}-${suffix}-hd.png`, `${ticker.toUpperCase()} — Franklin HD`);
@@ -53,6 +55,20 @@ export function installSocialImageExportQualityPatch(store, root = document.getE
       markHiRes();
     }
   }, { capture: true });
+}
+
+export function effectiveReport(report = {}) {
+  const clone = typeof structuredClone === "function" ? structuredClone(report) : JSON.parse(JSON.stringify(report));
+  const price = Number(clone?.fairValueSummary?.currentPrice);
+  const base = Number(clone?.fairValueSummary?.fairValueBase);
+  const v3 = clone?.metadata?.franklinV3Report;
+  if (Number.isFinite(price) && price > 0 && v3 && typeof v3 === "object") {
+    v3.marketPrice = { ...(v3.marketPrice || {}), value: price };
+    v3.valuation = { ...(v3.valuation || {}) };
+    v3.valuation.upsideToBasePct = Number.isFinite(base) ? (base / price - 1) * 100 : null;
+    v3.valuation.marginOfSafetyPct = Number.isFinite(base) && base !== 0 ? ((base - price) / base) * 100 : null;
+  }
+  return clone;
 }
 
 async function renderAtNativeScale(renderer, report) {
@@ -96,6 +112,62 @@ async function renderAtNativeScale(renderer, report) {
   } finally {
     document.createElement = originalCreateElement;
   }
+}
+
+async function overlayCompanyLogo(blob, logoUrl) {
+  const [baseImage, logoImage] = await Promise.all([loadImage(URL.createObjectURL(blob), true), loadImage(logoUrl)]);
+  const canvas = document.createElement("canvas");
+  canvas.width = SOCIAL_EXPORT_PIXEL_WIDTH;
+  canvas.height = SOCIAL_EXPORT_PIXEL_HEIGHT;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(baseImage.image, 0, 0, canvas.width, canvas.height);
+
+  const size = 112 * SOCIAL_EXPORT_SCALE;
+  const x = 54 * SOCIAL_EXPORT_SCALE;
+  const y = 108 * SOCIAL_EXPORT_SCALE;
+  const radius = 20 * SOCIAL_EXPORT_SCALE;
+  roundedRect(ctx, x, y, size, size, radius);
+  ctx.fillStyle = "#0b101a";
+  ctx.fill();
+  ctx.strokeStyle = "#344156";
+  ctx.lineWidth = 2 * SOCIAL_EXPORT_SCALE;
+  ctx.stroke();
+
+  const pad = 12 * SOCIAL_EXPORT_SCALE;
+  ctx.save();
+  roundedRect(ctx, x + pad, y + pad, size - pad * 2, size - pad * 2, 14 * SOCIAL_EXPORT_SCALE);
+  ctx.clip();
+  drawContain(ctx, logoImage.image, x + pad, y + pad, size - pad * 2, size - pad * 2);
+  ctx.restore();
+
+  baseImage.revoke?.();
+  return new Promise((resolve, reject) => canvas.toBlob((out) => out ? resolve(out) : reject(new Error("تعذر إضافة شعار الشركة.")), "image/png", 1));
+}
+
+function loadImage(src, revoke = false) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve({ image, revoke: revoke ? () => URL.revokeObjectURL(src) : null });
+    image.onerror = () => { if (revoke) URL.revokeObjectURL(src); reject(new Error("تعذر تحميل شعار الشركة.")); };
+    image.src = src;
+  });
+}
+
+function drawContain(ctx, image, x, y, w, h) {
+  const ratio = Math.min(w / image.naturalWidth, h / image.naturalHeight);
+  const dw = image.naturalWidth * ratio;
+  const dh = image.naturalHeight * ratio;
+  ctx.drawImage(image, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+}
+
+function roundedRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
 }
 
 async function deliver(blob, fileName, title) {
