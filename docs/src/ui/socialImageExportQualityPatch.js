@@ -14,9 +14,10 @@ export function installSocialImageExportQualityPatch(store, root = document.getE
   if (!store || !root || root.dataset.socialImageQualityPatchInstalled === "true") return;
   root.dataset.socialImageQualityPatchInstalled = "true";
 
+  const hdLabel = `PNG · ${SOCIAL_EXPORT_PIXEL_WIDTH} × ${SOCIAL_EXPORT_PIXEL_HEIGHT} · HD`;
   const markHiRes = () => {
     const label = root.querySelector("[data-franklin-social-export-panel] .franklin-social-export-heading small");
-    if (label) label.textContent = `PNG · ${SOCIAL_EXPORT_PIXEL_WIDTH} × ${SOCIAL_EXPORT_PIXEL_HEIGHT} · HD`;
+    if (label && label.textContent !== hdLabel) label.textContent = hdLabel;
   };
   markHiRes();
   const observer = new MutationObserver(markHiRes);
