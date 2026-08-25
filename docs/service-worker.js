@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v11-franklin-v36-20260823-financial-contract-v3-v38-owner-presentation";
+const CACHE_NAME = "franklin-research-v11-franklin-v36-20260823-financial-contract-v3-v39-visible-owner-presentation";
 const STATIC_ASSETS = [
   "./offline.html",
   "./rescue.html",
