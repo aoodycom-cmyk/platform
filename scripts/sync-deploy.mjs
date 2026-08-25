@@ -20,6 +20,7 @@ const GENERATED_FILES = [
   "styles-desktop.css",
   "styles-premium.css",
   "styles-v11-mobile-cleanup.css",
+  "styles-visual-system.css",
   "service-worker.js",
   "manifest.webmanifest",
   "offline.html",

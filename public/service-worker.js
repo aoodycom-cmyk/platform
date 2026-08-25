@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v11-franklin-v36-20260823-financial-contract-v3-hotfix-stock-page-01";
+const CACHE_NAME = "franklin-research-v11-franklin-v36-20260823-financial-contract-v3-v37-visual-system";
 const STATIC_ASSETS = [
   "./offline.html",
   "./rescue.html",
@@ -10,6 +10,7 @@ const STATIC_ASSETS = [
   "./styles-desktop.css",
   "./styles-premium.css",
   "./styles-v11-mobile-cleanup.css",
+  "./styles-visual-system.css",
   "./manifest.webmanifest",
   "./src/main.js",
   "./src/pwa.js",
