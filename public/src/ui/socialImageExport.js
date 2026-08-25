@@ -99,12 +99,12 @@ export function buildEarningsTrackerModel(report = {}) {
   };
 }
 
-export async function renderInvestmentInfographicPng(report, exportedAt = new Date()) {
-  return renderPng((ctx) => drawInvestment(ctx, buildInvestmentInfographicModel(report), exportedAt));
+export async function renderInvestmentInfographicPng(report, exportedAt = new Date(), options = {}) {
+  return renderPng((ctx) => drawInvestment(ctx, buildInvestmentInfographicModel(report), exportedAt), options.scale);
 }
 
-export async function renderEarningsTrackerPng(report, exportedAt = new Date()) {
-  return renderPng((ctx) => drawTracker(ctx, buildEarningsTrackerModel(report), exportedAt));
+export async function renderEarningsTrackerPng(report, exportedAt = new Date(), options = {}) {
+  return renderPng((ctx) => drawTracker(ctx, buildEarningsTrackerModel(report), exportedAt), options.scale);
 }
 
 export async function exportInvestmentInfographicPng(report, exportedAt = new Date()) {
@@ -243,13 +243,18 @@ function openRequirements(v3, report) {
   return { requirements: [] };
 }
 
-async function renderPng(draw) {
+async function renderPng(draw, requestedScale = 1) {
   if (typeof document === "undefined") throw new Error("PNG export requires a browser.");
   if (document.fonts?.ready) await document.fonts.ready;
+  const scale = Number.isFinite(Number(requestedScale)) && Number(requestedScale) > 0 ? Number(requestedScale) : 1;
   const canvas = document.createElement("canvas");
-  canvas.width = SOCIAL_EXPORT_WIDTH;
-  canvas.height = SOCIAL_EXPORT_HEIGHT;
-  draw(canvas.getContext("2d"));
+  canvas.width = SOCIAL_EXPORT_WIDTH * scale;
+  canvas.height = SOCIAL_EXPORT_HEIGHT * scale;
+  const context = canvas.getContext("2d");
+  context.setTransform(scale, 0, 0, scale, 0, 0);
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  draw(context);
   return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("تعذر إنشاء PNG.")), "image/png", 1));
 }
 
