@@ -58,7 +58,6 @@ export function normalizeFranklinV3Input(input = {}) {
 
   const latestQuarter = value.latestQuarter || {};
   for (const metric of Object.values(latestQuarter.coreMetrics || {})) {
-    // Core-metric result is canonical/required when the approved metric shape contains it.
     if (metric && Object.hasOwn(metric, "result")) metric.result = canonicalEnum(metric.result, FRANKLIN_V3_METRIC_RESULTS);
   }
   for (const item of list(latestQuarter.companySpecificKpis)) {
@@ -98,7 +97,21 @@ export function normalizeFranklinV3Input(input = {}) {
   if (previous.assessment) previous.assessment.overallStatus = canonicalEnum(previous.assessment.overallStatus, FRANKLIN_V3_REQUIREMENT_OVERALL_STATUSES);
 
   for (const source of list(value.sources)) source.type = canonicalEnum(source.type, FRANKLIN_V3_SOURCE_TYPES);
+  normalizeMarketPriceSourceUsage(value);
   return value;
+}
+
+function normalizeMarketPriceSourceUsage(value) {
+  const sourceId = String(value?.marketPrice?.sourceId || "").trim();
+  if (!sourceId) return;
+  const source = list(value.sources).find((item) => String(item?.id || "").trim() === sourceId);
+  if (!source) return;
+  const usedFor = Array.isArray(source.usedFor)
+    ? source.usedFor.filter((item) => typeof item === "string" && item.trim())
+    : [];
+  if (!usedFor.some((item) => normalizeToken(item) === "marketprice")) {
+    source.usedFor = [...usedFor, "marketPrice"];
+  }
 }
 
 function normalizeOptionalConfidence(target) {
