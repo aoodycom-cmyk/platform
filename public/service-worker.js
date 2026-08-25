@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v11-franklin-v36-20260823-financial-contract-v3-v37-visual-system";
+const CACHE_NAME = "franklin-research-v11-franklin-v36-20260823-financial-contract-v3-v38-owner-presentation";
 const STATIC_ASSETS = [
   "./offline.html",
   "./rescue.html",
@@ -24,6 +24,7 @@ const STATIC_ASSETS = [
   "./src/ui/quarterlyEarningsEntry.js",
   "./src/ui/quarterlyEarningsJsonPromptV2.js",
   "./src/ui/quarterlyScorecardExport.js",
+  "./src/ui/reportPresentationEditor.js",
   "./src/externalAnalysis/schema.js",
   "./src/externalAnalysis/requirements.js",
   "./src/externalAnalysis/historicalRequirements.js",

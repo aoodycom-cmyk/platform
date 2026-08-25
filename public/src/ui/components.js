@@ -174,6 +174,7 @@ function externalReportAppBar(state) {
   const report = getExternalAnalysis(state.externalAnalyses || {}, selection.ticker, selection.reportId);
   const ticker = report?.company?.ticker || selection.ticker || "—";
   const companyName = report?.company?.name || ticker;
+  const logoUrl = report?.presentation?.companyLogoDataUrl || "";
   const updated = report?.reportPeriod || report?.analysisDate || "—";
   const moreLabel = uiLabel("More");
   return `
@@ -191,13 +192,16 @@ function externalReportAppBar(state) {
         </div>
       </details>
       <div class="report-app-identity">
-        <div>
-          <strong dir="auto">${escapeHtml(companyName)}</strong>
-          ${report?.companyProfile
-            ? `<button class="report-profile-link" data-profile-ticker="${escapeHtml(ticker)}" data-profile-report-id="${escapeHtml(report.id || "latest")}"><bdi dir="ltr">${escapeHtml(ticker)}</bdi></button>`
-            : `<span class="report-ticker-pill"><bdi dir="ltr">${escapeHtml(ticker)}</bdi></span>`}
+        ${companyLogoMarkup({ ticker, name: companyName, logoUrl, className: "report-company-logo" })}
+        <div class="report-app-identity-copy">
+          <div>
+            <strong dir="auto">${escapeHtml(companyName)}</strong>
+            ${report?.companyProfile
+              ? `<button class="report-profile-link" data-profile-ticker="${escapeHtml(ticker)}" data-profile-report-id="${escapeHtml(report.id || "latest")}"><bdi dir="ltr">${escapeHtml(ticker)}</bdi></button>`
+              : `<span class="report-ticker-pill"><bdi dir="ltr">${escapeHtml(ticker)}</bdi></span>`}
+          </div>
+          <span>${isArabicUi() ? "آخر تحديث" : "Last update"}: <bdi dir="ltr">${escapeHtml(updated)}</bdi></span>
         </div>
-        <span>${isArabicUi() ? "آخر تحديث" : "Last update"}: <bdi dir="ltr">${escapeHtml(updated)}</bdi></span>
       </div>
     </header>
   `;
@@ -256,7 +260,7 @@ function externalHomeCard(report) {
   return `
     <article class="company-card external-company-card library-company-card terminal-watchlist-row figma-library-row v31-library-stock-row" data-franklin-v2="true" data-external-ticker="${escapeHtml(report.ticker)}" data-external-report-id="${escapeHtml(report.id)}" data-library-card data-search-text="${escapeHtml(`${report.ticker} ${report.companyName}`.toLowerCase())}">
       <div class="library-company-identity">
-        ${companyLogoMarkup({ ticker: report.ticker, name: report.companyName })}
+        ${companyLogoMarkup({ ticker: report.ticker, name: report.companyName, logoUrl: report.companyLogoDataUrl })}
         <div>
           <strong dir="auto">${escapeHtml(report.companyName || uiLabel("Company"))}</strong>
           <span><bdi dir="ltr">${escapeHtml(report.ticker)}</bdi></span>
@@ -264,7 +268,7 @@ function externalHomeCard(report) {
         <em class="${colorClass(recommendationColorCategory(report.verdict), "badge")}">${escapeHtml(localizedExternalText(report.verdict) || "-")}</em>
         ${report.hasCompanyProfile ? `<button class="profile-pill" data-profile-ticker="${escapeHtml(report.ticker)}" data-profile-report-id="${escapeHtml(report.id)}">${uiLabel("Company Profile")}</button>` : ""}
       </div>
-      <div class="v31-library-price-block">
+      <div class="v31-library-price-block ${Number.isFinite(numericValue(report.morningstarFairValue)) ? "has-morningstar" : ""}">
         <div class="v31-current-price">
           <span>${uiLabel("Current Price")}</span>
           <strong dir="ltr">${money(report.currentPrice, 0)}</strong>
@@ -273,6 +277,10 @@ function externalHomeCard(report) {
           <span>${uiLabel("Fair Value")}</span>
           <strong dir="ltr">${money(report.baseFairValue, 0)}</strong>
         </div>
+        ${Number.isFinite(numericValue(report.morningstarFairValue)) ? `<div class="v31-morningstar-line">
+          <span>Morningstar</span>
+          <strong dir="ltr">${money(report.morningstarFairValue, 0)}</strong>
+        </div>` : ""}
         <div class="v31-upside-line">
           <span>${isArabicUi() ? "العائد إلى Base" : "Return to Base"}</span>
           <b class="${colorClass(upsideColorCategory(numericValue(report.upsideToBasePct)), "tone")}" dir="ltr">${formatExternalPercent(report.upsideToBasePct)}</b>
@@ -1935,6 +1943,7 @@ function stockDecisionHeader(report = {}, completion = {}) {
           <em class="${colorClass(upsideColorCategory(numericValue(upside)), "tone")}" dir="ltr">${formatExternalPercent(upside)}</em>
         </div>
         ${Number.isFinite(numericValue(priceAtAnalysis)) ? `<p>${uiLabel("Price at Analysis")}: <bdi dir="ltr">${money(priceAtAnalysis, 0)}</bdi></p>` : ""}
+        ${Number.isFinite(numericValue(report.presentation?.morningstarFairValue)) ? `<p>Morningstar: <bdi dir="ltr">${money(report.presentation.morningstarFairValue, 0)}</bdi></p>` : ""}
       </div>
     </header>
   `;
