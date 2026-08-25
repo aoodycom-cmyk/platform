@@ -9,16 +9,20 @@ import {
 export const SOCIAL_EXPORT_SCALE = 2;
 export const SOCIAL_EXPORT_PIXEL_WIDTH = SOCIAL_EXPORT_WIDTH * SOCIAL_EXPORT_SCALE;
 export const SOCIAL_EXPORT_PIXEL_HEIGHT = SOCIAL_EXPORT_HEIGHT * SOCIAL_EXPORT_SCALE;
+export const SOCIAL_EXPORT_HD_LABEL = `PNG · ${SOCIAL_EXPORT_PIXEL_WIDTH} × ${SOCIAL_EXPORT_PIXEL_HEIGHT} · HD`;
+
+export function updateSocialExportHdLabel(root) {
+  const label = root?.querySelector?.("[data-franklin-social-export-panel] .franklin-social-export-heading small");
+  if (!label || label.textContent === SOCIAL_EXPORT_HD_LABEL) return false;
+  label.textContent = SOCIAL_EXPORT_HD_LABEL;
+  return true;
+}
 
 export function installSocialImageExportQualityPatch(store, root = document.getElementById("app")) {
   if (!store || !root || root.dataset.socialImageQualityPatchInstalled === "true") return;
   root.dataset.socialImageQualityPatchInstalled = "true";
 
-  const hdLabel = `PNG · ${SOCIAL_EXPORT_PIXEL_WIDTH} × ${SOCIAL_EXPORT_PIXEL_HEIGHT} · HD`;
-  const markHiRes = () => {
-    const label = root.querySelector("[data-franklin-social-export-panel] .franklin-social-export-heading small");
-    if (label && label.textContent !== hdLabel) label.textContent = hdLabel;
-  };
+  const markHiRes = () => updateSocialExportHdLabel(root);
   markHiRes();
   const observer = new MutationObserver(markHiRes);
   observer.observe(root, { childList: true, subtree: true });
@@ -57,46 +61,7 @@ export function installSocialImageExportQualityPatch(store, root = document.getE
 }
 
 async function renderAtNativeScale(renderer, report) {
-  const originalCreateElement = document.createElement.bind(document);
-  document.createElement = function patchedCreateElement(tagName, ...args) {
-    const element = originalCreateElement(tagName, ...args);
-    if (String(tagName).toLowerCase() !== "canvas") return element;
-
-    return new Proxy(element, {
-      set(target, property, value) {
-        if (property === "width" && Number(value) === SOCIAL_EXPORT_WIDTH) {
-          target.width = SOCIAL_EXPORT_PIXEL_WIDTH;
-          return true;
-        }
-        if (property === "height" && Number(value) === SOCIAL_EXPORT_HEIGHT) {
-          target.height = SOCIAL_EXPORT_PIXEL_HEIGHT;
-          return true;
-        }
-        return Reflect.set(target, property, value, target);
-      },
-      get(target, property) {
-        if (property === "getContext") {
-          return (...contextArgs) => {
-            const context = target.getContext(...contextArgs);
-            if (contextArgs[0] === "2d" && context) {
-              context.setTransform(SOCIAL_EXPORT_SCALE, 0, 0, SOCIAL_EXPORT_SCALE, 0, 0);
-              context.imageSmoothingEnabled = true;
-              context.imageSmoothingQuality = "high";
-            }
-            return context;
-          };
-        }
-        const value = Reflect.get(target, property, target);
-        return typeof value === "function" ? value.bind(target) : value;
-      }
-    });
-  };
-
-  try {
-    return await renderer(report);
-  } finally {
-    document.createElement = originalCreateElement;
-  }
+  return renderer(report, new Date(), { scale: SOCIAL_EXPORT_SCALE });
 }
 
 async function deliver(blob, fileName, title) {
