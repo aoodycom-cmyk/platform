@@ -41,9 +41,14 @@ assert.equal("companyLogoDataUrl" in cleared.presentation, false);
 assert.equal("morningstarFairValue" in cleared.presentation, false);
 
 const editorSource = await readFile(new URL("../src/ui/reportPresentationEditor.js", import.meta.url), "utf8");
+const mainSource = await readFile(new URL("../src/main.js", import.meta.url), "utf8");
+const indexSource = await readFile(new URL("../index.html", import.meta.url), "utf8");
 assert.match(editorSource, /activePanel === "external-import"/);
 assert.match(editorSource, /بيانات بطاقة الشركة/);
 assert.match(editorSource, /insertAdjacentElement\("afterend", section\)/);
 assert.match(editorSource, /reportNeedsOwnerPresentation/);
+assert.match(mainSource, /reportPresentationEditor\.js\?v=v39-visible-owner-presentation/);
+assert.match(indexSource, /main\.js\?v=v39-visible-owner-presentation/);
+assert.match(indexSource, /styles-visual-system\.css\?v=v39-visible-owner-presentation/);
 
 console.log("report presentation editor tests passed");
