@@ -236,6 +236,7 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
       industry: nullableString(companyInput.industry ?? input.industry),
       currency: nullableString(companyInput.currency ?? input.currency) || "USD"
     },
+    presentation: normalizePresentation(input.presentation),
     companyProfile: normalizeCompanyProfile(input.companyProfile),
     market: {
       userAverageCost: toNullableNumber(marketInput.userAverageCost ?? input.userAverageCost)
@@ -363,6 +364,14 @@ function normalizeFairValueSummary(input = {}) {
     upsideDownsidePercent: firstNumber(canonical.upsideDownsidePercent, legacy.upsideToBasePct, input.upsideToBasePct, executive.upsideDownsidePercent, dashboard.upsideDownsidePercent),
     marginOfSafetyPercent: firstNumber(canonical.marginOfSafetyPercent, legacy.marginOfSafetyPercent, input.marginOfSafetyPercent, executive.marginOfSafetyPercent),
     confidenceLevel: nullableString(canonical.confidenceLevel ?? input.confidenceLevel)
+  };
+}
+
+function normalizePresentation(value = {}) {
+  const input = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  return {
+    companyLogoDataUrl: nullableString(input.companyLogoDataUrl),
+    morningstarFairValue: toNullableNumber(input.morningstarFairValue)
   };
 }
 

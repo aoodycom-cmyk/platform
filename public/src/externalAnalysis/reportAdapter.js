@@ -9,6 +9,8 @@ export function externalAnalysisToHomeCard(report = {}) {
     analysisOrigin: report.analysisOrigin,
     ticker: report.company?.ticker || "",
     companyName: report.company?.name || report.company?.ticker || "",
+    companyLogoDataUrl: report.presentation?.companyLogoDataUrl || "",
+    morningstarFairValue: report.presentation?.morningstarFairValue ?? null,
     analysisDate: report.analysisDate || "",
     reportPeriod: report.reportPeriod || "",
     currentPrice: report.fairValueSummary?.currentPrice ?? null,

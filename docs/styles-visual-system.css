@@ -53,6 +53,193 @@ html[data-theme="dark"] body {
   font-weight: 700 !important;
 }
 
+/* Owner-entered company presentation data */
+.v31-library-stock-row .library-company-identity .company-logo.has-image {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  padding: 5px;
+  border-color: rgba(255, 255, 255, 0.16);
+  border-radius: 13px;
+  background: #f7f8fa;
+}
+
+.v31-library-stock-row .library-company-identity .company-logo.has-image img,
+.report-company-logo.has-image img {
+  padding: 0;
+}
+
+.v31-library-price-block.has-morningstar {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.v31-morningstar-line {
+  min-width: 0;
+  padding: 10px 7px 0;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 5px;
+  border-inline-end: 1px solid var(--line-soft);
+  direction: rtl;
+}
+
+.v31-morningstar-line span {
+  color: var(--dim);
+  font-size: 9px;
+  line-height: 1.2;
+}
+
+.v31-morningstar-line strong {
+  color: #ef4444;
+  font-size: 17px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.v31-report-app-bar .report-app-identity {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.v31-report-app-bar .report-company-logo {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 12px;
+}
+
+.v31-report-app-bar .report-company-logo.has-image {
+  padding: 5px;
+  background: #f7f8fa;
+}
+
+.v31-report-app-bar .report-app-identity > .report-app-identity-copy {
+  min-width: 0;
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+}
+
+.v31-report-app-bar .report-app-identity > .report-app-identity-copy > div {
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.v31-report-app-bar .report-app-identity > .report-app-identity-copy > div > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.v31-report-app-bar .report-app-identity > .report-app-identity-copy > span {
+  color: var(--dim);
+  font-size: 10px;
+}
+
+.owner-presentation-editor {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-1);
+}
+
+.owner-presentation-editor summary {
+  min-height: 48px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.owner-presentation-editor summary small {
+  color: var(--teal);
+  font-size: 10px;
+}
+
+.owner-presentation-grid {
+  padding: 0 12px 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.owner-presentation-grid > label {
+  display: grid;
+  gap: 6px;
+  color: var(--dim);
+  font-size: 11px;
+}
+
+.owner-presentation-grid input[type="number"] {
+  min-height: 44px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.owner-logo-control {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.owner-logo-preview {
+  width: 58px;
+  height: 58px;
+  padding: 6px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #f7f8fa;
+  color: #0f766e;
+  font-weight: 800;
+}
+
+.owner-logo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.owner-logo-control label {
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+.owner-logo-control input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+}
+
+.owner-logo-control button {
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 10px;
+  background: transparent;
+  color: #f87171;
+}
+
 .library-hero h1,
 .panel-heading h2,
 .external-import-hero h2,

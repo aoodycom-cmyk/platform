@@ -41,7 +41,10 @@ export function installSocialImageExportQualityPatch(store, root = document.getE
       const renderer = button.dataset.socialImageExport === "investment"
         ? renderInvestmentInfographicPng
         : renderEarningsTrackerPng;
-      const blob = await renderAtNativeScale(renderer, report);
+      let blob = await renderAtNativeScale(renderer, report);
+      if (report.presentation?.companyLogoDataUrl) {
+        blob = await overlayCompanyLogo(blob, report.presentation.companyLogoDataUrl);
+      }
       const ticker = filePart(report?.company?.ticker || report?.metadata?.franklinV3Report?.reportIdentity?.ticker || "franklin");
       const suffix = button.dataset.socialImageExport === "investment" ? "investment-infographic" : "earnings-tracker";
       await deliver(blob, `franklin-${ticker}-${suffix}-hd.png`, `${ticker.toUpperCase()} — Franklin HD`);
@@ -54,6 +57,57 @@ export function installSocialImageExportQualityPatch(store, root = document.getE
       markHiRes();
     }
   }, { capture: true });
+}
+
+async function overlayCompanyLogo(blob, logoUrl) {
+  const sourceUrl = URL.createObjectURL(blob);
+  try {
+    const [base, logo] = await Promise.all([loadImage(sourceUrl), loadImage(logoUrl)]);
+    const canvas = document.createElement("canvas");
+    canvas.width = SOCIAL_EXPORT_PIXEL_WIDTH;
+    canvas.height = SOCIAL_EXPORT_PIXEL_HEIGHT;
+    const context = canvas.getContext("2d");
+    context.drawImage(base, 0, 0, canvas.width, canvas.height);
+
+    const size = 196;
+    const x = canvas.width - size - 72;
+    const y = 72;
+    context.save();
+    roundedRect(context, x, y, size, size, 34);
+    context.clip();
+    context.fillStyle = "#f7f8fa";
+    context.fillRect(x, y, size, size);
+    const padding = 22;
+    const scale = Math.min((size - padding * 2) / logo.naturalWidth, (size - padding * 2) / logo.naturalHeight);
+    const width = logo.naturalWidth * scale;
+    const height = logo.naturalHeight * scale;
+    context.drawImage(logo, x + (size - width) / 2, y + (size - height) / 2, width, height);
+    context.restore();
+    return await canvasBlob(canvas);
+  } finally {
+    URL.revokeObjectURL(sourceUrl);
+  }
+}
+
+function loadImage(source) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("تعذر تحميل شعار الشركة داخل صورة التقرير."));
+    image.src = source;
+  });
+}
+
+function roundedRect(context, x, y, width, height, radius) {
+  context.beginPath();
+  context.roundRect(x, y, width, height, radius);
+}
+
+function canvasBlob(canvas) {
+  return new Promise((resolve, reject) => canvas.toBlob(
+    (blob) => blob ? resolve(blob) : reject(new Error("تعذر إنشاء صورة التقرير.")),
+    "image/png"
+  ));
 }
 
 async function renderAtNativeScale(renderer, report) {
