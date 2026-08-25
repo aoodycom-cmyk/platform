@@ -1,0 +1,315 @@
+/* Franklin mobile visual system — presentation only.
+   Removing this stylesheet restores the previous visual treatment. */
+
+:root {
+  --ui-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+  --ui-bg: #080a0f;
+  --ui-surface: #0e1118;
+  --ui-surface-raised: #121620;
+  --ui-line: #242a36;
+  --ui-line-soft: rgba(148, 163, 184, 0.12);
+  --ui-text: #f2f4f7;
+  --ui-text-soft: #c5cad3;
+  --ui-muted: #8e96a5;
+  --ui-dim: #697181;
+  --ui-accent: #38cdbb;
+  --ui-radius-control: 10px;
+  --ui-radius-card: 12px;
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-5: 24px;
+  --ui-space-6: 32px;
+  --ui-text-xs: 11px;
+  --ui-text-sm: 12px;
+  --ui-text-body: 14px;
+  --ui-text-card: 15px;
+  --ui-text-section: 18px;
+  --ui-text-page: 22px;
+}
+
+html,
+body,
+button,
+input,
+textarea,
+select,
+summary,
+:where(bdi, [dir="ltr"], .library-target-snapshot, .decision-primary-values, .valuation-range-values) {
+  font-family: var(--ui-font) !important;
+}
+
+html[data-theme="dark"] body {
+  background: var(--ui-bg) !important;
+  color: var(--ui-text);
+}
+
+/* A restrained type scale. */
+.mobile-brand strong,
+.report-app-identity strong {
+  font-size: 16px !important;
+  line-height: 1.35 !important;
+  font-weight: 700 !important;
+}
+
+.library-hero h1,
+.panel-heading h2,
+.external-import-hero h2,
+.history-heading h2 {
+  font-size: var(--ui-text-page) !important;
+  line-height: 1.45 !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+}
+
+.stock-report-section > header h3,
+.m2-report-section > header h3,
+.v31-report-block > h3,
+.v31-company-assessment > h3,
+.franklin-social-export-heading strong {
+  font-size: var(--ui-text-section) !important;
+  line-height: 1.5 !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+}
+
+.library-card-top strong,
+.v31-assessment-card > header > div:first-child strong {
+  font-size: var(--ui-text-card) !important;
+  line-height: 1.45 !important;
+  font-weight: 650 !important;
+  letter-spacing: 0 !important;
+}
+
+.stock-report-section p,
+.stock-report-section li,
+.m2-report-section p,
+.investment-summary-workspace > p,
+.franklin-social-export-actions button span {
+  font-size: var(--ui-text-body) !important;
+  line-height: 1.75 !important;
+  font-weight: 400 !important;
+}
+
+.stock-report-section small,
+.stock-report-section header span,
+.v31-report-block > h3 span,
+.v31-range-values span,
+.v31-assessment-card span,
+.franklin-social-export-heading small,
+.franklin-social-export-heading span {
+  color: var(--ui-muted) !important;
+  font-size: var(--ui-text-xs) !important;
+  line-height: 1.5 !important;
+  font-weight: 450 !important;
+}
+
+/* Remove the generated-card look: one surface, one border, no glow. */
+html[data-theme="dark"] .library-company-card,
+.figma-decision-card,
+.terminal-stock-header.figma-decision-card,
+.v31-stock-decision,
+.v31-valuation-range-card,
+.v31-assessment-card,
+.stock-report-section,
+.m2-report-section,
+.franklin-social-export-panel,
+.external-report-actions {
+  border: 1px solid var(--ui-line) !important;
+  border-radius: var(--ui-radius-card) !important;
+  background: var(--ui-surface) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .library-company-card::before,
+html[data-theme="dark"] .library-summary-card::before {
+  display: none !important;
+}
+
+html[data-theme="dark"] .library-company-card:hover {
+  transform: none !important;
+  border-color: var(--ui-line) !important;
+  box-shadow: none !important;
+}
+
+/* Consistent card rhythm. */
+.external-report-shell.stock-decision-workspace,
+.m2-report-shell,
+.stock-decision-flow {
+  gap: var(--ui-space-4) !important;
+}
+
+.stock-report-section > header,
+html[data-theme="dark"] .stock-report-section > header {
+  min-height: 0 !important;
+  padding: var(--ui-space-4) var(--ui-space-4) var(--ui-space-2) !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.stock-report-section > div,
+html[data-theme="dark"] .stock-report-section > div {
+  padding: var(--ui-space-2) var(--ui-space-4) var(--ui-space-4) !important;
+}
+
+.figma-decision-card,
+.terminal-stock-header.figma-decision-card,
+.v31-stock-decision,
+.v31-valuation-range-card,
+.v31-assessment-card {
+  padding: var(--ui-space-4) !important;
+  gap: var(--ui-space-3) !important;
+}
+
+.investment-opportunity-section {
+  margin-block: var(--ui-space-2) !important;
+}
+
+.investment-opportunity-section > header {
+  padding: 0 2px var(--ui-space-2) !important;
+}
+
+.investment-opportunity-section > div {
+  padding: var(--ui-space-4) !important;
+  border: 1px solid var(--ui-line) !important;
+  border-radius: var(--ui-radius-card) !important;
+  background: var(--ui-surface) !important;
+}
+
+/* Financial values remain prominent without oversized typography. */
+.decision-base-value > strong {
+  font-size: 32px !important;
+  line-height: 1.05 !important;
+  font-weight: 700 !important;
+}
+
+.decision-current-value > strong {
+  font-size: 26px !important;
+  line-height: 1.1 !important;
+  font-weight: 700 !important;
+}
+
+.valuation-range-values .stock-summary-metric strong {
+  font-size: 18px !important;
+  font-weight: 650 !important;
+}
+
+.v31-range-values strong {
+  font-size: 15px !important;
+  font-weight: 650 !important;
+}
+
+/* Fix the library's conflicting 10px/18px metric label rules. */
+html[data-theme="dark"] .compact-card-metric span,
+.compact-card-metric span {
+  color: var(--ui-muted) !important;
+  font-size: var(--ui-text-xs) !important;
+  line-height: 1.45 !important;
+  font-weight: 500 !important;
+}
+
+.compact-card-metric strong {
+  font-size: 17px !important;
+  line-height: 1.3 !important;
+  font-weight: 650 !important;
+}
+
+html[data-theme="dark"] .library-company-card {
+  padding: var(--ui-space-4) !important;
+  gap: var(--ui-space-3) !important;
+}
+
+html[data-theme="dark"] .library-card-metrics .compact-card-metric,
+html[data-theme="dark"] .library-card-metrics .compact-card-metric:nth-child(1),
+html[data-theme="dark"] .library-card-metrics .compact-card-metric:nth-child(2) {
+  min-height: 64px !important;
+  padding: var(--ui-space-3) !important;
+  border-color: var(--ui-line-soft) !important;
+  border-radius: var(--ui-radius-control) !important;
+  background: var(--ui-surface-raised) !important;
+}
+
+/* Calm controls and reserve accent for state/action. */
+.primary-btn,
+.compact-primary,
+html[data-theme="dark"] .primary-btn,
+html[data-theme="dark"] .compact-primary,
+.franklin-social-export-actions button {
+  min-height: 46px !important;
+  border-radius: var(--ui-radius-control) !important;
+  box-shadow: none !important;
+  font-weight: 650 !important;
+}
+
+html[data-theme="dark"] .primary-btn,
+html[data-theme="dark"] .compact-primary {
+  border-color: transparent !important;
+  background: var(--ui-accent) !important;
+  background-image: none !important;
+  color: #07110f !important;
+}
+
+.icon-btn,
+.profile-pill,
+.ticker-profile-button,
+html[data-theme="dark"] .icon-btn,
+html[data-theme="dark"] .profile-pill,
+html[data-theme="dark"] .ticker-profile-button {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: var(--ui-radius-control) !important;
+  border-color: var(--ui-line) !important;
+  background: var(--ui-surface-raised) !important;
+  box-shadow: none !important;
+}
+
+.franklin-social-export-panel {
+  padding: var(--ui-space-4) !important;
+}
+
+.franklin-social-export-actions {
+  gap: var(--ui-space-2) !important;
+}
+
+.franklin-social-export-actions button {
+  padding: var(--ui-space-3) !important;
+  border: 1px solid var(--ui-line) !important;
+  background: var(--ui-surface-raised) !important;
+  color: var(--ui-text) !important;
+}
+
+/* Bottom navigation uses the same typography and geometry as the content. */
+.mobile-nav:not(.quarterly-scorecard-nav) {
+  min-height: 70px !important;
+  border-top: 1px solid var(--ui-line) !important;
+  background: rgba(10, 13, 19, 0.96) !important;
+  box-shadow: none !important;
+}
+
+.mobile-nav:not(.quarterly-scorecard-nav) button {
+  min-height: 52px !important;
+  border-radius: var(--ui-radius-control) !important;
+  color: var(--ui-muted) !important;
+  font-size: var(--ui-text-xs) !important;
+  font-weight: 500 !important;
+}
+
+.mobile-nav:not(.quarterly-scorecard-nav) button b {
+  font-family: var(--ui-font) !important;
+  font-size: 17px !important;
+  font-weight: 500 !important;
+}
+
+.mobile-nav:not(.quarterly-scorecard-nav) button.active {
+  background: rgba(56, 205, 187, 0.09) !important;
+  color: var(--ui-accent) !important;
+}
+
+@media (max-width: 374px) {
+  :root {
+    --ui-text-page: 21px;
+    --ui-text-section: 17px;
+  }
+}
