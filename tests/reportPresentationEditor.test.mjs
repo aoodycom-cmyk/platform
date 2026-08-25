@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { externalAnalysisToHomeCard } from "../src/externalAnalysis/reportAdapter.js";
 import { normalizeExternalAnalysisReport } from "../src/externalAnalysis/schema.js";
 import { withCurrentPrice, withPresentation } from "../src/ui/reportPresentationEditor.js";
@@ -38,5 +39,11 @@ assert.equal(card.currentPrice, 120);
 const cleared = withPresentation(presented, { companyLogoDataUrl: null, morningstarFairValue: null });
 assert.equal("companyLogoDataUrl" in cleared.presentation, false);
 assert.equal("morningstarFairValue" in cleared.presentation, false);
+
+const editorSource = await readFile(new URL("../src/ui/reportPresentationEditor.js", import.meta.url), "utf8");
+assert.match(editorSource, /activePanel === "external-import"/);
+assert.match(editorSource, /بيانات بطاقة الشركة/);
+assert.match(editorSource, /insertAdjacentElement\("afterend", section\)/);
+assert.match(editorSource, /reportNeedsOwnerPresentation/);
 
 console.log("report presentation editor tests passed");

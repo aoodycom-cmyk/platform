@@ -164,6 +164,29 @@ html[data-theme="dark"] body {
   font-size: 10px;
 }
 
+.owner-import-presentation-editor {
+  margin-block: 12px;
+  border-color: rgba(45, 212, 191, 0.38);
+}
+
+.owner-presentation-visible-head {
+  min-height: 52px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.owner-presentation-visible-head strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.owner-presentation-visible-head small {
+  color: var(--teal);
+  font-size: 10px;
+}
+
 .owner-presentation-grid {
   padding: 0 12px 12px;
   display: grid;

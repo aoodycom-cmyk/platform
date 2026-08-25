@@ -18,6 +18,10 @@ export function installReportPresentationEditor(store, root = document.getElemen
     }
     try {
       const dataUrl = await resizeLogo(file);
+      if (store.state.activePanel === "external-import") {
+        updateExternalImportPresentation(store, { companyLogoDataUrl: dataUrl });
+        return setNotice(store, "تم تجهيز الشعار وسيُحفظ مع التحليل.");
+      }
       updateReports(store, (report, selected) => selected || sameTicker(store, report)
         ? withPresentation(report, { companyLogoDataUrl: dataUrl })
         : report);
@@ -33,6 +37,10 @@ export function installReportPresentationEditor(store, root = document.getElemen
     if (!save && !removeLogo) return;
 
     if (removeLogo) {
+      if (store.state.activePanel === "external-import") {
+        updateExternalImportPresentation(store, { companyLogoDataUrl: null });
+        return setNotice(store, "تم حذف الشعار من التحليل الجاري.");
+      }
       updateReports(store, (report, selected) => selected || sameTicker(store, report)
         ? withPresentation(report, { companyLogoDataUrl: null })
         : report);
@@ -46,6 +54,14 @@ export function installReportPresentationEditor(store, root = document.getElemen
     const morningstar = optionalPositiveNumber(morningstarInput?.value);
     if (priceInput?.value.trim() && price === null) return setNotice(store, "السعر الحالي يجب أن يكون رقمًا موجبًا.");
     if (morningstarInput?.value.trim() && morningstar === null) return setNotice(store, "قيمة Morningstar يجب أن تكون رقمًا موجبًا.");
+
+    if (store.state.activePanel === "external-import") {
+      updateExternalImportPresentation(store, {
+        currentPrice: price,
+        morningstarFairValue: morningstar
+      });
+      return setNotice(store, "تم تجهيز السعر الحالي وقيمة Morningstar للحفظ مع التحليل.");
+    }
 
     updateReports(store, (report, selected) => {
       if (!selected) return report;
@@ -84,6 +100,7 @@ export function withPresentation(report = {}, patch = {}) {
 
 function mountEditor(store, root) {
   root.querySelector("[data-owner-presentation-editor]")?.remove();
+  if (store.state.activePanel === "external-import") return mountImportEditor(store, root);
   if (store.state.activePanel !== "external-report") return;
   const report = selectedReport(store);
   const shell = root.querySelector(".external-report-shell");
@@ -94,7 +111,7 @@ function mountEditor(store, root) {
   section.className = "owner-presentation-editor";
   section.dataset.ownerPresentationEditor = "true";
   section.innerHTML = `
-    <details>
+    <details open>
       <summary><span>تخصيص عرض الشركة</span><small>خاص بالمالك</small></summary>
       <div class="owner-presentation-grid">
         <div class="owner-logo-control">
@@ -108,6 +125,69 @@ function mountEditor(store, root) {
       </div>
     </details>`;
   shell.prepend(section);
+}
+
+function mountImportEditor(store, root) {
+  const panel = root.querySelector(".external-import-panel");
+  const anchor = panel?.querySelector(".external-import-context");
+  if (!panel || !anchor) return;
+  const draft = store.state.externalImport?.draftReport;
+  const owner = store.state.externalImport?.ownerPresentation || {};
+  if (draft && reportNeedsOwnerPresentation(draft, owner)) {
+    updateExternalImportPresentation(store, {});
+    return;
+  }
+  const logo = owner.companyLogoDataUrl ?? draft?.presentation?.companyLogoDataUrl;
+  const currentPrice = owner.currentPrice ?? draft?.fairValueSummary?.currentPrice;
+  const morningstar = owner.morningstarFairValue ?? draft?.presentation?.morningstarFairValue;
+  const section = document.createElement("section");
+  section.className = "owner-presentation-editor owner-import-presentation-editor";
+  section.dataset.ownerPresentationEditor = "true";
+  section.innerHTML = `
+    <div class="owner-presentation-visible-head">
+      <strong>بيانات بطاقة الشركة</strong>
+      <small>تُدخلها أنت يدويًا</small>
+    </div>
+    <div class="owner-presentation-grid">
+      <div class="owner-logo-control">
+        <span class="owner-logo-preview">${logo ? `<img src="${escapeHtml(logo)}" alt="">` : escapeHtml(String(draft?.company?.ticker || store.state.externalImport?.tickerHint || "LOGO").slice(0, 4))}</span>
+        <label>إضافة شعار الشركة<input type="file" accept="image/png,image/jpeg,image/webp" data-owner-logo-input></label>
+        ${logo ? `<button type="button" data-owner-logo-remove>حذف</button>` : ""}
+      </div>
+      <label><span>السعر الحالي القابل للتعديل</span><input type="number" min="0.0001" step="0.01" inputmode="decimal" data-owner-current-price value="${fieldValue(currentPrice)}" placeholder="مثال: 124"></label>
+      <label><span>سعر Morningstar اليدوي</span><input type="number" min="0.0001" step="0.01" inputmode="decimal" data-owner-morningstar-value value="${fieldValue(morningstar)}" placeholder="مثال: 150"></label>
+      <button type="button" class="primary-btn" data-owner-presentation-save>تثبيت بيانات البطاقة</button>
+    </div>`;
+  anchor.insertAdjacentElement("afterend", section);
+}
+
+function updateExternalImportPresentation(store, patch) {
+  const externalImport = store.state.externalImport || {};
+  const current = externalImport.ownerPresentation || {};
+  const ownerPresentation = { ...current, ...patch };
+  if (patch.companyLogoDataUrl === null) delete ownerPresentation.companyLogoDataUrl;
+  if (patch.morningstarFairValue === null) delete ownerPresentation.morningstarFairValue;
+  if (patch.currentPrice === null) delete ownerPresentation.currentPrice;
+  let draftReport = externalImport.draftReport;
+  if (draftReport) draftReport = applyOwnerPresentationToReport(draftReport, ownerPresentation);
+  store.set({ externalImport: { ...externalImport, ownerPresentation, draftReport } });
+}
+
+function applyOwnerPresentationToReport(report, owner) {
+  let next = report;
+  const presentationPatch = {};
+  if (Object.hasOwn(owner, "companyLogoDataUrl")) presentationPatch.companyLogoDataUrl = owner.companyLogoDataUrl;
+  if (Object.hasOwn(owner, "morningstarFairValue")) presentationPatch.morningstarFairValue = owner.morningstarFairValue;
+  if (Object.keys(presentationPatch).length) next = withPresentation(next, presentationPatch);
+  if (owner.currentPrice) next = withCurrentPrice(next, owner.currentPrice);
+  return next;
+}
+
+function reportNeedsOwnerPresentation(report, owner) {
+  if (Object.hasOwn(owner, "companyLogoDataUrl") && report.presentation?.companyLogoDataUrl !== owner.companyLogoDataUrl) return true;
+  if (Object.hasOwn(owner, "morningstarFairValue") && Number(report.presentation?.morningstarFairValue) !== Number(owner.morningstarFairValue)) return true;
+  if (owner.currentPrice && Number(report.fairValueSummary?.currentPrice) !== Number(owner.currentPrice)) return true;
+  return false;
 }
 
 function updateReports(store, updater) {
