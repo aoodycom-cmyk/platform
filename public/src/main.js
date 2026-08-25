@@ -29,12 +29,9 @@ async function bootFranklin() {
 
   try {
     const store = createStore();
-
-    // Internal UI helpers can reuse the single live store without creating a second app state.
     window.__equityResearchStore = store;
     mountApp(root, store);
     signalBootReady(root);
-
     await installOptionalRuntime(store, cloud, auditBootstrapError);
   } catch (error) {
     recordBootIssue("core-boot", error);
@@ -45,8 +42,6 @@ async function bootFranklin() {
 function restorePreviousAuditState() {
   const hasAuditToken = /(?:^#|&)audit=/.test(String(window.location.hash || ""));
   try {
-    // Audit snapshots temporarily seed only the viewer's browser state. The original
-    // state is restored automatically after the audit fragment is removed.
     if (!hasAuditToken && sessionStorage.getItem(AUDIT_PREVIOUS_STATE_KEY) !== null) {
       const previous = sessionStorage.getItem(AUDIT_PREVIOUS_STATE_KEY);
       if (previous === "__FRANKLIN_NONE__") localStorage.removeItem(APP_STATE_KEY);
@@ -65,7 +60,8 @@ async function installOptionalRuntime(store, cloud, auditBootstrapError) {
     loadOptional("./ui/quarterlyScorecardMobileFigma.js", "Quarterly scorecard mobile UI"),
     loadOptional("./ui/quarterlyEarningsEntry.js", "Quarterly earnings entry"),
     loadOptional("./ui/quarterlyEarningsJsonPromptV2.js", "Quarterly JSON prompt"),
-    loadOptional("./ui/socialImageExport.js", "Social image export")
+    loadOptional("./ui/socialImageExport.js", "Social image export"),
+    loadOptional("./ui/socialImageExportQualityPatch.js", "Social image export HD quality")
   ]);
 
   await installFinancialGuards(store);
@@ -115,11 +111,7 @@ async function installQuarterlyResolver(store) {
     const selectedTicker = String(selection.ticker || state.earningsUpdate?.ticker || "").trim().toUpperCase();
     const incomingTicker = String(payload?.ticker || "").trim().toUpperCase();
     if (!selectedTicker || (incomingTicker && incomingTicker !== selectedTicker)) return null;
-    return storage.getExternalAnalysis(
-      state.externalAnalyses,
-      selectedTicker,
-      selection.reportId || state.earningsUpdate?.reportId || "latest"
-    );
+    return storage.getExternalAnalysis(state.externalAnalyses, selectedTicker, selection.reportId || state.earningsUpdate?.reportId || "latest");
   });
 }
 
@@ -140,12 +132,8 @@ async function installPwaRuntime(store) {
 }
 
 async function loadOptional(path, label) {
-  try {
-    return await import(path);
-  } catch (error) {
-    recordBootIssue(label, error);
-    return {};
-  }
+  try { return await import(path); }
+  catch (error) { recordBootIssue(label, error); return {}; }
 }
 
 function signalBootReady(rootElement) {
@@ -159,11 +147,7 @@ function signalBootReady(rootElement) {
 
 function recordBootIssue(type, error) {
   if (!Array.isArray(window.__FRANKLIN_BOOT_EVENTS)) window.__FRANKLIN_BOOT_EVENTS = [];
-  window.__FRANKLIN_BOOT_EVENTS.push({
-    type,
-    detail: String(error?.message || error || "Unknown boot issue").slice(0, 260),
-    at: new Date().toISOString()
-  });
+  window.__FRANKLIN_BOOT_EVENTS.push({ type, detail: String(error?.message || error || "Unknown boot issue").slice(0, 260), at: new Date().toISOString() });
 }
 
 function showBootFailure(error) {
@@ -194,47 +178,13 @@ function showBootFailure(error) {
           </section>
         </div>
       </section>
-    </main>
-  `;
+    </main>`;
   root.querySelector("[data-action='retry-safe-boot']")?.addEventListener("click", () => window.location.reload());
   root.querySelector("[data-action='export-raw-state']")?.addEventListener("click", () => exportRawState(raw, diagnosticId));
 }
 
-function safeRawState() {
-  try {
-    return localStorage.getItem(APP_STATE_KEY) || "";
-  } catch {
-    return "";
-  }
-}
-
-function safeSummary(raw) {
-  try {
-    return summarizeFranklinState(migrateFranklinState(JSON.parse(raw || "{}")).state);
-  } catch {
-    return { tickerCount: 0, reportCount: 0, historicalRequirementSetCount: 0 };
-  }
-}
-
-function metric(label, value) {
-  return `<div class="settings-status"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`;
-}
-
-function exportRawState(raw, diagnosticId) {
-  const blob = new Blob([raw || "{}"], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `${diagnosticId}-raw-state.json`;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+function safeRawState() { try { return localStorage.getItem(APP_STATE_KEY) || ""; } catch { return ""; } }
+function safeSummary(raw) { try { return summarizeFranklinState(migrateFranklinState(JSON.parse(raw || "{}")).state); } catch { return { tickerCount: 0, reportCount: 0, historicalRequirementSetCount: 0 }; } }
+function metric(label, value) { return `<div class="settings-status"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`; }
+function exportRawState(raw, diagnosticId) { const blob = new Blob([raw || "{}"], { type: "application/json" }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `${diagnosticId}-raw-state.json`; link.click(); URL.revokeObjectURL(url); }
+function escapeHtml(value) { return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;"); }
