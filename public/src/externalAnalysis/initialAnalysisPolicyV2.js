@@ -30,6 +30,7 @@ export function buildInitialAnalysisPrompt(options = {}) {
     "valuation.reviewStatus: استخدم INITIAL فقط في التحليل الأولي. thesis.status: استخدم INITIAL فقط في التحليل الأولي.",
     "valuationResults[].role: استخدم PRIMARY أو SECONDARY أو CROSS_CHECK فقط.",
     "marketPrice.priceType: استخدم LIVE أو DELAYED أو LAST_CLOSE فقط.",
+    "إذا كان marketPrice.sourceId يشير إلى مصدر داخل sources، يجب أن تتضمن sources[].usedFor لذلك المصدر القيمة الحرفية marketPrice.",
     "nextRequirements.mode: استخدم ADVANCE_TARGET أو DEFEND_BASE أو RECOVERY فقط.",
     "nextRequirements.targetScenario: استخدم BULL أو INTERMEDIATE أو BASE_DEFENSE أو RECOVERY فقط، ويجب أن يتوافق مع mode.",
     "nextRequirements.requirements[].type: استخدم minimum أو maximum أو range أو qualitative فقط.",
