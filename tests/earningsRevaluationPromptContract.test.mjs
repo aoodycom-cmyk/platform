@@ -31,7 +31,7 @@ const previousReport = {
 };
 
 const prompt = buildNewEarningsAnalysisPrompt(previousReport, { quarter: 2, year: 2026 });
-assert.equal(FRANKLIN_EARNINGS_PROMPT_VERSION, "franklin-earnings-revaluation-prompt/v1");
+assert.equal(FRANKLIN_EARNINGS_PROMPT_VERSION, "franklin-earnings-revaluation-prompt/v2");
 assert.ok(prompt.includes("FRANKLIN_EARNINGS_REVALUATION"));
 assert.ok(prompt.includes("franklin-fair-value/v3"));
 assert.ok(prompt.includes("fair-value-methodology/v2"));
@@ -61,12 +61,16 @@ assert.ok(prompt.includes("valuationBridge"));
 assert.ok(prompt.includes("yearlyForecast"));
 assert.ok(prompt.includes("Return exactly one fenced JSON code block"));
 assert.ok(prompt.includes("JSON.parse()"));
+assert.ok(prompt.includes("MARKET PRICE GATE"));
+assert.ok(prompt.includes("GAAP/non-GAAP"));
+assert.ok(prompt.includes("عدد الأسهم المخفف"));
+assert.ok(prompt.includes("عناصر القالب الوهمية"));
 assert.equal(/OPENAI_API|fetch\(/i.test(prompt), false);
 
 const marker = "نفّذ الطلب التالي كاملًا ثم أخرج عقد V3 فقط:";
 const requestText = prompt.slice(prompt.indexOf(marker) + marker.length).trim();
 const request = JSON.parse(requestText);
-assert.equal(request.promptVersion, "franklin-earnings-revaluation-prompt/v1");
+assert.equal(request.promptVersion, "franklin-earnings-revaluation-prompt/v2");
 assert.equal(request.requestType, "FRANKLIN_EARNINGS_REVALUATION");
 assert.equal(request.periodLock.selectedPeriod, "Q2 2026");
 assert.equal(request.periodLock.fiscalQuarter, "Q2");
@@ -98,6 +102,10 @@ assert.match(request.revaluationScope.nextRequirementsBaselinePolicy.alreadyClea
 assert.ok(request.outputContract.rules.some((item) => item.includes("baselineValue/baselineDisplay")));
 assert.ok(request.outputContract.rules.some((item) => item.includes("ADVANCE_TARGET") && item.includes("مستوفى مسبقًا")));
 assert.ok(request.revaluationScope.provenance.some((item) => item.includes("مصادر")));
+assert.ok(request.revaluationScope.frozenRequirementsEvaluation.some((item) => item.includes("minimum")));
+assert.ok(request.outputContract.rules.some((item) => item.includes("marketPrice.value")));
+assert.ok(request.completionChecklist.some((item) => item.includes("marketPrice")));
+assert.match(request.outputContract.canonicalValueRules.metricResult, /BEAT/);
 
 assert.ok(prompt.length < 40000, `Earnings revaluation prompt is unexpectedly large: ${prompt.length} chars.`);
 console.log(`Earnings revaluation prompt contract: PASS (${prompt.length} chars)`);

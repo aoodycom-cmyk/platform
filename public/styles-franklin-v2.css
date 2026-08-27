@@ -1,0 +1,77 @@
+:root {
+  --v2-bg: #0a0c12;
+  --v2-surface: #141822;
+  --v2-raised: #1e242f;
+  --v2-line: #293040;
+  --v2-text: #f5f7fa;
+  --v2-muted: #99a2b2;
+  --v2-accent: #2dd1bc;
+  --v2-danger: #f0646b;
+  --v2-warning: #e8b65a;
+}
+
+html, body { background: var(--v2-bg) !important; }
+body, button, input, select, textarea { font-family: "Noto Sans Arabic", "SF Arabic", system-ui, sans-serif !important; }
+.mobile-app-frame { background: var(--v2-bg) !important; }
+.mobile-page-content { padding-bottom: 112px !important; }
+
+.library-card-grid { gap: 12px !important; }
+.v31-library-stock-row,
+.library-company-card.v31-library-stock-row {
+  min-height: 228px !important;
+  padding: 16px !important;
+  gap: 14px !important;
+  grid-template-areas: "identity" "price" "scenarios" !important;
+  border: 1px solid var(--v2-line) !important;
+  border-radius: 12px !important;
+  background: var(--v2-surface) !important;
+}
+.v31-library-stock-row .library-company-identity .company-logo { width: 48px !important; height: 48px !important; border-radius: 12px !important; }
+.v31-library-stock-row .library-company-identity > div > strong { font-size: 16px !important; line-height: 24px !important; }
+.v31-library-stock-row .library-company-identity > div > span { font-size: 12px !important; line-height: 18px !important; color: var(--v2-muted) !important; }
+.v31-library-price-block { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; border-color: var(--v2-line) !important; }
+.v31-current-price, .v31-fair-value-line, .v31-morningstar-line, .v31-upside-line { min-width: 0; padding: 12px 7px 0 !important; display: grid; gap: 5px; }
+.v31-current-price span, .v31-fair-value-line span, .v31-morningstar-line span, .v31-upside-line span { color: var(--v2-muted) !important; font-size: 10px !important; line-height: 16px !important; overflow: hidden; text-overflow: ellipsis; }
+.v31-current-price strong, .v31-fair-value-line strong, .v31-morningstar-line strong, .v31-upside-line b { font-size: 16px !important; line-height: 22px !important; }
+.v31-morningstar-line { border-inline-end: 1px solid var(--v2-line); }
+.v2-library-scenarios { grid-area: scenarios; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; direction: ltr; }
+.v2-library-scenarios > span { min-height: 48px; padding: 7px 9px; display: grid; gap: 2px; border-radius: 9px; background: var(--v2-raised); text-align: center; }
+.v2-library-scenarios small { color: var(--v2-muted); font-size: 10px; line-height: 15px; }
+.v2-library-scenarios b { color: var(--v2-text); font-size: 13px; line-height: 19px; }
+.v2-library-scenarios > span:first-child b { color: var(--v2-danger); }
+.v2-library-scenarios > span:nth-child(2) b { color: var(--v2-warning); }
+.v2-library-scenarios > span:last-child b { color: var(--v2-accent); }
+
+.mobile-nav:not(.quarterly-scorecard-nav) { min-height: 96px !important; padding-bottom: max(10px, env(safe-area-inset-bottom)) !important; background: rgba(10, 12, 18, .98) !important; }
+.mobile-nav:not(.quarterly-scorecard-nav) button { min-height: 58px !important; gap: 4px !important; font-size: 11px !important; line-height: 16px !important; }
+.mobile-nav:not(.quarterly-scorecard-nav) button b { width: 24px; height: 24px; display: block; }
+.mobile-nav:not(.quarterly-scorecard-nav) button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.mobile-nav:not(.quarterly-scorecard-nav) button.active { color: var(--v2-accent) !important; background: transparent !important; }
+
+.v2-strengths-entry { padding: 0 !important; overflow: hidden; }
+.v2-strengths-entry > button { width: 100%; min-height: 82px; padding: 15px 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; border: 1px solid var(--v2-line); border-radius: 12px; background: var(--v2-surface); color: var(--v2-text); text-align: right; }
+.v2-strengths-entry span { display: grid; gap: 4px; }
+.v2-strengths-entry strong { font-size: 17px; line-height: 24px; }
+.v2-strengths-entry small { color: var(--v2-muted); font-size: 12px; line-height: 18px; }
+.v2-strengths-entry b { color: var(--v2-accent); font-size: 13px; }
+.v2-strengths-entry em { color: var(--v2-muted); font-size: 24px; font-style: normal; }
+
+.v2-strengths-page { display: grid; gap: 20px; padding: 4px 0 24px; }
+.v2-page-heading { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 12px; }
+.v2-page-heading button { width: 44px; height: 44px; border: 1px solid var(--v2-line); border-radius: 12px; background: var(--v2-raised); color: var(--v2-text); font-size: 25px; }
+.v2-page-heading p { margin: 0; color: var(--v2-accent); font-size: 11px; line-height: 16px; font-weight: 700; letter-spacing: .06em; }
+.v2-page-heading h1 { margin: 2px 0 0; color: var(--v2-text); font-size: 22px; line-height: 30px; }
+.v2-evidence-group { display: grid; gap: 10px; }
+.v2-evidence-group header { display: flex; align-items: center; justify-content: space-between; }
+.v2-evidence-group h2 { margin: 0; font-size: 17px; line-height: 24px; }
+.v2-evidence-group header span { min-width: 28px; min-height: 28px; display: grid; place-items: center; border-radius: 999px; background: var(--v2-raised); font-size: 12px; }
+.v2-evidence-group .compact-evidence-list, .v2-evidence-group ul { display: grid !important; gap: 8px !important; margin: 0 !important; padding: 0 !important; list-style: none !important; }
+.v2-evidence-group li { min-height: 56px; padding: 12px 14px !important; border: 1px solid var(--v2-line); border-radius: 12px; background: var(--v2-surface); color: var(--v2-text); font-size: 14px; line-height: 22px; }
+.v2-evidence-group.strengths h2, .v2-evidence-group.strengths li::marker { color: var(--v2-accent); }
+.v2-evidence-group.risks h2 { color: var(--v2-danger); }
+
+@media (max-width: 359px) {
+  .v31-library-price-block { grid-template-columns: repeat(2, 1fr) !important; }
+  .v31-morningstar-line { border-top: 1px solid var(--v2-line); }
+  .v31-upside-line { border-top: 1px solid var(--v2-line); }
+}

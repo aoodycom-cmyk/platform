@@ -120,3 +120,42 @@ assert.equal(raw.latestQuarter.forwardOutlook.growthOutlook, "strong growth");
 assert.equal(raw.forecast.yearlyForecast[0].revenue.basis, "management guidance");
 
 console.log("Franklin V3 input normalization regression: PASS");
+
+const marketAliases = normalizeFranklinV3Input({
+  company: { tradingCurrency: "USD" },
+  marketPrice: {
+    currentPrice: "225.50",
+    date: "2026-08-26",
+    type: "closing"
+  },
+  sources: [{ id: "MKT-1", type: "Market Data", usedFor: [] }]
+});
+assert.equal(marketAliases.marketPrice.value, 225.5);
+assert.equal(marketAliases.marketPrice.currency, "USD");
+assert.equal(marketAliases.marketPrice.asOf, "2026-08-26");
+assert.equal(marketAliases.marketPrice.priceType, "LAST_CLOSE");
+assert.equal(marketAliases.marketPrice.sourceId, "MKT-1");
+
+const noGuessing = normalizeFranklinV3Input({
+  company: { tradingCurrency: "USD" },
+  marketPrice: {},
+  sources: [
+    { id: "MKT-1", type: "Market Data" },
+    { id: "MKT-2", type: "Market Data" }
+  ]
+});
+assert.equal(noGuessing.marketPrice.value, undefined, "normalization must not invent a price");
+assert.equal(noGuessing.marketPrice.sourceId, null, "ambiguous market sources must not be guessed");
+
+const nestedMarketAliases = normalizeFranklinV3Input({
+  company: { tradingCurrency: "USD" },
+  marketPrice: null,
+  marketPriceDate: "2026-08-27",
+  valuation: { current: { currentPrice: "181.25" } },
+  sources: [{ id: "PRICE-1", type: "Market Data", usedFor: ["valuation"] }]
+});
+assert.equal(nestedMarketAliases.marketPrice.value, 181.25);
+assert.equal(nestedMarketAliases.marketPrice.currency, "USD");
+assert.equal(nestedMarketAliases.marketPrice.asOf, "2026-08-27");
+assert.equal(nestedMarketAliases.marketPrice.sourceId, "PRICE-1");
+assert.ok(nestedMarketAliases.sources[0].usedFor.includes("marketPrice"));

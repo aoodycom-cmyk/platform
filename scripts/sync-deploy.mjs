@@ -21,6 +21,7 @@ const GENERATED_FILES = [
   "styles-premium.css",
   "styles-v11-mobile-cleanup.css",
   "styles-visual-system.css",
+  "styles-franklin-v2.css",
   "service-worker.js",
   "manifest.webmanifest",
   "offline.html",

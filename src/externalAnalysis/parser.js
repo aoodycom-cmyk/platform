@@ -75,7 +75,10 @@ function assertValidFranklinV3(value, context = {}) {
   if (validation.valid) return;
   const message = validation.errors.slice(0, 6).map((error) => `${error.field}: ${error.message}`).join("\n");
   const error = new Error(`Franklin v3 JSON is not valid.\n${message}`);
-  error.userMessage = `JSON v3 غير صالح:\n${message}`;
+  const marketErrors = validation.errors.filter((item) => String(item.field || "").startsWith("marketPrice."));
+  error.userMessage = marketErrors.length
+    ? `تعذر استيراد التقرير لأن ChatGPT لم يُكمل سعر السوق الموثق. أعد تشغيل برومبت التحليل الأساسي المحدّث؛ فهو يطلب marketPrice.value وcurrency وasOf وpriceType وsourceId ومصدر Market Data مطابقًا. لا تعدّل السعر يدويًا ولا تستخدم رقمًا تقديريًا.`
+    : `JSON v3 غير صالح:\n${message}`;
   error.validation = validation;
   throw error;
 }

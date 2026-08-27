@@ -3,7 +3,7 @@ import { buildFullAnalysisPrompt, FRANKLIN_INITIAL_PROMPT_VERSION } from "../src
 
 const prompt = buildFullAnalysisPrompt({ tickerHint: "NVDA" });
 
-assert.equal(FRANKLIN_INITIAL_PROMPT_VERSION, "franklin-initial-analysis-prompt/v1");
+assert.equal(FRANKLIN_INITIAL_PROMPT_VERSION, "franklin-initial-analysis-prompt/v3");
 assert.ok(prompt.includes("FRANKLIN_INITIAL_ANALYSIS"));
 assert.ok(prompt.includes("franklin-fair-value/v3"));
 assert.ok(prompt.includes("fair-value-methodology/v2"));
@@ -20,13 +20,17 @@ assert.ok(prompt.includes("forecast.yearlyForecast.*.basis"));
 assert.ok(prompt.includes("analyst_assumption"));
 assert.ok(prompt.includes("company.securityUnit"));
 assert.ok(prompt.includes("share أو ADS أو ADR أو unit"));
+assert.ok(prompt.includes("GAAP عن non-GAAP"));
+assert.ok(prompt.includes("Enterprise Value إلى Equity Value"));
+assert.ok(prompt.includes("عدد الأسهم المخفف"));
+assert.ok(prompt.includes("لا تصدر القرار من نسبة upside وحدها"));
 assert.equal(prompt.includes("fairValueSummary.fairValueBase"), false, "Initial prompt must stay on the V3 contract and not leak legacy fairValueSummary paths.");
 
 const firstBrace = prompt.indexOf("{");
 assert.ok(firstBrace > 0, "Prompt must contain one machine-readable request envelope.");
 const request = JSON.parse(prompt.slice(firstBrace));
 
-assert.equal(request.promptVersion, "franklin-initial-analysis-prompt/v1");
+assert.equal(request.promptVersion, "franklin-initial-analysis-prompt/v3");
 assert.equal(request.requestType, "FRANKLIN_INITIAL_ANALYSIS");
 assert.equal(request.ticker, "NVDA");
 assert.equal(request.authority.analyst, "ChatGPT / Fair Value");
@@ -40,6 +44,7 @@ assert.ok(request.analysisScope.fullSceneReading.length >= 5, "Prompt must requi
 assert.ok(request.analysisScope.valuation.some((item) => item.includes("Reverse DCF")));
 assert.ok(request.analysisScope.decision.some((item) => item.includes("nextRequirements")));
 assert.equal(request.researchPolicy.noFabrication, true);
+assert.match(request.researchPolicy.comparability, /GAAP\/non-GAAP/);
 assert.ok(request.researchPolicy.sourcePriority.includes("Investor Relations"));
 assert.ok(request.outputContract.arithmeticChecks.some((item) => item.includes("probabilityWeighted")));
 assert.ok(request.completionChecklist.some((item) => item.includes("المشهد الصناعي")));

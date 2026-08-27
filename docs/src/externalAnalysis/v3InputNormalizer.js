@@ -44,7 +44,7 @@ export function normalizeFranklinV3Input(input = {}) {
 
   if (value.company) value.company.securityUnit = canonicalSecurityUnit(value.company.securityUnit);
   if (value.valuation?.current) value.valuation.current.securityUnit = canonicalSecurityUnit(value.valuation.current.securityUnit);
-  if (value.marketPrice) value.marketPrice.priceType = canonicalEnum(value.marketPrice.priceType, FRANKLIN_V3_MARKET_PRICE_TYPES);
+  normalizeMarketPriceShape(value);
 
   for (const item of list(value.strengths)) {
     normalizeOptionalConfidence(item);
@@ -112,6 +112,86 @@ function normalizeMarketPriceSourceUsage(value) {
   if (!usedFor.some((item) => normalizeToken(item) === "marketprice")) {
     source.usedFor = [...usedFor, "marketPrice"];
   }
+}
+
+function normalizeMarketPriceShape(value) {
+  const rawMarketPrice = value.marketPrice;
+  const existing = rawMarketPrice && typeof rawMarketPrice === "object" ? rawMarketPrice : {};
+  const market = { ...existing };
+  const aliasValue = firstPositiveNumber([
+    existing.value,
+    existing.currentPrice,
+    existing.price,
+    typeof rawMarketPrice !== "object" ? rawMarketPrice : null,
+    value.currentPrice,
+    value.priceAtAnalysis,
+    value.market?.value,
+    value.market?.currentPrice,
+    value.market?.price,
+    value.valuation?.current?.marketPrice,
+    value.valuation?.current?.marketPrice?.value,
+    value.valuation?.current?.currentPrice,
+    value.valuation?.current?.price,
+    value.fairValueSummary?.currentPrice,
+    value.market?.priceAtAnalysis
+  ]);
+  if (!positiveNumber(existing.value) && aliasValue !== null) market.value = aliasValue;
+  if (!market.currency && value.company?.tradingCurrency) market.currency = value.company.tradingCurrency;
+  if (!market.asOf) {
+    market.asOf = existing.date
+      || existing.timestamp
+      || existing.priceDate
+      || value.marketPriceDate
+      || value.priceAsOf
+      || value.market?.asOf
+      || value.valuation?.current?.priceAsOf
+      || null;
+  }
+  if (!market.sourceId) market.sourceId = sourceIdAlias(existing, value.sources);
+  market.priceType = canonicalMarketPriceType(existing.priceType || existing.type || existing.quoteType);
+  value.marketPrice = market;
+}
+
+function canonicalMarketPriceType(value) {
+  const canonical = canonicalEnum(value, FRANKLIN_V3_MARKET_PRICE_TYPES);
+  if (FRANKLIN_V3_MARKET_PRICE_TYPES.includes(canonical)) return canonical;
+  const aliases = {
+    close: "LAST_CLOSE",
+    closing: "LAST_CLOSE",
+    closingprice: "LAST_CLOSE",
+    lastprice: "LAST_CLOSE",
+    previousclose: "LAST_CLOSE",
+    realtime: "LIVE",
+    realtimeprice: "LIVE",
+    current: "LIVE",
+    delayedprice: "DELAYED",
+    fifteenminutedelayed: "DELAYED",
+    delayed15minutes: "DELAYED"
+  };
+  return aliases[normalizeToken(value)] || canonical;
+}
+
+function sourceIdAlias(market = {}, sources = []) {
+  if (typeof market.source === "string" && market.source.trim()) return market.source.trim();
+  if (market.source?.id) return String(market.source.id).trim();
+  const candidates = list(sources).filter((source) => {
+    const usedFor = list(source?.usedFor).map(normalizeToken);
+    return normalizeToken(source?.type) === "marketdata" || usedFor.includes("marketprice");
+  });
+  return candidates.length === 1 && candidates[0]?.id ? String(candidates[0].id).trim() : null;
+}
+
+function firstPositiveNumber(values = []) {
+  for (const value of values) {
+    const number = Number(value);
+    if (Number.isFinite(number) && number > 0) return number;
+  }
+  return null;
+}
+
+function positiveNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0;
 }
 
 function normalizeOptionalConfidence(target) {
