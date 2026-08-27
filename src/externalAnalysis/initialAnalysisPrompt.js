@@ -4,7 +4,7 @@ import {
   FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION
 } from "./v3Contract.js";
 
-export const FRANKLIN_INITIAL_PROMPT_VERSION = "franklin-initial-analysis-prompt/v1";
+export const FRANKLIN_INITIAL_PROMPT_VERSION = "franklin-initial-analysis-prompt/v3";
 
 export function buildInitialAnalysisPrompt(options = {}) {
   const ticker = normalizeTicker(options.tickerHint);
@@ -22,29 +22,39 @@ export function buildInitialAnalysisPrompt(options = {}) {
     analysisScope: {
       companyUnderstanding: [
         "اشرح بوضوح للمستثمر الذكي غير المتخصص ماذا تفعل الشركة وكيف تكسب المال ومن هم العملاء وأهم المنتجات أو الأنشطة.",
-        "اختر KPIs خاصة بهذه الشركة وصناعتها فقط، واشرح لماذا كل KPI مهم."
+        "اشرح المحرك الاقتصادي الحقيقي: ما الذي يرفع الإيراد، وما الذي يحدد الهامش، وما الذي يحتاج رأس مال، وأين توجد قوة التسعير أو الدورية.",
+        "اختر KPIs خاصة بهذه الشركة وصناعتها فقط، واشرح لماذا كل KPI مهم ولا تستبدلها بمؤشرات عامة لا تقيس محرك النشاط."
       ],
       fullSceneReading: [
         "اقرأ آخر النتائج المالية والتوجيهات وتعليقات الإدارة والاتجاه التشغيلي.",
         "حلل النمو والهوامش والربحية وFCF والسيولة والديون وجودة الميزانية وتخصيص رأس المال عندما تكون مادية.",
+        "افحص جودة الأرباح: افصل GAAP عن non-GAAP، وبيّن أثر SBC والبنود غير المتكررة ورأس المال العامل وCapex والاستحواذات عندما تكون مادية.",
+        "افحص عدد الأسهم المخفف والتخفيف المحتمل، وحوّل كل قيمة عادلة إلى أساس share أو ADS أو ADR الصحيح دون خلط.",
         "اقرأ وضع الصناعة والدورة والطلب والتسعير والمنافسة والحصة السوقية والقدرة الإنتاجية أو التوريد عندما تكون مادية.",
         "أدخل أثر الفائدة والعملات والتنظيم والجغرافيا السياسية والاقتصاد الكلي فقط عندما يكون لها أثر مادي على الشركة.",
+        "طبّع الأرباح والهوامش للشركات الدورية، ولا تثبّت ذروة أو قاع دورة داخل التقييم طويل الأجل دون تبرير.",
         "قارن ما يسعره السوق حاليًا مع ما تراه الأدلة والافتراضات، واستخدم Reverse DCF أو مقارنة التوقعات بالسعر عندما يكون ذلك مفيدًا.",
         "حدد نقاط القوة والضعف الحالية، والمخاطر المستقبلية، والمحفزات، وما الذي قد يغيّر الفرضية."
       ],
       forecast: [
         "كوّن توقعًا أماميًا مبنيًا على reported data ثم consensus ثم analyst assumptions مع فصل واضح بينها.",
+        "استخدم أفقًا مناسبًا لطبيعة الشركة، واذكر لكل سنة basis واضحًا؛ لا تمدد Guidance قصير الأجل ميكانيكيًا إلى سنوات بعيدة.",
+        "اربط توقع EPS وFCF بعدد الأسهم المخفف وCapex ورأس المال العامل والضرائب عندما تكون مادية.",
         "لا تخترع رقمًا. استخدم null عند غياب معلومة لا يمكن توثيقها."
       ],
       valuation: [
         "اختر طرق التقييم المناسبة لطبيعة الشركة فقط، ولا تستخدم قالب تقييم ثابت لكل الشركات.",
         "الطرق المتاحة تشمل DCF وReverse DCF وP/E وPEG وEV/EBITDA وEV/EBIT وP/S وEV/Sales وP/FCF وSOTP وDividend Discount Model وPrice to Book وComparable Companies وHistorical Multiples.",
         "اشرح لماذا اخترت كل طريقة ولماذا استبعدت الطرق غير المناسبة.",
+        "عند استخدام EV-based valuation، اعرض الانتقال من Enterprise Value إلى Equity Value باستخدام صافي الدين والبنود غير التشغيلية ثم اقسم على diluted shares؛ لا تخلط EV multiple مع قيمة السهم مباشرة.",
+        "حافظ على اتساق العملة والوحدة والأساس المحاسبي والفترة الزمنية بين المقارنات، ولا تجمع طرقًا غير مستقلة لإعطاء دقة زائفة.",
+        "استخدم الطريقة الأساسية للحكم والطريقة الثانوية كاختبار معقولية، ولا تجعل المتوسط الحسابي يعوّض افتراضات ضعيفة.",
         "أنشئ ثلاثة سيناريوهات فقط: Bear وBase وBull، وحدد احتمالات تجمع 100% وقيمة عادلة لكل سيناريو.",
         "احسب probabilityWeighted من قيم السيناريوهات واحتمالاتها."
       ],
       decision: [
         "أصدر قرارًا واحدًا فقط على مستوى السهم: BUY أو ADD أو HOLD أو WATCH أو REDUCE أو SELL.",
+        "اربط القرار بالسعر الحالي مقابل Base وprobabilityWeighted، وهامش الأمان، وجودة الشركة، ومخاطر الهبوط والثقة؛ لا تصدر القرار من نسبة upside وحدها.",
         "أنشئ فرضية استثمار واضحة، أهم ما يدعمها، أهم ما يهددها، ومحفزات الترقية والتخفيض.",
         "أنشئ 4 إلى 8 nextRequirements موضوعية ومادية للربع القادم، أوزانها تجمع 100% وكل status فيها NOT_REPORTED."
       ]
@@ -52,7 +62,9 @@ export function buildInitialAnalysisPrompt(options = {}) {
     researchPolicy: {
       freshness: "استخدم أحدث معلومات متاحة وقت التحليل.",
       sourcePriority: ["Investor Relations", "SEC", "Earnings Call", "Market Data", "Consensus Data", "Trusted Financial News"],
+      sourceRoles: "استخدم IR/SEC/Earnings Call للبيانات المعلنة، وConsensus Data للتوقعات فقط، وMarket Data للسعر فقط؛ لا تعرض consensus أو خبرًا صحفيًا كإفصاح صادر عن الشركة.",
       provenance: "كل رقم مادي أو ادعاء مهم يجب أن يكون قابلاً للتتبع إلى sourceId موجود في sources عندما يسمح الحقل بذلك.",
+      comparability: "لا تقارن رقمين إلا بعد توحيد الفترة والوحدة والعملة وأساس GAAP/non-GAAP وأساس share/ADS/ADR.",
       evidenceSeparation: "افصل بوضوح بين reportedData وconsensusEstimates وanalystAssumptions؛ لا تعرض التقدير كرقم معلن.",
       noFabrication: true
     },
@@ -64,6 +76,7 @@ export function buildInitialAnalysisPrompt(options = {}) {
       language: "العربية للنصوص، مع إبقاء المصطلحات المالية القياسية بالإنجليزية عند الحاجة",
       missingValue: null,
       forbidden: ["نص قبل JSON", "نص بعد JSON", "تعليقات برمجية", "undefined", "NaN", "Infinity", "trailing commas", "حقول مخترعة خارج العقد"],
+      arrayPolicy: "احذف عناصر القالب الوهمية من arrays؛ استخدم عناصر حقيقية فقط أو [] عندما يسمح العقد، ولا تترك عنصرًا كله null.",
       validatorCompatibility: [
         `schemaVersion يجب أن يكون ${FRANKLIN_FAIR_VALUE_SCHEMA_VERSION}`,
         `methodologyVersion يجب أن يكون ${FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION}`,
@@ -114,6 +127,8 @@ export function buildInitialAnalysisPrompt(options = {}) {
       "طرق التقييم مختارة حسب الشركة ومبررة",
       "Bear/Base/Bull فقط ومجموع الاحتمالات 100%",
       "Base وprobabilityWeighted والسعر الحالي والقرار متسقة",
+      "GAAP/non-GAAP والعملات والوحدات وأساس share/ADS/ADR متسقة",
+      "صافي الدين وعدد الأسهم المخفف وأثر SBC/التخفيف داخل التقييم عندما تكون مادية",
       "الفرضية والمخاطر والمحفزات والمتطلبات القادمة موجودة",
       "المصادر قابلة للتتبع ولا توجد أرقام مختلقة",
       "JSON صالح ومتوافق مع القالب حرفيًا"
@@ -123,6 +138,10 @@ export function buildInitialAnalysisPrompt(options = {}) {
 
   const compatibilityPreamble = [
     "Fair value / ChatGPT هو نظام التحليل المالي المسؤول عن البحث والتفسير والتقييم.",
+    "قبل التحليل: ابحث في الويب عن سعر السوق الحالي الموثق للسهم المطلوب. إذا لم يتوفر سعر LIVE موثق، استخدم أحدث LAST_CLOSE موثق. لا تستخدم الذاكرة ولا تترك السعر null.",
+    "MARKET PRICE GATE — يمنع إخراج JSON حتى تملأ الحقول الخمسة التالية: marketPrice.value وmarketPrice.currency وmarketPrice.asOf وmarketPrice.priceType وmarketPrice.sourceId.",
+    "أنشئ داخل sources مصدر Market Data مطابقًا لـ marketPrice.sourceId، واجعل usedFor يحتوي القيمة الحرفية marketPrice. يجب أن يكون رابط المصدر مباشرًا وتاريخ المصدر موافقًا للسعر.",
+    "مثال بنيوي فقط بلا أرقام قابلة للنسخ: ضع داخل marketPrice الحقول value وcurrency وasOf وpriceType وsourceId؛ ثم أنشئ مصدرًا مطابقًا بمعرّف مثل MKT1 ونوع Market Data وusedFor يتضمن marketPrice.",
     "اشرح الشركة للمستثمر الذكي غير المتخصص.",
     ticker ? `قيمة ticker داخل القالب: \"ticker\": \"${ticker}\"` : "قيمة ticker داخل القالب يجب أن تكون null إذا لم يتوفر رمز صالح.",
     "كل status في nextRequirements.requirements يجب أن يكون NOT_REPORTED.",

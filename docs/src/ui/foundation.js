@@ -85,16 +85,16 @@ export function appHeaderMarkup({ title, isHome = false, theme = "dark", languag
 export function bottomNavigationMarkup({ panels = [], activePanel = "home", scorecard = false, label }) {
   const text = typeof label === "function" ? label : (value) => value;
   const icons = {
-    home: "⌂",
-    "external-import": "+",
-    history: "◷",
-    settings: "⚙"
+    home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3l8.5 7.5v9a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 21v-7h6v7"/></svg>',
+    "external-import": '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 19h14"/></svg>',
+    history: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="7" cy="6" r="1"/><circle cx="7" cy="12" r="1"/><circle cx="7" cy="18" r="1"/></svg>',
+    settings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10m4 0h2M4 17h2m4 0h10M14 4v6M6 14v6"/></svg>'
   };
   return `
     <nav class="mobile-nav ${scorecard ? "quarterly-scorecard-nav" : ""}" aria-label="${escapeHtml(text("Navigation"))}">
       ${panels.map(([key, panelLabel]) => `
         <button class="${activePanel === key ? "active" : ""}" data-panel="${escapeHtml(key)}" ${activePanel === key ? 'aria-current="page"' : ""}>
-          <b aria-hidden="true">${escapeHtml(icons[key] || "·")}</b>
+          <b aria-hidden="true">${icons[key] || ""}</b>
           <span>${escapeHtml(text(panelLabel))}</span>
         </button>
       `).join("")}

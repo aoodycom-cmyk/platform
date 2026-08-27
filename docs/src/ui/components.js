@@ -59,7 +59,7 @@ const panels = [
   ["settings", "Settings"]
 ];
 
-const visiblePanels = new Set(["home", "external-import", "external-report", "company-profile", "quarterly-scorecard", "history", "settings"]);
+const visiblePanels = new Set(["home", "external-import", "external-report", "strengths-risks", "company-profile", "quarterly-scorecard", "history", "settings"]);
 
 function visiblePanel(panel) {
   return visiblePanels.has(panel) ? panel : "home";
@@ -135,7 +135,7 @@ function libraryHero() {
 }
 
 function mobileAppHeader(state, isHome = false) {
-  if (state.activePanel === "external-report") return externalReportAppBar(state);
+  if (state.activePanel === "external-report" || state.activePanel === "strengths-risks") return externalReportAppBar(state);
   if (isHome) return libraryAppHeader(state);
   const title = isHome ? uiLabel("My Stocks") : activePanelLabel(state.activePanel);
   return appHeaderMarkup({
@@ -277,14 +277,19 @@ function externalHomeCard(report) {
           <span>${uiLabel("Fair Value")}</span>
           <strong dir="ltr">${money(report.baseFairValue, 0)}</strong>
         </div>
-        ${Number.isFinite(numericValue(report.morningstarFairValue)) ? `<div class="v31-morningstar-line">
+        <div class="v31-morningstar-line">
           <span>Morningstar</span>
-          <strong dir="ltr">${money(report.morningstarFairValue, 0)}</strong>
-        </div>` : ""}
+          <strong dir="ltr">${Number.isFinite(numericValue(report.morningstarFairValue)) ? money(report.morningstarFairValue, 0) : "—"}</strong>
+        </div>
         <div class="v31-upside-line">
           <span>${isArabicUi() ? "العائد إلى Base" : "Return to Base"}</span>
           <b class="${colorClass(upsideColorCategory(numericValue(report.upsideToBasePct)), "tone")}" dir="ltr">${formatExternalPercent(report.upsideToBasePct)}</b>
         </div>
+      </div>
+      <div class="v2-library-scenarios" aria-label="${uiLabel("Valuation Scenarios")}">
+        <span><small>Bear</small><b dir="ltr">${money(report.bearFairValue, 0)}</b></span>
+        <span><small>Base</small><b dir="ltr">${money(report.baseFairValue, 0)}</b></span>
+        <span><small>Bull</small><b dir="ltr">${money(report.bullFairValue, 0)}</b></span>
       </div>
     </article>
   `;
@@ -1060,6 +1065,7 @@ function executiveSummary(state) {
 function panelContent(state) {
   if (state.activePanel === "external-import") return externalImportPanel(state);
   if (state.activePanel === "external-report") return externalAnalysisReportView(state);
+  if (state.activePanel === "strengths-risks") return strengthsRisksPage(state);
   if (state.activePanel === "company-profile") return companyProfileView(state);
   if (state.activePanel === "quarterly-scorecard") return quarterlyScorecardView(state);
   if (state.activePanel === "history") return externalHistoryPanel(state);
@@ -1092,7 +1098,7 @@ function externalImportPanel(state) {
       <div class="external-import-context">
         <label>
           <span>${uiLabel("Ticker Symbol")}</span>
-          <input data-external-ticker-hint dir="ltr" autocomplete="off" autocapitalize="characters" placeholder="AMZN" value="${escapeHtml(state.externalImport?.tickerHint || "")}">
+          <input data-external-ticker-hint dir="ltr" autocomplete="off" autocapitalize="characters" inputmode="latin-prose" maxlength="12" required placeholder="AMZN" value="${escapeHtml(state.externalImport?.tickerHint || "")}">
         </label>
         <p>${uiLabel("Use this when the pasted report does not clearly include the ticker.")}</p>
       </div>
@@ -1625,7 +1631,7 @@ function externalAnalysisReportView(state) {
         ${stockSection(isArabicUi() ? "بيانات الاستثمار" : "Investment Data", investmentDataTableArea(report), "v31-investment-tabs-section")}
         ${latestEarningsWorkspace(report)}
         ${estimateRevisionsCard(report.estimateRevisions)}
-        ${stockSection(uiLabel("المزايا والمخاطر"), strengthsRisksDashboard(report))}
+        ${strengthsRisksEntry(report)}
         ${stockSection(uiLabel("المحفزات"), catalystsDashboard(report))}
         ${stockSection(uiLabel("قائمة المتابعة"), monitoringChecklistDashboard(report))}
         ${stockSection(uiLabel("الحكم الاستثماري"), finalDecisionDashboard(report))}
@@ -2888,6 +2894,42 @@ function strengthsRisksSummaryView(report = {}) {
       </div>
     </details>
   `;
+}
+
+function strengthsRisksEntry(report = {}) {
+  const strengths = report.quality?.strengths || report.businessQuality?.strengths || [];
+  const risks = Array.isArray(report.risks) ? report.risks : [];
+  if (!strengths.length && !risks.length) return "";
+  return `
+    <section class="stock-section v2-strengths-entry">
+      <button type="button" data-panel="strengths-risks">
+        <span><strong>${uiLabel("Strengths & Risks")}</strong><small>${isArabicUi() ? "قراءة مستقلة وواضحة لعوامل الجودة والمخاطر" : "A focused view of quality drivers and risks"}</small></span>
+        <b>${strengths.length} / ${risks.length}</b><em aria-hidden="true">‹</em>
+      </button>
+    </section>`;
+}
+
+function strengthsRisksPage(state) {
+  const selection = state.externalReportSelection || {};
+  const report = getExternalAnalysis(state.externalAnalyses || {}, selection.ticker, selection.reportId);
+  if (!report) return `<section class="panel empty-home-state"><strong>${uiLabel("No imported report selected.")}</strong></section>`;
+  const strengths = report.quality?.strengths || report.businessQuality?.strengths || [];
+  const risks = Array.isArray(report.risks) ? report.risks : [];
+  return `
+    <section class="v2-strengths-page">
+      <div class="v2-page-heading">
+        <button type="button" data-panel="external-report" aria-label="${uiLabel("Back")}">‹</button>
+        <div><p>${isArabicUi() ? "جودة الاستثمار" : "INVESTMENT QUALITY"}</p><h1>${uiLabel("Strengths & Risks")}</h1></div>
+      </div>
+      <section class="v2-evidence-group strengths">
+        <header><h2>${uiLabel("Strengths")}</h2><span>${strengths.length}</span></header>
+        ${compactEvidenceList(strengths, uiLabel("No verified strengths were provided."), "strength")}
+      </section>
+      <section class="v2-evidence-group risks">
+        <header><h2>${uiLabel("Risks")}</h2><span>${risks.length}</span></header>
+        ${compactEvidenceList(risks, uiLabel("No verified risks were provided."), "risk")}
+      </section>
+    </section>`;
 }
 
 function compactValuationMethodsSummary(report = {}) {
@@ -7088,9 +7130,19 @@ async function copyEarningsUpdatePrompt(store) {
 
 async function copyExternalAnalysisPrep(store, kind, tickerHint = "") {
   const isTemplate = kind === "template";
+  const normalizedTicker = String(tickerHint || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").slice(0, 12);
+  if (!normalizedTicker) {
+    store.set({
+      externalImport: { ...store.state.externalImport, tickerHint: "" },
+      notice: store.state.language === "ar"
+        ? "اكتب رمز السهم أولًا، ثم انسخ برومبت التحليل. لا يمكن إنشاء تحليل صحيح بدون رمز السهم."
+        : "Enter the ticker before copying the analysis prompt."
+    });
+    return;
+  }
   const text = isTemplate
-    ? store.currentExternalAnalysisJsonTemplate?.(tickerHint)
-    : store.currentFullAnalysisPrompt?.(tickerHint);
+    ? store.currentExternalAnalysisJsonTemplate?.(normalizedTicker)
+    : store.currentFullAnalysisPrompt?.(normalizedTicker);
   if (!text) return;
   const copiedNotice = isTemplate
     ? (store.state.language === "ar" ? "تم نسخ JSON Template." : "JSON Template copied.")
@@ -7104,7 +7156,7 @@ async function copyExternalAnalysisPrep(store, kind, tickerHint = "") {
     store.set({
       externalImport: {
         ...store.state.externalImport,
-        tickerHint,
+        tickerHint: normalizedTicker,
         copyFallbackText: "",
         copyFallbackTitle: "",
         copyFallbackAction: ""
@@ -7115,7 +7167,7 @@ async function copyExternalAnalysisPrep(store, kind, tickerHint = "") {
     store.set({
       externalImport: {
         ...store.state.externalImport,
-        tickerHint,
+        tickerHint: normalizedTicker,
         copyFallbackText: text,
         copyFallbackTitle: fallbackTitle,
         copyFallbackAction: isTemplate ? "copy-external-json-template" : "copy-full-analysis-prompt"
