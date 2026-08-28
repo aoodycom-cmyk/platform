@@ -91,6 +91,9 @@ const previewEnd = componentSource.indexOf("function externalInput", previewStar
 const previewSource = componentSource.slice(previewStart, previewEnd);
 assert.equal(previewSource.includes('externalInput("scores.'), false, "ChatGPT-supplied score controls must not appear in the import preview.");
 assert.equal(previewSource.includes('externalInput("decision.investmentScore"'), false, "The overall score control must not appear in the import preview.");
+assert.ok(componentSource.includes("async function copyTextForMobile"), "Prompt copying must provide an iPhone/Safari-compatible fallback.");
+assert.ok(componentSource.includes('document.execCommand?.("copy")'), "Prompt copying must fall back to the legacy synchronous copy path on iPhone.");
+assert.ok(componentSource.includes('querySelectorAll("[data-action=\'copy-full-analysis-prompt\']")'), "Every rendered prompt-copy button must receive a click handler.");
 assert.ok(enhancerSource.includes('scenarioCell("Bear"') && enhancerSource.includes('scenarioCell("Base"') && enhancerSource.includes('scenarioCell("Bull"'));
 assert.ok(premiumCss.includes(".stock-summary-metric.bear strong { color: var(--fr-red); }"));
 assert.ok(premiumCss.includes(".stock-summary-metric.base strong { color: var(--fr-amber); }"));
