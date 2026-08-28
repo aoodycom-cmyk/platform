@@ -2005,28 +2005,42 @@ function valuationRangeDashboard(report = {}) {
 function canonicalFinancialCycleSection(report = {}) {
   const meta = report.metadata?.franklinV3;
   if (!meta) return "";
+  if (meta.analysisType !== "EARNINGS_REVALUATION") return "";
   const canonical = report.metadata?.franklinV3Report || {};
   const previous = canonical.valuation?.previous || {};
   const current = canonical.valuation?.current || {};
-  const next = canonical.nextRequirements || {};
   const assessment = report.previousRequirementsEvaluation?.requirementsAssessment || {};
-  const isRevaluation = meta.analysisType === "EARNINGS_REVALUATION";
+  const previousBase = previous.base;
+  const newBase = current.base ?? report.fairValueSummary?.fairValueBase;
+  const achievement = numericValue(assessment.achievementOfReportedWeightPct ?? assessment.weightedAchievement);
   const body = `
-    <div class="preview-summary earnings-preview-summary">
-      ${isRevaluation ? compactCardMetric(uiLabel("Previous Base"), money(previous.base, 0)) : ""}
-      ${compactCardMetric(uiLabel("New Base"), money(current.base ?? report.fairValueSummary?.fairValueBase, 0))}
-      ${compactCardMetric(uiLabel("Valuation Review"), meta.reviewStatus || "—")}
-      ${compactCardMetric(uiLabel("Thesis Status"), meta.thesisStatus || "—")}
-      ${compactCardMetric(uiLabel("Current Justified Value"), money(next.currentJustifiedValue ?? report.priceTargetRequirements?.currentJustifiedValue, 0))}
-      ${compactCardMetric(uiLabel("Next Target"), money(next.targetValue ?? report.priceTargetRequirements?.targetValue, 0))}
-      ${compactCardMetric(uiLabel("Requirement Mode"), next.mode || report.priceTargetRequirements?.mode || "—")}
-      ${Number.isFinite(numericValue(assessment.coverageWeightPct)) ? compactCardMetric(uiLabel("Coverage"), `${Math.round(numericValue(assessment.coverageWeightPct))}%`) : ""}
-      ${Number.isFinite(numericValue(assessment.achievementOfReportedWeightPct)) ? compactCardMetric(uiLabel("Reported Achievement"), `${Math.round(numericValue(assessment.achievementOfReportedWeightPct))}%`) : ""}
-      ${Number.isFinite(numericValue(assessment.achievementOfTotalWeightPct)) ? compactCardMetric(uiLabel("Total Achievement"), `${Math.round(numericValue(assessment.achievementOfTotalWeightPct))}%`) : ""}
+    <div class="preview-summary earnings-preview-summary investor-change-summary">
+      <div class="valuation-change-metric">
+        <span>${isArabicUi() ? "القيمة الأساسية" : "Base fair value"}</span>
+        <strong><bdi dir="ltr">${money(previousBase, 0)} → ${money(newBase, 0)}</bdi></strong>
+      </div>
+      ${compactCardMetric(isArabicUi() ? "حالة الفرضية" : "Investment thesis", thesisChangeLabel(meta.thesisStatus))}
+      ${compactCardMetric(isArabicUi() ? "تحقق المتطلبات" : "Requirements achieved", Number.isFinite(achievement) ? `${Math.round(achievement)}%` : "—")}
     </div>
-    ${meta.valuationBridge?.whyBaseChangedOrNot ? `<p class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(meta.valuationBridge.whyBaseChangedOrNot)}</p>` : ""}
+    ${meta.valuationBridge?.whyBaseChangedOrNot ? `
+      <div class="valuation-change-reason">
+        <strong>${isArabicUi() ? "لماذا تغيّر التقييم؟" : "Why did the valuation change?"}</strong>
+        <p class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(meta.valuationBridge.whyBaseChangedOrNot)}</p>
+      </div>
+    ` : ""}
   `;
-  return stockSection(isArabicUi() ? "دورة التقييم v3" : "Valuation Cycle v3", body, "canonical-cycle-section");
+  return stockSection(isArabicUi() ? "ما الذي تغيّر منذ التحليل السابق؟" : "What changed since the previous analysis?", body, "canonical-cycle-section investor-change-section");
+}
+
+function thesisChangeLabel(status) {
+  const labels = {
+    INITIAL: isArabicUi() ? "أولية" : "Initial",
+    STRENGTHENED: isArabicUi() ? "تحسنت" : "Strengthened",
+    UNCHANGED: isArabicUi() ? "ثابتة" : "Unchanged",
+    WEAKENED: isArabicUi() ? "تراجعت" : "Weakened",
+    BROKEN: isArabicUi() ? "انكسرت" : "Broken"
+  };
+  return labels[String(status || "").toUpperCase()] || "—";
 }
 
 function v31RangeMetric(label, value, tone) {

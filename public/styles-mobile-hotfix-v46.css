@@ -64,4 +64,36 @@
     overflow-wrap: normal !important;
     word-break: normal !important;
   }
+
+  .investor-change-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .investor-change-summary > div {
+    min-width: 0;
+  }
+
+  .valuation-change-metric strong,
+  .investor-change-summary strong {
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .valuation-change-reason {
+    display: grid;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(45, 212, 191, 0.055);
+  }
+
+  .valuation-change-reason > strong {
+    color: var(--dd-text-primary);
+    font-size: 12px;
+  }
+
+  .valuation-change-reason > p {
+    margin: 0;
+  }
 }
