@@ -53,8 +53,8 @@ assert.match(editorSource, /activePanel === "external-import"/);
 assert.match(editorSource, /بيانات بطاقة الشركة/);
 assert.match(editorSource, /insertAdjacentElement\("afterend", section\)/);
 assert.match(editorSource, /reportNeedsOwnerPresentation/);
-assert.match(mainSource, /reportPresentationEditor\.js\?v=v39-visible-owner-presentation/);
-assert.match(indexSource, /main\.js\?v=v40-franklin-mobile-v2/);
+assert.match(mainSource, /reportPresentationEditor\.js\?v=v44-owner-fields/);
+assert.match(indexSource, /main\.js\?v=v44-clipboard/);
 assert.match(indexSource, /styles-visual-system\.css\?v=v39-visible-owner-presentation/);
 
 console.log("report presentation editor tests passed");

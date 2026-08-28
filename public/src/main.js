@@ -1,5 +1,5 @@
 import { createStore } from "./state/store.js";
-import { mountApp } from "./ui/components.js";
+import { mountApp } from "./ui/components.js?v=v44-clipboard";
 import { migrateFranklinState, summarizeFranklinState } from "./state/migration.js";
 
 const root = document.getElementById("app");
@@ -62,7 +62,7 @@ async function installOptionalRuntime(store, cloud, auditBootstrapError) {
     loadOptional("./ui/quarterlyEarningsJsonPromptV2.js", "Quarterly JSON prompt"),
     loadOptional("./ui/socialImageExport.js", "Social image export"),
     loadOptional("./ui/socialImageExportQualityPatch.js", "Social image export HD quality"),
-    loadOptional("./ui/reportPresentationEditor.js?v=v39-visible-owner-presentation", "Report presentation editor")
+    loadOptional("./ui/reportPresentationEditor.js?v=v44-owner-fields", "Report presentation editor")
   ]);
 
   await installFinancialGuards(store);
