@@ -7,10 +7,10 @@ const index = read("../index.html");
 const worker = read("../service-worker.js");
 const sync = read("../scripts/sync-deploy.mjs");
 
-assert.match(index, /styles-mobile-hotfix-v46\.css\?v=v4[67]-(?:iphone-nav-date|social-export-page)/);
-assert.match(index, /main\.js\?v=v4[67]-(?:iphone-nav-date|social-export-page)/);
+assert.match(index, /styles-mobile-hotfix-v46\.css\?v=v4[6-8]-(?:iphone-nav-date|social-export-page|arabic-glossary)/);
+assert.match(index, /main\.js\?v=v4[6-8]-(?:iphone-nav-date|social-export-page|arabic-glossary)/);
 assert.ok(worker.includes('"./styles-mobile-hotfix-v46.css"'));
-assert.match(worker, /franklin-research-v11-franklin-mobile-v2-v4[67]/);
+assert.match(worker, /franklin-research-v11-franklin-mobile-v2-v4[6-8]/);
 assert.ok(sync.includes('"styles-mobile-hotfix-v46.css"'));
 
 assert.match(css, /\.mobile-nav:not\(\.quarterly-scorecard-nav\)[\s\S]*left: 0 !important;/);

@@ -1726,6 +1726,7 @@ function externalAnalysisReportView(state) {
         ${valuationRangeDashboard(report)}
         ${canonicalFinancialCycleSection(report)}
         ${stockSection(isArabicUi() ? "فرصة الاستثمار • Investment Opportunity" : "Investment Opportunity", investmentSummaryWorkspace(report), "investment-opportunity-section")}
+        ${companyGlossarySection(report)}
         ${companyAssessmentPanel(report)}
         ${stockSection(isArabicUi() ? "بيانات الاستثمار" : "Investment Data", investmentDataTableArea(report), "v31-investment-tabs-section")}
         ${latestEarningsWorkspace(report)}
@@ -1759,6 +1760,29 @@ function externalAnalysisReportView(state) {
       ${earningsUpdateDrawer(state)}
     </section>
   `;
+}
+
+function companyGlossarySection(report = {}) {
+  const glossary = Array.isArray(report.companyGlossary) ? report.companyGlossary.filter((item) => item?.termAr && item?.plainExplanationAr) : [];
+  if (!glossary.length) return "";
+  const body = `
+    <p class="company-glossary-intro">${isArabicUi() ? "اضغط على أي مصطلح لمعرفة معناه ولماذا يؤثر في الاستثمار." : "Open any term to understand its meaning and investment relevance."}</p>
+    <div class="company-glossary-list">
+      ${glossary.map((item) => `
+        <details class="company-glossary-item">
+          <summary>
+            <strong>${escapeHtml(item.termAr)}</strong>
+            <bdi dir="ltr">${escapeHtml(item.termEn || "")}</bdi>
+          </summary>
+          <div>
+            <p>${escapeHtml(item.plainExplanationAr)}</p>
+            ${item.whyItMattersAr ? `<small><b>${isArabicUi() ? "لماذا يهم المستثمر؟" : "Why it matters:"}</b> ${escapeHtml(item.whyItMattersAr)}</small>` : ""}
+          </div>
+        </details>
+      `).join("")}
+    </div>
+  `;
+  return stockSection(isArabicUi() ? "مصطلحات الشركة ببساطة" : "Company Terms, Explained", body, "company-glossary-section");
 }
 
 function quarterlyScorecardView(state) {

@@ -27,6 +27,7 @@ import {
   isFranklinV3Report,
   reportPeriodFromV3Identity
 } from "./v3Contract.js";
+import { validateArabicNarrativeQuality } from "./arabicNarrativeQuality.js";
 
 const WEIGHT_TOLERANCE = 0.01;
 const ASSESSMENT_TOLERANCE = 0.1;
@@ -58,6 +59,9 @@ export function validateFranklinV3Report(input = {}, context = {}) {
   validateNextRequirements(input, errors);
   validateAuditTotals(input, errors);
   validateSources(input, errors);
+  const languageQuality = validateArabicNarrativeQuality(input);
+  errors.push(...languageQuality.errors);
+  warnings.push(...languageQuality.warnings);
 
   if (input.analysisType === "INITIAL") validateInitialRules(input, errors);
   if (input.analysisType === "EARNINGS_REVALUATION") validateEarningsRevaluationRules(input, context, errors, warnings);

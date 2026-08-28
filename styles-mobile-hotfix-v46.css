@@ -215,4 +215,66 @@
     border-radius: 16px;
     text-align: center;
   }
+
+  .company-glossary-intro {
+    margin: 0 0 10px;
+    color: var(--dd-text-secondary);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  .company-glossary-list {
+    display: grid;
+    gap: 8px;
+  }
+
+  .company-glossary-item {
+    border: 1px solid var(--dd-line);
+    border-radius: 12px;
+    background: var(--dd-surface-raised);
+    overflow: hidden;
+  }
+
+  .company-glossary-item > summary {
+    min-height: 52px !important;
+    padding: 10px 12px;
+    display: grid;
+    align-content: center;
+    gap: 2px;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .company-glossary-item > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .company-glossary-item > summary strong {
+    color: var(--dd-text-primary);
+    font-size: 13px;
+  }
+
+  .company-glossary-item > summary bdi {
+    color: #2dd4bf;
+    font-size: 10px;
+  }
+
+  .company-glossary-item > div {
+    display: grid;
+    gap: 8px;
+    padding: 0 12px 12px;
+  }
+
+  .company-glossary-item p,
+  .company-glossary-item small {
+    margin: 0;
+    color: var(--dd-text-secondary);
+    font-size: 12px;
+    line-height: 1.75;
+  }
+
+  .company-glossary-item small {
+    padding-top: 8px;
+    border-top: 1px solid var(--dd-line);
+  }
 }

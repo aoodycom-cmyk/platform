@@ -86,6 +86,15 @@ export function buildFranklinV3ReportTemplate(options = {}) {
     schemaVersion: FRANKLIN_FAIR_VALUE_SCHEMA_VERSION,
     methodologyVersion: FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION,
     analysisType,
+    outputLanguage: "ar",
+    companyGlossary: [
+      {
+        termAr: null,
+        termEn: null,
+        plainExplanationAr: null,
+        whyItMattersAr: null
+      }
+    ],
 
     reportIdentity: {
       ticker: ticker || null,

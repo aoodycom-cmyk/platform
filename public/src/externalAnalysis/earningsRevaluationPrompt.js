@@ -158,7 +158,13 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
         "لا تترك عناصر قالب وهمية كلها null داخل arrays؛ استخدم عناصر حقيقية فقط أو [] عندما يسمح العقد."
       ],
       missingValue: null,
-      language: "العربية للنصوص، مع إبقاء المصطلحات المالية القياسية بالإنجليزية عند الحاجة"
+      language: "العربية المبسطة أولًا في جميع النصوص الموجهة للمستثمر. اذكر المصطلح الإنجليزي بين قوسين عند أول ظهور فقط، ولا تكتب جملًا عربية ممزوجة بعبارات إنجليزية غير مشروحة.",
+      languageQuality: [
+        "outputLanguage يجب أن يساوي ar.",
+        "حدّث companyGlossary ليحتوي 4 إلى 12 مصطلحًا فنيًا خاصًا بالشركة والربع.",
+        "لكل مصطلح اكتب termAr وtermEn وplainExplanationAr وwhyItMattersAr.",
+        "أي مصطلح إنجليزي فني يظهر في السرد يجب أن يكون مشروحًا بالعربية داخل companyGlossary."
+      ]
     },
     jsonTemplate: template
   };
@@ -202,6 +208,8 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
     "أنشئ nextRequirements جديدة بالكامل للربع القادم.",
     "nextRequirements.currentJustifiedValue يجب أن يساوي valuation.current.base.",
     "أضف مصادر جديدة خاصة بهذا الربع.",
+    "LANGUAGE GATE — outputLanguage = ar. اكتب السرد بالعربية المبسطة، واجعل المصطلح العربي أولًا ثم الإنجليزي بين قوسين عند أول ظهور فقط.",
+    "حدّث companyGlossary ليضم أهم 4 إلى 12 مصطلحًا فنيًا خاصًا بالشركة والربع، ولا تترك مصطلحًا إنجليزيًا فنيًا في السرد بلا شرح عربي.",
     "Franklin لا يرفع الهدف آليًا ولا يحسب targetValue. أنت وحدك تحدد ذلك داخل JSON.",
     "JSON OUTPUT SAFETY — MANDATORY",
     "Return exactly one fenced JSON code block.",

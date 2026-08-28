@@ -18,7 +18,7 @@ assert.match(components, /data-social-export-report-id/);
 assert.match(foundation, /"social-export":/);
 assert.match(social, /button\.dataset\.socialExportReportId/);
 assert.match(quality, /button\.dataset\.socialExportReportId/);
-assert.match(index, /v47-social-export-page/);
-assert.match(worker, /mobile-v2-v47/);
+assert.match(index, /v4[78]-(?:social-export-page|arabic-glossary)/);
+assert.match(worker, /mobile-v2-v4[78]/);
 
 console.log("Social export page v47 checks passed.");

@@ -8,7 +8,7 @@ const worker = read("../service-worker.js");
 const sync = read("../scripts/sync-deploy.mjs");
 
 assert.match(index, /styles-design-director-v45\.css\?v=v45-design-director/);
-assert.match(index, /main\.js\?v=v4[56]-(?:design-director|iphone-nav-date)/);
+assert.match(index, /main\.js\?v=v4[5-8]-(?:design-director|iphone-nav-date|social-export-page|arabic-glossary)/);
 assert.ok(worker.includes('"./styles-design-director-v45.css"'));
 assert.ok(sync.includes('"styles-design-director-v45.css"'));
 assert.match(css, /calc\(118px \+ env\(safe-area-inset-bottom\)\)/);

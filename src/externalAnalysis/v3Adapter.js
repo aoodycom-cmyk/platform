@@ -26,6 +26,7 @@ export function franklinV3ToExternalReport(input = {}, rawAnalysis = "") {
       currency: tradingCurrency
     },
     companyProfile: normalizeCompanyProfile(input.companyProfile),
+    companyGlossary: normalizeCompanyGlossary(input.companyGlossary),
     market: {
       priceAtAnalysis: input.marketPrice?.value ?? null
     },
@@ -107,6 +108,17 @@ export function franklinV3ToExternalReport(input = {}, rawAnalysis = "") {
       }
     }
   };
+}
+
+function normalizeCompanyGlossary(value) {
+  return (Array.isArray(value) ? value : [])
+    .filter((item) => item && (item.termAr || item.termEn))
+    .map((item) => ({
+      termAr: item.termAr || null,
+      termEn: item.termEn || null,
+      plainExplanationAr: item.plainExplanationAr || null,
+      whyItMattersAr: item.whyItMattersAr || null
+    }));
 }
 
 function nextRequirementsFromV3(value = {}, reportPeriod, identity = {}) {
