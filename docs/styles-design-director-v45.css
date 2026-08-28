@@ -1,0 +1,314 @@
+/* Franklin Design Director v45 — production readability and iPhone ergonomics. */
+:root {
+  --dd-text-primary: #f4f6fb;
+  --dd-text-secondary: #aeb5c8;
+  --dd-text-muted: #929bb2;
+  --dd-surface: #111522;
+  --dd-surface-raised: #171c2b;
+  --dd-line: #2a334a;
+  --dd-radius-sm: 10px;
+  --dd-radius-md: 14px;
+  --dd-radius-lg: 18px;
+  --dd-touch: 44px;
+}
+
+@media (max-width: 899px) {
+  body,
+  button,
+  input,
+  select,
+  textarea {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  .mobile-app-shell:not(.scorecard-app-shell) .mobile-app-frame {
+    padding-bottom: calc(118px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .mobile-page-content,
+  .external-report-shell,
+  .stock-decision-flow {
+    padding-bottom: calc(18px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .mobile-nav:not(.quarterly-scorecard-nav) {
+    position: fixed !important;
+    z-index: 100 !important;
+    inset-inline: 0 !important;
+    bottom: 0 !important;
+    width: min(100%, 430px) !important;
+    min-height: calc(72px + env(safe-area-inset-bottom)) !important;
+    margin-inline: auto !important;
+    padding: 7px 8px max(8px, env(safe-area-inset-bottom)) !important;
+    border-top: 1px solid var(--dd-line) !important;
+    background: rgba(7, 8, 13, 0.97) !important;
+    backdrop-filter: blur(20px) saturate(125%);
+  }
+
+  .mobile-nav:not(.quarterly-scorecard-nav) button,
+  .header-icon-button,
+  .mobile-app-menu > summary,
+  .m2-filter-chips button,
+  .filter-chips button,
+  [data-library-filter-chip],
+  .icon-btn,
+  summary,
+  [role="button"] {
+    min-height: var(--dd-touch) !important;
+  }
+
+  .mobile-nav:not(.quarterly-scorecard-nav) button {
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+  }
+
+  .header-icon-button,
+  .mobile-app-menu > summary {
+    width: var(--dd-touch) !important;
+    min-width: var(--dd-touch) !important;
+    height: var(--dd-touch) !important;
+  }
+
+  .mobile-brand span,
+  .decision-card-heading > div > small,
+  .decision-card-heading > div > span,
+  .decision-primary-values span,
+  .decision-primary-values small,
+  .valuation-range-title,
+  .valuation-range-title b,
+  .valuation-range-values span,
+  .stock-summary-metric span,
+  .v31-current-price span,
+  .v31-fair-value-line span,
+  .v31-morningstar-line span,
+  .v31-upside-line span,
+  .v2-library-scenarios small,
+  .quarterly-scorecard-shell small,
+  .quarterly-scorecard-shell span,
+  .scorecard-detail-facts span {
+    font-size: 11px !important;
+    line-height: 1.55 !important;
+  }
+
+  .stock-report-section p,
+  .stock-report-section li,
+  .stock-report-section td,
+  .stock-report-section button,
+  .m2-report-section p,
+  .m2-report-section li,
+  .quarterly-scorecard-detail p {
+    font-size: 13px !important;
+    line-height: 1.75 !important;
+  }
+
+  .figma-decision-card,
+  .terminal-stock-header.figma-decision-card,
+  .v31-stock-decision {
+    padding: 18px !important;
+    gap: 16px !important;
+    border-color: var(--dd-line) !important;
+    border-radius: var(--dd-radius-lg) !important;
+    background: linear-gradient(145deg, #121827 0%, #0e131f 100%) !important;
+  }
+
+  .decision-card-heading > div > span {
+    color: var(--dd-text-secondary) !important;
+    font-weight: 700 !important;
+  }
+
+  .decision-primary-values {
+    padding-block: 4px;
+    gap: 18px !important;
+  }
+
+  .decision-primary-values span,
+  .decision-primary-values small {
+    color: var(--dd-text-muted) !important;
+  }
+
+  .valuation-range-values {
+    gap: 8px !important;
+  }
+
+  .stock-report-section,
+  .m2-report-section {
+    border-color: var(--dd-line) !important;
+    border-radius: var(--dd-radius-md) !important;
+    background: var(--dd-surface) !important;
+  }
+
+  .stock-report-section > header,
+  .m2-report-section > header {
+    min-height: 52px !important;
+    padding: 13px 15px 9px !important;
+  }
+
+  .stock-report-section > div,
+  .m2-report-section > div {
+    padding: 8px 15px 16px !important;
+  }
+
+  .library-company-card,
+  .v31-library-stock-row,
+  .m2-library-card {
+    border-color: var(--dd-line) !important;
+    border-radius: var(--dd-radius-lg) !important;
+    background: linear-gradient(145deg, #121827 0%, #0d121d 100%) !important;
+  }
+
+  .library-company-identity strong,
+  .m2-stock-title-line strong {
+    display: -webkit-box !important;
+    overflow: hidden !important;
+    font-size: 16px !important;
+    line-height: 1.5 !important;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .v31-library-price-block {
+    gap: 0 !important;
+  }
+
+  .v31-current-price,
+  .v31-fair-value-line,
+  .v31-morningstar-line,
+  .v31-upside-line {
+    min-height: 66px;
+    padding: 12px 6px 6px !important;
+  }
+
+  .v2-library-scenarios > span,
+  .m2-mini-scenario {
+    min-height: 52px !important;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: var(--dd-radius-sm) !important;
+    background: var(--dd-surface-raised) !important;
+  }
+
+  .m2-filter-chips,
+  .filter-chips {
+    min-height: var(--dd-touch);
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .m2-filter-chips::-webkit-scrollbar,
+  .filter-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .m2-filter-chips button,
+  .filter-chips button,
+  [data-library-filter-chip] {
+    min-width: 58px;
+    padding-inline: 14px !important;
+    flex: 0 0 auto;
+    font-size: 13px !important;
+  }
+
+  .m2-filter-chips button.active,
+  .filter-chips button.active,
+  [data-library-filter-chip].active,
+  [aria-pressed="true"][data-library-filter-chip] {
+    border-color: #2dd4bf !important;
+    background: #2dd4bf !important;
+    color: #06110f !important;
+    font-weight: 750 !important;
+  }
+
+  .requirement-status.passed::before,
+  .requirement-status.exceeded::before,
+  .quarterly-mobile-quarter-grid .passed small::before,
+  .quarterly-mobile-quarter-grid .exceeded small::before {
+    content: "✓ ";
+  }
+
+  .requirement-status.partially-passed::before,
+  .requirement-status.partial::before,
+  .quarterly-mobile-quarter-grid .partially-passed small::before {
+    content: "◐ ";
+  }
+
+  .requirement-status.failed::before,
+  .quarterly-mobile-quarter-grid .failed small::before {
+    content: "✕ ";
+  }
+
+  .requirement-status.not-reported::before,
+  .requirement-status.pending::before,
+  .quarterly-mobile-quarter-grid .not-reported small::before {
+    content: "○ ";
+  }
+
+  .quarterly-scorecard-nav {
+    position: fixed !important;
+    z-index: 100 !important;
+    inset-inline: 0 !important;
+    bottom: 0 !important;
+    width: min(100%, 440px) !important;
+    min-height: calc(72px + env(safe-area-inset-bottom)) !important;
+    margin-inline: auto !important;
+    padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
+    border-top: 1px solid var(--dd-line) !important;
+    background: rgba(7, 8, 13, 0.98) !important;
+  }
+
+  .scorecard-app-shell .mobile-app-frame,
+  .quarterly-scorecard-shell {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .quarterly-scorecard-actions {
+    position: static !important;
+    margin: 0 14px 14px !important;
+  }
+
+  .quarterly-metric-card {
+    border-color: var(--dd-line) !important;
+    border-radius: var(--dd-radius-md) !important;
+    background: var(--dd-surface) !important;
+  }
+
+  .quarterly-mobile-quarter-grid button,
+  .quarterly-metric-card > footer,
+  .quarterly-scorecard-detail > header button {
+    min-height: var(--dd-touch) !important;
+  }
+
+  .quarterly-scorecard-titlebar h2 {
+    font-size: 20px !important;
+    line-height: 1.45 !important;
+  }
+
+  .notice,
+  [role="status"] {
+    color: var(--dd-text-primary) !important;
+    font-size: 13px !important;
+    line-height: 1.6 !important;
+  }
+}
+
+@media (max-width: 359px) {
+  .decision-primary-values {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .v31-library-price-block {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
