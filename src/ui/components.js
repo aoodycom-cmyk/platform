@@ -74,8 +74,27 @@ function inlineNotice(notice, activePanel) {
 
 export function mountApp(root, store) {
   const actions = createActions(store);
+  installPromptCopyDelegation(root, store);
   store.subscribe(() => render(root, store, actions));
   render(root, store, actions);
+}
+
+function installPromptCopyDelegation(root, store) {
+  if (root.dataset.promptCopyDelegationInstalled === "true") return;
+  root.dataset.promptCopyDelegationInstalled = "true";
+  root.addEventListener("click", (event) => {
+    const promptButton = event.target.closest?.("[data-action='copy-full-analysis-prompt']");
+    const templateButton = event.target.closest?.("[data-action='copy-external-json-template']");
+    const button = promptButton || templateButton;
+    if (!button || !root.contains(button)) return;
+    event.preventDefault();
+    const tickerHint = root.querySelector("[data-external-ticker-hint]")?.value
+      || store.state.externalImport?.tickerHint
+      || button.dataset.externalTicker
+      || store.state.externalReportSelection?.ticker
+      || "";
+    copyExternalAnalysisPrep(store, templateButton ? "template" : "prompt", tickerHint);
+  });
 }
 
 function render(root, store, actions) {
@@ -6521,21 +6540,6 @@ function bind(root, store, actions) {
     const text = root.querySelector("[data-external-raw]")?.value || "";
     const tickerHint = root.querySelector("[data-external-ticker-hint]")?.value || "";
     store.parseExternalImport(text, { tickerHint });
-  });
-  root.querySelectorAll("[data-action='copy-full-analysis-prompt']").forEach((button) => {
-    button.addEventListener("click", () => {
-      const tickerHint = root.querySelector("[data-external-ticker-hint]")?.value
-        || store.state.externalImport?.tickerHint
-        || button.dataset.externalTicker
-        || "";
-      copyExternalAnalysisPrep(store, "prompt", tickerHint);
-    });
-  });
-  root.querySelectorAll("[data-action='copy-external-json-template']").forEach((button) => {
-    button.addEventListener("click", () => {
-      const tickerHint = root.querySelector("[data-external-ticker-hint]")?.value || store.state.externalImport?.tickerHint || "";
-      copyExternalAnalysisPrep(store, "template", tickerHint);
-    });
   });
   root.querySelectorAll("[data-action='copy-new-earnings-prompt']").forEach((button) => {
     button.addEventListener("click", () => copyNewEarningsAnalysisPrompt(store));
