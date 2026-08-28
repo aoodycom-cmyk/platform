@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v11-franklin-mobile-v2-v45";
+const CACHE_NAME = "franklin-research-v11-franklin-mobile-v2-v46";
 const STATIC_ASSETS = [
   "./offline.html",
   "./rescue.html",
@@ -13,6 +13,7 @@ const STATIC_ASSETS = [
   "./styles-visual-system.css",
   "./styles-franklin-v2.css",
   "./styles-design-director-v45.css",
+  "./styles-mobile-hotfix-v46.css",
   "./manifest.webmanifest",
   "./src/main.js",
   "./src/pwa.js",

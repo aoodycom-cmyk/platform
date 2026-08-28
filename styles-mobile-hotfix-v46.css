@@ -1,0 +1,67 @@
+/* Franklin mobile hotfix v46 — restore the iPhone bottom bar and remove duplicate dates. */
+@media (max-width: 899px) {
+  .mobile-nav:not(.quarterly-scorecard-nav) {
+    left: 0 !important;
+    right: 0 !important;
+    inset-inline: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: 430px !important;
+    min-height: calc(72px + env(safe-area-inset-bottom)) !important;
+    margin: 0 auto !important;
+    padding: 6px 8px max(7px, env(safe-area-inset-bottom)) !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    transform: none !important;
+    box-sizing: border-box !important;
+  }
+
+  .mobile-nav:not(.quarterly-scorecard-nav) button {
+    min-width: 0 !important;
+    min-height: 54px !important;
+    padding: 4px 2px !important;
+    gap: 3px !important;
+    overflow: hidden;
+    font-size: 10px !important;
+    line-height: 1.25 !important;
+  }
+
+  .mobile-nav:not(.quarterly-scorecard-nav) button span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-nav:not(.quarterly-scorecard-nav) button b,
+  .mobile-nav:not(.quarterly-scorecard-nav) button svg {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  /* The readiness badge already carries the analysis date, so the price block
+     must not repeat it or force an ISO date across two lines. */
+  .v31-library-price-block > .franklin-price-asof {
+    display: none !important;
+  }
+
+  .v31-library-stock-row > .franklin-card-readiness {
+    width: fit-content !important;
+    max-width: 100% !important;
+    margin-top: 4px !important;
+    white-space: nowrap !important;
+    direction: rtl;
+    unicode-bidi: isolate;
+  }
+
+  .v31-library-price-block {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .v31-current-price span,
+  .v31-fair-value-line span,
+  .v31-morningstar-line span,
+  .v31-upside-line span {
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+  }
+}

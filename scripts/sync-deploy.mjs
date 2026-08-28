@@ -23,6 +23,7 @@ const GENERATED_FILES = [
   "styles-visual-system.css",
   "styles-franklin-v2.css",
   "styles-design-director-v45.css",
+  "styles-mobile-hotfix-v46.css",
   "service-worker.js",
   "manifest.webmanifest",
   "offline.html",
