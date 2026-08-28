@@ -304,3 +304,156 @@
     line-height: 1.7;
   }
 }
+
+/* v49 — local JSON-file import, RTL-first and iPhone-safe. */
+.external-import-panel {
+  max-width: 880px;
+  margin-inline: auto;
+}
+
+.json-import-tabs {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr);
+  gap: 10px;
+  margin: 18px 0;
+  padding: 5px;
+  border: 1px solid var(--border, #273047);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface, #111622) 88%, transparent);
+}
+
+.json-import-tabs button {
+  min-height: 56px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted, #9ba5b8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.json-import-tabs button span { font-weight: 800; }
+.json-import-tabs button small {
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #61e2d2;
+  background: rgba(45, 209, 188, .1);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.json-import-tabs button.active {
+  border-color: rgba(45, 209, 188, .55);
+  background: rgba(45, 209, 188, .11);
+  color: var(--text, #f5f7fb);
+}
+
+.json-file-native-input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.json-file-import-area,
+.json-paste-import-area {
+  margin-bottom: 16px;
+}
+
+.json-file-picker {
+  inline-size: 100%;
+  min-height: 132px;
+  border: 1px dashed rgba(45, 209, 188, .58);
+  border-radius: 16px;
+  background: rgba(45, 209, 188, .055);
+  color: var(--text, #f5f7fb);
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  padding: 20px;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.json-file-picker-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #2dd1bc;
+  color: #07120f;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.json-file-picker b { font-size: 17px; }
+.json-file-picker small { color: var(--muted, #9ba5b8); line-height: 1.65; }
+
+.json-file-summary {
+  margin-top: 12px;
+  border: 1px solid var(--border, #273047);
+  border-radius: 16px;
+  padding: 16px;
+  background: var(--surface, #111622);
+}
+
+.json-file-summary.valid { border-color: rgba(45, 209, 188, .48); }
+.json-file-summary.invalid { border-color: rgba(245, 100, 118, .5); }
+.json-file-summary-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border, #273047);
+}
+.json-file-summary-head div { display: grid; gap: 4px; min-width: 0; }
+.json-file-summary-head span,
+.json-file-summary dt { color: var(--muted, #9ba5b8); font-size: 12px; }
+.json-file-summary-head strong { overflow-wrap: anywhere; }
+.json-file-summary-head > b { color: #2dd1bc; white-space: nowrap; }
+.json-file-summary.invalid .json-file-summary-head > b { color: #f56476; }
+.json-file-summary dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 12px 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--border, #273047);
+}
+.json-file-summary dl div { padding: 11px; background: var(--surface-2, #171d2b); min-width: 0; }
+.json-file-summary dd { margin: 5px 0 0; color: var(--text, #f5f7fb); font-weight: 750; overflow-wrap: anywhere; }
+.json-file-import-submit { inline-size: 100%; min-height: 52px; }
+.json-import-help { margin-top: 12px; }
+.json-import-help > summary { color: var(--muted, #9ba5b8); cursor: pointer; padding: 8px 0; }
+.technical-import-details { margin-top: 10px; }
+.technical-import-details summary { cursor: pointer; color: var(--muted, #9ba5b8); }
+.technical-import-details pre { white-space: pre-wrap; overflow-wrap: anywhere; color: #aeb7ca; font-size: 12px; }
+.structured-validation-errors { margin: 12px 0 0; padding-inline-start: 22px; }
+.structured-validation-errors li { padding: 10px 0; }
+.structured-validation-errors li + li { border-top: 1px solid rgba(255, 255, 255, .08); }
+.structured-validation-errors p { margin: 5px 0; }
+.structured-validation-errors dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+.structured-validation-errors dl div { padding: 8px; border-radius: 9px; background: rgba(0, 0, 0, .13); }
+.structured-validation-errors dt { color: var(--muted, #9ba5b8); font-size: 11px; }
+.structured-validation-errors dd { margin: 3px 0 0; overflow-wrap: anywhere; }
+.structured-validation-errors small { display: block; color: var(--muted, #9ba5b8); line-height: 1.6; }
+
+@media (max-width: 520px) {
+  .external-import-head { align-items: flex-start; }
+  .json-import-tabs { grid-template-columns: 1fr; }
+  .json-import-tabs button { justify-content: space-between; min-height: 52px; }
+  .json-file-picker { min-height: 148px; padding: 18px 14px; }
+  .json-file-summary dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .structured-validation-errors dl { grid-template-columns: 1fr; }
+}

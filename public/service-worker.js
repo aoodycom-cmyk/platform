@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v11-franklin-mobile-v2-v48";
+const CACHE_NAME = "franklin-research-v11-franklin-mobile-v2-v49";
 const STATIC_ASSETS = [
   "./offline.html",
   "./rescue.html",
@@ -39,8 +39,10 @@ const STATIC_ASSETS = [
   "./src/externalAnalysis/fairValueAdapter.js",
   "./src/externalAnalysis/v3Contract.js",
   "./src/externalAnalysis/v3Adapter.js",
+  "./src/externalAnalysis/v3InputNormalizer.js",
   "./src/externalAnalysis/v3Validator.js",
   "./src/externalAnalysis/arabicNarrativeQuality.js",
+  "./src/externalAnalysis/jsonFileImport.js",
   "./src/externalAnalysis/parser.js",
   "./src/externalAnalysis/externalAnalysisSchemaValidator.js",
   "./src/externalAnalysis/chatgptContract.js",

@@ -10,7 +10,8 @@ import { loadAnalystBrainMethodology } from "../analystBrain/methodology.js";
 import { normalizeLanguage, setLanguageContext } from "../i18n/language.js";
 import { buildInstitutionalResearch } from "../research/institutionalResearch.js";
 import { parseExternalAnalysisBlock, parseExternalAnalysisSupplementBlock, parseInvestmentAnalystBlock } from "../providers/apiClient.js";
-import { parseExternalAnalysisInput } from "../externalAnalysis/parser.js";
+import { parseExternalAnalysisInput, parseJsonCandidate } from "../externalAnalysis/parser.js";
+import { describeImportValidationErrors, inspectJsonImportText, readLocalJsonFile } from "../externalAnalysis/jsonFileImport.js";
 import { normalizeExternalAnalysisReport, updateExternalAnalysisField } from "../externalAnalysis/schema.js";
 import { validateExternalAnalysisReport } from "../externalAnalysis/externalAnalysisSchemaValidator.js";
 import { analyzeExternalAnalysisCompletion, attachCompletionStatus, buildMissingRequirementsPrompt } from "../externalAnalysis/missingFields.js";
@@ -43,6 +44,7 @@ import {
   deleteAllExternalAnalysesForTicker,
   deleteExternalAnalysis,
   findDuplicateExternalAnalysis,
+  findConflictingExternalAnalysis,
   getExternalAnalysis,
   normalizeExternalAnalysesCollection,
   saveExternalAnalysis,
@@ -268,9 +270,102 @@ export function createStore() {
     });
   }
 
+  function resolvePreviousReportForImport(value = {}) {
+    const identity = resolveImportIdentity(value);
+    if (identity.previousAnalysisId) {
+      return Object.values(state.externalAnalyses || {})
+        .flatMap((reports) => Array.isArray(reports) ? reports : [])
+        .find((report) => report?.id === identity.previousAnalysisId) || null;
+    }
+    if (identity.analysisType === "EARNINGS_REVALUATION" && identity.ticker) {
+      return getExternalAnalysis(state.externalAnalyses, identity.ticker, "latest");
+    }
+    return null;
+  }
+
+  function setExternalImportMode(mode) {
+    const inputMode = mode === "paste" ? "paste" : "file";
+    set({
+      externalImport: {
+        ...state.externalImport,
+        inputMode,
+        draftReport: null,
+        draftJson: "",
+        validation: { valid: false, errors: [], warnings: [] },
+        duplicate: null,
+        conflict: null,
+        stage: inputMode === "file" && state.externalImport?.file?.text ? "file-ready" : "paste"
+      },
+      notice: ""
+    });
+  }
+
+  async function selectExternalJsonFile(file) {
+    set({ loading: true, processingStage: "reading-json-file", notice: state.language === "ar" ? "جاري قراءة الملف محليًا..." : "Reading the file locally..." });
+    try {
+      const selected = await readLocalJsonFile(file);
+      const preliminary = inspectJsonImportText(selected.text);
+      const currentReport = resolvePreviousReportForImport(preliminary.value);
+      const inspected = inspectJsonImportText(selected.text, { validationContext: { currentReport } });
+      const validationErrors = describeImportValidationErrors(inspected.validation.errors, inspected.value);
+      set({
+        loading: false,
+        processingStage: "idle",
+        externalImport: {
+          ...state.externalImport,
+          inputMode: "file",
+          rawText: selected.text,
+          tickerHint: normalizeTickerHint(inspected.summary.ticker || state.externalImport?.tickerHint),
+          file: {
+            name: selected.name,
+            size: selected.size,
+            text: selected.text,
+            summary: inspected.summary,
+            status: inspected.validation.valid ? "valid" : "errors",
+            errors: validationErrors,
+            warnings: inspected.validation.warnings || [],
+            technicalDetails: ""
+          },
+          validation: { ...inspected.validation, errors: validationErrors },
+          stage: "file-ready"
+        },
+        notice: inspected.validation.valid
+          ? (state.language === "ar" ? "الملف صالح وجاهز للتحقق والاستيراد." : "The file is valid and ready to import.")
+          : (state.language === "ar" ? "يحتوي الملف على أخطاء يجب إصلاحها قبل الاستيراد." : "The file contains validation errors.")
+      });
+    } catch (error) {
+      const importErrors = error.importErrors?.length
+        ? error.importErrors
+        : [{ field: "file", currentValue: file?.name || "—", requiredValue: ".json كامل وصالح", suggestion: "نزّل الملف الكامل من ChatGPT ثم اختره من جديد.", message: error.userMessage || "تعذر قراءة الملف." }];
+      set({
+        loading: false,
+        processingStage: "idle",
+        externalImport: {
+          ...state.externalImport,
+          inputMode: "file",
+          rawText: "",
+          file: {
+            name: file?.name || "",
+            size: Number(file?.size) || 0,
+            text: "",
+            summary: {},
+            status: "errors",
+            errors: importErrors,
+            warnings: [],
+            technicalDetails: error.technicalDetails || error.message || ""
+          },
+          validation: { valid: false, errors: importErrors, warnings: [] },
+          stage: "file-error"
+        },
+        notice: error.userMessage || (state.language === "ar" ? "تعذر قراءة ملف التحليل." : "Could not read the analysis file.")
+      });
+    }
+  }
+
   async function parseExternalImport(text, context = {}) {
     const rawText = String(text || "").trim();
     const tickerHint = normalizeTickerHint(context.tickerHint ?? state.externalImport?.tickerHint);
+    const inputMethod = context.inputMethod === "file" ? "file" : "paste";
     if (!rawText) {
       set({ notice: state.language === "ar" ? "ألصق تحليل ChatGPT أولًا." : "Paste the ChatGPT analysis first." });
       return;
@@ -291,8 +386,12 @@ export function createStore() {
       notice: state.language === "ar" ? "جاري استخراج التحليل بدون إعادة حساب الأرقام..." : "Parsing the report without recalculating numbers..."
     });
     try {
+      const candidate = parseJsonCandidate(rawText);
+      const currentReport = context.currentReport || resolvePreviousReportForImport(candidate.value);
       const parsed = await parseExternalAnalysisInput(rawText, {
+        currentReport,
         expectedTicker: tickerHint || null,
+        strictJson: inputMethod === "file",
         parseUnstructured: (inputText) => parseExternalAnalysisBlock({ text: inputText, language: state.language })
       });
       if (!parsed.report) throw new Error("External parser did not return a report.");
@@ -300,6 +399,7 @@ export function createStore() {
       const validation = validateExternalAnalysisReport(parsedReport);
       const prepared = prepareExternalDraftReport(parsedReport, validation, state.historicalRequirementSets);
       const duplicate = findDuplicateExternalAnalysis(state.externalAnalyses, prepared.report);
+      const conflict = findConflictingExternalAnalysis(state.externalAnalyses, prepared.report);
       set({
         loading: false,
         processingStage: "idle",
@@ -311,9 +411,11 @@ export function createStore() {
           draftJson: JSON.stringify(prepared.report, null, 2),
           validation: prepared.validation,
           duplicate,
+          conflict,
           requirementMatch: prepared.requirementMatch,
           parserSource: parsed.parserSource,
           usedAi: parsed.usedAi,
+          inputMode,
           stage: "preview"
         },
         notice: validation.valid
@@ -321,6 +423,9 @@ export function createStore() {
           : (state.language === "ar" ? "تم استخراج التقرير لكن توجد أخطاء قبل الحفظ." : "Report parsed, but validation errors must be fixed before saving.")
       });
     } catch (error) {
+      const importErrors = error.importErrors?.length
+        ? error.importErrors
+        : describeImportValidationErrors(error.validation?.errors || [{ field: "json", message: error.userMessage || error.message || "External parser failed." }], parseJsonCandidate(rawText).value || {});
       set({
         loading: false,
         processingStage: "idle",
@@ -328,8 +433,10 @@ export function createStore() {
           ...state.externalImport,
           rawText,
           tickerHint,
-          stage: "paste",
-          validation: { valid: false, errors: [{ field: "parser", message: error.userMessage || error.message || "External parser failed." }], warnings: [] }
+          inputMode,
+          stage: inputMethod === "file" ? "file-error" : "paste",
+          technicalDetails: error.technicalDetails || error.message || "",
+          validation: { valid: false, errors: importErrors, warnings: [] }
         },
         notice: error.userMessage || error.message || (state.language === "ar" ? "تعذر استخراج التحليل." : "Could not parse the analysis.")
       });
@@ -412,6 +519,14 @@ export function createStore() {
       });
       return;
     }
+    const conflict = findConflictingExternalAnalysis(state.externalAnalyses, draft);
+    if (conflict) {
+      set({
+        externalImport: { ...state.externalImport, conflict },
+        notice: state.language === "ar" ? "يوجد تعارض مع تحليل محفوظ سابقًا للفترة والتاريخ نفسيهما." : "This conflicts with a saved analysis for the same period and date."
+      });
+      return;
+    }
     const draftForSave = prepareExternalReportForSave(draft);
     if (state.externalImport.editing) {
       const result = updateSavedExternalAnalysis(state.externalAnalyses, draftForSave);
@@ -438,7 +553,7 @@ export function createStore() {
           ...state.externalImport,
           duplicate: result.duplicate
         },
-        notice: state.language === "ar" ? "هذا التحليل موجود مسبقًا. يمكنك حفظ نسخة مكررة إذا رغبت." : "This analysis already exists. You can save a duplicate version if needed."
+        notice: state.language === "ar" ? "هذا التحليل محفوظ مسبقًا." : "This analysis is already saved."
       });
       return;
     }
@@ -1450,6 +1565,8 @@ export function createStore() {
     loadDemoExternalAnalysis,
     openExternalImport,
     parseExternalImport,
+    setExternalImportMode,
+    selectExternalJsonFile,
     clearExternalImport,
     cancelExternalImport,
     updateExternalDraftField,
@@ -1575,12 +1692,16 @@ function wait(ms) {
 
 function createExternalImportState() {
   return {
+    inputMode: "file",
     rawText: "",
     tickerHint: "",
     draftReport: null,
     draftJson: "",
     validation: { valid: false, errors: [], warnings: [] },
     duplicate: null,
+    conflict: null,
+    file: null,
+    technicalDetails: "",
     requirementMatch: { status: "none", candidates: [] },
     parserSource: null,
     usedAi: false,
@@ -1591,6 +1712,15 @@ function createExternalImportState() {
     supplement: createSupplementState(),
     stage: "paste",
     editing: false
+  };
+}
+
+function resolveImportIdentity(value = {}) {
+  const identity = value?.reportIdentity || {};
+  return {
+    ticker: normalizeTickerHint(identity.ticker || value?.company?.ticker || value?.ticker),
+    previousAnalysisId: String(identity.previousAnalysisId || "").trim(),
+    analysisType: String(value?.analysisType || value?.metadata?.analysisType || "").trim()
   };
 }
 

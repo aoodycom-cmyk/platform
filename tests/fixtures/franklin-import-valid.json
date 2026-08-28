@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "external-analysis-report/v2",
+  "source": "ChatGPT",
+  "analysisDate": "2026-08-28",
+  "reportPeriod": "Q2 2026",
+  "company": {
+    "ticker": "TEST",
+    "name": "Test Company",
+    "currency": "USD"
+  },
+  "market": {
+    "priceAtAnalysis": 80
+  },
+  "fairValueSummary": {
+    "fairValueLow": 70,
+    "fairValueBase": 100,
+    "fairValueHigh": 130,
+    "currentPrice": 80
+  },
+  "thesis": {
+    "shortSummary": "فرضية استثمار مكتملة لأغراض اختبار الاستيراد المحلي."
+  },
+  "risks": [
+    {
+      "title": "مخاطرة تجريبية",
+      "explanation": "شرح المخاطرة التجريبية."
+    }
+  ],
+  "decision": {
+    "action": "HOLD",
+    "rationale": "مبررات قرار تجريبية."
+  },
+  "sources": [
+    {
+      "title": "Investor Relations",
+      "url": "https://example.com"
+    }
+  ],
+  "metadata": {
+    "analysisType": "INITIAL"
+  }
+}

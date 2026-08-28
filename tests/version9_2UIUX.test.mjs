@@ -35,7 +35,9 @@ assert.equal(visiblePanelConfig.includes("\"workspace\""), false, "Visible navig
 assert.equal(visiblePanelConfig.includes("\"research\""), false, "Visible navigation must not expose legacy research dashboards.");
 assert.equal(visiblePanelConfig.includes("\"watchlist\""), false, "Visible navigation must not expose the old watchlist flow.");
 assert.ok(components.includes("function externalImportPanel"), "Import page must exist as the only import flow.");
-assert.ok(components.includes("external-import-flow"), "Import page must show Paste -> Parse -> Preview -> Save -> Open Report.");
+assert.ok(components.includes("json-import-tabs"), "Import page must prioritize JSON file import while retaining paste mode.");
+assert.ok(components.includes('data-external-import-mode="file"'), "File JSON must be the primary import tab.");
+assert.ok(components.includes('data-external-import-mode="paste"'), "Legacy paste JSON mode must remain available.");
 assert.ok(components.includes("data-external-ticker-hint"), "Import page must provide a ticker fallback field when pasted reports omit the symbol.");
 assert.ok(components.includes("store.parseExternalImport(text, { tickerHint })"), "Ticker fallback must be passed to the import parser.");
 assert.ok(components.includes("data-action=\"copy-full-analysis-prompt\""), "Import page must let users copy the official ChatGPT analysis prompt.");

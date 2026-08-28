@@ -4,6 +4,7 @@ import { inflateQuarterlyEarningsLitePayload, isQuarterlyEarningsLitePayload } f
 import { normalizeFranklinV3Input } from "./v3InputNormalizer.js";
 import { isFranklinV3Report } from "./v3Contract.js";
 import { validateFranklinV3Report } from "./v3Validator.js";
+import { inspectJsonImportText, JsonImportError } from "./jsonFileImport.js";
 
 let quarterlyEarningsLiteReportResolver = null;
 
@@ -11,11 +12,19 @@ export function setQuarterlyEarningsLiteReportResolver(resolver) {
   quarterlyEarningsLiteReportResolver = typeof resolver === "function" ? resolver : null;
 }
 
-export async function parseExternalAnalysisInput(text, { parseUnstructured, now = new Date(), currentReport = null, expectedTicker = null, expectedReportPeriod = null } = {}) {
+export async function parseExternalAnalysisInput(text, { parseUnstructured, now = new Date(), currentReport = null, expectedTicker = null, expectedReportPeriod = null, strictJson = false } = {}) {
   const rawAnalysis = String(text || "").trim();
   if (!rawAnalysis) throw new Error("Paste an external ChatGPT analysis first.");
 
-  const localJson = parseJsonCandidate(rawAnalysis);
+  let localJson;
+  if (strictJson) {
+    const inspected = inspectJsonImportText(rawAnalysis, {
+      validationContext: { currentReport, expectedTicker, expectedReportPeriod }
+    });
+    localJson = { ok: true, value: inspected.value };
+  } else {
+    localJson = parseJsonCandidate(rawAnalysis);
+  }
   if (localJson.ok) {
     if (isFranklinV3Report(localJson.value)) {
       const normalizedV3 = normalizeFranklinV3Input(localJson.value);
@@ -50,6 +59,9 @@ export async function parseExternalAnalysisInput(text, { parseUnstructured, now 
     };
   }
 
+  if (strictJson) {
+    throw new JsonImportError("INVALID_JSON", "ملف غير صالح. تعذر قراءة JSON داخل الملف.", "No JSON object could be parsed from the selected file.");
+  }
   if (typeof parseUnstructured !== "function") {
     throw new Error("External analysis parser is unavailable.");
   }
@@ -76,17 +88,27 @@ function assertValidFranklinV3(value, context = {}) {
   const message = validation.errors.slice(0, 6).map((error) => `${error.field}: ${error.message}`).join("\n");
   const error = new Error(`Franklin v3 JSON is not valid.\n${message}`);
   const marketErrors = validation.errors.filter((item) => String(item.field || "").startsWith("marketPrice."));
+  const arithmeticErrors = validation.errors.filter((item) => /arithmetic|inconsistent|must equal|sum to 100/i.test(String(item.message || "")));
   error.userMessage = marketErrors.length
-    ? `تعذر استيراد التقرير لأن ChatGPT لم يُكمل سعر السوق الموثق. أعد تشغيل برومبت التحليل الأساسي المحدّث؛ فهو يطلب marketPrice.value وcurrency وasOf وpriceType وsourceId ومصدر Market Data مطابقًا. لا تعدّل السعر يدويًا ولا تستخدم رقمًا تقديريًا.`
-    : `JSON v3 غير صالح:\n${message}`;
+    ? "مصدر سعر السوق غير مطابق لعقد Franklin. راجع marketPrice والمصدر المرتبط به."
+    : arithmeticErrors.length
+      ? "يوجد خطأ حسابي في التقييم. لم يغيّر Franklin الأرقام ولم يحفظ التحليل."
+      : "فشل التحقق من عقد Franklin. راجع الأخطاء الموضحة قبل الاستيراد.";
   error.validation = validation;
   throw error;
 }
 
 export function parseJsonCandidate(text) {
   const clean = String(text || "").trim();
+  let unfenced = clean;
+  try {
+    unfenced = clean.startsWith("```") ? inspectJsonImportText(clean).jsonText : clean;
+  } catch {
+    unfenced = clean;
+  }
   const normalized = normalizeJsonLikeText(clean);
   const candidates = uniqueCandidates([
+    unfenced,
     clean,
     extractFirstJsonObject(clean),
     normalized,

@@ -32,8 +32,20 @@ export function getExternalAnalysis(collection = {}, ticker, reportId = "latest"
 export function findDuplicateExternalAnalysis(collection = {}, report = {}) {
   const ticker = normalizeTicker(report.company?.ticker);
   const hash = report.metadata?.rawHash || hashText(report.rawAnalysisOriginal || report.rawAnalysis || "");
-  if (!ticker || !hash) return null;
-  return (collection[ticker] || []).find((item) => item.metadata?.rawHash === hash) || null;
+  if (!ticker) return null;
+  const analysisId = reportIdentityId(report);
+  return (collection[ticker] || []).find((item) => {
+    if (report.id && item.id === report.id) return true;
+    if (analysisId && reportIdentityId(item) === analysisId) return true;
+    if (hash && item.metadata?.rawHash === hash) return true;
+    return sameAnalysisIdentity(item, report) && sameCanonicalPayload(item, report);
+  }) || null;
+}
+
+export function findConflictingExternalAnalysis(collection = {}, report = {}) {
+  const ticker = normalizeTicker(report.company?.ticker);
+  if (!ticker) return null;
+  return (collection[ticker] || []).find((item) => sameAnalysisIdentity(item, report) && !sameCanonicalPayload(item, report)) || null;
 }
 
 export function saveExternalAnalysis(collection = {}, report = {}, { allowDuplicate = false, now = new Date() } = {}) {
@@ -130,4 +142,41 @@ function compareReportsDesc(a, b) {
 function normalizeTicker(value) {
   const clean = String(value || "").trim().toUpperCase();
   return clean || null;
+}
+
+function sameAnalysisIdentity(left = {}, right = {}) {
+  return normalizeTicker(left.company?.ticker) === normalizeTicker(right.company?.ticker)
+    && analysisType(left) === analysisType(right)
+    && String(left.reportPeriod || "").trim() === String(right.reportPeriod || "").trim()
+    && String(left.analysisDate || "").trim() === String(right.analysisDate || "").trim();
+}
+
+function analysisType(report = {}) {
+  return String(report.metadata?.analysisType || report.metadata?.franklinV3?.analysisType || report.metadata?.franklinV3Report?.analysisType || "INITIAL").trim();
+}
+
+function reportIdentityId(report = {}) {
+  return String(report.metadata?.franklinV3Report?.reportIdentity?.analysisId || report.metadata?.analysisId || "").trim();
+}
+
+function sameCanonicalPayload(left = {}, right = {}) {
+  const leftCanonical = left.metadata?.franklinV3Report;
+  const rightCanonical = right.metadata?.franklinV3Report;
+  if (leftCanonical && rightCanonical) return JSON.stringify(leftCanonical) === JSON.stringify(rightCanonical);
+  const leftHash = left.metadata?.rawHash;
+  const rightHash = right.metadata?.rawHash;
+  if (leftHash && rightHash) return leftHash === rightHash;
+  return JSON.stringify(stableReportIdentityPayload(left)) === JSON.stringify(stableReportIdentityPayload(right));
+}
+
+function stableReportIdentityPayload(report = {}) {
+  return {
+    company: report.company || null,
+    analysisDate: report.analysisDate || null,
+    reportPeriod: report.reportPeriod || null,
+    fairValueSummary: report.fairValueSummary || null,
+    thesis: report.thesis || null,
+    decision: report.decision || null,
+    sources: report.sources || null
+  };
 }

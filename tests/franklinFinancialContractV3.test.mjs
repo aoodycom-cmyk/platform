@@ -33,6 +33,18 @@ const goldenB = earningsV3(previousReport, { bear: 80, base: 115, bull: 155, rev
 const goldenC = earningsV3(previousReport, { bear: 70, base: 100, bull: 140, reviewStatus: "UNCHANGED", mode: "DEFEND_BASE", targetScenario: "BASE_DEFENSE", targetValue: 100 });
 const goldenD = earningsV3(previousReport, { bear: 50, base: 75, bull: 105, reviewStatus: "UPDATED", thesisStatus: "WEAKENED", mode: "RECOVERY", targetScenario: "RECOVERY", targetValue: 95 });
 
+const fileImportedInitial = await parseExternalAnalysisInput(JSON.stringify(goldenA), { now, strictJson: true });
+assert.deepEqual(fileImportedInitial.report, parsedInitial.report, "Valid v3 INITIAL file import must match paste import.");
+const fileImportedEarnings = await parseExternalAnalysisInput(JSON.stringify(goldenB), {
+  now,
+  strictJson: true,
+  currentReport: previousReport,
+  expectedTicker: "VTH",
+  expectedReportPeriod: "Q2 2026"
+});
+assert.equal(fileImportedEarnings.report.metadata.franklinV3.analysisType, "EARNINGS_REVALUATION", "Valid v3 earnings file must remain an earnings revaluation.");
+assert.equal(fileImportedEarnings.report.metadata.franklinV3.previousAnalysisId, previousReport.id, "Earnings file import must preserve previousAnalysisId lineage.");
+
 const partialBase = await preparedPreviousWithWeights([25, 20, 20, 15, 10, 10]);
 const goldenE = earningsV3(partialBase.previousReport, {
   statuses: ["PASSED", "PASSED", "PASSED", "PASSED", "PASSED", "NOT_REPORTED"],

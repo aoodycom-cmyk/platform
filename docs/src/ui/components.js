@@ -18,6 +18,7 @@ import { normalizedEarningsPeriod } from "../externalAnalysis/historicalRequirem
 import { buildQuarterlyScorecard } from "../externalAnalysis/quarterlyScorecard.js";
 import { downloadQuarterlyScorecardPng, shareQuarterlyScorecardPng } from "./quarterlyScorecardExport.js";
 import { copyTextForMobile } from "./clipboard.js";
+import { formatJsonFileSize } from "../externalAnalysis/jsonFileImport.js";
 import {
   appHeaderMarkup,
   bindCompanyLogoFallbacks,
@@ -1181,43 +1182,107 @@ function externalImportPanel(state) {
     <section class="panel external-import-panel library-import-panel">
       <div class="external-import-head">
         <div>
-          <p class="eyebrow">${uiLabel("Import Analysis")}</p>
-          <h2>${uiLabel("Paste external research")}</h2>
-          <p>${uiLabel("Paste a completed ChatGPT analysis. Franklin parses, previews, saves, then opens the report. It does not create the analysis.")}</p>
+          <p class="eyebrow">${isArabicUi() ? "تحليلات Franklin" : "Franklin Analyses"}</p>
+          <h2>${isArabicUi() ? "إضافة تحليل جديد" : "Add a new analysis"}</h2>
+          <p>${isArabicUi() ? "استورد ملف التحليل الكامل أو الصق JSON يدويًا." : "Import the complete analysis file or paste JSON manually."}</p>
         </div>
         <button class="icon-btn" data-action="cancel-external-import">${uiLabel("Cancel")}</button>
       </div>
-      <div class="external-import-flow" aria-label="${uiLabel("Import flow")}">
-        ${flowStep("1", uiLabel("Paste"))}
-        ${flowStep("2", uiLabel("Parse"))}
-        ${flowStep("3", uiLabel("Preview"))}
-        ${flowStep("4", uiLabel("Save"))}
-        ${flowStep("5", uiLabel("Open Report"))}
+      <div class="json-import-tabs" role="tablist" aria-label="${isArabicUi() ? "طريقة استيراد التحليل" : "Analysis import method"}">
+        <button type="button" role="tab" aria-selected="${state.externalImport?.inputMode !== "paste"}" class="${state.externalImport?.inputMode !== "paste" ? "active" : ""}" data-external-import-mode="file">
+          <span>${isArabicUi() ? "ملف JSON" : "JSON File"}</span>
+          <small>${isArabicUi() ? "موصى به للتحليلات الطويلة" : "Recommended for long analyses"}</small>
+        </button>
+        <button type="button" role="tab" aria-selected="${state.externalImport?.inputMode === "paste"}" class="${state.externalImport?.inputMode === "paste" ? "active" : ""}" data-external-import-mode="paste">
+          <span>${isArabicUi() ? "لصق JSON" : "Paste JSON"}</span>
+        </button>
       </div>
-      <div class="external-import-context">
-        <label>
-          <span>${uiLabel("Ticker Symbol")}</span>
-          <input data-external-ticker-hint dir="ltr" autocomplete="off" autocapitalize="characters" inputmode="latin-prose" maxlength="12" required placeholder="AMZN" value="${escapeHtml(state.externalImport?.tickerHint || "")}">
-        </label>
-        <p>${uiLabel("Use this when the pasted report does not clearly include the ticker.")}</p>
-      </div>
-      ${externalChatGptPrepCard(state)}
-      <textarea class="paste-box external-paste-box" data-external-raw dir="auto" placeholder="${uiLabel("Paste completed ChatGPT analysis or ExternalAnalysisReport JSON here.")}">${escapeHtml(state.externalImport?.rawText || "")}</textarea>
-      <div class="external-import-actions">
-        <button class="primary-btn" data-action="parse-external-analysis" ${state.loading ? "disabled" : ""}>${state.loading ? uiLabel("Parsing") : uiLabel("Parse Analysis")}</button>
-        <button class="icon-btn" data-action="clear-external-import">${uiLabel("Clear")}</button>
-      </div>
+      ${state.externalImport?.inputMode === "paste" ? pasteJsonImportMethod(state) : fileJsonImportMethod(state)}
+      <details class="json-import-help">
+        <summary>${isArabicUi() ? "إنشاء تحليل جديد في ChatGPT" : "Create a new analysis in ChatGPT"}</summary>
+        ${externalChatGptPrepCard(state)}
+      </details>
       ${state.externalImport?.parserSource ? `<p class="muted">${uiLabel("Parser")}: ${escapeHtml(state.externalImport.parserSource)} / ${state.externalImport.usedAi ? "AI Parser" : "Local JSON"}</p>` : ""}
       ${draft && completion?.status !== "complete" ? missingDataCompletionCard(draft, validation, completion, state) : ""}
       ${visibleValidation.errors.length ? validationList(uiLabel("Validation Errors"), visibleValidation.errors, "negative") : ""}
       ${languageRepairNeeded(visibleValidation) ? languageRepairCard() : ""}
       ${visibleValidation.warnings.length ? validationList(uiLabel("Validation Warnings"), visibleValidation.warnings, "warning") : ""}
       ${state.externalImport?.duplicate ? duplicateWarning(state.externalImport.duplicate) : ""}
+      ${state.externalImport?.conflict ? conflictWarning(state.externalImport.conflict) : ""}
+      ${state.externalImport?.technicalDetails ? technicalImportDetails(state.externalImport.technicalDetails) : ""}
+      ${state.externalImport?.file?.technicalDetails ? technicalImportDetails(state.externalImport.file.technicalDetails) : ""}
       ${state.externalImport?.supplement?.open ? supplementaryInputPanel(draft, completion, state) : ""}
       ${state.externalImport?.missingManualOpen ? missingManualPanel(draft, completion) : ""}
       ${draft ? externalPreviewPanel(draft, state) : ""}
     </section>
   `;
+}
+
+function fileJsonImportMethod(state) {
+  const file = state.externalImport?.file;
+  const summary = file?.summary || {};
+  return `
+    <section class="json-file-import-area">
+      <input class="json-file-native-input" type="file" accept=".json,application/json" data-external-json-file aria-label="${isArabicUi() ? "اختيار ملف التحليل" : "Choose analysis file"}">
+      <button type="button" class="json-file-picker" data-action="choose-external-json-file" ${state.loading ? "disabled" : ""}>
+        <span class="json-file-picker-icon" aria-hidden="true">⇧</span>
+        <b>${state.loading ? (isArabicUi() ? "جاري قراءة الملف..." : "Reading file...") : (isArabicUi() ? "اختيار ملف التحليل" : "Choose analysis file")}</b>
+        <small>${isArabicUi() ? "تتم قراءة الملف على جهازك فقط، ولا يُرفع إلى خادم خارجي." : "The file is read only on your device and is not uploaded."}</small>
+      </button>
+      ${file ? `
+        <div class="json-file-summary ${file.status === "valid" ? "valid" : "invalid"}">
+          <div class="json-file-summary-head">
+            <div><span>${isArabicUi() ? "الملف المختار" : "Selected file"}</span><strong dir="auto">${escapeHtml(file.name || "—")}</strong></div>
+            <b>${file.status === "valid" ? (isArabicUi() ? "صالح" : "Valid") : (isArabicUi() ? "يحتوي أخطاء" : "Has errors")}</b>
+          </div>
+          <dl>
+            ${fileSummaryItem(isArabicUi() ? "رمز السهم" : "Ticker", summary.ticker, "ltr")}
+            ${fileSummaryItem(isArabicUi() ? "اسم الشركة" : "Company", summary.companyName)}
+            ${fileSummaryItem(isArabicUi() ? "نوع التحليل" : "Analysis type", analysisTypeDisplay(summary.analysisType))}
+            ${fileSummaryItem(isArabicUi() ? "تاريخ التحليل" : "Analysis date", summary.analysisDate, "ltr")}
+            ${fileSummaryItem(isArabicUi() ? "حجم الملف" : "File size", formatJsonFileSize(file.size), "ltr")}
+            ${fileSummaryItem(isArabicUi() ? "حالة التحقق" : "Validation", file.status === "valid" ? (isArabicUi() ? "صالح" : "Valid") : (isArabicUi() ? "يحتوي أخطاء" : "Has errors"))}
+          </dl>
+          <button type="button" class="primary-btn json-file-import-submit" data-action="parse-external-json-file" ${state.loading || file.status !== "valid" ? "disabled" : ""}>
+            ${isArabicUi() ? "تحقق واستورد التحليل" : "Validate and import analysis"}
+          </button>
+        </div>
+      ` : ""}
+    </section>
+  `;
+}
+
+function pasteJsonImportMethod(state) {
+  return `
+    <section class="json-paste-import-area">
+      <div class="external-import-context">
+        <label>
+          <span>${uiLabel("Ticker Symbol")}</span>
+          <input data-external-ticker-hint dir="ltr" autocomplete="off" autocapitalize="characters" inputmode="latin-prose" maxlength="12" placeholder="AMZN" value="${escapeHtml(state.externalImport?.tickerHint || "")}">
+        </label>
+      </div>
+      <textarea class="paste-box external-paste-box" data-external-raw dir="ltr" spellcheck="false" placeholder="${isArabicUi() ? "الصق JSON الخام أو JSON المحاط بسياج code fence هنا." : "Paste raw JSON or a fenced JSON code block here."}">${escapeHtml(state.externalImport?.rawText || "")}</textarea>
+      <div class="external-import-actions">
+        <button class="primary-btn" data-action="parse-external-analysis" ${state.loading ? "disabled" : ""}>${state.loading ? uiLabel("Parsing") : (isArabicUi() ? "تحقق من JSON" : "Validate JSON")}</button>
+        <button class="icon-btn" data-action="clear-external-import">${uiLabel("Clear")}</button>
+      </div>
+    </section>
+  `;
+}
+
+function fileSummaryItem(label, value, direction = "auto") {
+  return `<div><dt>${escapeHtml(label)}</dt><dd dir="${direction}">${escapeHtml(value || "—")}</dd></div>`;
+}
+
+function analysisTypeDisplay(value) {
+  if (value === "EARNINGS_REVALUATION") return isArabicUi() ? "تحديث أرباح" : "Earnings update";
+  if (value === "INITIAL") return isArabicUi() ? "تحليل أولي" : "Initial analysis";
+  return value || "—";
+}
+
+function technicalImportDetails(details) {
+  if (!details) return "";
+  return `<details class="technical-import-details"><summary>${isArabicUi() ? "التفاصيل التقنية" : "Technical details"}</summary><pre dir="ltr">${escapeHtml(details)}</pre></details>`;
 }
 
 function languageRepairNeeded(validation = {}) {
@@ -1466,7 +1531,6 @@ function externalPreviewPanel(report, state) {
         </div>
         <div class="external-import-actions">
           <button class="primary-btn" data-action="save-external-analysis" ${state.externalImport?.validation?.valid ? "" : "disabled"}>${uiLabel("حفظ السهم")}</button>
-          ${state.externalImport?.duplicate ? `<button class="icon-btn warning-action" data-action="save-external-analysis-duplicate">${uiLabel("Save duplicate anyway")}</button>` : ""}
         </div>
       </div>
       <div class="quick-summary-card preview-summary">
@@ -1522,11 +1586,30 @@ function duplicateWarning(report) {
   `;
 }
 
+function conflictWarning(report) {
+  return `
+    <div class="validation-list warning">
+      <strong>${isArabicUi() ? "تعارض مع تحليل محفوظ سابقًا" : "Conflict with a previously saved analysis"}</strong>
+      <p>${isArabicUi() ? "يوجد تحليل لنفس السهم والنوع والفترة والتاريخ، لكن محتواه مختلف. لم يتم الحفظ." : "A different analysis already exists for the same ticker, type, period, and date. Nothing was saved."}</p>
+      <p dir="ltr">${escapeHtml(report.company?.ticker || "")} / ${escapeHtml(report.analysisDate || "")} / ${escapeHtml(report.reportPeriod || "")}</p>
+    </div>
+  `;
+}
+
 function validationList(title, items, tone) {
   return `
     <div class="validation-list ${tone}">
       <strong>${escapeHtml(title)}</strong>
-      ${items.map((item) => `<p><span dir="ltr">${escapeHtml(item.field)}</span>: ${escapeHtml(localizedValidationMessage(item))}</p>`).join("")}
+      <ol class="structured-validation-errors">
+        ${items.map((item) => `
+          <li>
+            <b dir="ltr">${escapeHtml(item.field)}</b>
+            <p>${escapeHtml(localizedValidationMessage(item))}</p>
+            ${item.currentValue !== undefined ? `<dl><div><dt>${isArabicUi() ? "القيمة الحالية" : "Current value"}</dt><dd dir="auto">${escapeHtml(item.currentValue)}</dd></div><div><dt>${isArabicUi() ? "القيمة المطلوبة" : "Required value"}</dt><dd dir="auto">${escapeHtml(item.requiredValue || "—")}</dd></div></dl>` : ""}
+            ${item.suggestion ? `<small>${escapeHtml(item.suggestion)}</small>` : ""}
+          </li>
+        `).join("")}
+      </ol>
     </div>
   `;
 }
@@ -1536,6 +1619,7 @@ function localizedValidationMessage(item = {}) {
   const message = item.message || "";
   const messages = {
     "company.ticker": "رمز السهم مطلوب ويجب أن يكون رمزًا صحيحًا في السوق.",
+    "reportIdentity.ticker": "رمز السهم غير موجود أو غير صحيح داخل هوية التقرير.",
     analysisDate: "تاريخ التحليل مطلوب ويجب أن يكون تاريخًا صحيحًا.",
     "market.priceAtAnalysis": "السعر وقت التحليل مطلوب ويجب أن يكون أكبر من صفر.",
     "scores.quality": "Quality Score إذا كان موجودًا يجب أن يكون بين 0 و10.",
@@ -1560,11 +1644,17 @@ function localizedValidationMessage(item = {}) {
   if (field === "fields" && message.includes("Unknown supplement field path")) return "بعض الحقول لا تطابق مسارات معروفة في Schema التحليل.";
   if (field === "fields" && message.includes("non-empty values")) return "لم يُرجع ChatGPT أي قيم غير فارغة للحقول المطلوبة.";
   if (messages[field]) return messages[field];
+  if (field === "methodologyVersion") return "إصدار منهجية Franklin غير مدعوم.";
+  if (field === "analysisType") return "نوع التحليل يجب أن يكون تحليلًا أوليًا أو تحديث أرباح.";
+  if (field === "marketPrice.sourceId") return "مصدر سعر السوق غير موجود أو لا يطابق مصدر Market Data داخل التقرير.";
+  if (/arithmetic|inconsistent|must equal|sum to 100/i.test(message)) return "القيمة لا تتطابق مع التحقق الحسابي الحالي في Franklin.";
+  if (/required|must include|missing/i.test(message)) return "هذا الحقل إلزامي ويجب إكماله قبل الاستيراد.";
+  if (/not supported|must be exactly/i.test(message)) return "القيمة الحالية ليست من القيم المعتمدة في عقد Franklin v3.";
   if (message.includes("must be between 0 and 10")) return "القيمة يجب أن تكون بين 0 و10.";
   if (message.includes("must be an array")) return "القيمة يجب أن تكون قائمة عناصر.";
   if (message.includes("NaN or Infinity")) return "الأرقام غير الصالحة مثل NaN أو Infinity غير مقبولة.";
   if (message.includes("positive number")) return "القيمة يجب أن تكون رقمًا موجبًا.";
-  return message;
+  return /[A-Za-z]{4}/.test(message) ? "تعذر قبول قيمة هذا الحقل وفق عقد Franklin v3." : message;
 }
 
 function externalHistoryPanel(state) {
@@ -6655,6 +6745,23 @@ function bind(root, store, actions) {
   root.querySelectorAll("[data-action='open-external-import']").forEach((button) => {
     button.addEventListener("click", store.openExternalImport);
   });
+  root.querySelectorAll("[data-external-import-mode]").forEach((button) => {
+    button.addEventListener("click", () => store.setExternalImportMode(button.dataset.externalImportMode));
+  });
+  root.querySelector("[data-action='choose-external-json-file']")?.addEventListener("click", () => {
+    root.querySelector("[data-external-json-file]")?.click();
+  });
+  root.querySelector("[data-external-json-file]")?.addEventListener("change", (event) => {
+    const file = event.target.files?.[0];
+    if (file) store.selectExternalJsonFile(file);
+  });
+  root.querySelector("[data-action='parse-external-json-file']")?.addEventListener("click", () => {
+    const selected = store.state.externalImport?.file;
+    store.parseExternalImport(selected?.text || "", {
+      inputMethod: "file",
+      tickerHint: selected?.summary?.ticker || store.state.externalImport?.tickerHint || ""
+    });
+  });
   root.querySelectorAll("[data-action='add-external-analysis-for-ticker']").forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -6765,7 +6872,6 @@ function bind(root, store, actions) {
     button.addEventListener("click", store.cancelExternalImport);
   });
   root.querySelector("[data-action='save-external-analysis']")?.addEventListener("click", () => store.saveExternalDraft(false));
-  root.querySelector("[data-action='save-external-analysis-duplicate']")?.addEventListener("click", () => store.saveExternalDraft(true));
   root.querySelectorAll("[data-external-field]").forEach((input) => {
     input.addEventListener("change", () => store.updateExternalDraftField(input.dataset.externalField, input.value));
     input.addEventListener("blur", () => store.updateExternalDraftField(input.dataset.externalField, input.value));
