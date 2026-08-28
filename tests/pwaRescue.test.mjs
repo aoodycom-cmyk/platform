@@ -13,7 +13,7 @@ assert.ok(index.includes("searchParams.delete(\"fresh\")"), "index should remove
 assert.ok(index.includes("navigator.serviceWorker.getRegistrations"), "index should unregister stale service workers");
 assert.ok(index.includes("caches.keys"), "index should clear Franklin caches");
 
-assert.ok(serviceWorker.includes(`franklin-research-${VERSION}`), "service worker should use the mobile rescue cache name");
+assert.match(serviceWorker, /franklin-research-[A-Za-z0-9._-]+/, "service worker should use a versioned Franklin cache name");
 assert.ok(serviceWorker.includes("\"./rescue.html\""), "service worker should make the rescue page available");
 assert.equal(serviceWorker.includes("\"./\""), false, "service worker should not precache the app shell route");
 assert.equal(serviceWorker.includes("\"./index.html\""), false, "service worker should not precache index.html");

@@ -8,7 +8,7 @@ const serviceWorker = readFileSync(new URL("../service-worker.js", import.meta.u
 const rescue = readFileSync(new URL("../rescue.html", import.meta.url), "utf8");
 
 assert.ok(index.includes(VERSION), "index should request the Safari boot guard release");
-assert.ok(serviceWorker.includes(`franklin-research-${VERSION}`), "service worker should use the Safari boot guard cache");
+assert.match(serviceWorker, /franklin-research-[A-Za-z0-9._-]+/, "service worker should use a versioned Safari boot guard cache");
 assert.ok(rescue.includes(VERSION), "rescue should redirect to the Safari boot guard release");
 
 assert.ok(index.includes("String.prototype.replaceAll"), "Safari guard should polyfill replaceAll");

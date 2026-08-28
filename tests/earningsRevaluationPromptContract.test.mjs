@@ -58,6 +58,10 @@ assert.ok(prompt.includes("coverageWeightPct"));
 assert.ok(prompt.includes("achievementOfReportedWeightPct"));
 assert.ok(prompt.includes("STRENGTHENED"));
 assert.ok(prompt.includes("valuationBridge"));
+assert.ok(prompt.includes("baseChangeBridge"));
+assert.ok(prompt.includes("financialNormalization"));
+assert.ok(prompt.includes("previousSnapshotDate"));
+assert.ok(prompt.includes("weightedMethodFairValue"));
 assert.ok(prompt.includes("yearlyForecast"));
 assert.ok(prompt.includes("Return exactly one fenced JSON code block"));
 assert.ok(prompt.includes("JSON.parse()"));
@@ -105,6 +109,7 @@ assert.ok(request.revaluationScope.provenance.some((item) => item.includes("مص
 assert.ok(request.revaluationScope.frozenRequirementsEvaluation.some((item) => item.includes("minimum")));
 assert.ok(request.outputContract.rules.some((item) => item.includes("marketPrice.value")));
 assert.ok(request.completionChecklist.some((item) => item.includes("marketPrice")));
+assert.ok(request.completionChecklist.some((item) => item.includes("جسر تغير Base")));
 assert.match(request.outputContract.canonicalValueRules.metricResult, /BEAT/);
 
 assert.ok(prompt.length < 40000, `Earnings revaluation prompt is unexpectedly large: ${prompt.length} chars.`);

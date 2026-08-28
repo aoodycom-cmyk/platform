@@ -64,6 +64,7 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
         "استخدم Earnings Release وSEC filing وEarnings Call للربع المحدد، وتحقق أن كل Actual يعود إلى الربع نفسه لا إلى LTM أو ربع أحدث.",
         "قارن Actual مع consensus فقط عند تطابق GAAP/non-GAAP والوحدة والعملة وأساس share/ADS/ADR؛ وإلا اشرح عدم القابلية للمقارنة ولا تصنع beat/miss.",
         "افصل أثر التشغيل الحقيقي عن FX والبنود غير المتكررة وSBC وتغير رأس المال العامل وCapex والاستحواذات عندما تكون مادية.",
+        "حدّث financialNormalization للربع الجديد بأرقام GAAP وadjusted وnormalized وعدد الأسهم وSBC وOCF وCapex وFCF وصافي الدين، مع sourceId وbasis والفترة والوحدة.",
         "حدّث صافي النقد/الدين وعدد الأسهم المخفف والتخفيف المحتمل، لأنها قد تغيّر قيمة السهم حتى لو لم يتغير Enterprise Value.",
         "اقرأ تعليقات الإدارة عن الطلب والتسعير والقدرة والتنفيذ والمنافسة والحصة السوقية، ولا تكتفِ بالـ beat/miss.",
         "اقرأ ما تغير في الصناعة والدورة والمنافسة والتنظيم والعوامل الكلية فقط إذا كان أثره ماديًا على الفرضية أو التقييم.",
@@ -98,6 +99,8 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
       forwardView: [
         "حدّث Forward Outlook والتوقعات فقط بما تدعمه النتائج الجديدة أو guidance أو تعليق الإدارة.",
         "افصل بين Guidance الإدارة وConsensus بعد النتائج وافتراضات المحلل، وبيّن مراجعات السنوات الأمامية بدل الاكتفاء بالربع التالي.",
+        "حوّل Guidance الرقمي إلى previousLow/High وcurrentLow/High وmidpoint والوحدة والعملة والأساس المحاسبي، ولا تكتفِ بالنص عندما تتوفر الأرقام.",
+        "لكل Estimate Revision سجّل تاريخ اللقطة السابقة والجديدة والأساس المحاسبي وsourceId، واحسب changePct من القيمتين.",
         "حدد changedAssumptions بوضوح واربطها بالأدلة الجديدة."
       ],
       valuationAndThesis: [
@@ -108,6 +111,8 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
         "أعد بناء قيمة السهم باستخدام أحدث صافي نقد/دين وعدد أسهم مخفف وأساس share/ADS/ADR، وافصل تغير قيمة النشاط عن تغير الميزانية أو التخفيف.",
         "حافظ على اتساق طرق التقييم مع التقرير السابق، ولا تغيّر المنهجية إلا لسبب اقتصادي؛ إذا تغيرت فاشرح لماذا أصبحت الطريقة القديمة أقل ملاءمة.",
         "املأ valuation.valuationBridge.whyBaseChangedOrNot بسبب محدد ومادي.",
+        "املأ valuation.valuationBridge.baseChangeBridge رقميًا: ابدأ من previousBase، ثم آثار التشغيل، الهوامش والتدفقات، الميزانية، التخفيف، معلمات التقييم، وأي أثر آخر؛ يجب أن يتصالح الناتج مع currentBase.",
+        "لكل طريقة تقييم املأ formula وsteps وcomputedFairValue، ثم صالِح متوسط الطرق والحكم التحليلي مع Base داخل valuation.calculationAudit.",
         "حدّث thesis.status إلى STRENGTHENED أو UNCHANGED أو WEAKENED أو BROKEN.",
         "أصدر decision جديدًا على مستوى السهم: BUY أو ADD أو HOLD أو WATCH أو REDUCE أو SELL."
       ],
@@ -146,6 +151,8 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
         "Bear <= Base <= Bull والاحتمالات تجمع 100%.",
         "valuation.current.probabilityWeighted يطابق المتوسط الاحتمالي للسيناريوهات.",
         "valuation.methodology.modelWeights تجمع 100%.",
+        "valuation.calculationAudit يعيد حساب متوسط الطرق ويتصالح مع Base.",
+        "baseChangeBridge يجمع عدديًا من previous Base إلى current Base.",
         "marketPrice.currency وvaluation.current.currency يساويان company.tradingCurrency.",
         "marketPrice.value موجب وasOf تاريخ حقيقي وpriceType يساوي LIVE أو DELAYED أو LAST_CLOSE وsourceId يطابق مصدر Market Data داخل sources.",
         "لا تترك عناصر قالب وهمية كلها null داخل arrays؛ استخدم عناصر حقيقية فقط أو [] عندما يسمح العقد."
@@ -163,6 +170,9 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
     "Guidance وConsensus وanalyst assumptions منفصلة",
     "Bear/Base/Bull أُعيد underwriting لها وليست منسوخة آليًا",
     "صافي الدين وعدد الأسهم المخفف والتخفيف محدثة عندما تكون مادية",
+    "financialNormalization محدث ومربوط بمصادر الربع",
+    "Guidance وEstimate Revisions منظمة رقميًا وقابلة للتتبع",
+    "جسر تغير Base ومتوسط طرق التقييم متصالحان حسابيًا",
     "marketPrice مكتمل وموثق ومربوط بمصدر Market Data",
     "nextRequirements جديدة وقابلة للقياس وأوزانها 100%",
     "JSON صالح ويطابق القالب دون عناصر وهمية"

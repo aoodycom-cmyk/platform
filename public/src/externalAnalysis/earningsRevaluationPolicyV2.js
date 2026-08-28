@@ -52,6 +52,9 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
     metricResult: "companySpecificKpis[].result وcoreMetrics.*.result: BEAT أو MISS أو INLINE أو NA أو null فقط.",
     guidanceDirection: "guidance[].direction: raised أو maintained أو lowered أو new أو not_reported أو null فقط.",
     forecastFields: "forecast.materiality: MATERIAL أو NON_MATERIAL أو null؛ yearlyForecast.*.basis: reported أو consensus أو analyst_assumption أو null؛ changedAssumptions[].direction: UP أو DOWN أو UNCHANGED أو null.",
+    financialNormalization: "املأ الأرقام المتاحة مع value/unit/accountingBasis/period/sourceId، واستخدم null فقط عند عدم الإفصاح.",
+    valuationCalculation: "كل valuationResult يحتاج formula وsteps وcomputedFairValue؛ calculationAudit يصالح متوسط الطرق وanalyst overlay مع Base.",
+    numericBaseBridge: "في إعادة التقييم يجب أن تجمع آثار baseChangeBridge من previousBase إلى currentBase مع reconciliationGap محسوب.",
     marketPriceType: "marketPrice.priceType: LIVE أو DELAYED أو LAST_CLOSE فقط.",
     requirementFields: "nextRequirements.requirements[].type: minimum أو maximum أو range أو qualitative؛ importance: critical أو high أو medium أو low؛ status: NOT_REPORTED فقط.",
     sourceType: "sources[].type: Investor Relations أو SEC أو Earnings Call أو Market Data أو Consensus Data أو Trusted Financial News أو User Provided أو Other فقط.",
@@ -65,6 +68,8 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
     "حقول dataQuality.confidence وclassification.confidence وbusinessQuality.confidence وvaluation.current.confidence وvaluationResults[].confidence تستخدم HIGH/MEDIUM/LOW/null فقط، وليست درجات رقمية.",
     "company.securityUnit وvaluation.current.securityUnit يستخدمان share/ADS/ADR/unit فقط.",
     "marketPrice مكتمل بالقيمة والعملة والتاريخ والنوع والمصدر، ومصدره موجود داخل sources وusedFor يتضمن marketPrice.",
+    "Guidance الرقمي يستخدم low/high/midpoint والوحدة والعملة والأساس المحاسبي، وEstimate Revisions تحمل snapshot dates وsourceId عندما تتوفر الأرقام.",
+    "financialNormalization وvaluation.calculationAudit وbaseChangeBridge مكتملة ومتسقة حسابيًا.",
     "احذف عناصر القالب الوهمية التي بقيت كلها null من arrays؛ لا تستخدم null placeholders بدل عناصر حقيقية."
   ];
 

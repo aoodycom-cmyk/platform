@@ -23,6 +23,10 @@ assert.ok(prompt.includes("share أو ADS أو ADR أو unit"));
 assert.ok(prompt.includes("GAAP عن non-GAAP"));
 assert.ok(prompt.includes("Enterprise Value إلى Equity Value"));
 assert.ok(prompt.includes("عدد الأسهم المخفف"));
+assert.ok(prompt.includes("financialNormalization"));
+assert.ok(prompt.includes("computedFairValue"));
+assert.ok(prompt.includes("weightedMethodFairValue"));
+assert.ok(prompt.includes("analystOverlayPct"));
 assert.ok(prompt.includes("لا تصدر القرار من نسبة upside وحدها"));
 assert.equal(prompt.includes("fairValueSummary.fairValueBase"), false, "Initial prompt must stay on the V3 contract and not leak legacy fairValueSummary paths.");
 
@@ -47,6 +51,8 @@ assert.equal(request.researchPolicy.noFabrication, true);
 assert.match(request.researchPolicy.comparability, /GAAP\/non-GAAP/);
 assert.ok(request.researchPolicy.sourcePriority.includes("Investor Relations"));
 assert.ok(request.outputContract.arithmeticChecks.some((item) => item.includes("probabilityWeighted")));
+assert.ok(request.outputContract.arithmeticChecks.some((item) => item.includes("weightedMethodFairValue")));
+assert.ok(request.completionChecklist.some((item) => item.includes("financialNormalization")));
 assert.ok(request.completionChecklist.some((item) => item.includes("المشهد الصناعي")));
 
 assert.ok(prompt.length < 35000, `Initial prompt is unexpectedly large: ${prompt.length} chars.`);

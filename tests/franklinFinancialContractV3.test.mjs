@@ -130,9 +130,40 @@ const matrix = [
   ["48. missing earnings provenance flagged", () => expectInvalid(goldenB, (item) => { item.sources = [source("S1", "Market Data", "2026-04-25", ["marketPrice"])]; }, /source provenance|earnings/i)],
   ["49. previous-quarter sources are rejected as current-quarter evidence", () => expectInvalid(goldenB, (item) => { item.sources = item.sources.map((src) => ({ ...src, date: "2026-01-15" })); }, /fresh quarterly source provenance/i)],
   ["50. existing user reports remain unchanged", () => assert.equal(JSON.stringify(previousReport), previousSnapshot)]
+  , ["51. method computed Fair Value mismatch rejected", () => expectInvalid(goldenA, (item) => {
+    item.valuation.valuationResults[0].calculation = { formula: "FCF / shares", steps: ["calculate"], computedFairValue: 999 };
+  }, /computedFairValue/)]
+  , ["52. weighted method Fair Value mismatch rejected", () => expectInvalid(goldenA, (item) => {
+    item.valuation.calculationAudit = { weightedMethodFairValue: 999, analystOverlayPct: 0, overlayReason: null, reconciledBaseFairValue: 100, gapToReportedBasePct: 0 };
+  }, /weightedMethodFairValue/)]
+  , ["53. normalized net debt arithmetic rejected", () => expectInvalid(goldenA, (item) => {
+    item.financialNormalization = {
+      reportingCurrency: "USD",
+      cash: { value: 200 },
+      debt: { value: 50 },
+      netDebt: { value: 10 }
+    };
+  }, /netDebt/)]
+  , ["54. estimate revision arithmetic rejected", () => expectInvalid(goldenA, (item) => {
+    item.forecast.estimateRevisions[0].changePct = 99;
+  }, /changePct/)]
+  , ["55. numeric earnings Base bridge mismatch rejected", () => expectInvalid(goldenB, (item) => {
+    item.valuation.valuationBridge.baseChangeBridge = {
+      previousBase: 100,
+      operatingForecastImpact: 5,
+      marginAndCashFlowImpact: 3,
+      balanceSheetImpact: 2,
+      dilutionImpact: -1,
+      valuationParametersImpact: 1,
+      otherImpact: 0,
+      reconciledCurrentBase: 999,
+      currentBase: 115,
+      reconciliationGap: 0
+    };
+  }, /reconciledCurrentBase/)]
 ];
 
-assert.equal(matrix.length, 50);
+assert.equal(matrix.length, 55);
 for (const [name, run] of matrix) {
   await run();
   assert.ok(name);

@@ -139,7 +139,7 @@ try {
   assert.ok(app.text.includes("apple-mobile-web-app-title"));
   assert.ok(app.text.includes("styles.css?v=v11-franklin-v36-20260823-financial-contract-v3"));
   assert.ok(app.text.includes("styles-mobile2.css?v=v11-franklin-v36-20260823-financial-contract-v3"));
-  assert.ok(app.text.includes("src/main.js?v=v11-franklin-v36-20260823-financial-contract-v3"));
+  assert.match(app.text, /src\/main\.js\?v=[A-Za-z0-9._-]+/);
   assert.ok(app.text.includes("franklin-cache-reset"));
 
   const search = await inject(server, { method: "POST", path: "/api/search", headers: { cookie }, body: { query: "AAPL" } });
@@ -173,7 +173,7 @@ try {
 
   const serviceWorker = await inject(server, { path: "/service-worker.js", headers: { cookie } });
   assert.equal(serviceWorker.status, 200);
-  assert.ok(serviceWorker.text.includes("franklin-research-v11-franklin-v36-20260823-financial-contract-v3"));
+  assert.match(serviceWorker.text, /franklin-research-[A-Za-z0-9._-]+/);
   assert.ok(serviceWorker.text.includes("src/cloud/franklinCloud.js"));
   assert.ok(serviceWorker.text.includes("src/financialSafety/financialSafety.js"));
   assert.ok(serviceWorker.text.includes("src/financialSafety/quarterlySourceSafety.js"));

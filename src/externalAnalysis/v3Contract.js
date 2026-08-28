@@ -185,6 +185,8 @@ export function buildFranklinV3ReportTemplate(options = {}) {
       }
     },
 
+    financialNormalization: financialNormalizationTemplate(),
+
     forecast: {
       materiality: null,
       yearlyForecast: [yearlyForecastTemplate()],
@@ -230,8 +232,10 @@ export function buildFranklinV3ReportTemplate(options = {}) {
       valuationBridge: {
         positiveDrivers: [],
         negativeDrivers: [],
-        whyBaseChangedOrNot: isRevaluation ? null : "Initial valuation."
+        whyBaseChangedOrNot: isRevaluation ? null : "Initial valuation.",
+        baseChangeBridge: isRevaluation ? baseChangeBridgeTemplate(previous.valuation?.base) : null
       },
+      calculationAudit: valuationCalculationAuditTemplate(),
       upsideToBasePct: null,
       marginOfSafetyPct: null
     },
@@ -483,6 +487,14 @@ function guidanceTemplate() {
     topic: null,
     previousGuidance: null,
     currentGuidance: null,
+    previousLow: null,
+    previousHigh: null,
+    currentLow: null,
+    currentHigh: null,
+    midpoint: null,
+    unit: null,
+    currency: null,
+    accountingBasis: null,
     direction: "not_reported",
     interpretation: null,
     sourceId: null
@@ -504,7 +516,19 @@ function yearlyForecastTemplate() {
 }
 
 function estimateRevisionTemplate() {
-  return { metric: null, period: null, previousEstimate: null, updatedEstimate: null, unit: null, changePct: null, reason: null };
+  return {
+    metric: null,
+    period: null,
+    previousEstimate: null,
+    updatedEstimate: null,
+    unit: null,
+    accountingBasis: null,
+    previousSnapshotDate: null,
+    updatedSnapshotDate: null,
+    changePct: null,
+    reason: null,
+    sourceId: null
+  };
 }
 
 function changedAssumptionTemplate() {
@@ -520,8 +544,81 @@ function valuationResultTemplate() {
     confidence: null,
     inputs: {},
     assumptions: {},
+    calculation: {
+      formula: null,
+      steps: [],
+      enterpriseValue: null,
+      netDebt: null,
+      nonOperatingAdjustments: null,
+      equityValue: null,
+      dilutedShares: null,
+      computedFairValue: null
+    },
     rationale: null,
     limitations: null
+  };
+}
+
+function normalizedMetricTemplate() {
+  return {
+    value: null,
+    unit: null,
+    accountingBasis: null,
+    period: null,
+    sourceId: null
+  };
+}
+
+function financialNormalizationTemplate() {
+  return {
+    reportingPeriod: null,
+    reportingCurrency: null,
+    earningsBasisUsedForValuation: null,
+    revenue: normalizedMetricTemplate(),
+    gaapNetIncome: normalizedMetricTemplate(),
+    adjustedNetIncome: normalizedMetricTemplate(),
+    normalizedNetIncome: normalizedMetricTemplate(),
+    gaapDilutedEps: normalizedMetricTemplate(),
+    adjustedDilutedEps: normalizedMetricTemplate(),
+    normalizedDilutedEps: normalizedMetricTemplate(),
+    dilutedShares: normalizedMetricTemplate(),
+    stockBasedCompensation: normalizedMetricTemplate(),
+    operatingCashFlow: normalizedMetricTemplate(),
+    capitalExpenditure: normalizedMetricTemplate(),
+    workingCapitalChange: normalizedMetricTemplate(),
+    freeCashFlow: normalizedMetricTemplate(),
+    cash: normalizedMetricTemplate(),
+    debt: normalizedMetricTemplate(),
+    netDebt: normalizedMetricTemplate(),
+    taxRatePct: normalizedMetricTemplate(),
+    oneOffItems: [],
+    reconciliationNotes: [],
+    sourceIds: []
+  };
+}
+
+function valuationCalculationAuditTemplate() {
+  return {
+    weightedMethodFairValue: null,
+    analystOverlayPct: 0,
+    overlayReason: null,
+    reconciledBaseFairValue: null,
+    gapToReportedBasePct: null
+  };
+}
+
+function baseChangeBridgeTemplate(previousBase) {
+  return {
+    previousBase: finiteOrNull(previousBase),
+    operatingForecastImpact: null,
+    marginAndCashFlowImpact: null,
+    balanceSheetImpact: null,
+    dilutionImpact: null,
+    valuationParametersImpact: null,
+    otherImpact: null,
+    reconciledCurrentBase: null,
+    currentBase: null,
+    reconciliationGap: null
   };
 }
 

@@ -50,9 +50,10 @@ export function validateFranklinV3Report(input = {}, context = {}) {
   validateDateChronology(input, errors);
   validateQualityAndClassification(input, errors);
   validateLatestQuarter(input, errors);
+  validateFinancialNormalization(input, errors, warnings);
   validateForecast(input, errors);
   validateCompanyAndMarket(input, errors);
-  validateValuation(input, errors);
+  validateValuation(input, errors, warnings);
   validateDecisionAndThesis(input, errors);
   validateNextRequirements(input, errors);
   validateAuditTotals(input, errors);
@@ -239,6 +240,47 @@ function validateForecast(input, errors) {
   for (const [index, item] of (Array.isArray(forecast.changedAssumptions) ? forecast.changedAssumptions : []).entries()) {
     validateEnum(`forecast.changedAssumptions.${index}.direction`, item?.direction, FRANKLIN_V3_CHANGED_ASSUMPTION_DIRECTIONS, errors, { optional: true });
   }
+  for (const [index, item] of (Array.isArray(forecast.estimateRevisions) ? forecast.estimateRevisions : []).entries()) {
+    if (item?.previousSnapshotDate && !validDate(item.previousSnapshotDate)) errors.push(fieldError(`forecast.estimateRevisions.${index}.previousSnapshotDate`, "previousSnapshotDate must be a valid date."));
+    if (item?.updatedSnapshotDate && !validDate(item.updatedSnapshotDate)) errors.push(fieldError(`forecast.estimateRevisions.${index}.updatedSnapshotDate`, "updatedSnapshotDate must be a valid date."));
+    const previous = numberOrNull(item?.previousEstimate);
+    const updated = numberOrNull(item?.updatedEstimate);
+    const suppliedChange = numberOrNull(item?.changePct);
+    if (Number.isFinite(previous) && previous !== 0 && Number.isFinite(updated) && Number.isFinite(suppliedChange)) {
+      const expectedChange = ((updated / previous) - 1) * 100;
+      if (!within(expectedChange, suppliedChange, ASSESSMENT_TOLERANCE)) errors.push(fieldError(`forecast.estimateRevisions.${index}.changePct`, "Estimate revision changePct is arithmetically inconsistent."));
+    }
+  }
+}
+
+function validateFinancialNormalization(input, errors, warnings) {
+  const normalization = input.financialNormalization;
+  if (!normalization || typeof normalization !== "object" || Array.isArray(normalization)) {
+    warnings.push(fieldError("financialNormalization", "Structured financial normalization is missing; valuation reproducibility is reduced."));
+    return;
+  }
+  if (normalization.reportingCurrency && input.company?.reportingCurrency && normalization.reportingCurrency !== input.company.reportingCurrency) {
+    errors.push(fieldError("financialNormalization.reportingCurrency", "Financial normalization currency must equal company.reportingCurrency."));
+  }
+  for (const field of ["revenue", "gaapNetIncome", "adjustedNetIncome", "normalizedNetIncome", "gaapDilutedEps", "adjustedDilutedEps", "normalizedDilutedEps", "dilutedShares", "stockBasedCompensation", "operatingCashFlow", "capitalExpenditure", "workingCapitalChange", "freeCashFlow", "cash", "debt", "netDebt", "taxRatePct"]) {
+    const metric = normalization[field];
+    if (!metric || typeof metric !== "object" || Array.isArray(metric)) continue;
+    if (metric.value !== null && metric.value !== undefined && !Number.isFinite(numberOrNull(metric.value))) {
+      errors.push(fieldError(`financialNormalization.${field}.value`, `${field} value must be numeric or null.`));
+    }
+  }
+  const cash = numberOrNull(normalization.cash?.value);
+  const debt = numberOrNull(normalization.debt?.value);
+  const netDebt = numberOrNull(normalization.netDebt?.value);
+  if ([cash, debt, netDebt].every(Number.isFinite) && !within(debt - cash, netDebt, materialAmountTolerance(debt - cash))) {
+    errors.push(fieldError("financialNormalization.netDebt.value", "netDebt must equal debt minus cash when the three values use the same basis."));
+  }
+  const operatingCashFlow = numberOrNull(normalization.operatingCashFlow?.value);
+  const capex = numberOrNull(normalization.capitalExpenditure?.value);
+  const freeCashFlow = numberOrNull(normalization.freeCashFlow?.value);
+  if ([operatingCashFlow, capex, freeCashFlow].every(Number.isFinite) && !within(operatingCashFlow - Math.abs(capex), freeCashFlow, materialAmountTolerance(freeCashFlow))) {
+    warnings.push(fieldError("financialNormalization.freeCashFlow.value", "FCF does not reconcile to operating cash flow less absolute capex; explain the definition in reconciliationNotes."));
+  }
 }
 
 function validateCompanyAndMarket(input, errors) {
@@ -266,7 +308,7 @@ function validateCompanyAndMarket(input, errors) {
   }
 }
 
-function validateValuation(input, errors) {
+function validateValuation(input, errors, warnings) {
   const valuation = input.valuation || {};
   const current = valuation.current || {};
   const bear = numberOrNull(current.bear);
@@ -304,11 +346,12 @@ function validateValuation(input, errors) {
     errors.push(fieldError("valuation.current.probabilityWeighted", "probabilityWeighted Fair Value arithmetic is inconsistent."));
   }
 
-  validateValuationMethodology(valuation, errors);
+  validateValuationMethodology(valuation, errors, warnings);
+  validateValuationCalculationAudit(valuation, errors, warnings);
   validateUpsideAndMargin(input, errors);
 }
 
-function validateValuationMethodology(valuation = {}, errors) {
+function validateValuationMethodology(valuation = {}, errors, warnings) {
   const methodology = valuation.methodology || {};
   const weights = Array.isArray(methodology.modelWeights) ? methodology.modelWeights : [];
   if (!weights.length) errors.push(fieldError("valuation.methodology.modelWeights", "Valuation method weights must be supplied."));
@@ -340,6 +383,14 @@ function validateValuationMethodology(valuation = {}, errors) {
     if (!Number.isFinite(numberOrNull(result?.fairValue))) errors.push(fieldError(`valuation.valuationResults.${index}.fairValue`, "valuationResult fairValue is required."));
     validateEnum(`valuation.valuationResults.${index}.role`, result?.role, FRANKLIN_V3_VALUATION_ROLES, errors);
     validateEnum(`valuation.valuationResults.${index}.confidence`, result?.confidence, FRANKLIN_V3_CONFIDENCE_LEVELS, errors, { optional: true });
+    const computedFairValue = numberOrNull(result?.calculation?.computedFairValue);
+    const statedFairValue = numberOrNull(result?.fairValue);
+    if (Number.isFinite(computedFairValue) && Number.isFinite(statedFairValue) && !within(computedFairValue, statedFairValue, materialAmountTolerance(statedFairValue))) {
+      errors.push(fieldError(`valuation.valuationResults.${index}.calculation.computedFairValue`, "computedFairValue must reconcile to valuationResult fairValue."));
+    }
+    if (!hasText(result?.calculation?.formula)) {
+      warnings.push(fieldError(`valuation.valuationResults.${index}.calculation.formula`, "A formula is recommended so the valuation method can be independently reproduced."));
+    }
 
     const weighted = weightedMethods.get(method);
     if (weighted) {
@@ -369,6 +420,44 @@ function validateValuationMethodology(valuation = {}, errors) {
     if (normalized && !weightedMethods.has(normalized)) {
       errors.push(fieldError(`valuation.methodology.secondaryMethods.${index}`, "secondaryMethods must not contradict the weighted methods."));
     }
+  }
+}
+
+function validateValuationCalculationAudit(valuation = {}, errors, warnings) {
+  const results = Array.isArray(valuation.valuationResults) ? valuation.valuationResults : [];
+  const weighted = results
+    .filter((item) => Number.isFinite(numberOrNull(item?.weight)) && numberOrNull(item?.weight) > 0 && Number.isFinite(numberOrNull(item?.fairValue)))
+    .reduce((sum, item) => sum + numberOrNull(item.fairValue) * numberOrNull(item.weight) / 100, 0);
+  const audit = valuation.calculationAudit;
+  if (!audit || typeof audit !== "object" || Array.isArray(audit)) {
+    warnings.push(fieldError("valuation.calculationAudit", "Valuation calculation audit is missing."));
+    return;
+  }
+  const suppliedWeighted = numberOrNull(audit.weightedMethodFairValue);
+  if (Number.isFinite(suppliedWeighted) && !within(weighted, suppliedWeighted, materialAmountTolerance(weighted))) {
+    errors.push(fieldError("valuation.calculationAudit.weightedMethodFairValue", "weightedMethodFairValue is inconsistent with valuationResults and model weights."));
+  }
+  const overlay = numberOrNull(audit.analystOverlayPct);
+  const reconciled = numberOrNull(audit.reconciledBaseFairValue);
+  if (Number.isFinite(suppliedWeighted) && Number.isFinite(overlay) && Number.isFinite(reconciled)) {
+    const expected = suppliedWeighted * (1 + overlay / 100);
+    if (!within(expected, reconciled, materialAmountTolerance(expected))) {
+      errors.push(fieldError("valuation.calculationAudit.reconciledBaseFairValue", "reconciledBaseFairValue must equal weightedMethodFairValue adjusted by analystOverlayPct."));
+    }
+  }
+  const base = numberOrNull(valuation.current?.base);
+  const gap = numberOrNull(audit.gapToReportedBasePct);
+  if (Number.isFinite(base) && Number.isFinite(reconciled)) {
+    const expectedGap = base === 0 ? null : ((reconciled / base) - 1) * 100;
+    if (Number.isFinite(gap) && Number.isFinite(expectedGap) && !within(expectedGap, gap, ASSESSMENT_TOLERANCE)) {
+      errors.push(fieldError("valuation.calculationAudit.gapToReportedBasePct", "gapToReportedBasePct is arithmetically inconsistent."));
+    }
+    if (!within(base, reconciled, materialAmountTolerance(base))) {
+      errors.push(fieldError("valuation.calculationAudit.reconciledBaseFairValue", "Reconciled method value and analyst overlay must equal valuation.current.base."));
+    }
+  }
+  if (Number.isFinite(overlay) && Math.abs(overlay) > 0.01 && !hasText(audit.overlayReason)) {
+    errors.push(fieldError("valuation.calculationAudit.overlayReason", "A non-zero analyst overlay requires an explicit reason."));
   }
 }
 
@@ -470,6 +559,7 @@ function validateEarningsRevaluationRules(input, context, errors, warnings) {
   if (!hasText(valuation.valuationBridge?.whyBaseChangedOrNot)) {
     errors.push(fieldError("valuation.valuationBridge.whyBaseChangedOrNot", "Valuation bridge explanation is required for every earnings revaluation."));
   }
+  validateBaseChangeBridge(valuation, errors, warnings);
   if (input.thesis?.status === "INITIAL" || !["STRENGTHENED", "UNCHANGED", "WEAKENED", "BROKEN"].includes(input.thesis?.status)) {
     errors.push(fieldError("thesis.status", "EARNINGS_REVALUATION thesis.status must be STRENGTHENED, UNCHANGED, WEAKENED, or BROKEN."));
   }
@@ -490,6 +580,42 @@ function validateEarningsRevaluationRules(input, context, errors, warnings) {
   validateRevaluationStatusAndChanges(input, errors);
   if (hasPreviousSet) validatePreviousRequirements(input, previousSet, errors);
   validateFreshEarningsSources(input, errors, warnings);
+}
+
+function validateBaseChangeBridge(valuation = {}, errors, warnings) {
+  const bridge = valuation.valuationBridge?.baseChangeBridge;
+  if (!bridge || typeof bridge !== "object" || Array.isArray(bridge)) {
+    warnings.push(fieldError("valuation.valuationBridge.baseChangeBridge", "A numeric base-value bridge is recommended for earnings revaluation."));
+    return;
+  }
+  const previousBase = numberOrNull(bridge.previousBase);
+  const currentBase = numberOrNull(bridge.currentBase);
+  const expectedPrevious = numberOrNull(valuation.previous?.base);
+  const expectedCurrent = numberOrNull(valuation.current?.base);
+  if (Number.isFinite(previousBase) && Number.isFinite(expectedPrevious) && !within(previousBase, expectedPrevious, materialAmountTolerance(expectedPrevious))) {
+    errors.push(fieldError("valuation.valuationBridge.baseChangeBridge.previousBase", "Bridge previousBase must equal valuation.previous.base."));
+  }
+  if (Number.isFinite(currentBase) && Number.isFinite(expectedCurrent) && !within(currentBase, expectedCurrent, materialAmountTolerance(expectedCurrent))) {
+    errors.push(fieldError("valuation.valuationBridge.baseChangeBridge.currentBase", "Bridge currentBase must equal valuation.current.base."));
+  }
+  const impacts = ["operatingForecastImpact", "marginAndCashFlowImpact", "balanceSheetImpact", "dilutionImpact", "valuationParametersImpact", "otherImpact"]
+    .map((field) => numberOrNull(bridge[field]));
+  if (Number.isFinite(previousBase) && impacts.every(Number.isFinite)) {
+    const expectedReconciled = previousBase + impacts.reduce((sum, value) => sum + value, 0);
+    const reconciled = numberOrNull(bridge.reconciledCurrentBase);
+    if (!Number.isFinite(reconciled) || !within(expectedReconciled, reconciled, materialAmountTolerance(expectedReconciled))) {
+      errors.push(fieldError("valuation.valuationBridge.baseChangeBridge.reconciledCurrentBase", "Numeric bridge impacts do not reconcile to reconciledCurrentBase."));
+    }
+    if (Number.isFinite(reconciled) && Number.isFinite(currentBase)) {
+      const expectedGap = currentBase - reconciled;
+      const gap = numberOrNull(bridge.reconciliationGap);
+      if (!Number.isFinite(gap) || !within(expectedGap, gap, materialAmountTolerance(expectedGap))) {
+        errors.push(fieldError("valuation.valuationBridge.baseChangeBridge.reconciliationGap", "reconciliationGap must equal currentBase minus reconciledCurrentBase."));
+      }
+    }
+  } else {
+    warnings.push(fieldError("valuation.valuationBridge.baseChangeBridge", "Complete all six numeric impact buckets to make the Fair Value change reproducible."));
+  }
 }
 
 function validatePreviousValuation(input, previous, errors) {
@@ -789,6 +915,16 @@ function validateAllSourceReferences(input, sourceIds, errors) {
   for (const [index, item] of (Array.isArray(input.forecast?.changedAssumptions) ? input.forecast.changedAssumptions : []).entries()) {
     collectSourceRef(refs, `forecast.changedAssumptions.${index}.sourceId`, item?.sourceId);
   }
+  for (const [index, item] of (Array.isArray(input.forecast?.estimateRevisions) ? input.forecast.estimateRevisions : []).entries()) {
+    collectSourceRef(refs, `forecast.estimateRevisions.${index}.sourceId`, item?.sourceId);
+  }
+  const normalization = input.financialNormalization || {};
+  for (const [field, metric] of Object.entries(normalization)) {
+    if (metric && typeof metric === "object" && !Array.isArray(metric)) {
+      collectSourceRef(refs, `financialNormalization.${field}.sourceId`, metric.sourceId);
+    }
+  }
+  collectSourceRefs(refs, "financialNormalization.sourceIds", normalization.sourceIds);
   for (const { path, id } of refs) {
     if (!sourceIds.has(id)) errors.push(fieldError(path, `sourceId ${id} must reference an actual source in sources[].`));
   }
@@ -839,6 +975,10 @@ function calculateProbabilityWeighted(scenarios = {}) {
 
 function probabilityWeightedTolerance(value) {
   return Math.max(0.01, Math.abs(value) * 0.001);
+}
+
+function materialAmountTolerance(value) {
+  return Math.max(0.01, Math.abs(Number(value) || 0) * 0.001);
 }
 
 function sumWeights(items = []) {
