@@ -31,5 +31,7 @@ const components = readFileSync(new URL("../src/ui/components.js", import.meta.u
 assert.match(initialPrompt, /LANGUAGE GATE/);
 assert.match(earningsPrompt, /companyGlossary/);
 assert.match(components, /مصطلحات الشركة ببساطة/);
+assert.match(components, /نسخ طلب إصلاح اللغة/);
+assert.match(components, /لا تغيّر Bear أو Base أو Bull أو القرار/);
 
 console.log("Arabic narrative and company glossary checks passed.");

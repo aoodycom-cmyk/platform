@@ -1210,11 +1210,29 @@ function externalImportPanel(state) {
       ${state.externalImport?.parserSource ? `<p class="muted">${uiLabel("Parser")}: ${escapeHtml(state.externalImport.parserSource)} / ${state.externalImport.usedAi ? "AI Parser" : "Local JSON"}</p>` : ""}
       ${draft && completion?.status !== "complete" ? missingDataCompletionCard(draft, validation, completion, state) : ""}
       ${visibleValidation.errors.length ? validationList(uiLabel("Validation Errors"), visibleValidation.errors, "negative") : ""}
+      ${languageRepairNeeded(visibleValidation) ? languageRepairCard() : ""}
       ${visibleValidation.warnings.length ? validationList(uiLabel("Validation Warnings"), visibleValidation.warnings, "warning") : ""}
       ${state.externalImport?.duplicate ? duplicateWarning(state.externalImport.duplicate) : ""}
       ${state.externalImport?.supplement?.open ? supplementaryInputPanel(draft, completion, state) : ""}
       ${state.externalImport?.missingManualOpen ? missingManualPanel(draft, completion) : ""}
       ${draft ? externalPreviewPanel(draft, state) : ""}
+    </section>
+  `;
+}
+
+function languageRepairNeeded(validation = {}) {
+  return (validation.errors || []).some((item) => String(item?.field || "").startsWith("companyGlossary")
+    || /العربية|إنجليزي|English|language/i.test(String(item?.message || "")));
+}
+
+function languageRepairCard() {
+  return `
+    <section class="language-repair-card">
+      <div>
+        <strong>${isArabicUi() ? "المعنى المالي سليم لكن اللغة تحتاج إصلاحًا" : "The financial analysis is valid, but its language needs repair"}</strong>
+        <p>${isArabicUi() ? "انسخ الطلب إلى ChatGPT. سيعيد صياغة النصوص بالعربية ويضيف قاموس الشركة من دون تغيير أي رقم أو قرار أو قيمة عادلة." : "Send the repair request to ChatGPT. It will fix the Arabic and glossary without changing financial values or decisions."}</p>
+      </div>
+      <button class="primary-btn" data-action="copy-language-repair-prompt">${isArabicUi() ? "نسخ طلب إصلاح اللغة" : "Copy Language Repair Request"}</button>
     </section>
   `;
 }
@@ -6666,6 +6684,7 @@ function bind(root, store, actions) {
   root.querySelectorAll("[data-action='copy-new-earnings-prompt']").forEach((button) => {
     button.addEventListener("click", () => copyNewEarningsAnalysisPrompt(store));
   });
+  root.querySelector("[data-action='copy-language-repair-prompt']")?.addEventListener("click", () => copyLanguageRepairPrompt(store));
   root.querySelectorAll("[data-action='open-earnings-update']").forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -7209,6 +7228,32 @@ async function copyMissingRequirements(store) {
         ? "تعذر النسخ تلقائيًا. استخدم النص الظاهر للنسخ اليدوي."
         : "Automatic copy failed. Use the visible text area to copy manually."
     });
+  }
+}
+
+async function copyLanguageRepairPrompt(store) {
+  const raw = String(store.state.externalImport?.rawText || "").trim();
+  if (!raw) return;
+  const text = [
+    "أصلح لغة JSON التالي فقط ليصبح مناسبًا لمستثمر عربي غير متخصص.",
+    "قواعد إلزامية:",
+    "- لا تغيّر أي رقم أو تاريخ أو مصدر أو رابط أو عملة أو احتمال أو وزن.",
+    "- لا تغيّر Bear أو Base أو Bull أو القرار أو الثقة أو حالات المتطلبات أو منهجية التقييم.",
+    "- اجعل outputLanguage يساوي ar.",
+    "- أعد صياغة جميع النصوص الموجهة للمستثمر بالعربية المبسطة.",
+    "- اكتب المصطلح العربي أولًا، ثم المصطلح الإنجليزي بين قوسين عند أول ظهور فقط.",
+    "- أنشئ أو حدّث companyGlossary ليضم 4 إلى 12 مصطلحًا فنيًا خاصًا بالشركة.",
+    "- لكل مصطلح استخدم termAr وtermEn وplainExplanationAr وwhyItMattersAr.",
+    "- احتفظ ببنية JSON ومفاتيحه كما هي، ولا تضف نصًا خارج JSON.",
+    "- أخرج exactly one fenced JSON code block صالحًا لـ JSON.parse().",
+    "JSON المطلوب إصلاح لغته:",
+    raw
+  ].join("\n\n");
+  try {
+    await copyTextForMobile(text);
+    store.set({ notice: store.state.language === "ar" ? "تم نسخ طلب إصلاح اللغة دون تغيير التحليل المالي." : "Language repair request copied without changing the financial analysis." });
+  } catch {
+    store.set({ notice: store.state.language === "ar" ? "تعذر النسخ تلقائيًا على هذا الجهاز." : "Could not copy automatically on this device." });
   }
 }
 
