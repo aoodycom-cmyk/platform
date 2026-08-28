@@ -6541,6 +6541,10 @@ function bind(root, store, actions) {
     const tickerHint = root.querySelector("[data-external-ticker-hint]")?.value || "";
     store.parseExternalImport(text, { tickerHint });
   });
+  root.querySelector("[data-external-ticker-hint]")?.addEventListener("input", (event) => {
+    const tickerHint = String(event.target.value || "").toUpperCase().replace(/[^A-Z0-9.-]/g, "").slice(0, 12);
+    store.state.externalImport = { ...store.state.externalImport, tickerHint };
+  });
   root.querySelectorAll("[data-action='copy-new-earnings-prompt']").forEach((button) => {
     button.addEventListener("click", () => copyNewEarningsAnalysisPrompt(store));
   });

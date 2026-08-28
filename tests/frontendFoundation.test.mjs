@@ -95,6 +95,7 @@ assert.ok(componentSource.includes("async function copyTextForMobile"), "Prompt 
 assert.ok(componentSource.includes('document.execCommand?.("copy")'), "Prompt copying must fall back to the legacy synchronous copy path on iPhone.");
 assert.ok(componentSource.includes("installPromptCopyDelegation(root, store)"), "Prompt copying must use stable root delegation across owner-input rerenders.");
 assert.ok(componentSource.includes("store.state.externalReportSelection?.ticker"), "Prompt copying must recover the selected report ticker outside the import form.");
+assert.ok(componentSource.includes('root.querySelector("[data-external-ticker-hint]")?.addEventListener("input"'), "Ticker input must persist before owner price fields trigger a rerender.");
 assert.ok(enhancerSource.includes('scenarioCell("Bear"') && enhancerSource.includes('scenarioCell("Base"') && enhancerSource.includes('scenarioCell("Bull"'));
 assert.ok(premiumCss.includes(".stock-summary-metric.bear strong { color: var(--fr-red); }"));
 assert.ok(premiumCss.includes(".stock-summary-metric.base strong { color: var(--fr-amber); }"));
