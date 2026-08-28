@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { externalAnalysisToHomeCard } from "../src/externalAnalysis/reportAdapter.js";
 import { normalizeExternalAnalysisReport } from "../src/externalAnalysis/schema.js";
-import { withCurrentPrice, withPresentation } from "../src/ui/reportPresentationEditor.js";
+import { fieldValue, withCurrentPrice, withPresentation } from "../src/ui/reportPresentationEditor.js";
 
 const source = {
   id: "report-1",
@@ -15,6 +15,12 @@ const source = {
     }
   }
 };
+
+assert.equal(fieldValue(null), "", "a missing Morningstar value must stay blank");
+assert.equal(fieldValue(undefined), "");
+assert.equal(fieldValue(""), "");
+assert.equal(fieldValue(0), "", "zero is not a valid positive owner price");
+assert.equal(fieldValue(142), "142");
 
 const repriced = withCurrentPrice(source, 120);
 assert.equal(repriced.fairValueSummary.currentPrice, 120);

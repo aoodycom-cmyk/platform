@@ -215,8 +215,10 @@ function optionalPositiveNumber(value) {
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
-function fieldValue(value) {
-  return Number.isFinite(Number(value)) ? String(Number(value)) : "";
+export function fieldValue(value) {
+  if (value === null || value === undefined || String(value).trim() === "") return "";
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? String(number) : "";
 }
 
 function setNotice(store, notice) {

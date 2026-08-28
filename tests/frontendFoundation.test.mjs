@@ -15,6 +15,7 @@ const syncScript = read("../scripts/sync-deploy.mjs");
 const foundationSource = read("../src/ui/foundation.js");
 const mainSource = read("../src/main.js");
 const componentSource = read("../src/ui/components.js");
+const clipboardSource = read("../src/ui/clipboard.js");
 const enhancerSource = read("../src/ui/mobile2Enhancer.js");
 const premiumCss = read("../styles-premium.css");
 
@@ -91,8 +92,8 @@ const previewEnd = componentSource.indexOf("function externalInput", previewStar
 const previewSource = componentSource.slice(previewStart, previewEnd);
 assert.equal(previewSource.includes('externalInput("scores.'), false, "ChatGPT-supplied score controls must not appear in the import preview.");
 assert.equal(previewSource.includes('externalInput("decision.investmentScore"'), false, "The overall score control must not appear in the import preview.");
-assert.ok(componentSource.includes("async function copyTextForMobile"), "Prompt copying must provide an iPhone/Safari-compatible fallback.");
-assert.ok(componentSource.includes('document.execCommand?.("copy")'), "Prompt copying must fall back to the legacy synchronous copy path on iPhone.");
+assert.ok(componentSource.includes('import { copyTextForMobile } from "./clipboard.js"'), "Prompt copying must use the tested clipboard adapter.");
+assert.ok(clipboardSource.indexOf("clipboard?.writeText") < clipboardSource.indexOf('execCommand?.("copy")'), "Prompt copying must try the non-blocking Clipboard API before the legacy Safari fallback.");
 assert.ok(componentSource.includes("installPromptCopyDelegation(root, store)"), "Prompt copying must use stable root delegation across owner-input rerenders.");
 assert.ok(componentSource.includes("store.state.externalReportSelection?.ticker"), "Prompt copying must recover the selected report ticker outside the import form.");
 assert.ok(componentSource.includes('root.querySelector("[data-external-ticker-hint]")?.addEventListener("input"'), "Ticker input must persist before owner price fields trigger a rerender.");

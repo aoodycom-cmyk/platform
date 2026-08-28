@@ -17,6 +17,7 @@ import { getExternalAnalysis, listLatestExternalAnalyses } from "../externalAnal
 import { normalizedEarningsPeriod } from "../externalAnalysis/historicalRequirements.js";
 import { buildQuarterlyScorecard } from "../externalAnalysis/quarterlyScorecard.js";
 import { downloadQuarterlyScorecardPng, shareQuarterlyScorecardPng } from "./quarterlyScorecardExport.js";
+import { copyTextForMobile } from "./clipboard.js";
 import {
   appHeaderMarkup,
   bindCompanyLogoFallbacks,
@@ -7192,43 +7193,6 @@ async function copyExternalAnalysisPrep(store, kind, tickerHint = "") {
         : "Automatic copy failed. Use the visible text area to copy manually."
     });
   }
-}
-
-async function copyTextForMobile(text) {
-  const value = String(text || "");
-  if (!value) throw new Error("Nothing to copy");
-
-  const fallback = document.createElement("textarea");
-  fallback.value = value;
-  fallback.setAttribute("readonly", "");
-  fallback.setAttribute("aria-hidden", "true");
-  Object.assign(fallback.style, {
-    position: "fixed",
-    top: "0",
-    left: "-9999px",
-    width: "1px",
-    height: "1px",
-    opacity: "0",
-    pointerEvents: "none"
-  });
-  document.body.appendChild(fallback);
-  fallback.focus({ preventScroll: true });
-  fallback.select();
-  fallback.setSelectionRange(0, value.length);
-  let copied = false;
-  try {
-    copied = Boolean(document.execCommand?.("copy"));
-  } catch {
-    copied = false;
-  }
-  fallback.remove();
-  if (copied) return true;
-
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(value);
-    return true;
-  }
-  throw new Error("Clipboard unavailable");
 }
 
 function exportSelectedExternalReport(store) {
