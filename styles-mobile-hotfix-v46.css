@@ -96,4 +96,123 @@
   .valuation-change-reason > p {
     margin: 0;
   }
+
+  .social-export-page {
+    display: grid;
+    gap: 14px;
+  }
+
+  .social-export-page-heading {
+    display: grid !important;
+    align-items: start !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    padding: 16px;
+    border: 1px solid rgba(45, 212, 191, 0.24);
+    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(45, 212, 191, 0.08), rgba(17, 24, 39, 0.72));
+  }
+
+  .social-export-page-heading p {
+    margin: 0;
+    color: var(--dd-text-secondary);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  .social-export-company-list,
+  .social-export-analysis-list {
+    display: grid;
+    gap: 10px;
+  }
+
+  .social-export-company-card {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--dd-line);
+    border-radius: 16px;
+    background: var(--dd-surface);
+  }
+
+  .social-export-company-card > header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .social-export-company-card > header .company-logo {
+    width: 42px;
+    height: 42px;
+  }
+
+  .social-export-company-card > header > div {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+  }
+
+  .social-export-company-card > header strong {
+    overflow: hidden;
+    color: var(--dd-text-primary);
+    font-size: 15px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .social-export-company-card > header bdi {
+    color: #2dd4bf;
+    font-size: 11px;
+  }
+
+  .social-export-analysis-row {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 12px;
+    border-radius: 12px;
+    background: var(--dd-surface-raised);
+  }
+
+  .social-export-analysis-row > div {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+  }
+
+  .social-export-analysis-row span {
+    color: var(--dd-text-primary);
+    font-size: 12px;
+    font-weight: 750;
+  }
+
+  .social-export-analysis-row small {
+    color: var(--dd-text-muted);
+    font-size: 10px;
+  }
+
+  .social-export-analysis-row button {
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid rgba(45, 212, 191, 0.38);
+    border-radius: 11px;
+    background: rgba(45, 212, 191, 0.08);
+    color: #2dd4bf;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 750;
+    line-height: 1.35;
+    white-space: nowrap;
+  }
+
+  .social-export-empty {
+    display: grid;
+    gap: 12px;
+    padding: 24px 16px;
+    border: 1px dashed var(--dd-line);
+    border-radius: 16px;
+    text-align: center;
+  }
 }

@@ -131,8 +131,7 @@ export function installSocialImageExport(store, root = document.getElementById("
   root.addEventListener("click", async (event) => {
     const button = event.target.closest?.("[data-social-image-export]");
     if (!button) return;
-    const selection = store.state.externalReportSelection || {};
-    const report = getExternalAnalysis(store.state.externalAnalyses || {}, selection.ticker, selection.reportId || "latest");
+    const report = socialExportReport(store, button);
     if (!report) return toast("تعذر العثور على التقرير المحفوظ.", "error");
 
     const original = button.innerHTML;
@@ -152,26 +151,14 @@ export function installSocialImageExport(store, root = document.getElementById("
 }
 
 function mountPanel(store, root) {
-  root.querySelector("[data-franklin-social-export-panel]")?.remove();
-  if (store.state.activePanel !== "external-report") return;
-  const selection = store.state.externalReportSelection || {};
-  const report = getExternalAnalysis(store.state.externalAnalyses || {}, selection.ticker, selection.reportId || "latest");
-  const host = root.querySelector(".mobile-page-content");
-  if (!report || !host) return;
+  root.querySelector(".franklin-social-export-panel")?.remove();
+}
 
-  const section = document.createElement("section");
-  section.className = "franklin-social-export-panel";
-  section.dataset.franklinSocialExportPanel = "true";
-  section.innerHTML = `
-    <div class="franklin-social-export-heading">
-      <div><span>جاهز للنشر</span><strong>تصدير للسوشال ميديا</strong></div>
-      <small>PNG · 1080 × 1350</small>
-    </div>
-    <div class="franklin-social-export-actions">
-      <button type="button" data-social-image-export="investment"><b>إنفوجرافيك الشركة</b><span>النشاط · آخر ربع · التقييم · الفرضية · المخاطر · المحفزات</span></button>
-      <button type="button" data-social-image-export="earnings"><b>جدول متابعة الأرباح</b><span>السابق · المتوقع · خطة الاستهداف · الفعلي · الحالة</span></button>
-    </div>`;
-  host.prepend(section);
+function socialExportReport(store, button) {
+  const selection = store.state.externalReportSelection || {};
+  const ticker = button.dataset.socialExportTicker || selection.ticker;
+  const reportId = button.dataset.socialExportReportId || selection.reportId || "latest";
+  return getExternalAnalysis(store.state.externalAnalyses || {}, ticker, reportId);
 }
 
 function autoInstall() {

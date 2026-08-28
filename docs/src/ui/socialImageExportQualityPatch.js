@@ -31,7 +31,9 @@ export function installSocialImageExportQualityPatch(store, root = document.getE
     event.stopImmediatePropagation();
 
     const selection = store.state.externalReportSelection || {};
-    const report = getExternalAnalysis(store.state.externalAnalyses || {}, selection.ticker, selection.reportId || "latest");
+    const ticker = button.dataset.socialExportTicker || selection.ticker;
+    const reportId = button.dataset.socialExportReportId || selection.reportId || "latest";
+    const report = getExternalAnalysis(store.state.externalAnalyses || {}, ticker, reportId);
     if (!report) return toast("تعذر العثور على التقرير المحفوظ.", "error");
 
     const original = button.innerHTML;

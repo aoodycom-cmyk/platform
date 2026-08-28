@@ -55,12 +55,12 @@ import {
 
 const panels = [
   ["home", "Library"],
-  ["external-import", "Import Analysis"],
+  ["social-export", "Export"],
   ["history", "History"],
   ["settings", "Settings"]
 ];
 
-const visiblePanels = new Set(["home", "external-import", "external-report", "strengths-risks", "company-profile", "quarterly-scorecard", "history", "settings"]);
+const visiblePanels = new Set(["home", "social-export", "external-import", "external-report", "strengths-risks", "company-profile", "quarterly-scorecard", "history", "settings"]);
 
 function visiblePanel(panel) {
   return visiblePanels.has(panel) ? panel : "home";
@@ -638,6 +638,7 @@ function emptyHomeState(state) {
 function activePanelLabel(panel) {
   if (panel === "external-report") return uiLabel("Investment Report");
   if (panel === "external-import") return uiLabel("Import Analysis");
+  if (panel === "social-export") return isArabicUi() ? "تصدير للسوشال ميديا" : "Social Media Export";
   if (panel === "history") return uiLabel("History");
   if (panel === "settings") return uiLabel("Settings");
   if (panel === "company-profile") return uiLabel("Company Profile");
@@ -1083,6 +1084,7 @@ function executiveSummary(state) {
 }
 
 function panelContent(state) {
+  if (state.activePanel === "social-export") return socialExportPage(state);
   if (state.activePanel === "external-import") return externalImportPanel(state);
   if (state.activePanel === "external-report") return externalAnalysisReportView(state);
   if (state.activePanel === "strengths-risks") return strengthsRisksPage(state);
@@ -1091,6 +1093,83 @@ function panelContent(state) {
   if (state.activePanel === "history") return externalHistoryPanel(state);
   if (state.activePanel === "settings") return settingsPanel(state);
   return externalAnalysesHomeSection(state);
+}
+
+function socialExportPage(state) {
+  const companies = Object.entries(state.externalAnalyses || {})
+    .map(([ticker, reports]) => socialExportCompanyModel(ticker, reports))
+    .filter((company) => company.reports.length)
+    .sort((left, right) => left.name.localeCompare(right.name));
+  return `
+    <section class="social-export-page" data-franklin-social-export-panel>
+      <header class="social-export-page-heading franklin-social-export-heading">
+        <div>
+          <span>${isArabicUi() ? "محتوى جاهز للنشر" : "READY TO PUBLISH"}</span>
+          <strong>${isArabicUi() ? "تصدير تحليلات الشركات" : "Export Company Analyses"}</strong>
+          <p>${isArabicUi() ? "اختر التحليل الأساسي أو آخر تحليل أرباح لكل شركة." : "Choose the initial analysis or latest earnings analysis for each company."}</p>
+        </div>
+        <small>PNG · 2160 × 2700 · HD</small>
+      </header>
+      ${companies.length ? `<div class="social-export-company-list">${companies.map(socialExportCompanyCard).join("")}</div>` : `
+        <div class="social-export-empty">
+          <strong>${isArabicUi() ? "لا توجد تحليلات محفوظة للتصدير" : "No saved analyses to export"}</strong>
+          <button class="primary-btn" data-action="open-external-import">${isArabicUi() ? "إضافة تحليل" : "Add Analysis"}</button>
+        </div>
+      `}
+    </section>
+  `;
+}
+
+function socialExportCompanyModel(ticker, reports = []) {
+  const sorted = [...(Array.isArray(reports) ? reports : [])]
+    .sort((left, right) => new Date(right.analysisDate || right.metadata?.importedAt || 0) - new Date(left.analysisDate || left.metadata?.importedAt || 0));
+  const initial = sorted.find((report) => reportAnalysisType(report) === "INITIAL");
+  const earnings = sorted.find((report) => reportAnalysisType(report) === "EARNINGS_REVALUATION");
+  const latest = sorted[0];
+  return {
+    ticker,
+    name: latest?.company?.name || ticker,
+    logoUrl: latest?.presentation?.companyLogoDataUrl || "",
+    reports: [initial, earnings].filter(Boolean)
+  };
+}
+
+function reportAnalysisType(report = {}) {
+  return report.metadata?.franklinV3?.analysisType
+    || report.metadata?.franklinV3Report?.analysisType
+    || (report.metadata?.importMethod === "quarterly_earnings_lite" ? "EARNINGS_REVALUATION" : "INITIAL");
+}
+
+function socialExportCompanyCard(company) {
+  return `
+    <article class="social-export-company-card">
+      <header>
+        ${companyLogoMarkup({ ticker: company.ticker, name: company.name, logoUrl: company.logoUrl })}
+        <div><strong dir="auto">${escapeHtml(company.name)}</strong><bdi dir="ltr">${escapeHtml(company.ticker)}</bdi></div>
+      </header>
+      <div class="social-export-analysis-list">
+        ${company.reports.map((report) => socialExportAnalysisRow(company, report)).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function socialExportAnalysisRow(company, report) {
+  const earnings = reportAnalysisType(report) === "EARNINGS_REVALUATION";
+  const label = earnings
+    ? (isArabicUi() ? "آخر تحليل أرباح" : "Latest Earnings Analysis")
+    : (isArabicUi() ? "التحليل الأساسي" : "Initial Analysis");
+  return `
+    <div class="social-export-analysis-row">
+      <div>
+        <span>${label}</span>
+        <small><bdi dir="ltr">${escapeHtml(report.analysisDate || report.reportPeriod || "—")}</bdi></small>
+      </div>
+      <button type="button" data-social-image-export="${earnings ? "earnings" : "investment"}" data-social-export-ticker="${escapeHtml(company.ticker)}" data-social-export-report-id="${escapeHtml(report.id || "latest")}">
+        ${isArabicUi() ? "تصدير أو مشاركة" : "Export or Share"}
+      </button>
+    </div>
+  `;
 }
 
 function externalImportPanel(state) {
