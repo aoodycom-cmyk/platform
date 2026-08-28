@@ -89,6 +89,7 @@ assert.ok(findConflictingExternalAnalysis(saved.collection, conflicting.report))
 
 // 12. Small-mobile UI retains a large file picker, stacked tabs, RTL, and local-only wording.
 const components = readFileSync(new URL("../src/ui/components.js", import.meta.url), "utf8");
+const storeSource = readFileSync(new URL("../src/state/store.js", import.meta.url), "utf8");
 const css = readFileSync(new URL("../styles-mobile-hotfix-v46.css", import.meta.url), "utf8");
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 assert.match(components, /اختيار ملف التحليل/);
@@ -101,6 +102,7 @@ assert.match(css, /@media \(max-width: 520px\)/);
 assert.match(css, /\.json-import-tabs \{ grid-template-columns: 1fr;/);
 assert.match(css, /\.json-file-picker \{ min-height: 148px;/);
 assert.match(html, /dir="rtl"/);
+assert.equal((storeSource.match(/inputMode: inputMethod/g) || []).length, 2, "Both success and error import states must preserve the selected input method.");
 
 console.log("Franklin local JSON file import: PASS");
 

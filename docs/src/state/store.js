@@ -415,7 +415,7 @@ export function createStore() {
           requirementMatch: prepared.requirementMatch,
           parserSource: parsed.parserSource,
           usedAi: parsed.usedAi,
-          inputMode,
+          inputMode: inputMethod,
           stage: "preview"
         },
         notice: validation.valid
@@ -433,7 +433,7 @@ export function createStore() {
           ...state.externalImport,
           rawText,
           tickerHint,
-          inputMode,
+          inputMode: inputMethod,
           stage: inputMethod === "file" ? "file-error" : "paste",
           technicalDetails: error.technicalDetails || error.message || "",
           validation: { valid: false, errors: importErrors, warnings: [] }
