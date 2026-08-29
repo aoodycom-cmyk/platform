@@ -22,6 +22,7 @@ const FILES = [
   "styles-desktop.css",
   "styles-premium.css",
   "styles-v11-mobile-cleanup.css",
+  "styles-editorial-finance-v53.css",
   "service-worker.js",
   "manifest.webmanifest",
   "offline.html",

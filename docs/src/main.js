@@ -1,5 +1,5 @@
 import { createStore } from "./state/store.js";
-import { mountApp } from "./ui/components.js?v=v52-rtl-financial-presentation";
+import { mountApp } from "./ui/components.js?v=v53-editorial-finance";
 import { migrateFranklinState, summarizeFranklinState } from "./state/migration.js";
 
 const root = document.getElementById("app");
