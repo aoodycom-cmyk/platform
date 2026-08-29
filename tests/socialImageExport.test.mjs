@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   SOCIAL_EXPORT_HEIGHT,
   SOCIAL_EXPORT_WIDTH,
@@ -158,5 +159,13 @@ assert.equal(evaluatedTracker.rows.length, 1);
 assert.equal(evaluatedTracker.rows[0].expected, "$16.3B");
 assert.equal(evaluatedTracker.rows[0].actual, "$17.0B");
 assert.equal(evaluatedTracker.rows[0].statusLabel, "تجاوز");
+
+const exportSources = ["../src/ui/socialImageExport.js", "../public/src/ui/socialImageExport.js", "../docs/src/ui/socialImageExport.js"]
+  .map((path) => readFileSync(new URL(path, import.meta.url), "utf8"));
+assert.equal(new Set(exportSources).size, 1, "all deployed export renderers must stay identical");
+assert.match(exportSources[0], /soft:\s*"#[0-9a-f]{6}"/i, "premium body copy must always use a defined color token");
+assert.match(exportSources[0], /quarterMetrics\(ctx, 82, 654, m\.latestMetrics\)/, "investment export must show the latest operating evidence");
+assert.match(exportSources[0], /`المتوقع \$\{row\.expected \|\| "—"\}`/, "earnings export must distinguish consensus from Franklin's target");
+assert.doesNotMatch(exportSources[0], /researchSection\(ctx, 54, 1024, 972, 190, "قرار المتابعة", C\.red\)/, "routine follow-up must not look like a critical failure");
 
 console.log("Social image export models: PASS");
