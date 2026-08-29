@@ -242,65 +242,71 @@ async function renderPng(draw) {
 
 function drawInvestment(ctx, m, exportedAt) {
   background(ctx); researchBrand(ctx, "تقرير بحثي", exportedAt, C.blue);
-  rtl(ctx, "right"); font(ctx, 42, 900); fill(ctx, C.text);
-  fit(ctx, `${m.companyName} — قوة النشاط والقيمة`, 1026, 144, 972, "right");
-  font(ctx, 17, 650); fill(ctx, C.muted);
-  ctx.fillText(`${m.ticker} · ${m.reportPeriod || "تحليل أساسي للمستثمر"}`, 1026, 184);
+  rtl(ctx, "right"); font(ctx, 40, 900); fill(ctx, C.text);
+  fit(ctx, compactCompanyName(m.companyName), 1026, 140, 760, "right");
+  ltr(ctx, "left"); font(ctx, 38, 900); fill(ctx, C.blue); ctx.fillText(m.ticker || "—", 54, 140);
+  rtl(ctx, "right"); font(ctx, 17, 650); fill(ctx, C.muted);
+  ctx.fillText(m.reportPeriod || "تحليل أساسي للمستثمر", 1026, 184);
+  badge(ctx, m.decision, 54, 166, 250, 44);
 
-  researchMetrics(ctx, 216, [
+  researchMetrics(ctx, 232, [
     ["القيمة العادلة", money(m.base), C.blue],
     ["النتيجة", Number.isFinite(m.investmentScore) ? `${short(m.investmentScore)}/100` : "—", C.teal],
     ["الثقة", Number.isFinite(m.decisionConfidence) ? `${short(m.decisionConfidence)}%` : "—", C.blue]
   ]);
 
-  researchSection(ctx, 54, 356, 972, 190, "الملخص التنفيذي", C.text);
-  rtl(ctx, "right"); font(ctx, 19, 650); fill(ctx, C.text);
-  wrap(ctx, m.thesis || m.companySummary || m.businessModel || "لا يتوفر ملخص تنفيذي.", 990, 414, 908, 29, 4);
+  researchSection(ctx, 54, 372, 972, 202, "الخلاصة الاستثمارية", C.text);
+  rtl(ctx, "right"); font(ctx, 21, 700); fill(ctx, C.text);
+  wrap(ctx, m.thesis || m.companySummary || m.businessModel || "لا يتوفر ملخص تنفيذي.", 990, 432, 908, 32, 4);
 
-  researchSection(ctx, 54, 570, 972, 148, "اقتصاديات النشاط", C.teal);
-  font(ctx, 17, 650); fill(ctx, C.muted);
-  wrap(ctx, m.businessModel || m.companySummary || "لا تتوفر تفاصيل كافية عن نموذج النشاط.", 990, 625, 908, 26, 3);
+  researchSection(ctx, 54, 598, 972, 166, "لماذا يستحق الاهتمام؟", C.teal);
+  font(ctx, 19, 700); fill(ctx, C.soft);
+  wrap(ctx, m.businessModel || m.companySummary || "لا تتوفر تفاصيل كافية عن نموذج النشاط.", 990, 658, 908, 29, 3);
 
-  researchSection(ctx, 54, 742, 972, 148, "التقييم", C.amber);
-  rtl(ctx, "right"); font(ctx, 17, 650); fill(ctx, C.muted);
-  ctx.fillText(`السعر ${money(m.marketPrice)} · الهابط ${money(m.bear)} · الأساسي ${money(m.base)} · الصاعد ${money(m.bull)}`, 990, 801);
-  fill(ctx, tone(m.upsideToBasePct)); font(ctx, 21, 850);
-  ctx.fillText(`العائد إلى القيمة الأساسية ${signedPct(m.upsideToBasePct)}`, 990, 846);
+  researchSection(ctx, 54, 788, 972, 176, "التقييم", C.amber);
+  valuationStrip(ctx, 82, 842, [
+    ["السعر", money(m.marketPrice), C.text],
+    ["الهابط", money(m.bear), C.red],
+    ["الأساسي", money(m.base), C.amber],
+    ["الصاعد", money(m.bull), C.green]
+  ]);
+  rtl(ctx, "right"); fill(ctx, tone(m.upsideToBasePct)); font(ctx, 20, 850);
+  ctx.fillText(`العائد المتوقع ${signedPct(m.upsideToBasePct)}`, 990, 940);
 
-  researchSection(ctx, 54, 914, 972, 148, "الأدلة", C.blue);
-  font(ctx, 17, 650); fill(ctx, C.muted);
-  wrap(ctx, m.strengths.map((item) => item.title).filter(Boolean).join(" · ") || "لا توجد أدلة مختصرة متاحة.", 990, 972, 908, 27, 3);
+  researchSection(ctx, 54, 988, 474, 210, "أدلة القوة", C.green);
+  bullets(ctx, m.strengths, 496, 1052, 398, C.green);
 
-  researchSection(ctx, 54, 1086, 972, 148, "المخاطر", C.red);
-  font(ctx, 17, 650); fill(ctx, C.muted);
-  wrap(ctx, m.risks.map((item) => item.title).filter(Boolean).join(" · ") || "لا توجد مخاطر مختصرة متاحة.", 990, 1144, 908, 27, 3);
+  researchSection(ctx, 552, 988, 474, 210, "المخاطر", C.red);
+  bullets(ctx, m.risks, 994, 1052, 398, C.red);
   researchFooter(ctx, `تحليل ${m.analysisDate || "—"} · ${m.sourceCount || 0} مصادر`);
 }
 
 function drawTracker(ctx, m, exportedAt) {
   background(ctx); researchBrand(ctx, "مراجعة إعلان الأرباح", exportedAt, C.blue);
-  rtl(ctx, "right"); font(ctx, 42, 900); fill(ctx, C.text);
-  fit(ctx, `${m.companyName} ${m.targetQuarter} — مراجعة النتائج`, 1026, 144, 972, "right");
-  font(ctx, 17, 650); fill(ctx, C.muted);
-  ctx.fillText(`${m.ticker} · ${m.isEvaluated ? "إعادة تقييم بعد الإعلان" : "متطلبات الإعلان القادم"}`, 1026, 184);
+  rtl(ctx, "right"); font(ctx, 40, 900); fill(ctx, C.text);
+  fit(ctx, compactCompanyName(m.companyName), 1026, 140, 760, "right");
+  ltr(ctx, "left"); font(ctx, 38, 900); fill(ctx, C.blue); ctx.fillText(m.ticker || "—", 54, 140);
+  rtl(ctx, "right"); font(ctx, 17, 650); fill(ctx, C.muted);
+  ctx.fillText(`${m.targetQuarter} · ${m.isEvaluated ? "إعادة تقييم بعد الإعلان" : "متطلبات الإعلان القادم"}`, 1026, 184);
+  badge(ctx, m.decision, 54, 166, 250, 44);
 
   const passed = m.rows.filter((row) => ["EXCEEDED", "PASSED"].includes(row.status)).length;
-  researchMetrics(ctx, 216, [
+  researchMetrics(ctx, 232, [
     ["القيمة الجديدة", money(m.baseFairValue), C.teal],
     ["السعر", money(m.marketPrice), C.blue],
     [m.isEvaluated ? "المتطلبات المحققة" : "المتطلبات", m.isEvaluated ? `${passed}/${m.rows.length}` : String(m.rows.length), m.isEvaluated && passed === m.rows.length ? C.green : C.amber]
   ]);
 
-  researchSection(ctx, 54, 356, 972, 180, "الحكم على الإعلان", C.text);
+  researchSection(ctx, 54, 372, 972, 190, "الحكم على الإعلان", C.text);
   rtl(ctx, "right"); font(ctx, 21, 750); fill(ctx, actionColor(m.decision));
-  ctx.fillText(`${ACTION_AR[m.decision] || m.decision || "غير محدد"} · ${modeAr(m.mode)}`, 990, 414);
-  font(ctx, 17, 650); fill(ctx, C.muted);
-  wrap(ctx, m.isEvaluated ? "قورنت النتائج الفعلية بالخطة المجمدة لتحديد ما تحقق وما يحتاج متابعة." : "هذه المتطلبات هي ما يجب أن يثبته الإعلان القادم حتى يبقى التقييم مبررًا.", 990, 456, 908, 27, 3);
+  ctx.fillText(`${ACTION_AR[m.decision] || m.decision || "غير محدد"} · ${modeAr(m.mode)}`, 990, 430);
+  font(ctx, 19, 650); fill(ctx, C.soft);
+  wrap(ctx, m.isEvaluated ? "قورنت النتائج الفعلية بالخطة المجمدة لتحديد ما تحقق وما يحتاج متابعة." : "هذه المتطلبات هي ما يجب أن يثبته الإعلان القادم حتى يبقى التقييم مبررًا.", 990, 474, 908, 29, 3);
 
   const rows = (m.rows.length ? m.rows : [{metric:"لا توجد متطلبات",target:"—",actual:"—",status:"NOT_REPORTED",statusLabel:"—"}]).slice(0, 4);
-  researchSection(ctx, 54, 560, 972, 430, m.isEvaluated ? "ما تحقق وما خيّب" : "متطلبات الربع", C.teal);
+  researchSection(ctx, 54, 586, 972, 414, m.isEvaluated ? "ما تحقق وما خيّب" : "متطلبات الربع", C.teal);
   rows.forEach((row, index) => {
-    const y = 636 + index * 82;
+    const y = 660 + index * 78;
     if (index) line(ctx, 82, y - 30, 998, y - 30);
     rtl(ctx, "right"); font(ctx, 17, 800); fill(ctx, C.text); fit(ctx, row.metric, 990, y, 360, "right");
     font(ctx, 14, 650); fill(ctx, C.muted); fit(ctx, `المطلوب ${row.target || "—"}`, 990, y + 29, 360, "right");
@@ -308,9 +314,9 @@ function drawTracker(ctx, m, exportedAt) {
     fit(ctx, m.isEvaluated ? `${row.actual || "—"} · ${row.statusLabel}` : row.target || "—", 82, y + 8, 440, "left");
   });
 
-  researchSection(ctx, 54, 1014, 972, 190, "قرار المتابعة", C.red);
+  researchSection(ctx, 54, 1024, 972, 190, "قرار المتابعة", C.red);
   rtl(ctx, "right"); font(ctx, 19, 750); fill(ctx, C.text);
-  wrap(ctx, `${Number.isFinite(m.targetValue) ? `الهدف التالي ${money(m.targetValue)}` : "خطة المتابعة محفوظة"}${m.targetScenario ? ` · ${scenarioAr(m.targetScenario)}` : ""}. راقب البنود غير المتحققة في الإعلان القادم.`, 990, 1078, 908, 30, 3);
+  wrap(ctx, `${Number.isFinite(m.targetValue) ? `الهدف التالي ${money(m.targetValue)}` : "خطة المتابعة محفوظة"}${m.targetScenario ? ` · ${scenarioAr(m.targetScenario)}` : ""}. راقب البنود غير المتحققة في الإعلان القادم.`, 990, 1090, 908, 31, 3);
   researchFooter(ctx, "السابق ≠ المتوقع ≠ مستهدف Franklin");
 }
 
@@ -334,6 +340,23 @@ function researchMetrics(ctx, y, items) {
 function researchSection(ctx, x, y, width, height, heading, color) {
   box(ctx, x, y, width, height, C.panel, C.border, 20);
   rtl(ctx, "right"); font(ctx, 24, 850); fill(ctx, color); ctx.fillText(heading, x + width - 36, y + 36);
+}
+
+function valuationStrip(ctx, x, y, items) {
+  const width = 210;
+  items.forEach(([label, valueText, color], index) => {
+    const cellX = x + index * 226;
+    rtl(ctx, "right"); font(ctx, 13, 700); fill(ctx, C.muted); ctx.fillText(label, cellX + width, y);
+    ltr(ctx, "left"); font(ctx, 27, 900); fill(ctx, color); fit(ctx, valueText, cellX, y + 38, width, "left");
+  });
+}
+
+function compactCompanyName(value) {
+  const cleaned = text(value)
+    .replace(/\b(Incorporated|Corporation|Corp\.?|Company|Limited|Ltd\.?)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned.length > 42 ? `${cleaned.slice(0, 40).trim()}…` : cleaned || "—";
 }
 
 function researchFooter(ctx, message) {
