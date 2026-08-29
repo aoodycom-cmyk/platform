@@ -241,71 +241,104 @@ async function renderPng(draw) {
 }
 
 function drawInvestment(ctx, m, exportedAt) {
-  background(ctx);
-  brand(ctx, "INVESTMENT INFOGRAPHIC", exportedAt);
-  panel(ctx, 54, 108, 972, 150);
-  ltr(ctx, "left"); font(ctx, 48, 900); fill(ctx, C.text); ctx.fillText(m.ticker, 82, 162);
-  font(ctx, 20, 700); fill(ctx, C.muted); fit(ctx, m.companyName, 82, 199, 390);
-  font(ctx, 14, 650); ctx.fillText([m.sector, m.industry].filter(Boolean).join(" · "), 82, 227);
-  badge(ctx, m.decision, 704, 132, 286, 42);
-  mini(ctx, "السعر", money(m.marketPrice), 704, 218);
-  mini(ctx, "Base", money(m.base), 850, 218);
-  mini(ctx, "إلى Base", signedPct(m.upsideToBasePct), 990, 218, tone(m.upsideToBasePct));
+  background(ctx); researchBrand(ctx, "تقرير بحثي", exportedAt, C.blue);
+  rtl(ctx, "right"); font(ctx, 42, 900); fill(ctx, C.text);
+  fit(ctx, `${m.companyName} — قوة النشاط والقيمة`, 1026, 144, 972, "right");
+  font(ctx, 17, 650); fill(ctx, C.muted);
+  ctx.fillText(`${m.ticker} · ${m.reportPeriod || "تحليل أساسي للمستثمر"}`, 1026, 184);
 
-  panel(ctx, 54, 280, 972, 180); title(ctx, "الشركة باختصار", "النشاط · نموذج العمل · محركات النمو", 990, 316);
-  rtl(ctx, "right"); font(ctx, 18, 700); fill(ctx, C.text); wrap(ctx, m.companySummary || m.businessModel || "لا يوجد ملخص متاح.", 990, 354, 910, 28, 3);
-  font(ctx, 14, 600); fill(ctx, C.muted); wrap(ctx, m.businessModel || m.latestQuarterSummary, 990, 428, 910, 21, 2);
+  researchMetrics(ctx, 216, [
+    ["القيمة العادلة", money(m.base), C.blue],
+    ["النتيجة", Number.isFinite(m.investmentScore) ? `${short(m.investmentScore)}/100` : "—", C.teal],
+    ["الثقة", Number.isFinite(m.decisionConfidence) ? `${short(m.decisionConfidence)}%` : "—", C.blue]
+  ]);
 
-  panel(ctx, 54, 482, 972, 190); title(ctx, `آخر ربع ${m.reportPeriod || ""}`.trim(), "الأرقام التشغيلية الأهم", 990, 518);
-  const metrics = m.latestMetrics.length ? m.latestMetrics : [metric("Data", "—", null)];
-  const cell = 910 / metrics.length;
-  metrics.forEach((item, i) => {
-    const x = 82 + i * cell;
-    if (i) line(ctx, x - 10, 556, x - 10, 646);
-    ltr(ctx, "left"); font(ctx, 12, 700); fill(ctx, C.muted); fit(ctx, item.label, x, 575, cell - 20);
-    font(ctx, 22, 850); fill(ctx, C.text); fit(ctx, item.value, x, 611, cell - 20);
-    if (item.change !== null) { font(ctx, 11, 750); fill(ctx, tone(item.change)); ctx.fillText(`${item.change > 0 ? "+" : ""}${item.change.toFixed(1)}% YoY`, x, 640); }
-  });
+  researchSection(ctx, 54, 356, 972, 190, "الملخص التنفيذي", C.text);
+  rtl(ctx, "right"); font(ctx, 19, 650); fill(ctx, C.text);
+  wrap(ctx, m.thesis || m.companySummary || m.businessModel || "لا يتوفر ملخص تنفيذي.", 990, 414, 908, 29, 4);
 
-  panel(ctx, 54, 694, 972, 164); title(ctx, "القيمة العادلة", "Bear / Base / Bull", 990, 730);
-  [["Bear",m.bear,C.red],["Base",m.base,C.teal],["Bull",m.bull,C.green]].forEach(([label,val,color],i) => {
-    box(ctx, 82 + i*216, 760, 196, 72, C.panel2, C.border, 14);
-    ltr(ctx,"left"); font(ctx,12,800); fill(ctx,color); ctx.fillText(label,98+i*216,782); font(ctx,28,900); fill(ctx,C.text); ctx.fillText(money(val),98+i*216,816);
-  });
-  rtl(ctx,"right"); font(ctx,12,700); fill(ctx,C.muted); ctx.fillText("القيمة المرجحة",990,780); font(ctx,27,900); fill(ctx,C.blue); ctx.fillText(money(m.probabilityWeighted),990,816); font(ctx,11,650); fill(ctx,C.muted); ctx.fillText(`هامش الأمان ${signedPct(m.marginOfSafetyPct)}`,990,840);
+  researchSection(ctx, 54, 570, 972, 148, "اقتصاديات النشاط", C.teal);
+  font(ctx, 17, 650); fill(ctx, C.muted);
+  wrap(ctx, m.businessModel || m.companySummary || "لا تتوفر تفاصيل كافية عن نموذج النشاط.", 990, 625, 908, 26, 3);
 
-  panel(ctx,54,880,474,220); panel(ctx,552,880,474,220); title(ctx,"نقاط القوة","ما يدعم الفرضية",500,914,C.green); title(ctx,"المخاطر","ما قد يكسر الفرضية",998,914,C.red);
-  bullets(ctx,m.strengths,500,954,414,C.green); bullets(ctx,m.risks,998,954,414,C.red);
+  researchSection(ctx, 54, 742, 972, 148, "التقييم", C.amber);
+  rtl(ctx, "right"); font(ctx, 17, 650); fill(ctx, C.muted);
+  ctx.fillText(`السعر ${money(m.marketPrice)} · الهابط ${money(m.bear)} · الأساسي ${money(m.base)} · الصاعد ${money(m.bull)}`, 990, 801);
+  fill(ctx, tone(m.upsideToBasePct)); font(ctx, 21, 850);
+  ctx.fillText(`العائد إلى القيمة الأساسية ${signedPct(m.upsideToBasePct)}`, 990, 846);
 
-  panel(ctx,54,1122,972,160); title(ctx,"الفرضية الاستثمارية","الخلاصة والمحفزات القادمة",990,1157);
-  rtl(ctx,"right"); font(ctx,15,650); fill(ctx,C.text); wrap(ctx,m.thesis || "لا توجد فرضية مختصرة متاحة.",990,1192,910,22,3);
-  font(ctx,12,700); fill(ctx,C.teal); fit(ctx,m.catalysts.map((x)=>x.title).filter(Boolean).join("  •  ") || "المحفزات تظهر هنا عند توفرها",990,1260,910,"right");
-  footer(ctx,`تحليل ${m.analysisDate || "—"} · ${m.sourceCount || 0} مصادر · لأغراض البحث وليست توصية مالية`);
+  researchSection(ctx, 54, 914, 972, 148, "الأدلة", C.blue);
+  font(ctx, 17, 650); fill(ctx, C.muted);
+  wrap(ctx, m.strengths.map((item) => item.title).filter(Boolean).join(" · ") || "لا توجد أدلة مختصرة متاحة.", 990, 972, 908, 27, 3);
+
+  researchSection(ctx, 54, 1086, 972, 148, "المخاطر", C.red);
+  font(ctx, 17, 650); fill(ctx, C.muted);
+  wrap(ctx, m.risks.map((item) => item.title).filter(Boolean).join(" · ") || "لا توجد مخاطر مختصرة متاحة.", 990, 1144, 908, 27, 3);
+  researchFooter(ctx, `تحليل ${m.analysisDate || "—"} · ${m.sourceCount || 0} مصادر`);
 }
 
 function drawTracker(ctx, m, exportedAt) {
-  background(ctx); brand(ctx,"EARNINGS TRACKER",exportedAt);
-  panel(ctx,54,108,972,174);
-  ltr(ctx,"left"); font(ctx,46,900); fill(ctx,C.text); ctx.fillText(m.ticker,82,160); font(ctx,19,700); fill(ctx,C.muted); fit(ctx,m.companyName,82,198,420); font(ctx,15,750); fill(ctx,C.blue); ctx.fillText(String(m.targetQuarter),82,232);
-  badge(ctx,m.decision,730,132,260,42); mini(ctx,"Base Fair Value",money(m.baseFairValue),990,218); mini(ctx,"السعر",money(m.marketPrice),830,218); mini(ctx,"الوضع",modeAr(m.mode),666,218,C.teal);
-  rtl(ctx,"right"); font(ctx,12,650); fill(ctx,C.muted); ctx.fillText(m.isEvaluated ? "بعد الإعلان: مقارنة الخطة بالفعلي" : "قبل الإعلان: الفعلي يظهر تلقائيًا بعد التحديث",990,260);
+  background(ctx); researchBrand(ctx, "مراجعة إعلان الأرباح", exportedAt, C.blue);
+  rtl(ctx, "right"); font(ctx, 42, 900); fill(ctx, C.text);
+  fit(ctx, `${m.companyName} ${m.targetQuarter} — مراجعة النتائج`, 1026, 144, 972, "right");
+  font(ctx, 17, 650); fill(ctx, C.muted);
+  ctx.fillText(`${m.ticker} · ${m.isEvaluated ? "إعادة تقييم بعد الإعلان" : "متطلبات الإعلان القادم"}`, 1026, 184);
 
-  const rows = m.rows.length ? m.rows : [{metric:"لا توجد متطلبات",previous:"—",expected:"—",target:"—",actual:"—",status:"NOT_REPORTED",statusLabel:"—"}];
-  const cols = [
-    ["metric","المؤشر",226],["previous","السابق",142],["expected","المتوقع",170],["target","خطة الاستهداف",178],["actual","الفعلي",148],["statusLabel","الحالة",108]
-  ];
-  const tableY=310, headH=68, rowH=Math.max(78,Math.min(104,Math.floor(830/rows.length))), tableH=headH+rowH*rows.length;
-  panel(ctx,54,tableY,972,tableH);
-  let right=1026; const geometry=cols.map(([key,label,width])=>{const g={key,label,width,right,left:right-width,center:right-width/2};right-=width;return g;});
-  box(ctx,55,tableY+1,970,headH-1,C.panel2,null,16);
-  geometry.forEach((g,i)=>{rtl(ctx,"center");font(ctx,13,800);fill(ctx,g.key==="target"?C.teal:C.muted);ctx.fillText(g.label,g.center,tableY+40);if(i)line(ctx,g.right,tableY+14,g.right,tableY+tableH-14);});
-  rows.forEach((row,ri)=>{
-    const top=tableY+headH+ri*rowH; line(ctx,72,top,1008,top);
-    geometry.forEach((g)=>{const valueText=String(row[g.key]||"—");ctx.direction=hasArabic(valueText)?"rtl":"ltr";ctx.textAlign="center";font(ctx,g.key==="metric"?14:13,g.key==="metric"||g.key==="statusLabel"?800:700);fill(ctx,g.key==="statusLabel"?statusColor(row.status):g.key==="target"?C.teal:C.text);centerWrap(ctx,valueText,g.center,top+rowH/2,g.width-16,rowH-14,18,2);});
+  const passed = m.rows.filter((row) => ["EXCEEDED", "PASSED"].includes(row.status)).length;
+  researchMetrics(ctx, 216, [
+    ["القيمة الجديدة", money(m.baseFairValue), C.teal],
+    ["السعر", money(m.marketPrice), C.blue],
+    [m.isEvaluated ? "المتطلبات المحققة" : "المتطلبات", m.isEvaluated ? `${passed}/${m.rows.length}` : String(m.rows.length), m.isEvaluated && passed === m.rows.length ? C.green : C.amber]
+  ]);
+
+  researchSection(ctx, 54, 356, 972, 180, "الحكم على الإعلان", C.text);
+  rtl(ctx, "right"); font(ctx, 21, 750); fill(ctx, actionColor(m.decision));
+  ctx.fillText(`${ACTION_AR[m.decision] || m.decision || "غير محدد"} · ${modeAr(m.mode)}`, 990, 414);
+  font(ctx, 17, 650); fill(ctx, C.muted);
+  wrap(ctx, m.isEvaluated ? "قورنت النتائج الفعلية بالخطة المجمدة لتحديد ما تحقق وما يحتاج متابعة." : "هذه المتطلبات هي ما يجب أن يثبته الإعلان القادم حتى يبقى التقييم مبررًا.", 990, 456, 908, 27, 3);
+
+  const rows = (m.rows.length ? m.rows : [{metric:"لا توجد متطلبات",target:"—",actual:"—",status:"NOT_REPORTED",statusLabel:"—"}]).slice(0, 4);
+  researchSection(ctx, 54, 560, 972, 430, m.isEvaluated ? "ما تحقق وما خيّب" : "متطلبات الربع", C.teal);
+  rows.forEach((row, index) => {
+    const y = 636 + index * 82;
+    if (index) line(ctx, 82, y - 30, 998, y - 30);
+    rtl(ctx, "right"); font(ctx, 17, 800); fill(ctx, C.text); fit(ctx, row.metric, 990, y, 360, "right");
+    font(ctx, 14, 650); fill(ctx, C.muted); fit(ctx, `المطلوب ${row.target || "—"}`, 990, y + 29, 360, "right");
+    rtl(ctx, "left"); font(ctx, 17, 850); fill(ctx, statusColor(row.status));
+    fit(ctx, m.isEvaluated ? `${row.actual || "—"} · ${row.statusLabel}` : row.target || "—", 82, y + 8, 440, "left");
   });
-  const noteY=Math.min(1240,tableY+tableH+34);rtl(ctx,"right");font(ctx,12,650);fill(ctx,C.muted);wrap(ctx,m.expectedSourceNote,1026,noteY,972,19,2);
-  rtl(ctx,"right");font(ctx,12,750);fill(ctx,C.teal);ctx.fillText(`${Number.isFinite(m.targetValue)?`الهدف التالي ${money(m.targetValue)}`:"خطة المتابعة محفوظة"}${m.targetScenario?` · ${scenarioAr(m.targetScenario)}`:""}`,1026,1276);
-  footer(ctx,"Franklin Research · السابق ≠ المتوقع ≠ مستهدف Franklin · لأغراض البحث وليست توصية مالية");
+
+  researchSection(ctx, 54, 1014, 972, 190, "قرار المتابعة", C.red);
+  rtl(ctx, "right"); font(ctx, 19, 750); fill(ctx, C.text);
+  wrap(ctx, `${Number.isFinite(m.targetValue) ? `الهدف التالي ${money(m.targetValue)}` : "خطة المتابعة محفوظة"}${m.targetScenario ? ` · ${scenarioAr(m.targetScenario)}` : ""}. راقب البنود غير المتحققة في الإعلان القادم.`, 990, 1078, 908, 30, 3);
+  researchFooter(ctx, "السابق ≠ المتوقع ≠ مستهدف Franklin");
+}
+
+function researchBrand(ctx, label, date, color) {
+  ltr(ctx, "left"); font(ctx, 28, 850); fill(ctx, color); ctx.fillText("Franklin", 54, 62);
+  rtl(ctx, "right"); font(ctx, 20, 800); fill(ctx, C.text); ctx.fillText(label, 1026, 62);
+  font(ctx, 12, 650); fill(ctx, C.muted); ctx.fillText(String(date?.toISOString?.() || date || "").slice(0, 10), 1026, 88);
+}
+
+function researchMetrics(ctx, y, items) {
+  const gap = 16;
+  const width = (972 - gap * 2) / 3;
+  items.forEach(([label, valueText, color], index) => {
+    const x = 54 + index * (width + gap);
+    box(ctx, x, y, width, 116, C.panel2, C.border, 16);
+    rtl(ctx, "right"); font(ctx, 14, 650); fill(ctx, C.muted); ctx.fillText(label, x + width - 22, y + 34);
+    ltr(ctx, "left"); font(ctx, 29, 850); fill(ctx, color); fit(ctx, valueText, x + 22, y + 80, width - 44, "left");
+  });
+}
+
+function researchSection(ctx, x, y, width, height, heading, color) {
+  box(ctx, x, y, width, height, C.panel, C.border, 20);
+  rtl(ctx, "right"); font(ctx, 24, 850); fill(ctx, color); ctx.fillText(heading, x + width - 36, y + 36);
+}
+
+function researchFooter(ctx, message) {
+  rtl(ctx, "right"); font(ctx, 11, 600); fill(ctx, C.muted); ctx.fillText(`${message} · لأغراض البحث وليست توصية مالية`, 1026, 1318);
+  ltr(ctx, "left"); fill(ctx, C.blue); ctx.fillText("franklin • fair value", 54, 1318);
 }
 
 function background(ctx){fill(ctx,C.bg);ctx.fillRect(0,0,1080,1350);const g=ctx.createLinearGradient(0,0,1080,1350);g.addColorStop(0,"rgba(45,212,191,.08)");g.addColorStop(1,"rgba(110,168,255,.04)");fill(ctx,g);ctx.fillRect(0,0,1080,1350);}
