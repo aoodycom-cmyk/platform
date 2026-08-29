@@ -1668,6 +1668,16 @@ details.v31-assessment-row {
   text-decoration: none;
 }
 
+.v31-assessment-row i.is-empty u {
+  width: 0 !important;
+}
+
+.v31-assessment-row > b,
+.v31-assessment-row > summary > b {
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+
 .v31-assessment-row.warning i u {
   background: var(--amber);
 }
@@ -2518,6 +2528,8 @@ details.v31-assessment-row {
 
 .figma-thesis-tracker .comparison-cell strong {
   font-size: 13px;
+  unicode-bidi: plaintext;
+  text-align: start;
 }
 
 .figma-thesis-tracker .comparison-cell:nth-child(2) strong {

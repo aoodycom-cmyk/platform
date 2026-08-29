@@ -19,6 +19,7 @@ import { buildQuarterlyScorecard } from "../externalAnalysis/quarterlyScorecard.
 import { downloadQuarterlyScorecardPng, shareQuarterlyScorecardPng } from "./quarterlyScorecardExport.js";
 import { copyTextForMobile } from "./clipboard.js";
 import { formatJsonFileSize } from "../externalAnalysis/jsonFileImport.js";
+import { riskAssessmentMetric, valuationAssessmentMetric } from "./reportAssessmentMetrics.js";
 import {
   appHeaderMarkup,
   bindCompanyLogoFallbacks,
@@ -2483,6 +2484,8 @@ function fairValueScenario(label, value, currentPrice, featured = false) {
 function companyAssessmentPanel(report = {}) {
   const overall = numericValue(report.decision?.investmentScore);
   const overallPct = Number.isFinite(overall) ? Math.max(0, Math.min(100, overall)) : 0;
+  const valuationMetric = valuationAssessmentMetric(report);
+  const riskMetric = riskAssessmentMetric(report);
   const rows = [
     {
       ar: "النمو",
@@ -2495,7 +2498,9 @@ function companyAssessmentPanel(report = {}) {
       ar: "التقييم",
       en: "Valuation",
       value: report.scores?.valuation,
-      tone: "positive",
+      displayValue: assessmentMetricText(valuationMetric),
+      progress: valuationMetric.progress,
+      tone: valuationMetric.tone || "positive",
       detail: valuationMethodsDashboard(report)
     },
     {
@@ -2523,10 +2528,12 @@ function companyAssessmentPanel(report = {}) {
       ar: "المخاطر",
       en: "Risk",
       value: report.scores?.risk,
+      displayValue: assessmentMetricText(riskMetric),
+      progress: riskMetric.progress,
       tone: "risk",
       detail: paragraphBlock([riskCompactSummary(report)])
     }
-  ].filter((row) => Number.isFinite(numericValue(row.value)) || hasRenderableContent(row.detail));
+  ].filter((row) => Number.isFinite(numericValue(row.value)) || row.displayValue || hasRenderableContent(row.detail));
   if (!rows.length && !Number.isFinite(overall)) return "";
   return `
     <section class="v31-report-block v31-company-assessment">
@@ -2551,14 +2558,17 @@ function companyAssessmentPanel(report = {}) {
 
 function companyAssessmentRow(row = {}) {
   const score = numericValue(row.value);
-  const pct = Number.isFinite(score) ? Math.max(0, Math.min(100, score * 10)) : 0;
+  const pct = Number.isFinite(score)
+    ? Math.max(0, Math.min(100, score * 10))
+    : (Number.isFinite(row.progress) ? Math.max(0, Math.min(100, row.progress)) : 0);
+  const displayValue = Number.isFinite(score) ? `${score.toFixed(1)}/10` : (row.displayValue || "—");
   const content = `
     <div class="v31-assessment-label">
       <strong>${escapeHtml(isArabicUi() ? row.ar : row.en)}</strong>
       <span dir="ltr">${escapeHtml(row.en)}</span>
     </div>
-    <b dir="ltr">${Number.isFinite(score) ? `${score.toFixed(1)}/10` : "—"}</b>
-    <i><u style="width:${pct}%"></u></i>
+    <b dir="${isArabicUi() ? "rtl" : "ltr"}">${mixedDirectionMarkup(displayValue)}</b>
+    <i class="${Number.isFinite(row.progress) || Number.isFinite(score) ? "" : "is-empty"}"><u style="width:${pct}%"></u></i>
   `;
   if (!hasRenderableContent(row.detail)) return `<div class="v31-assessment-row ${escapeHtml(row.tone)}">${content}</div>`;
   return `
@@ -2567,6 +2577,24 @@ function companyAssessmentRow(row = {}) {
       <div>${row.detail}</div>
     </details>
   `;
+}
+
+function assessmentMetricText(metric = {}) {
+  if (metric.kind === "score" && Number.isFinite(metric.score)) return `${metric.score.toFixed(1)}/10`;
+  if (metric.kind === "upside" && Number.isFinite(metric.value)) {
+    const rounded = Math.round(metric.value * 10) / 10;
+    return `${rounded > 0 ? "+" : ""}${rounded}% ${isArabicUi() ? "إلى Base" : "to Base"}`;
+  }
+  if (metric.kind === "base" && Number.isFinite(metric.value)) return `${isArabicUi() ? "قيمة Base" : "Base"} ${money(metric.value, 0)}`;
+  if (metric.kind === "severity") return riskSeverityLabel(metric.severity);
+  return "";
+}
+
+function riskSeverityLabel(value) {
+  const labels = isArabicUi()
+    ? { critical: "حرج", high: "مرتفع", medium: "متوسط", low: "منخفض" }
+    : { critical: "Critical", high: "High", medium: "Medium", low: "Low" };
+  return labels[String(value || "").toLowerCase()] || "";
 }
 
 function qualityGrowthRiskPanel(report = {}) {
@@ -4127,9 +4155,9 @@ function priceTargetRequirementsView(requirementsBlock = {}, context = {}) {
           <h4>${isArabicUi() ? "متتبع الفرضية" : "Thesis Tracker"}</h4>
           <span dir="ltr">${escapeHtml(context.ticker || "—")} • Thesis Tracker</span>
         </div>
-        <div class="v31-target-path" dir="ltr">
+        <div class="v31-target-path" dir="${isArabicUi() ? "rtl" : "ltr"}">
           <span><small>${isArabicUi() ? "المبرر الآن" : "Justified now"}</small><bdi>${money(currentJustifiedValue, 0)}</bdi></span>
-          <i aria-hidden="true">→</i>
+          <i aria-hidden="true">${isArabicUi() ? "←" : "→"}</i>
           <strong><small>${isArabicUi() ? "الهدف القادم" : "Next target"}</small><bdi>${money(targetValue, 0)}</bdi></strong>
         </div>
       </header>
@@ -4162,7 +4190,9 @@ function priceTargetRequirementsView(requirementsBlock = {}, context = {}) {
           <h4>${isArabicUi() ? "طموح الإعلان القادم" : "Next Earnings Ambition"}</h4>
           <span>${isArabicUi() ? "متطلبات الأداء" : "KPI Requirements"} • KPI Requirements</span>
         </div>
-        <strong>${isArabicUi() ? "ما المطلوب في" : "What is required in"} <bdi dir="ltr">${escapeHtml(targetQuarter)}</bdi> ${isArabicUi() ? "لتبرير" : "to justify"} <bdi dir="ltr">${escapeHtml(targetScenario)} ${money(targetValue, 0)}</bdi>${isArabicUi() ? "؟" : "?"}</strong>
+        <strong class="mixed-direction-text" dir="${isArabicUi() ? "rtl" : "ltr"}">${isArabicUi()
+          ? `ما المطلوب في <bdi dir="ltr">${escapeHtml(targetQuarter)}</bdi> لتبرير قيمة <bdi dir="ltr">${money(targetValue, 0)}</bdi> ضمن ${escapeHtml(targetScenario)}؟`
+          : `What is required in <bdi dir="ltr">${escapeHtml(targetQuarter)}</bdi> to justify <bdi dir="ltr">${money(targetValue, 0)}</bdi> under ${escapeHtml(targetScenario)}?`}</strong>
       </div>
       <div class="requirements-cycle-copy">
         ${requirementsBlock.summary || requirementsBlock.targetDescription ? `<p class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(requirementsBlock.summary || requirementsBlock.targetDescription)}</p>` : ""}
@@ -4344,6 +4374,7 @@ function requirementsComparisonView(requirements = [], options = {}) {
 function requirementComparisonMobileRow(item = {}, options = {}) {
   const previousContext = requirementPreviousContext(item, options.previousQuarter);
   const hasDetails = Boolean(item.whyItMatters || item.evaluationNote || item.direction || item.impact || previousContext);
+  const valueDirection = isArabicUi() ? "rtl" : "ltr";
   return `
     <article class="requirement-comparison-row" data-requirement-status="${escapeHtml(String(item.status || "NOT_REPORTED").toUpperCase())}">
       <header>
@@ -4352,9 +4383,9 @@ function requirementComparisonMobileRow(item = {}, options = {}) {
         ${requirementStatusBadge(item.status)}
       </header>
       <div class="requirement-comparison-grid">
-        ${comparisonCell(options.previousHeader || uiLabel("Previous"), requirementPreviousText(item, options.previousQuarter), "ltr")}
-        ${comparisonCell(options.targetHeader || uiLabel("Required"), requirementRequiredText(item), "ltr")}
-        ${comparisonCell(options.actualHeader || uiLabel("Actual"), requirementActualCell(item, options.pending), "ltr", true)}
+        ${comparisonCell(options.previousHeader || uiLabel("Previous"), mixedDirectionMarkup(requirementPreviousText(item, options.previousQuarter)), valueDirection, true)}
+        ${comparisonCell(options.targetHeader || uiLabel("Required"), mixedDirectionMarkup(requirementRequiredText(item)), valueDirection, true)}
+        ${comparisonCell(options.actualHeader || uiLabel("Actual"), requirementActualCell(item, options.pending), valueDirection, true)}
       </div>
       ${hasDetails ? `
         <details class="mobile-card-details">
@@ -4417,7 +4448,7 @@ function requirementPreviousContext(item = {}, previousQuarter = "") {
   return compact && compact !== display ? display : "";
 }
 
-function compactRequirementObservationText(value, previousQuarter = "") {
+export function compactRequirementObservationText(value, previousQuarter = "") {
   const original = String(value ?? "").replace(/\s+/g, " ").trim();
   if (!original) return "—";
   const specific = String(previousQuarter || "").match(/Q[1-4]\s*(?:FY\s*)?\d{4}/i)?.[0];
@@ -4427,6 +4458,7 @@ function compactRequirementObservationText(value, previousQuarter = "") {
   let compact = original.replace(new RegExp(`^${periodPattern}\\s*[:：\\-–—]?\\s*`, "i"), "");
   compact = compact.replace(new RegExp(`\\s+(?:في|خلال|عن|لـ|for|in|during)\\s+${periodPattern}[\\s\\S]*$`, "i"), "");
   compact = compact.replace(new RegExp(`\\s+${periodPattern}[\\s\\S]*$`, "i"), "");
+  compact = compact.replace(/\s+(?:في|خلال|عن|لـ|for|in|during)\s+Q[1-4](?:\s*(?:FY\s*)?\d{4})?[\s\S]*$/i, "");
   compact = compact.replace(/[\s،,;:\-–—]+$/g, "").trim();
   return compact || original;
 }
@@ -4454,7 +4486,7 @@ function requirementActualCell(item = {}, pending = false) {
     return `<span class="requirement-actual missing">${waiting ? uiLabel("Waiting for announcement") : "—"}</span>`;
   }
   const impact = requirementImpactClass(item.impact);
-  return `<span class="requirement-actual ${impact}">${escapeHtml(actual)}</span>${directionIndicator(item.direction)}`;
+  return `<span class="requirement-actual ${impact}">${mixedDirectionMarkup(actual)}</span>${directionIndicator(item.direction)}`;
 }
 
 function directionIndicator(direction) {
@@ -4776,9 +4808,12 @@ function requirementsStatusLabel(status) {
 
 function targetScenarioLabel(value) {
   const clean = String(value || "").trim().toLowerCase();
+  if (clean === "base_defense") return isArabicUi() ? "حماية القيمة الأساسية" : "Base Defense";
+  if (clean === "intermediate") return isArabicUi() ? "الهدف المرحلي" : "Intermediate Target";
+  if (clean === "recovery") return isArabicUi() ? "التعافي" : "Recovery";
   if (["bear", "downside", "conservative", "pessimistic"].includes(clean)) return "Bear";
-  if (clean === "base" || clean === "base_case") return "Base";
-  if (clean === "bull" || clean === "optimistic") return "Bull";
+  if (clean === "base" || clean === "base_case") return isArabicUi() ? "القيمة الأساسية" : "Base";
+  if (clean === "bull" || clean === "optimistic") return isArabicUi() ? "السيناريو المتفائل" : "Bull";
   return localizedExternalText(value || "—").replaceAll("_", " ");
 }
 
