@@ -9,6 +9,7 @@ const C = {
   panel2: "#111827",
   border: "#29344a",
   text: "#f5f7fb",
+  soft: "#d7deea",
   muted: "#9aa6ba",
   teal: "#2dd4bf",
   blue: "#6ea8ff",
@@ -259,9 +260,8 @@ function drawInvestment(ctx, m, exportedAt) {
   rtl(ctx, "right"); font(ctx, 21, 700); fill(ctx, C.text);
   wrap(ctx, m.thesis || m.companySummary || m.businessModel || "لا يتوفر ملخص تنفيذي.", 990, 432, 908, 32, 4);
 
-  researchSection(ctx, 54, 598, 972, 166, "لماذا يستحق الاهتمام؟", C.teal);
-  font(ctx, 19, 700); fill(ctx, C.soft);
-  wrap(ctx, m.businessModel || m.companySummary || "لا تتوفر تفاصيل كافية عن نموذج النشاط.", 990, 658, 908, 29, 3);
+  researchSection(ctx, 54, 598, 972, 166, `أبرز مؤشرات ${m.reportPeriod || "الربع الأخير"}`, C.teal);
+  quarterMetrics(ctx, 82, 654, m.latestMetrics);
 
   researchSection(ctx, 54, 788, 972, 176, "التقييم", C.amber);
   valuationStrip(ctx, 82, 842, [
@@ -308,13 +308,15 @@ function drawTracker(ctx, m, exportedAt) {
   rows.forEach((row, index) => {
     const y = 660 + index * 78;
     if (index) line(ctx, 82, y - 30, 998, y - 30);
-    rtl(ctx, "right"); font(ctx, 17, 800); fill(ctx, C.text); fit(ctx, row.metric, 990, y, 360, "right");
-    font(ctx, 14, 650); fill(ctx, C.muted); fit(ctx, `المطلوب ${row.target || "—"}`, 990, y + 29, 360, "right");
+    rtl(ctx, "right"); font(ctx, 17, 800); fill(ctx, C.text); fit(ctx, row.metric, 990, y, 330, "right");
+    font(ctx, 14, 650); fill(ctx, C.muted); fit(ctx, `المستهدف ${row.target || "—"}`, 990, y + 29, 330, "right");
+    rtl(ctx, "center"); font(ctx, 14, 700); fill(ctx, C.muted);
+    fit(ctx, `المتوقع ${row.expected || "—"}`, 540, y + 8, 250, "center");
     rtl(ctx, "left"); font(ctx, 17, 850); fill(ctx, statusColor(row.status));
-    fit(ctx, m.isEvaluated ? `${row.actual || "—"} · ${row.statusLabel}` : row.target || "—", 82, y + 8, 440, "left");
+    fit(ctx, m.isEvaluated ? `${row.actual || "—"} · ${row.statusLabel}` : "بانتظار الإعلان", 82, y + 8, 250, "left");
   });
 
-  researchSection(ctx, 54, 1024, 972, 190, "قرار المتابعة", C.red);
+  researchSection(ctx, 54, 1024, 972, 190, "قرار المتابعة", C.blue);
   rtl(ctx, "right"); font(ctx, 19, 750); fill(ctx, C.text);
   wrap(ctx, `${Number.isFinite(m.targetValue) ? `الهدف التالي ${money(m.targetValue)}` : "خطة المتابعة محفوظة"}${m.targetScenario ? ` · ${scenarioAr(m.targetScenario)}` : ""}. راقب البنود غير المتحققة في الإعلان القادم.`, 990, 1090, 908, 31, 3);
   researchFooter(ctx, "السابق ≠ المتوقع ≠ مستهدف Franklin");
@@ -348,6 +350,29 @@ function valuationStrip(ctx, x, y, items) {
     const cellX = x + index * 226;
     rtl(ctx, "right"); font(ctx, 13, 700); fill(ctx, C.muted); ctx.fillText(label, cellX + width, y);
     ltr(ctx, "left"); font(ctx, 27, 900); fill(ctx, color); fit(ctx, valueText, cellX, y + 38, width, "left");
+  });
+}
+
+function quarterMetrics(ctx, x, y, items) {
+  const visible = (items || []).slice(0, 4);
+  if (!visible.length) {
+    rtl(ctx, "right"); font(ctx, 17, 650); fill(ctx, C.muted);
+    ctx.fillText("تظهر المؤشرات التشغيلية هنا عند توفرها.", 990, y + 30);
+    return;
+  }
+  const gap = 18;
+  const width = (916 - gap * 3) / 4;
+  visible.forEach((item, index) => {
+    const cellX = x + index * (width + gap);
+    if (index) line(ctx, cellX - gap / 2, y - 12, cellX - gap / 2, y + 72);
+    rtl(ctx, "right"); font(ctx, 13, 700); fill(ctx, C.muted);
+    fit(ctx, item.label, cellX + width, y, width, "right");
+    ltr(ctx, "left"); font(ctx, 22, 850); fill(ctx, C.text);
+    fit(ctx, item.value, cellX, y + 34, width, "left");
+    if (Number.isFinite(item.change)) {
+      font(ctx, 12, 750); fill(ctx, tone(item.change));
+      fit(ctx, `${item.change > 0 ? "+" : ""}${short(item.change)}% YoY`, cellX, y + 64, width, "left");
+    }
   });
 }
 
