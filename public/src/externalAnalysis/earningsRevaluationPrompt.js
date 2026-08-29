@@ -1,4 +1,5 @@
 import { earningsPeriodFromOptions } from "./earningsPeriod.js";
+import { buildDownloadableJsonDeliveryInstructions } from "./downloadableJsonDelivery.js";
 import {
   buildFranklinV3ReportTemplate,
   FRANKLIN_FAIR_VALUE_SCHEMA_VERSION,
@@ -12,6 +13,7 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
   const ticker = normalizeTicker(report.company?.ticker);
   const selected = earningsPeriodFromOptions(options);
   const selectedPeriod = selected?.reportPeriod || null;
+  const periodSlug = selectedPeriod ? selectedPeriod.replace(/\s+/g, "-") : "earnings";
   const previous = previousCanonicalState(report);
   const template = buildFranklinV3ReportTemplate({
     tickerHint: ticker,
@@ -137,7 +139,7 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
       schemaVersion: FRANKLIN_FAIR_VALUE_SCHEMA_VERSION,
       methodologyVersion: FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION,
       analysisType: "EARNINGS_REVALUATION",
-      format: "EXACTLY_ONE_FENCED_JSON_BLOCK",
+      format: "DOWNLOADABLE_UTF8_JSON_FILE",
       lineage: {
         previousAnalysisId: previous.analysisId,
         previousRequirementSetId: previous.requirementSetId
@@ -212,10 +214,9 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
     "حدّث companyGlossary ليضم أهم 4 إلى 12 مصطلحًا فنيًا خاصًا بالشركة والربع، ولا تترك مصطلحًا إنجليزيًا فنيًا في السرد بلا شرح عربي.",
     "Franklin لا يرفع الهدف آليًا ولا يحسب targetValue. أنت وحدك تحدد ذلك داخل JSON.",
     "JSON OUTPUT SAFETY — MANDATORY",
-    "Return exactly one fenced JSON code block.",
-    "Do not write any prose before or after the fenced JSON block.",
-    "After removing only the opening ```json fence and closing ``` fence, the remaining text must pass JSON.parse().",
-    "Exactly one opening ```json fence and one closing ``` fence exist.",
+    ...buildDownloadableJsonDeliveryInstructions({
+      fileName: `franklin-${ticker || "TICKER"}-${periodSlug}-earnings-update.json`
+    }),
     "NEVER escape underscores in JSON enum values or keys.",
     "Invalid example: \"LAST\\_CLOSE\". Correct value: \"LAST_CLOSE\".",
     "URL fields must contain raw URLs only.",

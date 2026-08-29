@@ -3,6 +3,7 @@ import {
   FRANKLIN_FAIR_VALUE_SCHEMA_VERSION,
   FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION
 } from "./v3Contract.js";
+import { buildDownloadableJsonDeliveryInstructions } from "./downloadableJsonDelivery.js";
 
 export const FRANKLIN_INITIAL_PROMPT_VERSION = "franklin-initial-analysis-prompt/v3";
 
@@ -76,7 +77,7 @@ export function buildInitialAnalysisPrompt(options = {}) {
       schemaVersion: FRANKLIN_FAIR_VALUE_SCHEMA_VERSION,
       methodologyVersion: FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION,
       analysisType: "INITIAL",
-      format: "EXACTLY_ONE_FENCED_JSON_BLOCK",
+      format: "DOWNLOADABLE_UTF8_JSON_FILE",
       language: "العربية المبسطة أولًا في جميع النصوص الموجهة للمستثمر. اذكر المصطلح الإنجليزي بين قوسين عند أول ظهور فقط، ولا تكتب جملًا عربية ممزوجة بعبارات إنجليزية غير مشروحة.",
       languageQuality: [
         "outputLanguage يجب أن يساوي ar.",
@@ -168,10 +169,9 @@ export function buildInitialAnalysisPrompt(options = {}) {
     "sourceType: Investor Relations | SEC | Earnings Call | Market Data | Consensus Data | Trusted Financial News | User Provided | Other",
     "valuationRole: PRIMARY | SECONDARY | CROSS_CHECK",
     "JSON OUTPUT SAFETY — MANDATORY",
-    "Return exactly one fenced JSON code block.",
-    "Do not write any prose before or after the fenced JSON block.",
-    "After removing only the opening ```json fence and closing ``` fence, the remaining text must pass JSON.parse().",
-    "Exactly one opening ```json fence and one closing ``` fence exist.",
+    ...buildDownloadableJsonDeliveryInstructions({
+      fileName: `franklin-${ticker || "TICKER"}-initial-analysis.json`
+    }),
     "NEVER escape underscores in JSON enum values or keys.",
     "Invalid example: \"LAST\\_CLOSE\". Correct value: \"LAST_CLOSE\".",
     "URL fields must contain raw URLs only.",
@@ -185,7 +185,7 @@ export function buildInitialAnalysisPrompt(options = {}) {
   return [
     ...compatibilityPreamble,
     "نفّذ الطلب التالي كما هو. اقرأ كل التعليمات أولًا ثم ابحث وحلل، ولا تبدأ بإخراج JSON قبل اكتمال التحليل والتحقق الداخلي.",
-    "بعد الانتهاء أخرج فقط fenced JSON واحد يبدأ بـ ```json وينتهي بـ ```، بدون أي نص خارجه.",
+    "بعد اكتمال التحليل أنشئ ملف JSON القابل للتنزيل وأرفقه وفق FILE DELIVERY أعلاه؛ لا تجعل المستخدم ينسخ JSON الطويل يدويًا.",
     JSON.stringify(request)
   ].join("\n\n");
 }

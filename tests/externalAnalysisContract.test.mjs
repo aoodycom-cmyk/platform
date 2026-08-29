@@ -101,15 +101,17 @@ console.log("External analysis ChatGPT contract tests passed.");
 
 function assertPromptOutputSafety(value, label) {
   assert.ok(value.includes("JSON.parse()"), `${label} must require JSON.parse validity.`);
-  assert.ok(value.includes("Return exactly one fenced JSON code block"), `${label} must require fenced JSON output.`);
-  assert.ok(value.includes("```json"), `${label} must require a json code fence.`);
-  assert.ok(value.includes("Do not write any prose before or after the fenced JSON block"), `${label} must forbid prose outside the code block.`);
-  assert.ok(value.includes("After removing only the opening ```json fence and closing ``` fence"), `${label} must keep the fenced content parseable as JSON.`);
+  assert.ok(value.includes("FILE DELIVERY — MANDATORY PRIMARY MODE"), `${label} must make file delivery primary.`);
+  assert.ok(value.includes("downloadable UTF-8 JSON file"), `${label} must request a downloadable UTF-8 file.`);
+  assert.ok(value.includes("Do not print the completed JSON in the chat"), `${label} must avoid streaming the long JSON in chat.`);
+  assert.ok(value.includes("Do not shorten, summarize, omit, split, or reduce any financial field"), `${label} must preserve the full analysis.`);
+  assert.ok(value.includes("FALLBACK ONLY"), `${label} must retain fenced JSON as a compatibility fallback.`);
+  assert.ok(value.includes("```json"), `${label} must document the fenced fallback.`);
   assert.ok(value.includes("NEVER escape underscores"), `${label} must prohibit escaped underscores.`);
   assert.ok(value.includes('"LAST\\_CLOSE"'), `${label} must show escaped underscores as invalid.`);
   assert.ok(value.includes("URL fields must contain raw URLs only"), `${label} must require raw URLs.`);
   assert.ok(value.includes("Never use Markdown links inside JSON"), `${label} must reject Markdown links.`);
-  assert.ok(value.includes("Exactly one opening ```json fence and one closing ``` fence exist"), `${label} must limit output to one fenced block.`);
+  assert.ok(value.includes("schemaVersion, reportIdentity, valuation, and sources"), `${label} must verify required v3 sections before attachment.`);
   assert.ok(value.includes("decision.confidence must be a number from 0 to 100 or null"), `${label} must keep decision confidence numeric.`);
   assert.ok(value.includes("businessQuality.score"), `${label} must mention business quality score scale.`);
   assert.ok(value.includes("0-100 scale, NOT 0-10"), `${label} must force 0-100 numeric scores.`);

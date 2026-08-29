@@ -19,7 +19,7 @@ assert.match(components, /Morningstar/);
 assert.match(foundation, /<svg viewBox=/);
 assert.doesNotMatch(foundation, /home:\s*"⌂"/);
 assert.match(syncScript, /"styles-franklin-v2\.css"/);
-assert.match(serviceWorker, /franklin-mobile-v2-v50/);
+assert.match(serviceWorker, /franklin-mobile-v2-v51/);
 assert.match(serviceWorker, /"\.\/styles-franklin-v2\.css"/);
 
 console.log("Franklin Mobile Redesign V2: PASS");

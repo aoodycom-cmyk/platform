@@ -140,7 +140,7 @@ assert.ok(language.includes('"Bear Scenario Label": "Bear"'), "Bear scenario lab
 assert.ok(language.includes('"Base Scenario Label": "Base"'), "Base scenario labels must remain the standard English financial term.");
 assert.ok(language.includes('"Bull Scenario Label": "Bull"'), "Bull scenario labels must remain the standard English financial term.");
 assert.ok(language.includes("اكتب الرمز هنا إذا كان التقرير الملصوق لا يذكر رمز السهم بوضوح."), "Ticker fallback helper text must be localized.");
-assert.ok(language.includes("انسخ برومبت Fair value الرسمي، أرسله إلى ChatGPT، ثم الصق رد JSON هنا."), "ChatGPT prep copy must be localized.");
+assert.ok(language.includes("انسخ برومبت Fair value الرسمي وأرسله إلى ChatGPT، ثم نزّل ملف JSON الجاهز واستورده هنا."), "ChatGPT file-import prep copy must be localized.");
 assert.ok(language.includes("تحليل إعلان الأرباح الجديد"), "Analyze New Earnings action must be localized in Arabic.");
 assert.ok(language.includes("التوافق الشرعي"), "Arabic Shariah label must be localized.");
 assert.ok(storeSource.includes("tickerHint: \"\""), "External import state must persist the ticker hint.");

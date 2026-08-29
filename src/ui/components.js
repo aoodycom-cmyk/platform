@@ -1319,7 +1319,7 @@ function externalChatGptPrepCard(state) {
         <div>
           <p class="eyebrow">${uiLabel("ChatGPT Contract")}</p>
           <h3>${uiLabel("جهّز ChatGPT قبل اللصق")}</h3>
-          <p>${uiLabel("Copy the official prompt, send it to ChatGPT, then paste the JSON response here.")}</p>
+          <p>${uiLabel("Copy the official prompt, send it to ChatGPT, then import the downloadable JSON file here.")}</p>
         </div>
         <div class="prep-actions">
           <button class="primary-btn" data-action="copy-full-analysis-prompt">${uiLabel("نسخ برومبت تحليل السهم")}</button>

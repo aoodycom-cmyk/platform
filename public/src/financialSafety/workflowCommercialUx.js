@@ -57,7 +57,7 @@ function polishImportPanel(root) {
 
   setText(panel.querySelector(".external-import-head .eyebrow"), "تحليل جديد");
   setText(panel.querySelector(".external-import-head h2"), "أضف شركة إلى Franklin");
-  setText(panel.querySelector(".external-import-head p"), "انسخ طلب التحليل، أرسله إلى ChatGPT، ثم ألصق النتيجة هنا. Franklin سيتحقق منها قبل الحفظ.");
+  setText(panel.querySelector(".external-import-head p"), "انسخ طلب التحليل وأرسله إلى ChatGPT. سيعيد لك ملف JSON جاهزًا؛ نزّله ثم استورده هنا.");
 
   const prep = panel.querySelector(".chatgpt-prep-card");
   if (prep) {

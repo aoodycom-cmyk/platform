@@ -47,7 +47,7 @@ function enhanceOnePageFlow() {
       <div>
         <p class="eyebrow" dir="ltr">${escapeHtml(ticker)}</p>
         <h3>${isArabicUi() ? "تحليل إعلان الأرباح" : "Analyze Earnings"}</h3>
-        <span>${isArabicUi() ? "انسخ البرومبت إلى ChatGPT، ثم ألصق JSON الناتج وحدّث التحليل مباشرة." : "Copy the prompt to ChatGPT, then paste the returned JSON and update the analysis."}</span>
+        <span>${isArabicUi() ? "انسخ البرومبت إلى ChatGPT، ثم نزّل ملف JSON الجاهز واستورده لتحديث التحليل." : "Copy the prompt to ChatGPT, then download and import the ready JSON file to update the analysis."}</span>
       </div>
       <button type="button" class="icon-btn earnings-one-page-cancel" data-one-page-cancel>${isArabicUi() ? "إلغاء" : "Cancel"}</button>
     </header>
