@@ -1,0 +1,214 @@
+/* Franklin compact earnings mobile patch v56
+   Presentation only: denser Perplexity-inspired mobile proportions, no financial logic changes. */
+@media (max-width: 899px) {
+  .scorecard-app-shell .mobile-bottom-nav,
+  .scorecard-app-shell + .mobile-bottom-nav,
+  body:has(.quarterly-scorecard-shell) .mobile-bottom-nav {
+    display: none !important;
+  }
+
+  .scorecard-app-shell .mobile-page-content {
+    padding-bottom: 24px !important;
+  }
+
+  .quarterly-scorecard-shell > .quarterly-scorecard-header {
+    min-height: 92px !important;
+    padding: 12px 14px !important;
+  }
+
+  .quarterly-scorecard-titlebar h2 {
+    font-size: 22px !important;
+    line-height: 1.25 !important;
+  }
+
+  .quarterly-scorecard-titlebar span,
+  .quarterly-scorecard-titlebar strong,
+  .figma-scorecard-meta {
+    font-size: 12px !important;
+  }
+
+  .franklin-earnings-hub {
+    gap: 10px !important;
+  }
+
+  .fet-section-tabs {
+    min-height: 48px !important;
+    margin: 0 !important;
+  }
+
+  .fet-section-tabs button {
+    min-height: 48px !important;
+    padding: 8px 14px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+  }
+
+  .fet-quarter-rail {
+    gap: 7px !important;
+    padding: 8px 0 6px !important;
+    scroll-padding-inline: 12px !important;
+  }
+
+  .fet-quarter-pill {
+    min-width: 126px !important;
+    min-height: 58px !important;
+    padding: 8px 11px !important;
+    gap: 2px !important;
+    border-radius: 11px !important;
+  }
+
+  .fet-quarter-pill strong {
+    font-size: 14px !important;
+    line-height: 1.2 !important;
+  }
+
+  .fet-quarter-pill span,
+  .fet-quarter-pill small {
+    font-size: 10.5px !important;
+    line-height: 1.3 !important;
+  }
+
+  .fet-quarter-pill small {
+    display: none !important;
+  }
+
+  .fet-quarter-card {
+    padding: 14px !important;
+    border-radius: 15px !important;
+  }
+
+  .fet-quarter-card-head {
+    margin-bottom: 10px !important;
+    gap: 8px !important;
+  }
+
+  .fet-quarter-card-head > div > span {
+    font-size: 10.5px !important;
+  }
+
+  .fet-quarter-card-head h3 {
+    margin: 2px 0 !important;
+    font-size: 21px !important;
+    line-height: 1.2 !important;
+  }
+
+  .fet-quarter-card-head p {
+    margin: 3px 0 0 !important;
+    max-width: 36ch !important;
+    font-size: 11.5px !important;
+    line-height: 1.55 !important;
+  }
+
+  .fet-state-badge {
+    padding: 5px 8px !important;
+    border-radius: 8px !important;
+    font-size: 10.5px !important;
+  }
+
+  .fet-table-title {
+    margin: 8px 0 7px !important;
+  }
+
+  .fet-table-title h4 {
+    font-size: 14px !important;
+    line-height: 1.35 !important;
+  }
+
+  .fet-table-title span {
+    font-size: 10.5px !important;
+  }
+
+  .fet-table-wrap {
+    border-radius: 12px !important;
+  }
+
+  .fet-table {
+    table-layout: fixed !important;
+    font-size: 12px !important;
+  }
+
+  .fet-table col:nth-child(1) { width: 43% !important; }
+  .fet-table col:nth-child(2) { width: 29% !important; }
+  .fet-table col:nth-child(3) { width: 28% !important; }
+  .fet-table col:nth-child(4) { width: 0 !important; }
+
+  .fet-table thead th {
+    padding: 7px 8px !important;
+    font-size: 10px !important;
+    line-height: 1.25 !important;
+    font-weight: 550 !important;
+  }
+
+  .fet-table thead th:nth-child(4),
+  .fet-table tbody td:nth-child(4) {
+    display: none !important;
+  }
+
+  .fet-table tbody th,
+  .fet-table tbody td {
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 9px 8px !important;
+    vertical-align: middle !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+  }
+
+  .fet-table tbody th strong {
+    display: block !important;
+    font-size: 12.5px !important;
+    line-height: 1.4 !important;
+    font-weight: 600 !important;
+  }
+
+  .fet-table tbody th small {
+    display: block !important;
+    margin-top: 1px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    color: #7f8da3 !important;
+    font-size: 9.5px !important;
+    line-height: 1.25 !important;
+  }
+
+  .fet-table tbody td,
+  .fet-table tbody td bdi {
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+    font-weight: 500 !important;
+  }
+
+  .fet-actual.tone-beat { color: #55c271 !important; }
+  .fet-actual.tone-miss { color: #f06b78 !important; }
+  .fet-actual.tone-mixed { color: #d7a64d !important; }
+
+  .fet-quarter-card.tone-upcoming .fet-table tbody td:nth-child(3) {
+    color: #7f8da3 !important;
+  }
+
+  .fet-highlights,
+  .fet-quarter-highlights {
+    margin-top: 9px !important;
+    font-size: 11px !important;
+  }
+
+  .fet-summary-card,
+  .fet-summary-hero,
+  .fet-summary-grid > * {
+    border-radius: 13px !important;
+  }
+
+  .fet-summary-card h3,
+  .fet-summary-hero h3 {
+    font-size: 17px !important;
+  }
+
+  .fet-summary-card p,
+  .fet-summary-hero p,
+  .fet-summary-grid span,
+  .fet-summary-grid small {
+    font-size: 11.5px !important;
+    line-height: 1.55 !important;
+  }
+}
