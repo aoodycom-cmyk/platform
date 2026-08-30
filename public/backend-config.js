@@ -14,7 +14,7 @@ window.FRANKLIN_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_5BLb5fpkzf4_7qgPb5smL
     var root = document.getElementById("app");
     if (!root || !style.isConnected) return;
     var text = String(root.textContent || "");
-    if (text.indexOf("Safari لم يكمل فتح Franklin") !== -1 || text.indexOf("تعذر تحميل Franklin بأمان") !== -1) {
+    if (text.indexOf("تعذر فتح فرانكلين") !== -1 || text.indexOf("تعذر تحميل Franklin بأمان") !== -1) {
       style.remove();
       observer.disconnect();
     }
