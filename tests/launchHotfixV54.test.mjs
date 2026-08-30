@@ -19,6 +19,7 @@ assert.equal(html.includes("جاري فتح Franklin"), false, "Normal boot must
 assert.ok(html.includes('aria-hidden="true"'), "Normal boot should use a silent placeholder.");
 assert.ok(html.includes("<details") && html.includes("تفاصيل تقنية"), "Raw Safari diagnostics must stay behind progressive disclosure.");
 assert.ok(html.indexOf("<details") < html.indexOf("<code"), "Safari diagnostic code must be nested under the details control.");
+assert.match(html, /backend-config\.js\?v=v54-launch-hotfix/, "Safari recovery configuration must bypass the previous cached detector.");
 
 assert.ok(components.includes('isArabicUi() ? "›" : "‹"'), "Arabic report back actions must point toward the RTL return direction.");
 assert.ok(foundation.includes('language === "ar" ? "›" : "‹"'), "Arabic generic back actions must point toward the RTL return direction.");
