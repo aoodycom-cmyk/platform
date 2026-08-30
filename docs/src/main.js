@@ -58,6 +58,7 @@ async function installOptionalRuntime(store, cloud, auditBootstrapError) {
     loadOptional("./ui/mobile2Enhancer.js", "Mobile enhancer"),
     loadOptional("./ui/quarterlyResultsEnhancer.js", "Quarterly results enhancer"),
     loadOptional("./ui/quarterlyScorecardMobileFigma.js", "Quarterly scorecard mobile UI"),
+    loadOptional("./ui/earningsTableExperience.js?v=v55-earnings-table", "Earnings table experience"),
     loadOptional("./ui/quarterlyEarningsEntry.js", "Quarterly earnings entry"),
     loadOptional("./ui/quarterlyEarningsJsonPromptV2.js", "Quarterly JSON prompt"),
     loadOptional("./ui/socialImageExport.js", "Social image export"),
