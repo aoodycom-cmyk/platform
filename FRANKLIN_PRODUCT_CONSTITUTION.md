@@ -266,6 +266,21 @@ Design requirements:
 
 The Figma master file is the product design workspace. Engineering should implement approved interaction and information hierarchy, not independently invent a conflicting hierarchy.
 
+### Commercial editorial presentation standard
+
+Franklin is a premium paid financial product. Its normal investor experience must look quiet, deliberate, and editorial rather than like a generated dashboard or an internal tool.
+
+- Use a restrained type hierarchy: scale, spacing, and tone should create emphasis before heavier font weights do.
+- Prefer a page background, a card surface, and one raised surface; do not create a separate bordered card for every sentence or row.
+- Use three separator patterns intentionally: inset row dividers, full-width semantic dividers, and open section spacing.
+- Keep section headings outside their content cards when that improves scan rhythm.
+- Reserve green and red tonal surfaces for financially positive and negative meaning. They are not decorative brand colors.
+- Present the leading strength and leading risk as one balanced thesis argument when both exist. Do not imply that unrelated items are causal opposites.
+- Preserve all complete evidence behind progressive disclosure; a compact preview may never delete or overwrite stored analysis.
+- Show source proximity or source counts only when the report actually carries source references. Never fabricate provenance.
+- Render prices, percentages, fiscal periods, ticker symbols, and scenario values with tabular numerals and bidi-safe LTR isolation.
+- The presentation layer may reorganize or progressively reveal content, but it must never modify financial values, rankings, judgments, or source requirements.
+
 ## 9. Safety and Integrity Gates
 
 No feature is accepted if it creates any of these conditions:

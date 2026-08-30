@@ -24,6 +24,7 @@ const GENERATED_FILES = [
   "styles-franklin-v2.css",
   "styles-design-director-v45.css",
   "styles-mobile-hotfix-v46.css",
+  "styles-editorial-finance-v53.css",
   "service-worker.js",
   "manifest.webmanifest",
   "offline.html",

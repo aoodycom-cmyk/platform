@@ -1834,7 +1834,7 @@ function externalAnalysisReportView(state) {
       <section class="stock-decision-flow">
         ${valuationRangeDashboard(report)}
         ${canonicalFinancialCycleSection(report)}
-        ${stockSection(isArabicUi() ? "فرصة الاستثمار • Investment Opportunity" : "Investment Opportunity", investmentSummaryWorkspace(report), "investment-opportunity-section")}
+        ${stockSection(isArabicUi() ? "فرصة الاستثمار" : "Investment Opportunity", investmentSummaryWorkspace(report), "investment-opportunity-section")}
         ${companyGlossarySection(report)}
         ${companyAssessmentPanel(report)}
         ${stockSection(isArabicUi() ? "بيانات الاستثمار" : "Investment Data", investmentDataTableArea(report), "v31-investment-tabs-section")}
@@ -3145,8 +3145,8 @@ function compactEvidenceNavigator(report = {}) {
 }
 
 function strengthsRisksSummaryView(report = {}) {
-  const strengths = report.quality?.strengths || report.businessQuality?.strengths || [];
-  const risks = Array.isArray(report.risks) ? report.risks : [];
+  const strengths = reportStrengthItems(report);
+  const risks = reportRiskItems(report);
   if (!strengths.length && !risks.length) return "";
   return `
     <details class="compact-drill-row strengths-risks-drill">
@@ -3170,15 +3170,27 @@ function strengthsRisksSummaryView(report = {}) {
 }
 
 function strengthsRisksEntry(report = {}) {
-  const strengths = report.quality?.strengths || report.businessQuality?.strengths || [];
-  const risks = Array.isArray(report.risks) ? report.risks : [];
+  const strengths = reportStrengthItems(report);
+  const risks = reportRiskItems(report);
   if (!strengths.length && !risks.length) return "";
   return `
-    <section class="stock-section v2-strengths-entry">
-      <button type="button" data-panel="strengths-risks">
-        <span><strong>${uiLabel("Strengths & Risks")}</strong><small>${isArabicUi() ? "قراءة مستقلة وواضحة لعوامل الجودة والمخاطر" : "A focused view of quality drivers and risks"}</small></span>
-        <b>${strengths.length} / ${risks.length}</b><em aria-hidden="true">‹</em>
-      </button>
+    <section class="thesis-balance-section v2-strengths-entry">
+      <header class="thesis-balance-heading">
+        <div>
+          <p>${isArabicUi() ? "جوهر القرار" : "DECISION CORE"}</p>
+          <h3>${isArabicUi() ? "ميزان الفرضية الاستثمارية" : "Investment Thesis Balance"}</h3>
+        </div>
+        <span>${uiLabel("Strengths & Risks")}</span>
+      </header>
+      <div class="thesis-balance-card">
+        ${thesisBalancePreview(strengths[0], "support")}
+        ${strengths.length && risks.length ? `<div class="thesis-balance-divider" aria-hidden="true"></div>` : ""}
+        ${thesisBalancePreview(risks[0], "risk")}
+        <button class="thesis-balance-open" type="button" data-panel="strengths-risks">
+          <span>${strengthRiskCountLabel(strengths.length, risks.length)}</span>
+          <b aria-hidden="true">‹</b>
+        </button>
+      </div>
     </section>`;
 }
 
@@ -3186,23 +3198,100 @@ function strengthsRisksPage(state) {
   const selection = state.externalReportSelection || {};
   const report = getExternalAnalysis(state.externalAnalyses || {}, selection.ticker, selection.reportId);
   if (!report) return `<section class="panel empty-home-state"><strong>${uiLabel("No imported report selected.")}</strong></section>`;
-  const strengths = report.quality?.strengths || report.businessQuality?.strengths || [];
-  const risks = Array.isArray(report.risks) ? report.risks : [];
+  const strengths = reportStrengthItems(report);
+  const risks = reportRiskItems(report);
   return `
-    <section class="v2-strengths-page">
+    <section class="v2-strengths-page thesis-balance-page">
       <div class="v2-page-heading">
         <button type="button" data-panel="external-report" aria-label="${uiLabel("Back")}">‹</button>
-        <div><p>${isArabicUi() ? "جودة الاستثمار" : "INVESTMENT QUALITY"}</p><h1>${uiLabel("Strengths & Risks")}</h1></div>
+        <div><p>${isArabicUi() ? "جوهر القرار" : "DECISION CORE"}</p><h1>${isArabicUi() ? "ميزان الفرضية الاستثمارية" : "Investment Thesis Balance"}</h1></div>
       </div>
-      <section class="v2-evidence-group strengths">
-        <header><h2>${uiLabel("Strengths")}</h2><span>${strengths.length}</span></header>
-        ${compactEvidenceList(strengths, uiLabel("No verified strengths were provided."), "strength")}
-      </section>
-      <section class="v2-evidence-group risks">
-        <header><h2>${uiLabel("Risks")}</h2><span>${risks.length}</span></header>
-        ${compactEvidenceList(risks, uiLabel("No verified risks were provided."), "risk")}
+      <p class="thesis-balance-intro">${isArabicUi() ? "اقرأ ما يدعم الفرضية وما قد يضعفها داخل حجة استثمارية واحدة، ثم افتح كل نقطة لرؤية الدليل الكامل." : "Read the supports and threats as one investment argument, then open each item for its complete evidence."}</p>
+      <section class="thesis-balance-full-card">
+        <section class="v2-evidence-group strengths thesis-balance-group support">
+          <header><h2>${isArabicUi() ? "ما يدعم الفرضية" : "What supports the thesis"} <i aria-hidden="true">↗</i></h2><span>${strengths.length}</span></header>
+          ${compactEvidenceList(strengths, uiLabel("No verified strengths were provided."), "strength")}
+        </section>
+        <div class="thesis-balance-divider" aria-hidden="true"></div>
+        <section class="v2-evidence-group risks thesis-balance-group risk">
+          <header><h2>${isArabicUi() ? "ما قد يضعف الفرضية" : "What could weaken the thesis"} <i aria-hidden="true">↘</i></h2><span>${risks.length}</span></header>
+          ${compactEvidenceList(risks, uiLabel("No verified risks were provided."), "risk")}
+        </section>
       </section>
     </section>`;
+}
+
+function reportStrengthItems(report = {}) {
+  const canonicalStrengths = usableReportItems(report.metadata?.franklinV3Report?.strengths);
+  if (canonicalStrengths.length) return canonicalStrengths;
+  return usableReportItems(report.quality?.strengths || report.businessQuality?.strengths);
+}
+
+function reportRiskItems(report = {}) {
+  const canonicalRisks = usableReportItems(report.metadata?.franklinV3Report?.risks);
+  if (canonicalRisks.length) return canonicalRisks;
+  return usableReportItems(report.risks);
+}
+
+function usableReportItems(items) {
+  return (Array.isArray(items) ? items : []).filter((item) => reportItemTitle(item) || reportItemDetail(item));
+}
+
+function thesisBalancePreview(item, tone) {
+  if (!item) return "";
+  const isSupport = tone === "support";
+  const title = reportItemTitle(item);
+  const detail = reportItemDetail(item);
+  const sourceCount = reportItemSourceCount(item);
+  const toneLabel = isSupport
+    ? (isArabicUi() ? "ما يدعم الفرضية" : "Thesis support")
+    : (isArabicUi() ? "ما قد يضعفها" : "Thesis threat");
+  const content = typeof item === "string"
+    ? `<p class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(shortText(title, 300))}</p>`
+    : `<strong class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(title || uiLabel("Details"))}</strong>${detail ? `<p class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(shortText(detail, 300))}</p>` : ""}`;
+  return `
+    <article class="thesis-balance-side ${isSupport ? "support" : "risk"}">
+      <header>
+        <span class="thesis-tone-pill">${escapeHtml(toneLabel)} <i aria-hidden="true">${isSupport ? "↗" : "↘"}</i></span>
+        ${sourceCount ? `<small class="thesis-source-pill">${escapeHtml(sourceCountLabel(sourceCount))}</small>` : ""}
+      </header>
+      ${content}
+    </article>`;
+}
+
+function reportItemSourceCount(item) {
+  if (!item || typeof item !== "object") return 0;
+  const ids = Array.isArray(item.sourceIds) ? item.sourceIds : item.sourceId ? [item.sourceId] : [];
+  return new Set(ids.map((value) => String(value || "").trim()).filter(Boolean)).size;
+}
+
+function sourceCountLabel(count) {
+  if (!isArabicUi()) return `${count} ${count === 1 ? "source" : "sources"}`;
+  if (count === 1) return "مصدر واحد";
+  if (count === 2) return "مصدران";
+  if (count >= 3 && count <= 10) return `${count} مصادر`;
+  return `${count} مصدرًا`;
+}
+
+function strengthRiskCountLabel(strengthCount, riskCount) {
+  if (!isArabicUi()) return `View ${strengthCount} strengths and ${riskCount} risks`;
+  return `عرض ${arabicStrengthCount(strengthCount)} و${arabicRiskCount(riskCount)}`;
+}
+
+function arabicStrengthCount(count) {
+  if (count === 0) return "المزايا";
+  if (count === 1) return "ميزة واحدة";
+  if (count === 2) return "ميزتين";
+  if (count >= 3 && count <= 10) return `${count} مزايا`;
+  return `${count} ميزة`;
+}
+
+function arabicRiskCount(count) {
+  if (count === 0) return "المخاطر";
+  if (count === 1) return "مخاطرة واحدة";
+  if (count === 2) return "مخاطرتين";
+  if (count >= 3 && count <= 10) return `${count} مخاطر`;
+  return `${count} مخاطرة`;
 }
 
 function compactValuationMethodsSummary(report = {}) {
