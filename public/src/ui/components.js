@@ -104,7 +104,7 @@ function render(root, store, actions) {
   const activePanel = visiblePanel(store.state.activePanel);
   const state = activePanel === store.state.activePanel ? store.state : { ...store.state, activePanel };
   setupArabicDocument(state.language);
-  document.documentElement.dataset.theme = state.theme;
+  document.documentElement.dataset.theme = "dark";
   if (activePanel === "home") {
     root.innerHTML = homeDashboard(state);
     bindCompanyLogoFallbacks(root);
@@ -201,7 +201,7 @@ function externalReportAppBar(state) {
   const moreLabel = uiLabel("More");
   return `
     <header class="mobile-app-header report-app-bar v31-report-app-bar">
-      <button class="header-icon-button report-back-button" data-panel="home" aria-label="${uiLabel("Back to My Stocks")}" title="${uiLabel("Back to My Stocks")}"><span aria-hidden="true">‹</span></button>
+      <button class="header-icon-button report-back-button" data-panel="home" aria-label="${uiLabel("Back to My Stocks")}" title="${uiLabel("Back to My Stocks")}"><span aria-hidden="true">${isArabicUi() ? "›" : "‹"}</span></button>
       <details class="mobile-app-menu">
         <summary aria-label="${escapeHtml(moreLabel)}" title="${escapeHtml(moreLabel)}"><span aria-hidden="true">•••</span></summary>
         <div>
@@ -210,7 +210,6 @@ function externalReportAppBar(state) {
             <span></span>
             <button class="${state.language === "en" ? "active" : ""}" data-language="en">English</button>
           </div>
-          <button class="icon-btn" data-action="toggle-theme">${state.theme === "dark" ? uiLabel("Light") : uiLabel("Dark")}</button>
         </div>
       </details>
       <div class="report-app-identity">
@@ -1932,7 +1931,7 @@ function quarterlyScorecardHeader(scorecard = {}) {
   return `
     <header class="panel quarterly-scorecard-header">
       <div class="quarterly-scorecard-titlebar">
-        <button class="scorecard-back" data-action="close-quarterly-scorecard" aria-label="${uiLabel("Back to report")}">‹</button>
+        <button class="scorecard-back" data-action="close-quarterly-scorecard" aria-label="${uiLabel("Back to report")}">${isArabicUi() ? "›" : "‹"}</button>
         <div>
           <span>${escapeHtml(scorecard.companyName || scorecard.ticker)}</span>
           <h2>${uiLabel("Quarterly Scorecard")}</h2>
@@ -3203,7 +3202,7 @@ function strengthsRisksPage(state) {
   return `
     <section class="v2-strengths-page thesis-balance-page">
       <div class="v2-page-heading">
-        <button type="button" data-panel="external-report" aria-label="${uiLabel("Back")}">‹</button>
+        <button type="button" data-panel="external-report" aria-label="${uiLabel("Back")}">${isArabicUi() ? "›" : "‹"}</button>
         <div><p>${isArabicUi() ? "جوهر القرار" : "DECISION CORE"}</p><h1>${isArabicUi() ? "ميزان الفرضية الاستثمارية" : "Investment Thesis Balance"}</h1></div>
       </div>
       <p class="thesis-balance-intro">${isArabicUi() ? "اقرأ ما يدعم الفرضية وما قد يضعفها داخل حجة استثمارية واحدة، ثم افتح كل نقطة لرؤية الدليل الكامل." : "Read the supports and threats as one investment argument, then open each item for its complete evidence."}</p>
@@ -6777,9 +6776,6 @@ function bind(root, store, actions) {
   });
   root.querySelectorAll("[data-panel]").forEach((button) => {
     button.addEventListener("click", () => store.set({ activePanel: button.dataset.panel }));
-  });
-  root.querySelector("[data-action='toggle-theme']")?.addEventListener("click", () => {
-    store.set({ theme: store.state.theme === "dark" ? "light" : "dark" });
   });
   root.querySelectorAll("[data-language]").forEach((button) => {
     button.addEventListener("click", () => {

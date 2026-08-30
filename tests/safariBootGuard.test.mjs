@@ -16,8 +16,8 @@ assert.ok(index.includes("String.prototype.matchAll"), "Safari guard should poly
 assert.ok(index.includes("Array.prototype.at"), "Safari guard should polyfill Array.at");
 assert.ok(index.includes("Promise.prototype.finally"), "Safari guard should polyfill Promise.finally");
 assert.ok(index.includes("franklin:boot-ready"), "index should listen for a successful Franklin boot");
-assert.ok(index.includes("Safari لم يكمل فتح Franklin"), "index should show a visible Safari diagnostic fallback");
-assert.ok(index.includes("data-franklin-boot-placeholder"), "index should render an immediate nonblank boot placeholder");
+assert.ok(index.includes("تعذر فتح فرانكلين"), "index should show a visible Safari recovery fallback");
+assert.ok(index.includes("data-franklin-boot-placeholder"), "index should retain the guarded silent boot root");
 
 assert.equal(index.includes("quarterlyScorecardMobileFigma.js?v="), false, "optional UI modules should not be static index scripts");
 assert.equal(index.includes("quarterlyEarningsEntry.js?v="), false, "optional earnings entry should not be a static index script");

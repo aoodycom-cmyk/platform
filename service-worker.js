@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v11-franklin-mobile-v2-v52-editorial-v53";
+const CACHE_NAME = "franklin-research-v11-franklin-mobile-v2-v52-editorial-v54-hotfix";
 const STATIC_ASSETS = [
   "./offline.html",
   "./rescue.html",

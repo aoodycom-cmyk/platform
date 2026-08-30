@@ -7,7 +7,7 @@ const decisionReadiness = readFileSync(new URL("../src/financialSafety/decisionR
 
 assert.ok(backendConfig.includes("franklin-silent-boot-style"), "Normal boot must hide the legacy textual placeholder before paint.");
 assert.ok(backendConfig.includes("data-franklin-boot-placeholder"), "Silent boot must target only the boot placeholder.");
-assert.ok(backendConfig.includes("Safari لم يكمل فتح Franklin"), "True Safari recovery must still be revealed on failure.");
+assert.ok(backendConfig.includes("تعذر فتح فرانكلين"), "True Safari recovery must still be revealed on failure.");
 assert.ok(backendConfig.includes("franklin:boot-ready"), "Silent boot protection must release after a successful mount.");
 
 assert.ok(commercialUx.includes("franklin-analysis-status"), "Report warnings must consolidate into one analysis status component.");

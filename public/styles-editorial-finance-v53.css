@@ -62,11 +62,6 @@ html[data-theme="dark"] {
     color: var(--editorial-text) !important;
   }
 
-  .mobile-page-content {
-    padding-inline: 16px !important;
-    padding-bottom: 112px !important;
-  }
-
   .external-report-shell,
   .stock-decision-workspace {
     width: 100%;
