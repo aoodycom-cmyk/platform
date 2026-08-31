@@ -60,9 +60,7 @@ async function installOptionalRuntime(store, cloud, auditBootstrapError) {
   );
   const earningsTableReady = earningsTable.EARNINGS_TABLE_EXPERIENCE_VERSION === "v57";
 
-  // Install the stock workspace shell first and with an explicit version so every
-  // stock page receives the same selected-company header before presentation helpers load.
-  await loadOptional("./ui/stockWorkspaceNavigation.js?v=v61-premium-shell", "Shared stock workspace");
+  await loadOptional("./ui/stockWorkspaceNavigation.js?v=v63-single-stock-shell", "Shared stock workspace");
 
   const optionalModules = [
     loadOptional("./ui/mobile2Enhancer.js", "Mobile enhancer"),
@@ -73,27 +71,18 @@ async function installOptionalRuntime(store, cloud, auditBootstrapError) {
     loadOptional("./ui/socialImageExportQualityPatch.js", "Social image export HD quality"),
     loadOptional("./ui/reportPresentationEditor.js?v=v44-owner-fields", "Report presentation editor")
   ];
-  if (!earningsTableReady) {
-    optionalModules.push(loadOptional("./ui/quarterlyScorecardMobileFigma.js", "Quarterly scorecard mobile fallback"));
-  }
+  if (!earningsTableReady) optionalModules.push(loadOptional("./ui/quarterlyScorecardMobileFigma.js", "Quarterly scorecard mobile fallback"));
   await Promise.all(optionalModules);
 
   await installFinancialGuards(store);
   await installQuarterlyResolver(store);
-  try {
-    cloud.mountCloudControls?.(store);
-  } catch (error) {
-    recordBootIssue("cloud-controls", error);
-  }
+  try { cloud.mountCloudControls?.(store); } catch (error) { recordBootIssue("cloud-controls", error); }
 
   if (auditBootstrapError) {
-    store.set({
-      notice: store.state.language === "ar"
-        ? `تعذر فتح جلسة الفحص: ${String(auditBootstrapError?.message || auditBootstrapError)}`
-        : `Could not open audit session: ${String(auditBootstrapError?.message || auditBootstrapError)}`
-    });
+    store.set({ notice: store.state.language === "ar"
+      ? `تعذر فتح جلسة الفحص: ${String(auditBootstrapError?.message || auditBootstrapError)}`
+      : `Could not open audit session: ${String(auditBootstrapError?.message || auditBootstrapError)}` });
   }
-
   await installPwaRuntime(store);
 }
 
@@ -107,9 +96,7 @@ async function installFinancialGuards(store) {
     financialSafety.installFinancialSafetyLayer?.(store, root);
     quarterlySourceSafety.installQuarterlySourceSafety?.(store, root);
     decisionReadiness.installDecisionReadinessUi?.(store, root);
-  } catch (error) {
-    recordBootIssue("financial-guards", error);
-  }
+  } catch (error) { recordBootIssue("financial-guards", error); }
 }
 
 async function installQuarterlyResolver(store) {
@@ -134,15 +121,11 @@ async function installPwaRuntime(store) {
   try {
     pwa.registerServiceWorker?.();
     pwa.watchOfflineState?.((offline) => {
-      if (offline) {
-        store.set({ notice: store.state.language === "ar"
-          ? "أنت غير متصل. الأسعار المعروضة في التقارير هي أسعار وقت التحليل وليست أسعارًا حية."
-          : "You are offline. Prices shown in saved reports are prices at analysis, not live quotes." });
-      }
+      if (offline) store.set({ notice: store.state.language === "ar"
+        ? "أنت غير متصل. الأسعار المعروضة في التقارير هي أسعار وقت التحليل وليست أسعارًا حية."
+        : "You are offline. Prices shown in saved reports are prices at analysis, not live quotes." });
     });
-  } catch (error) {
-    recordBootIssue("pwa-runtime", error);
-  }
+  } catch (error) { recordBootIssue("pwa-runtime", error); }
 }
 
 async function loadOptional(path, label) {
@@ -152,10 +135,7 @@ async function loadOptional(path, label) {
 
 function signalBootReady(rootElement) {
   window.__FRANKLIN_APP_READY = true;
-  if (rootElement) {
-    rootElement.dataset.franklinMounted = "true";
-    delete rootElement.dataset.franklinBootPlaceholder;
-  }
+  if (rootElement) { rootElement.dataset.franklinMounted = "true"; delete rootElement.dataset.franklinBootPlaceholder; }
   window.dispatchEvent(new Event("franklin:boot-ready"));
 }
 
@@ -171,28 +151,13 @@ function showBootFailure(error) {
   const message = String(error?.message || error || "Unknown boot error");
   if (!root) return;
   root.innerHTML = `
-    <main class="mobile-app-shell">
-      <section class="mobile-app-frame">
-        <div class="mobile-page-content">
-          <section class="panel boot-failure-panel">
-            <p class="eyebrow">Franklin Recovery</p>
-            <h2>تعذر تحميل Franklin بأمان</h2>
-            <p>لم يتم حذف بياناتك. احتفظ Franklin بالحالة الخام ويمكنك تصديرها أو المحاولة مرة أخرى بعد الاستعادة الآمنة.</p>
-            <div class="settings-grid">
-              ${metric("Diagnostic ID", diagnosticId)}
-              ${metric("Detected reports", summary.reportCount)}
-              ${metric("Companies", summary.tickerCount)}
-              ${metric("Requirement sets", summary.historicalRequirementSetCount)}
-            </div>
-            <code class="boot-error-message">${escapeHtml(message)}</code>
-            <div class="restore-actions">
-              <button class="primary-btn" data-action="retry-safe-boot">Retry Safe Boot</button>
-              <button class="icon-btn" data-action="export-raw-state">Export Raw State</button>
-            </div>
-          </section>
-        </div>
-      </section>
-    </main>`;
+    <main class="mobile-app-shell"><section class="mobile-app-frame"><div class="mobile-page-content"><section class="panel boot-failure-panel">
+      <p class="eyebrow">Franklin Recovery</p><h2>تعذر تحميل Franklin بأمان</h2>
+      <p>لم يتم حذف بياناتك. احتفظ Franklin بالحالة الخام ويمكنك تصديرها أو المحاولة مرة أخرى بعد الاستعادة الآمنة.</p>
+      <div class="settings-grid">${metric("Diagnostic ID", diagnosticId)}${metric("Detected reports", summary.reportCount)}${metric("Companies", summary.tickerCount)}${metric("Requirement sets", summary.historicalRequirementSetCount)}</div>
+      <code class="boot-error-message">${escapeHtml(message)}</code>
+      <div class="restore-actions"><button class="primary-btn" data-action="retry-safe-boot">Retry Safe Boot</button><button class="icon-btn" data-action="export-raw-state">Export Raw State</button></div>
+    </section></div></section></main>`;
   root.querySelector("[data-action='retry-safe-boot']")?.addEventListener("click", () => window.location.reload());
   root.querySelector("[data-action='export-raw-state']")?.addEventListener("click", () => exportRawState(raw, diagnosticId));
 }
