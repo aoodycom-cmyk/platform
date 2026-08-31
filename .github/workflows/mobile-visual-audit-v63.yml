@@ -1,0 +1,39 @@
+name: Franklin v63 iPhone Visual Audit
+
+on:
+  push:
+    branches: [fix/full-stock-ui-consistency-v63]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build deploy bundle
+        run: npm run build
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start Franklin static server
+        run: |
+          python3 -m http.server 4321 -d public > /tmp/franklin-http.log 2>&1 &
+          sleep 2
+      - name: Audit stock tabs and Export at iPhone size
+        run: node scripts/mobile-visual-audit-v63.mjs
+      - name: Upload visual audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: franklin-v63-iphone-visual-audit
+          path: visual-audit-v63/
+          retention-days: 1
