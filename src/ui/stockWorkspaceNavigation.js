@@ -36,7 +36,6 @@ function mountNavigation(store, root) {
   const mobile = window.innerWidth <= MOBILE_MAX_WIDTH;
   const active = mobile && STOCK_PANELS.has(activePanel);
   document.documentElement.classList.toggle("franklin-stock-workspace-active", active);
-  root.querySelectorAll("[data-stock-workspace-nav]").forEach((node) => node.remove());
   if (!active || !styleReady) return;
 
   normalizeEarningsTable(root);
@@ -49,16 +48,25 @@ function mountNavigation(store, root) {
   const nativeHeader = frame?.querySelector(":scope > .mobile-app-header");
   if (!frame || !nativeHeader) return;
 
-  // Reuse the actual header node rendered by components.js. This prevents a second,
-  // unbound header from being layered on top and keeps Back / More / language controls live.
-  hydrateSharedStockHeader(nativeHeader, report, state);
+  const signature = `${activePanel}|${report.id || context.reportId || "latest"}|${state.language || "ar"}|${report.presentation?.companyLogoDataUrl || ""}|${report.analysisDate || report.reportPeriod || ""}`;
+  if (nativeHeader.dataset.stockWorkspaceSignature !== signature) {
+    hydrateSharedStockHeader(nativeHeader, report, state);
+    nativeHeader.dataset.stockWorkspaceSignature = signature;
+  }
 
-  const nav = document.createElement("nav");
-  nav.className = "franklin-stock-page-nav";
-  nav.dataset.stockWorkspaceNav = "true";
-  nav.setAttribute("aria-label", isArabicUi() ? "صفحات السهم" : "Stock pages");
-  nav.innerHTML = pageButtons(activePanel, Boolean(report.companyProfile));
-  nativeHeader.insertAdjacentElement("afterend", nav);
+  let nav = frame.querySelector(":scope > .franklin-stock-page-nav");
+  if (!nav) {
+    nav = document.createElement("nav");
+    nav.className = "franklin-stock-page-nav";
+    nav.dataset.stockWorkspaceNav = "true";
+    nav.setAttribute("aria-label", isArabicUi() ? "صفحات السهم" : "Stock pages");
+    nativeHeader.insertAdjacentElement("afterend", nav);
+  }
+  const navSignature = `${activePanel}|${Boolean(report.companyProfile)}|${state.language || "ar"}`;
+  if (nav.dataset.stockWorkspaceSignature !== navSignature) {
+    nav.innerHTML = pageButtons(activePanel, Boolean(report.companyProfile));
+    nav.dataset.stockWorkspaceSignature = navSignature;
+  }
 
   root.querySelector(".owner-presentation-edit-trigger-fallback")?.remove();
   if (activePanel === "external-report") markLegacyEarningsDetail(root);
