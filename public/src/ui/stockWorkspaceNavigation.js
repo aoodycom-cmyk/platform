@@ -5,7 +5,7 @@ export const STOCK_WORKSPACE_NAV_VERSION = "v61";
 
 const MOBILE_MAX_WIDTH = 899;
 const STYLE_ID = "franklin-stock-workspace-v61";
-const STYLE_URL = "./styles-stock-workspace-v58.css?v=v61-premium-shell";
+const STYLE_URL = "./styles-stock-workspace-v61.css?v=v61-premium-shell-final";
 const STOCK_PANELS = new Set(["external-report", "quarterly-scorecard", "company-profile", "strengths-risks"]);
 
 let scheduledFrame = 0;

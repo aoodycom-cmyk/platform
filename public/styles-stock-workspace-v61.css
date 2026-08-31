@@ -1,0 +1,38 @@
+@import url("./styles-stock-workspace-v58.css?v=v61-base");
+
+/* Franklin stock workspace v61 final polish: geometry/layout corrections found by iPhone visual audit. */
+@media (max-width: 899px) {
+  /* The legacy quarterly shell is a min-height grid. With only header + enhanced hub visible,
+     grid track stretching distributed the unused viewport height between both rows and created
+     the large blank band. Keep the same content, but use ordinary document flow. */
+  .panel-quarterly-scorecard .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] {
+    display: block !important;
+    min-height: 0 !important;
+  }
+
+  /* Scorecard used a separate 12px frame geometry. Normalize it to the 16px stock workspace. */
+  html.franklin-stock-workspace-active .scorecard-app-shell .panel-quarterly-scorecard {
+    padding: 0 16px calc(18px + env(safe-area-inset-bottom)) !important;
+  }
+  html.franklin-stock-workspace-active .scorecard-app-shell .panel-quarterly-scorecard > .franklin-shared-stock-header {
+    margin: 0 -16px 12px !important;
+    padding: 18px 16px 14px !important;
+  }
+  html.franklin-stock-workspace-active .scorecard-app-shell .panel-quarterly-scorecard > .franklin-stock-page-nav {
+    margin: 0 !important;
+  }
+  html.franklin-stock-workspace-active .scorecard-app-shell .panel-quarterly-scorecard > .mobile-page-content {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .panel-quarterly-scorecard .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .franklin-earnings-hub {
+    margin: 0 !important;
+  }
+
+  /* The actual Strengths/Risks page title lives directly in mobile-page-content. */
+  .panel-strengths-risks .mobile-page-content h1 {
+    font-size: 20px !important;
+    line-height: 1.35 !important;
+  }
+}
