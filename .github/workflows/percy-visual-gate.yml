@@ -41,12 +41,16 @@ jobs:
           python3 -m http.server 4321 -d public > /tmp/franklin-http.log 2>&1 &
           sleep 2
 
-      - name: Verify Percy token exists
+      - name: Verify Percy token
         run: |
           if [ -z "$PERCY_TOKEN" ]; then
             echo "PERCY_TOKEN is missing from GitHub Actions secrets"
             exit 1
           fi
+          case "$PERCY_TOKEN" in
+            web_*) echo "Percy token format looks correct" ;;
+            *) echo "PERCY_TOKEN must contain only the web_... token value"; exit 1 ;;
+          esac
 
       - name: Run Percy + structural visual quality gate
         run: npx percy exec -- node scripts/percy-visual-gate.mjs
