@@ -2,8 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-const entry = readFileSync(new URL("../styles-editorial-finance-v53.css", import.meta.url), "utf8");
-const css = readFileSync(new URL("../styles-editorial-finance-base-v53.css", import.meta.url), "utf8");
+const css = readFileSync(new URL("../styles-editorial-finance-v53.css", import.meta.url), "utf8");
 const earningsCss = readFileSync(new URL("../styles-earnings-compact-v56.css", import.meta.url), "utf8");
 const components = readFileSync(new URL("../src/ui/components.js", import.meta.url), "utf8");
 const main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
@@ -17,13 +16,12 @@ assert.match(html, /src\/main\.js\?v=v54-launch-hotfix/, "The stable application
 assert.match(main, /components\.js\?v=v54-launch-hotfix/, "The report component asset contract remains unchanged.");
 assert.match(worker, /editorial-v54-hotfix/, "The PWA cache retains the launch-hotfix lineage while advancing the earnings release.");
 
-assert.ok(entry.includes("styles-editorial-finance-base-v53.css"), "The full Codex editorial layer must remain the base presentation.");
-assert.ok(entry.includes("styles-earnings-compact-v56.css"), "The isolated earnings layer must load after the editorial base.");
+assert.ok(css.length > 20000, "The full Codex editorial layer must remain the application-wide presentation base.");
+assert.ok(css.includes("Franklin Editorial Finance v53"), "The restored Codex editorial source must remain identifiable.");
+assert.ok(main.includes("earningsTableExperience.js?v=v57-earnings-single-source"), "The isolated earnings layer must load through the single-source runtime module.");
 assert.ok(worker.includes('"./styles-editorial-finance-v53.css"'));
-assert.ok(worker.includes('"./styles-editorial-finance-base-v53.css"'));
 assert.ok(worker.includes('"./styles-earnings-compact-v56.css"'));
 assert.ok(sync.includes('"styles-editorial-finance-v53.css"'));
-assert.ok(sync.includes('"styles-editorial-finance-base-v53.css"'));
 assert.ok(sync.includes('"styles-earnings-compact-v56.css"'));
 
 for (const token of [

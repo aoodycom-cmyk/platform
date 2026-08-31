@@ -11,7 +11,6 @@ const index = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
 const figmaStyles = readFileSync(new URL("../styles-mobile-scorecard-figma.css", import.meta.url), "utf8");
 const editorialEntry = readFileSync(new URL("../styles-editorial-finance-v53.css", import.meta.url), "utf8");
-const editorialBase = readFileSync(new URL("../styles-editorial-finance-base-v53.css", import.meta.url), "utf8");
 const earningsStyles = readFileSync(new URL("../styles-earnings-compact-v56.css", import.meta.url), "utf8");
 const earningsTable = readFileSync(new URL("../src/ui/earningsTableExperience.js", import.meta.url), "utf8");
 const syncScript = readFileSync(new URL("../scripts/sync-deploy.mjs", import.meta.url), "utf8");
@@ -24,13 +23,11 @@ assert.ok(main.includes("if (!earningsTable.EARNINGS_TABLE_EXPERIENCE_VERSION)")
 assert.ok(main.includes("Quarterly scorecard mobile UI fallback"), "The legacy presentation must remain available if the new optional module fails.");
 assert.equal(main.includes('loadOptional("./ui/quarterlyScorecardMobileFigma.js", "Quarterly scorecard mobile UI"),'), false, "The conflicting enhancer must not run alongside the earnings table.");
 
-assert.ok(editorialEntry.includes("styles-editorial-finance-base-v53.css"), "The original Codex editorial layer must be restored and retained.");
-assert.ok(editorialEntry.includes("styles-earnings-compact-v56.css"), "The earnings layer must load after the editorial base.");
-assert.ok(editorialBase.length > 20000, "The editorial base must contain the full premium presentation, not an import-only placeholder.");
-assert.ok(editorialBase.includes("Franklin Editorial Finance v53"), "The restored Codex editorial source must remain identifiable.");
-assert.ok(syncScript.includes("styles-editorial-finance-base-v53.css"));
+assert.ok(editorialEntry.length > 20000, "The complete Codex editorial layer must be restored, not replaced by an import-only placeholder.");
+assert.ok(editorialEntry.includes("Franklin Editorial Finance v53"), "The restored Codex editorial source must remain identifiable.");
+assert.ok(earningsTable.includes("STYLE_HREF = \"./styles-earnings-compact-v56.css?v=v57-earnings-single-source\""), "The earnings module must load its isolated stylesheet after the application CSS.");
+assert.ok(earningsTable.includes("ensureStylesheet();"), "The isolated earnings stylesheet must be installed by the single-source module.");
 assert.ok(syncScript.includes("styles-earnings-compact-v56.css"));
-assert.ok(worker.includes("styles-editorial-finance-base-v53.css"));
 assert.ok(worker.includes("styles-earnings-compact-v56.css"));
 assert.ok(worker.includes("v57-earnings-single-source"));
 

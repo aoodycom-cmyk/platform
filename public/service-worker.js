@@ -15,7 +15,6 @@ const STATIC_ASSETS = [
   "./styles-design-director-v45.css",
   "./styles-mobile-hotfix-v46.css",
   "./styles-editorial-finance-v53.css",
-  "./styles-editorial-finance-base-v53.css",
   "./styles-earnings-compact-v56.css",
   "./manifest.webmanifest",
   "./src/main.js",

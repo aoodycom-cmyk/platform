@@ -5,6 +5,8 @@ export const EARNINGS_TABLE_EXPERIENCE_VERSION = "v57";
 const MOBILE_MAX_WIDTH = 899;
 const HUB_SELECTOR = ".franklin-earnings-hub";
 const ACTIVE_CLASS = "franklin-quarterly-earnings-active";
+const STYLE_LINK_ID = "franklin-earnings-table-styles";
+const STYLE_HREF = "./styles-earnings-compact-v56.css?v=v57-earnings-single-source";
 const VIEW_STATES = new Map();
 const BEAT_STATUSES = new Set(["EXCEEDED", "PASSED"]);
 
@@ -31,6 +33,7 @@ function scheduleEnhancement() {
 }
 
 function enhanceQuarterlyEarningsExperience() {
+  ensureStylesheet();
   const shell = document.querySelector(".quarterly-scorecard-shell");
   if (!shell) {
     deactivateExperience();
@@ -641,6 +644,16 @@ function deactivateExperience() {
   document.documentElement.classList.remove(ACTIVE_CLASS);
 }
 
+function ensureStylesheet() {
+  if (!isBrowser() || document.getElementById(STYLE_LINK_ID)) return;
+  const link = document.createElement("link");
+  link.id = STYLE_LINK_ID;
+  link.rel = "stylesheet";
+  link.href = STYLE_HREF;
+  link.dataset.franklinEarningsStyles = EARNINGS_TABLE_EXPERIENCE_VERSION;
+  document.head.append(link);
+}
+
 function uniqueText(values = []) {
   return [...new Set(values.map(textOrNull).filter(Boolean))];
 }
@@ -666,6 +679,7 @@ function escapeHtml(value) {
 }
 
 if (isBrowser()) {
+  ensureStylesheet();
   window.__FRANKLIN_EARNINGS_TABLE_EXPERIENCE__ = EARNINGS_TABLE_EXPERIENCE_VERSION;
   const store = currentStore();
   store?.subscribe?.(scheduleEnhancement);
