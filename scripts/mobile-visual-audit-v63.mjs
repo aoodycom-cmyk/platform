@@ -56,17 +56,18 @@ for (const [tab,key] of stockTabs) {
     const content = document.querySelector('.mobile-page-content');
     const bodySample = content?.querySelector('p,li,td');
     const h1 = content?.querySelector('h1'); const h2 = content?.querySelector('h2'); const h3 = content?.querySelector('h3');
+    const visibleButtons = [...(content?.querySelectorAll('button') || [])].filter(e => cs(e)?.display !== 'none' && rect(e)?.width > 0).slice(0, 12).map(e => ({ text:(e.textContent||'').trim().replace(/\s+/g,' ').slice(0,60), class:e.className, action:e.dataset.action||null, panel:e.dataset.panel||null, rect:rect(e) }));
     return {
       activePanel: window.__equityResearchStore?.state?.activePanel,
       header: rect(shared), nav: rect(nav), content: rect(content), horizontalOverflowPx: Math.max(0, document.documentElement.scrollWidth-innerWidth),
       fonts: { body: cs(bodySample)?.fontSize || null, h1: cs(h1)?.fontSize || null, h2: cs(h2)?.fontSize || null, h3: cs(h3)?.fontSize || null },
       colors: { bodyBg: cs(document.body)?.backgroundColor, frameBg: cs(document.querySelector('.mobile-app-frame'))?.backgroundColor, contentBg: cs(content)?.backgroundColor },
-      bottomNavVisible: [...document.querySelectorAll('.mobile-bottom-nav,.mobile-nav')].some(e => cs(e)?.display !== 'none' && rect(e)?.width > 0)
+      bottomNavVisible: [...document.querySelectorAll('.mobile-bottom-nav,.mobile-nav')].some(e => cs(e)?.display !== 'none' && rect(e)?.width > 0),
+      visibleButtons
     };
   });
 }
 
-// Verify the controls in the shared header actually work.
 await page.evaluate(() => { const s=window.__equityResearchStore,q=s.state.externalReportSelection||{}; s.openExternalReport?.(q.ticker,q.reportId||'latest'); });
 await page.waitForTimeout(600);
 await page.click('[data-stock-back]'); await page.waitForTimeout(300);
@@ -76,7 +77,6 @@ await page.waitForTimeout(600);
 await page.click('.franklin-stock-menu summary');
 report.controls.menuOpens = await page.evaluate(() => Boolean(document.querySelector('.franklin-stock-menu')?.open));
 
-// Export page is part of the product-wide visual consistency check.
 await page.evaluate(() => window.__equityResearchStore?.set?.({ activePanel:'social-export', notice:'' }));
 await page.waitForTimeout(600);
 await page.screenshot({ path: `${outDir}/export.png`, fullPage: true });
