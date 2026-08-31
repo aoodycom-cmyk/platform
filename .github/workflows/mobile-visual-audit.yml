@@ -1,0 +1,36 @@
+name: Franklin iPhone Visual Audit
+
+on:
+  push:
+    branches: [audit/visual-shell-20260831]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build deploy bundle
+        run: npm run build
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start Franklin static server
+        run: |
+          python3 -m http.server 4321 -d public > /tmp/franklin-http.log 2>&1 &
+          sleep 2
+      - name: Capture all stock pages at iPhone size
+        run: node scripts/mobile-visual-audit.mjs
+      - name: Upload visual audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: franklin-iphone-visual-audit
+          path: visual-audit/
+          retention-days: 1
