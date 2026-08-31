@@ -69,7 +69,6 @@
     box-sizing: border-box !important;
   }
 
-  /* One typography scale across the four stock tabs. */
   html.franklin-stock-workspace-active .mobile-page-content { font-size: var(--stock-body) !important; line-height: 1.7 !important; }
   html.franklin-stock-workspace-active .mobile-page-content :where(p, li, td, th, label, summary) { font-size: var(--stock-body) !important; line-height: 1.7 !important; }
   html.franklin-stock-workspace-active .mobile-page-content :where(h1, h2, h3, h4) { margin-top: 0; font-family: inherit !important; letter-spacing: 0 !important; color: var(--stock-text) !important; }
@@ -87,7 +86,6 @@
   }
   html.franklin-stock-workspace-active .mobile-page-content :where(small, .eyebrow) { font-size: var(--stock-small) !important; line-height: 1.55 !important; }
 
-  /* Summary was visually larger than the other tabs. */
   html.franklin-stock-workspace-active .panel-external-report .stock-report-section p,
   html.franklin-stock-workspace-active .panel-external-report .stock-report-section li,
   html.franklin-stock-workspace-active .panel-external-report .stock-report-section td,
@@ -101,7 +99,6 @@
   }
   html.franklin-stock-workspace-active .panel-external-report .stock-decision-flow { gap: 20px !important; }
 
-  /* Earnings uses the exact same top origin as every other stock tab. */
   html.franklin-stock-workspace-active .panel-quarterly-scorecard .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] {
     width: 100% !important;
     margin: 0 !important;
@@ -123,7 +120,6 @@
     max-height: 40px !important;
   }
   html.franklin-stock-workspace-active .panel-quarterly-scorecard .quarterly-scorecard-titlebar h2 { font-size: var(--stock-section) !important; line-height: 1.35 !important; }
-  /* The global stock header is already the only back navigation. */
   html.franklin-stock-workspace-active .panel-quarterly-scorecard .quarterly-scorecard-titlebar > button,
   html.franklin-stock-workspace-active .panel-quarterly-scorecard .quarterly-scorecard-header > button { display: none !important; }
   html.franklin-stock-workspace-active .franklin-earnings-hub { width: 100% !important; margin: 0 !important; padding: 0 !important; gap: 10px !important; }
@@ -136,29 +132,26 @@
   html.franklin-stock-workspace-active .franklin-earnings-hub .fet-table-unified tbody td,
   html.franklin-stock-workspace-active .franklin-earnings-hub .fet-table-unified .fet-actual { font-size: 12.5px !important; line-height: 1.45 !important; }
 
-  /* Company page follows the shared report shell; its old 'open report' control is redundant. */
   html.franklin-stock-workspace-active .panel-company-profile .company-profile-shell { width: 100% !important; margin: 0 !important; padding: 0 !important; background: transparent !important; border: 0 !important; }
   html.franklin-stock-workspace-active .panel-company-profile .company-profile-shell > .panel { padding: 14px 0 !important; border: 0 !important; border-bottom: 1px solid var(--stock-line) !important; border-radius: 0 !important; background: transparent !important; }
   html.franklin-stock-workspace-active .panel-company-profile .company-profile-shell p { font-size: var(--stock-body) !important; line-height: 1.7 !important; }
   html.franklin-stock-workspace-active .panel-company-profile .company-profile-header > button,
   html.franklin-stock-workspace-active .panel-company-profile [data-action="open-external-report"] { display: none !important; }
 
-  /* Strengths/Risks keeps semantic content but no second page-level Back button. */
   html.franklin-stock-workspace-active .panel-strengths-risks .mobile-page-content > h1,
   html.franklin-stock-workspace-active .panel-strengths-risks .strengths-risks-shell h1 { font-size: var(--stock-title) !important; line-height: 1.35 !important; }
   html.franklin-stock-workspace-active .panel-strengths-risks .strengths-risks-shell p,
   html.franklin-stock-workspace-active .panel-strengths-risks .strengths-risks-shell li { font-size: var(--stock-body) !important; line-height: 1.7 !important; }
+  html.franklin-stock-workspace-active .panel-strengths-risks button[data-panel="external-report"],
   html.franklin-stock-workspace-active .panel-strengths-risks .mobile-page-content > button:first-child,
   html.franklin-stock-workspace-active .panel-strengths-risks .strengths-risks-shell > button:first-child { display: none !important; }
 
-  /* Shared header controls are live and tappable. */
   html.franklin-stock-workspace-active .franklin-shared-stock-header .report-back-button,
   html.franklin-stock-workspace-active .franklin-shared-stock-header .mobile-app-menu,
   html.franklin-stock-workspace-active .franklin-shared-stock-header .mobile-app-menu summary,
   html.franklin-stock-workspace-active .franklin-shared-stock-header button { pointer-events: auto !important; }
   html.franklin-stock-workspace-active .franklin-stock-menu > div { background: var(--stock-surface) !important; border: 1px solid var(--stock-line-strong) !important; }
 
-  /* Export uses the same Franklin dark surface and typography family. */
   .panel-social-export,
   .panel-social-export .mobile-page-content,
   .panel-social-export .social-export-page { background: #0e1011 !important; color: #f0f1f2 !important; }
