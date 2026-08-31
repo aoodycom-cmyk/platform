@@ -54,17 +54,24 @@ function restorePreviousAuditState() {
 }
 
 async function installOptionalRuntime(store, cloud, auditBootstrapError) {
-  await Promise.all([
+  const earningsTable = await loadOptional(
+    "./ui/earningsTableExperience.js?v=v57-earnings-clean",
+    "Earnings table experience"
+  );
+  const earningsTableReady = earningsTable.EARNINGS_TABLE_EXPERIENCE_VERSION === "v57";
+  const optionalModules = [
     loadOptional("./ui/mobile2Enhancer.js", "Mobile enhancer"),
     loadOptional("./ui/quarterlyResultsEnhancer.js", "Quarterly results enhancer"),
-    loadOptional("./ui/quarterlyScorecardMobileFigma.js", "Quarterly scorecard mobile UI"),
-    loadOptional("./ui/earningsTableExperience.js?v=v55-earnings-table", "Earnings table experience"),
     loadOptional("./ui/quarterlyEarningsEntry.js", "Quarterly earnings entry"),
     loadOptional("./ui/quarterlyEarningsJsonPromptV2.js", "Quarterly JSON prompt"),
     loadOptional("./ui/socialImageExport.js", "Social image export"),
     loadOptional("./ui/socialImageExportQualityPatch.js", "Social image export HD quality"),
     loadOptional("./ui/reportPresentationEditor.js?v=v44-owner-fields", "Report presentation editor")
-  ]);
+  ];
+  if (!earningsTableReady) {
+    optionalModules.push(loadOptional("./ui/quarterlyScorecardMobileFigma.js", "Quarterly scorecard mobile fallback"));
+  }
+  await Promise.all(optionalModules);
 
   await installFinancialGuards(store);
   await installQuarterlyResolver(store);
