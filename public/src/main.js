@@ -62,7 +62,7 @@ async function installOptionalRuntime(store, cloud, auditBootstrapError) {
 
   // Install the stock workspace shell first and with an explicit version so every
   // stock page receives the same selected-company header before presentation helpers load.
-  await loadOptional("./ui/stockWorkspaceNavigation.js?v=v60-shared-stock-header", "Shared stock workspace");
+  await loadOptional("./ui/stockWorkspaceNavigation.js?v=v61-premium-shell", "Shared stock workspace");
 
   const optionalModules = [
     loadOptional("./ui/mobile2Enhancer.js", "Mobile enhancer"),

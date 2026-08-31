@@ -1,11 +1,11 @@
 import { getExternalAnalysis } from "../externalAnalysis/storage.js";
 import { companyLogoMarkup } from "./foundation.js";
 
-export const STOCK_WORKSPACE_NAV_VERSION = "v60";
+export const STOCK_WORKSPACE_NAV_VERSION = "v61";
 
 const MOBILE_MAX_WIDTH = 899;
-const STYLE_ID = "franklin-stock-workspace-v60";
-const STYLE_URL = "./styles-stock-workspace-v58.css?v=v60-shared-stock-header";
+const STYLE_ID = "franklin-stock-workspace-v61";
+const STYLE_URL = "./styles-stock-workspace-v61.css?v=v61-premium-shell-final";
 const STOCK_PANELS = new Set(["external-report", "quarterly-scorecard", "company-profile", "strengths-risks"]);
 
 let scheduledFrame = 0;
@@ -73,9 +73,12 @@ function buildSharedStockHeader(report, state) {
   header.dataset.stockWorkspaceHeader = "true";
   header.innerHTML = `
     <button class="header-icon-button report-back-button" data-panel="home" aria-label="${escapeHtml(isArabicUi() ? "العودة إلى المكتبة" : "Back to My Stocks")}" title="${escapeHtml(isArabicUi() ? "العودة إلى المكتبة" : "Back to My Stocks")}"><span aria-hidden="true">${isArabicUi() ? "›" : "‹"}</span></button>
-    <details class="mobile-app-menu">
+    <details class="mobile-app-menu franklin-stock-menu">
       <summary aria-label="${escapeHtml(isArabicUi() ? "المزيد" : "More")}" title="${escapeHtml(isArabicUi() ? "المزيد" : "More")}"><span aria-hidden="true">•••</span></summary>
-      <div><div class="language-toggle" role="group" aria-label="Language"><button class="${state.language === "ar" ? "active" : ""}" data-language="ar">العربية</button><span></span><button class="${state.language === "en" ? "active" : ""}" data-language="en">English</button></div></div>
+      <div>
+        <button type="button" class="franklin-stock-menu-edit" data-stock-edit>${escapeHtml(isArabicUi() ? "تحرير بيانات العرض" : "Edit display")}</button>
+        <div class="language-toggle" role="group" aria-label="Language"><button class="${state.language === "ar" ? "active" : ""}" data-language="ar">العربية</button><span></span><button class="${state.language === "en" ? "active" : ""}" data-language="en">English</button></div>
+      </div>
     </details>
     <div class="report-app-identity">
       ${companyLogoMarkup({ ticker, name: companyName, logoUrl, className: "report-company-logo" })}
@@ -99,10 +102,23 @@ function pageButtons(activePanel, hasCompanyProfile) {
     ["company", isArabicUi() ? "الشركة" : "Company", activePanel === "company-profile", !hasCompanyProfile],
     ["strengths", isArabicUi() ? "المزايا والمخاطر" : "Strengths & Risks", activePanel === "strengths-risks", false]
   ];
-  return `<div class="franklin-stock-page-tabs" role="tablist">${pages.map(([key,label,selected,disabled]) => `<button type="button" role="tab" data-stock-page="${key}" aria-selected="${selected}" class="${selected ? "active" : ""}" ${disabled ? "disabled aria-disabled=\"true\"" : ""}>${escapeHtml(label)}</button>`).join("")}</div>${activePanel === "external-report" ? `<button type="button" class="franklin-stock-edit-link" data-owner-presentation-open>${escapeHtml(isArabicUi() ? "تحرير" : "Edit")}</button>` : ""}`;
+  return `<div class="franklin-stock-page-tabs" role="tablist">${pages.map(([key,label,selected,disabled]) => `<button type="button" role="tab" data-stock-page="${key}" aria-selected="${selected}" class="${selected ? "active" : ""}" ${disabled ? "disabled aria-disabled=\"true\"" : ""}>${escapeHtml(label)}</button>`).join("")}</div>`;
 }
 
 function handleNavigationClick(event, store) {
+  const edit = event.target.closest?.("[data-stock-edit]");
+  if (edit) {
+    event.preventDefault();
+    const context = resolveStockContext(store.state || {});
+    if (!context.ticker) return;
+    if (store.state?.activePanel !== "external-report") store.openExternalReport?.(context.ticker, context.reportId || "latest");
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const dialog = document.querySelector("[data-owner-presentation-dialog]");
+      if (dialog?.showModal && !dialog.open) dialog.showModal();
+    }));
+    return;
+  }
+
   const button = event.target.closest?.("[data-stock-page]");
   if (!button || button.disabled) return;
   const context = resolveStockContext(store.state || {});

@@ -1,6 +1,7 @@
-/* Franklin stock workspace v60 — one real shared header across Summary, Earnings, Company, Strengths/Risks. */
+/* Franklin stock workspace v61 — premium unified stock shell across Summary, Earnings, Company, Strengths/Risks. */
 @media (max-width: 899px) {
-  html.franklin-stock-workspace-active .mobile-bottom-nav { display: none !important; }
+  html.franklin-stock-workspace-active .mobile-bottom-nav,
+  html.franklin-stock-workspace-active .mobile-nav { display: none !important; }
   html.franklin-stock-workspace-active .mobile-app-frame { padding-bottom: calc(18px + env(safe-area-inset-bottom)) !important; }
 
   /* Hide every panel-specific native header and show one Franklin stock header built from the selected report. */
@@ -14,13 +15,16 @@
   html[dir="ltr"] .franklin-stock-page-nav { direction: ltr; }
   .franklin-stock-page-tabs { flex: 1 1 auto; min-width: 0; display: flex; align-items: stretch; justify-content: space-between; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
   .franklin-stock-page-tabs::-webkit-scrollbar { display: none; }
-  .franklin-stock-page-tabs button, .franklin-stock-edit-link { appearance: none; border: 0; background: transparent; font: inherit; }
-  .franklin-stock-page-tabs button { position: relative; flex: 0 0 auto; min-height: 58px; padding: 0 13px; color: #8f969d; font-size: 15px; line-height: 1.2; font-weight: 560; white-space: nowrap; }
+  .franklin-stock-page-tabs button { appearance: none; border: 0; background: transparent; font: inherit; position: relative; flex: 0 0 auto; min-height: 58px; padding: 0 13px; color: #8f969d; font-size: 15px; line-height: 1.2; font-weight: 560; white-space: nowrap; }
   .franklin-stock-page-tabs button::after { content: ""; position: absolute; right: 18%; bottom: -1px; left: 18%; height: 2px; border-radius: 999px 999px 0 0; background: transparent; }
   .franklin-stock-page-tabs button.active { color: #f0f1f2; }
   .franklin-stock-page-tabs button.active::after { background: #59cfc0; }
   .franklin-stock-page-tabs button:disabled { opacity: .38; }
-  .franklin-stock-edit-link { flex: 0 0 auto; min-width: 48px; padding: 0 4px; color: #59cfc0; font-size: 12.5px; font-weight: 650; }
+
+  /* Presentation editing belongs to the persistent header menu, not the page rail. */
+  .franklin-stock-menu > div { display: grid; gap: 8px; }
+  .franklin-stock-menu-edit { min-height: 36px; padding: 7px 10px; border: 0; border-radius: 9px; background: rgba(89,207,192,.09); color: #59cfc0; font: inherit; font-size: 12.5px; font-weight: 650; text-align: start; }
+  .franklin-stock-edit-link { display: none !important; }
 
   .panel-quarterly-scorecard .quarterly-scorecard-titlebar { margin-top: 0 !important; }
   .panel-company-profile .company-profile-shell,
@@ -28,9 +32,29 @@
   .panel-quarterly-scorecard .quarterly-scorecard-shell { border-top-left-radius: 0 !important; border-top-right-radius: 0 !important; }
   .panel-external-report .franklin-summary-legacy-earnings-detail { display: none !important; }
 
+  /* The scorecard legacy header had a large fixed presentation height. Collapse it to a compact control row. */
+  .panel-quarterly-scorecard > .mobile-page-content { margin-inline: 4px !important; }
+  .panel-quarterly-scorecard .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] > .quarterly-scorecard-header {
+    min-height: 72px !important;
+    height: 72px !important;
+    max-height: 72px !important;
+    margin: 0 !important;
+    padding: 9px 16px !important;
+    overflow: hidden !important;
+    border-bottom: 1px solid rgba(255,255,255,.075) !important;
+    background: #0e1011 !important;
+  }
+  .panel-quarterly-scorecard .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .quarterly-scorecard-titlebar {
+    min-height: 52px !important;
+    height: 52px !important;
+    max-height: 52px !important;
+    align-items: center !important;
+  }
+  .panel-quarterly-scorecard .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .franklin-earnings-hub { gap: 10px !important; }
+  .panel-quarterly-scorecard .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .fet-quarter-rail { padding-top: 8px !important; }
+
   .owner-presentation-editor.owner-report-presentation-editor { margin: 0 !important; padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
-  .owner-presentation-edit-trigger-fallback { display: flex; justify-content: flex-start; margin: 0 0 8px; }
-  .owner-presentation-edit-trigger-fallback button { min-height: 36px; padding: 0 10px; border: 0; background: transparent; color: #59cfc0; font: inherit; font-size: 12.5px; font-weight: 650; }
+  .owner-presentation-edit-trigger-fallback { display: none !important; }
   .owner-presentation-dialog { width: min(100% - 24px, 520px); max-width: 520px; max-height: calc(100dvh - 24px); margin: auto; padding: 0; overflow: hidden; border: 1px solid rgba(255,255,255,.12); border-radius: 18px; background: #111314; color: #f0f1f2; box-shadow: 0 28px 80px rgba(0,0,0,.52); }
   .owner-presentation-dialog::backdrop { background: rgba(0,0,0,.72); backdrop-filter: blur(3px); }
   .owner-presentation-dialog-shell { max-height: calc(100dvh - 24px); display: grid; grid-template-rows: auto minmax(0,1fr); }
@@ -72,4 +96,30 @@
   html[dir="ltr"] .franklin-earnings-hub .fet-table-unified thead th:nth-child(2),
   html[dir="ltr"] .franklin-earnings-hub .fet-table-unified tbody td:nth-child(2) { text-align: left !important; }
   html[dir="ltr"] .franklin-earnings-hub .fet-table-unified thead th:nth-child(3), html[dir="ltr"] .franklin-earnings-hub .fet-table-unified .fet-actual-cell { text-align: right !important; }
+
+  /* Company should feel like one research page, not a card inside a card. */
+  .panel-company-profile .company-profile-shell {
+    margin: 0 !important;
+    padding: 14px 0 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .panel-company-profile .company-profile-shell > .panel {
+    margin: 0 !important;
+    padding: 16px 12px !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(255,255,255,.075) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .panel-company-profile .company-profile-shell > .panel:last-child { border-bottom: 0 !important; }
+  .panel-company-profile .company-profile-header h2 { font-size: 19px !important; line-height: 1.28 !important; }
+  .panel-company-profile .company-profile-shell h3 { font-size: 16px !important; line-height: 1.35 !important; }
+  .panel-company-profile .company-profile-shell p { font-size: 13.5px !important; line-height: 1.7 !important; }
+
+  /* Match the editorial hierarchy used elsewhere in the stock workspace. */
+  .panel-strengths-risks .strengths-risks-shell h1,
+  .panel-strengths-risks .strengths-risks-shell h2 { font-size: 20px !important; line-height: 1.35 !important; }
 }
