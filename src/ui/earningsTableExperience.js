@@ -1,32 +1,38 @@
 import { buildQuarterlyScorecard } from "../externalAnalysis/quarterlyScorecard.js";
 
+export const EARNINGS_TABLE_EXPERIENCE_VERSION = "v57";
+
 const MOBILE_MAX_WIDTH = 899;
-const STYLE_ID = "franklin-earnings-table-experience-styles";
+const STYLESHEET_ID = "franklin-earnings-table-v57";
+const STYLESHEET_URL = "./styles-earnings-compact-v56.css?v=v57-earnings-clean";
 const HUB_SELECTOR = ".franklin-earnings-hub";
+const ACTIVE_CLASS = "franklin-quarterly-earnings-active";
 const VIEW_STATES = new Map();
 const BEAT_STATUSES = new Set(["EXCEEDED", "PASSED"]);
 
 let frame = 0;
+let stylesheetReady = false;
 
 function isArabicUi() {
+  if (typeof document === "undefined") return true;
   return document.documentElement.dir === "rtl"
     || String(document.documentElement.lang || "").toLowerCase().startsWith("ar");
 }
 
 function currentStore() {
-  return window.__equityResearchStore || null;
+  return typeof window === "undefined" ? null : window.__equityResearchStore || null;
 }
 
 function scheduleEnhancement() {
+  if (typeof window === "undefined") return;
   cancelAnimationFrame(frame);
   frame = requestAnimationFrame(enhanceQuarterlyEarningsExperience);
 }
 
 function enhanceQuarterlyEarningsExperience() {
+  if (!stylesheetReady || typeof document === "undefined") return;
   const shell = document.querySelector(".quarterly-scorecard-shell");
-  if (!shell) return;
-
-  if (window.innerWidth > MOBILE_MAX_WIDTH) {
+  if (!shell || window.innerWidth > MOBILE_MAX_WIDTH) {
     removeMobileEnhancement(shell);
     return;
   }
@@ -55,8 +61,8 @@ function enhanceQuarterlyEarningsExperience() {
   const activeTab = remembered.activeTab === "summary" ? "summary" : "earnings";
   VIEW_STATES.set(viewKey, { selectedQuarter, activeTab });
 
-  ensureStyles();
   shell.dataset.earningsTableEnhanced = "true";
+  document.documentElement.classList.add(ACTIVE_CLASS);
 
   let host = shell.querySelector(HUB_SELECTOR);
   if (!host) {
@@ -81,8 +87,9 @@ function enhanceQuarterlyEarningsExperience() {
 }
 
 export function buildQuarterlyEarningsViewModel(scorecard = {}) {
-  const rawQuarters = Array.isArray(scorecard.quarters) ? scorecard.quarters : [];
   const rawRows = Array.isArray(scorecard.rows) ? scorecard.rows : [];
+  const rawQuarters = Array.isArray(scorecard.quarters) ? scorecard.quarters : [];
+  const latestReportedQuarter = numberOrNull(scorecard.latestReportedQuarter);
   const quarters = rawQuarters
     .map((quarter) => {
       const quarterNumber = Number(quarter?.quarter);
@@ -109,50 +116,63 @@ export function buildQuarterlyEarningsViewModel(scorecard = {}) {
         lifecycleStatus: quarter?.lifecycleStatus || null,
         weightedAchievement: numberOrNull(quarter?.weightedAchievement),
         overallStatus: quarter?.overallStatus || null,
-        summary: quarter?.summary || null,
+        summary: textOrNull(quarter?.summary),
         targetValue: numberOrNull(quarter?.targetValue),
-        targetScenario: quarter?.targetScenario || null,
+        targetScenario: textOrNull(quarter?.targetScenario),
         outlook: quarter?.outlook || null,
         rows,
         counts,
-        hasData,
-        tone: quarterTone({ quarter, rows, counts })
+        hasData
       };
     })
     .filter((quarter) => Number.isFinite(quarter.quarter) && quarter.hasData)
     .sort((left, right) => right.quarter - left.quarter);
 
+  const upcomingQuarter = resolveUpcomingQuarter(quarters, latestReportedQuarter);
+  quarters.forEach((quarter) => {
+    quarter.phase = quarterPhase(quarter, latestReportedQuarter, upcomingQuarter);
+    quarter.tone = quarterTone(quarter);
+  });
+
   return {
     ticker: scorecard.ticker || "",
     companyName: scorecard.companyName || scorecard.ticker || "",
     year: numberOrNull(scorecard.year),
-    latestReportedQuarter: numberOrNull(scorecard.latestReportedQuarter),
+    latestReportedQuarter,
     reportedQuarterCount: numberOrNull(scorecard.reportedQuarterCount) || 0,
     trajectory: scorecard.trajectory || null,
     overallStatus: scorecard.overallStatus || null,
     target: scorecard.target || null,
     fairValue: scorecard.fairValue || null,
     quarters,
-    defaultQuarter: defaultQuarter(quarters, scorecard.latestReportedQuarter)
+    defaultQuarter: defaultQuarter(quarters)
   };
 }
 
-function defaultQuarter(quarters = [], latestReportedQuarter = null) {
+function resolveUpcomingQuarter(quarters = [], latestReportedQuarter = null) {
+  const candidates = quarters.filter((quarter) => !quarter.evaluated && quarter.rows.length);
+  if (!candidates.length) return null;
+  if (Number.isFinite(latestReportedQuarter)) {
+    return [...candidates]
+      .filter((quarter) => quarter.quarter > latestReportedQuarter)
+      .sort((left, right) => left.quarter - right.quarter)[0]?.quarter || null;
+  }
+  return [...candidates].sort((left, right) => right.quarter - left.quarter)[0]?.quarter || null;
+}
+
+function quarterPhase(quarter = {}, latestReportedQuarter = null, upcomingQuarter = null) {
+  if (quarter.evaluated) return "reported";
+  if (quarter.quarter === upcomingQuarter) return "upcoming";
+  if (Number.isFinite(upcomingQuarter) && quarter.quarter > upcomingQuarter) return "future";
+  if (Number.isFinite(latestReportedQuarter) && quarter.quarter > latestReportedQuarter) return "future";
+  return "missing";
+}
+
+function defaultQuarter(quarters = []) {
   if (!quarters.length) return null;
-  const latest = Number(latestReportedQuarter);
-  const upcoming = quarters
-    .filter((quarter) => !quarter.evaluated && quarter.rows.length && (!Number.isFinite(latest) || quarter.quarter > latest))
-    .sort((left, right) => left.quarter - right.quarter)[0];
-  if (upcoming) return upcoming.quarter;
-
-  const open = quarters
-    .filter((quarter) => !quarter.evaluated && quarter.rows.length)
-    .sort((left, right) => left.quarter - right.quarter)[0];
-  if (open) return open.quarter;
-
-  const latestReported = quarters.find((quarter) => quarter.quarter === latest);
-  if (latestReported) return latestReported.quarter;
-  return quarters[0].quarter;
+  return quarters.find((quarter) => quarter.phase === "upcoming")?.quarter
+    || quarters.find((quarter) => quarter.phase === "reported")?.quarter
+    || quarters[0].quarter;
 }
 
 function statusCounts(rows = []) {
@@ -170,11 +190,11 @@ function statusCounts(rows = []) {
   }, { total: 0, reported: 0, beat: 0, miss: 0, mixed: 0, observed: 0, pending: 0 });
 }
 
-function quarterTone({ quarter = {}, counts = {} } = {}) {
-  if (!quarter.evaluated) return "upcoming";
-  if (counts.miss > 0 && counts.beat === 0 && counts.mixed === 0) return "miss";
-  if (counts.miss > 0 || counts.mixed > 0) return "mixed";
-  if (counts.beat > 0) return "beat";
+function quarterTone(quarter = {}) {
+  if (quarter.phase !== "reported") return quarter.phase || "missing";
+  if (quarter.counts.miss > 0 && quarter.counts.beat === 0 && quarter.counts.mixed === 0) return "miss";
+  if (quarter.counts.miss > 0 || quarter.counts.mixed > 0) return "mixed";
+  if (quarter.counts.beat > 0) return "beat";
   return "neutral";
 }
 
@@ -182,142 +202,182 @@ function renderExperience(model, selectedQuarter, activeTab) {
   const quarter = model.quarters.find((item) => item.quarter === Number(selectedQuarter)) || model.quarters[0] || null;
   if (!quarter) return emptyExperience(model);
   const ar = isArabicUi();
-  const summaryLabel = ar ? "الملخص" : "Summary";
-  const earningsLabel = ar ? "الأرباح" : "Earnings";
-
   return `
-    <div class="fet-section-tabs" role="tablist" aria-label="${escapeHtml(ar ? "أقسام متابعة الأرباح" : "Earnings sections")}">
-      <button type="button" role="tab" data-fet-tab="summary" aria-selected="${activeTab === "summary"}" class="${activeTab === "summary" ? "active" : ""}">${escapeHtml(summaryLabel)}</button>
-      <button type="button" role="tab" data-fet-tab="earnings" aria-selected="${activeTab === "earnings"}" class="${activeTab === "earnings" ? "active" : ""}">${escapeHtml(earningsLabel)}</button>
-    </div>
-
+    <nav class="fet-section-tabs" role="tablist" aria-label="${escapeHtml(ar ? "أقسام متابعة الأرباح" : "Earnings sections")}">
+      <button type="button" role="tab" data-fet-tab="summary" aria-selected="${activeTab === "summary"}" class="${activeTab === "summary" ? "active" : ""}">${escapeHtml(ar ? "الملخص" : "Summary")}</button>
+      <button type="button" role="tab" data-fet-tab="earnings" aria-selected="${activeTab === "earnings"}" class="${activeTab === "earnings" ? "active" : ""}">${escapeHtml(ar ? "الأرباح" : "Earnings")}</button>
+    </nav>
     <div class="fet-quarter-rail" role="list" aria-label="${escapeHtml(ar ? "اختيار الربع" : "Select quarter")}">
       ${model.quarters.map((item) => quarterButton(item, model.year, item.quarter === quarter.quarter)).join("")}
     </div>
-
     <div class="fet-tab-panel" role="tabpanel">
-      ${activeTab === "summary" ? renderSummary(model, quarter) : renderEarningsTable(model, quarter)}
+      ${activeTab === "summary" ? renderSummary(model, quarter) : renderEarningsPanel(model, quarter)}
     </div>
   `;
 }
 
 function quarterButton(quarter, year, selected) {
-  const ar = isArabicUi();
-  const meta = quarterPillMeta(quarter);
   return `
     <button type="button" role="listitem" data-fet-quarter="${quarter.quarter}" class="fet-quarter-pill tone-${quarter.tone} ${selected ? "active" : ""}" aria-pressed="${selected}">
       <strong dir="ltr">${escapeHtml(`${quarter.label} ${year || ""}`.trim())}</strong>
-      <span dir="auto">${escapeHtml(meta)}</span>
-      ${quarter.tone === "upcoming" ? `<small>${escapeHtml(ar ? "الربع القادم" : "Upcoming")}</small>` : ""}
+      <span>${escapeHtml(quarterPillMeta(quarter))}</span>
     </button>
   `;
 }
 
 function quarterPillMeta(quarter = {}) {
   const ar = isArabicUi();
-  if (!quarter.evaluated) return ar ? "بانتظار الإعلان" : "Awaiting report";
+  if (quarter.phase === "upcoming") return ar ? "بانتظار الإعلان" : "Awaiting report";
+  if (quarter.phase === "future") return ar ? "هدف مستقبلي" : "Future target";
+  if (quarter.phase === "missing") return ar ? "لا توجد نتيجة" : "No saved result";
   const achievement = Number.isFinite(quarter.weightedAchievement)
     ? `${formatNumber(quarter.weightedAchievement, 1)}%`
     : "";
-  if (quarter.tone === "beat") return `${ar ? "Beat" : "Beat"}${achievement ? ` ${achievement}` : ""}`;
-  if (quarter.tone === "miss") return `${ar ? "Miss" : "Miss"}${achievement ? ` ${achievement}` : ""}`;
-  if (quarter.tone === "mixed") return `${ar ? "Mixed" : "Mixed"}${achievement ? ` ${achievement}` : ""}`;
+  if (quarter.tone === "beat") return `Beat${achievement ? ` ${achievement}` : ""}`;
+  if (quarter.tone === "miss") return `Miss${achievement ? ` ${achievement}` : ""}`;
+  if (quarter.tone === "mixed") return `${ar ? "مختلط" : "Mixed"}${achievement ? ` ${achievement}` : ""}`;
   return achievement || (ar ? "تم الإعلان" : "Reported");
 }
 
-function renderEarningsTable(model, quarter) {
+function renderEarningsPanel(model, quarter) {
   const ar = isArabicUi();
-  const upcoming = !quarter.evaluated;
-  const title = upcoming
-    ? (ar ? "المطلوب تحقيقه للوصول إلى Bull" : "Requirements to reach the Bull case")
-    : (ar ? "نتائج الربع مقابل متطلبات Bull" : "Quarter results versus Bull requirements");
-  const subtitle = upcoming
-    ? (ar ? "لا توجد نتيجة فعلية بعد. يعرض Franklin فقط الأهداف المحفوظة لهذا الربع دون اختراع توقعات جديدة." : "No actual result is available yet. Franklin shows only saved targets and does not invent forecasts.")
-    : (ar ? "الفعلي يتلوّن بالأخضر عند Beat وبالأحمر عند Miss." : "Actuals are green for a Beat and red for a Miss.");
-
+  const reported = quarter.phase === "reported";
+  const countText = requirementCountLabel(quarter.counts.total);
+  const context = reported
+    ? (ar ? `${countText} مقابل متطلبات Bull المحفوظة` : `${countText} versus saved Bull requirements`)
+    : unreportedContext(quarter, countText);
   return `
     <article class="fet-quarter-card tone-${quarter.tone}">
       <header class="fet-quarter-card-head">
         <div>
-          <span>${escapeHtml(upcoming ? (ar ? "الربع القادم" : "Upcoming quarter") : (ar ? "ربع معلن" : "Reported quarter"))}</span>
+          <span>${escapeHtml(quarterPhaseLabel(quarter.phase))}</span>
           <h3 dir="ltr">${escapeHtml(`${quarter.label} ${model.year || ""}`.trim())}</h3>
-          <p>${escapeHtml(subtitle)}</p>
         </div>
         <b class="fet-state-badge">${escapeHtml(quarterStateLabel(quarter))}</b>
       </header>
-
-      <div class="fet-table-title">
-        <h4>${escapeHtml(title)}</h4>
-        <span>${escapeHtml(requirementCountLabel(quarter.counts.total))}</span>
-      </div>
-
-      ${quarter.rows.length ? earningsTable(quarter, upcoming) : emptyQuarterRows(upcoming)}
+      <p class="fet-quarter-context">${escapeHtml(context)}</p>
+      ${quarter.rows.length ? earningsTable(quarter, reported) : emptyQuarterRows(quarter.phase)}
       ${quarterHighlights(quarter)}
     </article>
   `;
 }
 
-function earningsTable(quarter, upcoming) {
+function unreportedContext(quarter, countText) {
   const ar = isArabicUi();
+  if (quarter.phase === "upcoming") return ar
+    ? `${countText} محفوظة للوصول إلى Bull — دون إضافة توقعات غير موجودة.`
+    : `${countText} saved for the Bull case — no invented forecasts.`;
+  if (quarter.phase === "future") return ar
+    ? `${countText} محفوظة كهدف مستقبلي.`
+    : `${countText} saved as a future target.`;
+  return ar
+    ? `${countText} محفوظة، لكن لا توجد نتيجة فعلية محفوظة لهذا الربع.`
+    : `${countText} are saved, but no actual result is stored for this quarter.`;
+}
+
+function earningsTable(quarter, reported) {
+  const ar = isArabicUi();
+  const columns = reported ? "reported" : "target";
   return `
-    <div class="fet-table-wrap" role="region" aria-label="${escapeHtml(ar ? "جدول نتائج الأرباح" : "Earnings results table")}">
-      <table class="fet-table">
-        <colgroup><col class="fet-col-metric"><col><col><col></colgroup>
+    <div class="fet-table-wrap" role="region" aria-label="${escapeHtml(ar ? "جدول الأرباح" : "Earnings table")}">
+      <table class="fet-table fet-table-${columns}">
+        <colgroup>${reported ? "<col><col><col>" : "<col><col>"}</colgroup>
         <thead>
           <tr>
             <th scope="col">${escapeHtml(ar ? "المقياس" : "Metric")}</th>
-            <th scope="col">${escapeHtml(upcoming ? (ar ? "المطلوب للـ Bull" : "Bull requirement") : (ar ? "المطلوب" : "Required"))}</th>
-            <th scope="col">${escapeHtml(ar ? "الفعلي" : "Actual")}</th>
-            <th scope="col">${escapeHtml(upcoming ? (ar ? "الحالة" : "Status") : (ar ? "النتيجة" : "Result"))}</th>
+            <th scope="col">${escapeHtml(reported ? (ar ? "المطلوب" : "Required") : (ar ? "Bull" : "Bull target"))}</th>
+            ${reported ? `<th scope="col">${escapeHtml(ar ? "الفعلي" : "Actual")}</th>` : ""}
           </tr>
         </thead>
-        <tbody>
-          ${quarter.rows.map((row) => earningsRow(row, upcoming)).join("")}
-        </tbody>
+        <tbody>${quarter.rows.map((row) => earningsRow(row, reported)).join("")}</tbody>
       </table>
     </div>
   `;
 }
 
-function earningsRow(row, upcoming) {
+function earningsRow(row, reported) {
   const cell = row.cell || {};
   const status = normalizedStatus(cell.status);
-  const actualTone = resultTone(status, cell.reported);
-  const required = displayFinancialValue(cell.requiredValue, cell.requiredDisplay, cell.unit);
-  const actual = cell.reported
-    ? displayFinancialValue(cell.actualValue, cell.actualDisplay, cell.unit, cell.actualRaw)
-    : "—";
-  const result = upcoming && !cell.reported
-    ? pendingResultMarkup()
-    : resultMarkup(cell);
+  const tone = resultTone(status, cell.reported);
+  const fullMetric = [row.label, row.secondaryLabel].filter(Boolean).join(" — ");
+  const required = compactRequirementDisplay(cell);
+  const actual = cell.reported ? compactActualDisplay(cell) : "—";
   return `
-    <tr class="tone-${actualTone}">
-      <th scope="row">
-        <strong dir="auto">${escapeHtml(row.label || "—")}</strong>
-        ${row.secondaryLabel ? `<small dir="auto">${escapeHtml(row.secondaryLabel)}</small>` : ""}
+    <tr class="tone-${tone}">
+      <th scope="row" title="${escapeHtml(fullMetric)}">
+        <strong dir="auto">${escapeHtml(row.label || row.secondaryLabel || "—")}</strong>
       </th>
-      <td><bdi dir="ltr">${escapeHtml(required)}</bdi></td>
-      <td class="fet-actual tone-${actualTone}"><bdi dir="ltr">${escapeHtml(actual)}</bdi></td>
-      <td class="fet-result-cell">${result}</td>
+      <td title="${escapeHtml(textOrNull(cell.requiredDisplay) || required)}"><bdi dir="ltr">${escapeHtml(required)}</bdi></td>
+      ${reported ? `<td class="fet-actual-cell tone-${tone}" title="${escapeHtml(textOrNull(cell.actualDisplay) || actual)}">${actualMarkup(cell)}</td>` : ""}
     </tr>
   `;
 }
 
-function resultMarkup(cell = {}) {
+function actualMarkup(cell = {}) {
   const status = normalizedStatus(cell.status);
   const tone = resultTone(status, cell.reported);
+  const actual = compactActualDisplay(cell);
   const label = resultLabel(status, cell.reported, cell.observation);
   const variance = favorableVariancePercent(cell);
   return `
-    <span class="fet-result tone-${tone}">
-      <strong>${escapeHtml(label)}</strong>
-      ${Number.isFinite(variance) ? `<small dir="ltr">${escapeHtml(formatSignedPercent(variance))}</small>` : ""}
-    </span>
+    <strong class="fet-actual tone-${tone}" dir="ltr">${escapeHtml(actual)}</strong>
+    <small class="fet-result tone-${tone}">${escapeHtml(label)}${Number.isFinite(variance) ? ` <bdi dir="ltr">${escapeHtml(formatSignedPercent(variance))}</bdi>` : ""}</small>
   `;
 }
 
-function pendingResultMarkup() {
-  return `<span class="fet-result tone-pending"><strong>${escapeHtml(isArabicUi() ? "بانتظار الإعلان" : "Pending")}</strong></span>`;
+export function compactRequirementDisplay(cell = {}) {
+  const display = textOrNull(cell.requiredDisplay);
+  const number = numberOrNull(cell.requiredValue);
+  if (!Number.isFinite(number)) return display || "—";
+  const operator = thresholdOperator(cell.type, display);
+  const compact = compactNumericValue(number, cell.unit, display);
+  return `${operator}${operator ? " " : ""}${compact}`;
+}
+
+function compactActualDisplay(cell = {}) {
+  const number = numberOrNull(cell.actualValue);
+  const display = textOrNull(cell.actualDisplay)
+    || (typeof cell.actualRaw === "string" ? textOrNull(cell.actualRaw) : null);
+  if (!Number.isFinite(number)) return display || "—";
+  return compactNumericValue(number, cell.unit, display);
+}
+
+function thresholdOperator(type, display) {
+  const text = `${String(type || "")} ${String(display || "")}`.toLowerCase();
+  if (/maximum|at most|or less|أو أقل|على الأكثر|عدم تجاوز/.test(text)) return "≤";
+  if (/minimum|at least|or more|أو أكثر|على الأقل/.test(text)) return "≥";
+  return "";
+}
+
+function compactNumericValue(value, unit, display) {
+  const source = `${String(unit || "")} ${String(display || "")}`.toLowerCase();
+  const absolute = Math.abs(value);
+  const isUsd = /\$|usd|dollar|دولار/.test(source);
+  const isShares = /share|سهم/.test(source);
+  const saysBillion = /\bbn\b|billion|مليار/.test(source);
+  const saysMillion = /\bmn\b|million|مليون/.test(source);
+  const isPercent = /%|percent|percentage/.test(source) || String(unit || "").trim() === "%";
+
+  if (isPercent) return `${formatNumber(value, 2)}%`;
+  if (isUsd && (absolute >= 1e9 || saysBillion)) {
+    const scaled = absolute >= 1e8 ? value / 1e9 : value;
+    return `$${formatNumber(scaled, 2)}B`;
+  }
+  if (isUsd && (absolute >= 1e6 || saysMillion)) {
+    const scaled = absolute >= 1e5 ? value / 1e6 : value;
+    return `$${formatNumber(scaled, 2)}M`;
+  }
+  if (isShares && (absolute >= 1e9 || saysBillion)) {
+    const scaled = absolute >= 1e8 ? value / 1e9 : value;
+    return `${formatNumber(scaled, 2)}B ${isArabicUi() ? "سهم" : "shares"}`;
+  }
+  if (isShares && (absolute >= 1e6 || saysMillion)) {
+    const scaled = absolute >= 1e5 ? value / 1e6 : value;
+    return `${formatNumber(scaled, 2)}M ${isArabicUi() ? "سهم" : "shares"}`;
+  }
+  if (isUsd) return `$${formatNumber(value, 2)}`;
+  const unitText = String(unit || "").trim();
+  return `${formatNumber(value, 2)}${unitText ? ` ${unitText}` : ""}`;
 }
 
 function favorableVariancePercent(cell = {}) {
@@ -332,16 +392,13 @@ function favorableVariancePercent(cell = {}) {
 
 function renderSummary(model, quarter) {
   const ar = isArabicUi();
-  const upcoming = !quarter.evaluated;
+  const reported = quarter.phase === "reported";
   const achievement = Number.isFinite(quarter.weightedAchievement)
     ? `${formatNumber(quarter.weightedAchievement, 1)}%`
     : "—";
   const summaryText = quarter.summary
     || quarter.outlook?.summary
-    || (upcoming
-      ? (ar ? "هذا الربع لم يُعلن بعد. الأهداف أدناه هي متطلبات Franklin المحفوظة لسيناريو Bull." : "This quarter has not reported yet. The items below are Franklin's saved Bull-case requirements.")
-      : (ar ? "لا يوجد ملخص إضافي محفوظ لهذا الربع." : "No additional saved summary is available for this quarter."));
-
+    || defaultSummaryText(quarter.phase);
   return `
     <article class="fet-summary-card tone-${quarter.tone}">
       <header>
@@ -351,24 +408,30 @@ function renderSummary(model, quarter) {
         </div>
         <b>${escapeHtml(quarterStateLabel(quarter))}</b>
       </header>
-
       <div class="fet-summary-hero">
-        <span>${escapeHtml(upcoming ? (ar ? "الحالة" : "Status") : (ar ? "نسبة تحقيق المتطلبات" : "Requirements achievement"))}</span>
-        <strong dir="auto">${escapeHtml(upcoming ? (ar ? "بانتظار الإعلان" : "Awaiting report") : achievement)}</strong>
+        <strong dir="auto">${escapeHtml(reported ? achievement : quarterStateLabel(quarter))}</strong>
         <p>${escapeHtml(summaryText)}</p>
       </div>
-
       <div class="fet-summary-grid">
-        ${summaryMetric(ar ? "إجمالي المتطلبات" : "Requirements", quarter.counts.total, "neutral")}
+        ${summaryMetric(ar ? "المتطلبات" : "Requirements", quarter.counts.total, "neutral")}
         ${summaryMetric("Beat", quarter.counts.beat, "beat")}
         ${summaryMetric("Miss", quarter.counts.miss, "miss")}
-        ${summaryMetric(ar ? "قيد الانتظار" : "Pending", quarter.counts.pending, "pending")}
+        ${summaryMetric(ar ? "معلّق" : "Pending", quarter.counts.pending, "pending")}
       </div>
-
       ${outlookBlock(quarter.outlook)}
       ${quarterHighlights(quarter, true)}
     </article>
   `;
+}
+
+function defaultSummaryText(phase) {
+  const ar = isArabicUi();
+  if (phase === "upcoming") return ar
+    ? "الربع القادم يعرض فقط متطلبات Bull المحفوظة في Franklin."
+    : "The upcoming quarter shows only Bull requirements saved in Franklin.";
+  if (phase === "future") return ar ? "هدف محفوظ لربع مستقبلي." : "Saved target for a future quarter.";
+  if (phase === "missing") return ar ? "لا توجد نتيجة فعلية محفوظة لهذا الربع." : "No actual result is stored for this quarter.";
+  return ar ? "لا يوجد ملخص إضافي محفوظ لهذا الربع." : "No additional saved summary is available for this quarter.";
 }
 
 function summaryMetric(label, value, tone) {
@@ -394,7 +457,6 @@ function outlookBlock(outlook) {
 }
 
 function quarterHighlights(quarter, summaryMode = false) {
-  const ar = isArabicUi();
   const notes = uniqueText([
     summaryMode ? null : quarter.summary,
     summaryMode ? null : quarter.outlook?.summary,
@@ -403,17 +465,18 @@ function quarterHighlights(quarter, summaryMode = false) {
   if (!notes.length) return "";
   return `
     <details class="fet-highlights" ${summaryMode ? "open" : ""}>
-      <summary>
-        <span>${escapeHtml(ar ? "أبرز الملاحظات" : "Highlights")}</span>
-        <b aria-hidden="true">⌄</b>
-      </summary>
+      <summary><span>${escapeHtml(isArabicUi() ? "أبرز الملاحظات" : "Highlights")}</span><b aria-hidden="true">⌄</b></summary>
       <div>${notes.map((note) => `<p>${escapeHtml(note)}</p>`).join("")}</div>
     </details>
   `;
 }
 
-function emptyQuarterRows(upcoming) {
-  return `<div class="fet-empty-quarter"><strong>${escapeHtml(isArabicUi() ? "لا توجد متطلبات محفوظة لهذا الربع" : "No saved requirements for this quarter")}</strong><span>${escapeHtml(upcoming ? (isArabicUi() ? "لن يعرض Franklin أرقامًا غير موجودة." : "Franklin will not display invented figures.") : "")}</span></div>`;
+function emptyQuarterRows(phase) {
+  const ar = isArabicUi();
+  const note = phase === "reported"
+    ? (ar ? "لا توجد مقاييس محفوظة لهذا الإعلان." : "No saved metrics for this report.")
+    : (ar ? "لن يعرض Franklin أرقامًا غير موجودة." : "Franklin will not display invented figures.");
+  return `<div class="fet-empty-quarter"><strong>${escapeHtml(ar ? "لا توجد متطلبات محفوظة لهذا الربع" : "No saved requirements for this quarter")}</strong><span>${escapeHtml(note)}</span></div>`;
 }
 
 function emptyExperience(model = {}) {
@@ -435,8 +498,18 @@ function requirementCountLabel(count) {
   return `${count} متطلبًا`;
 }
 
+function quarterPhaseLabel(phase) {
+  const ar = isArabicUi();
+  if (phase === "reported") return ar ? "ربع معلن" : "Reported quarter";
+  if (phase === "upcoming") return ar ? "الربع القادم" : "Upcoming quarter";
+  if (phase === "future") return ar ? "هدف مستقبلي" : "Future target";
+  return ar ? "نتيجة غير محفوظة" : "No saved result";
+}
+
 function quarterStateLabel(quarter = {}) {
-  if (!quarter.evaluated) return isArabicUi() ? "قادم" : "Upcoming";
+  if (quarter.phase === "upcoming") return isArabicUi() ? "بانتظار الإعلان" : "Awaiting report";
+  if (quarter.phase === "future") return isArabicUi() ? "مستقبلي" : "Future";
+  if (quarter.phase === "missing") return isArabicUi() ? "غير متوفر" : "Unavailable";
   if (quarter.tone === "beat") return "Beat";
   if (quarter.tone === "miss") return "Miss";
   if (quarter.tone === "mixed") return isArabicUi() ? "مختلط" : "Mixed";
@@ -449,7 +522,7 @@ function resultLabel(status, reported, observation) {
   if (status === "PARTIALLY_PASSED") return isArabicUi() ? "قريب" : "Mixed";
   if (reported && observation) return isArabicUi() ? "ملاحظة" : "Observed";
   if (reported) return isArabicUi() ? "معلن" : "Reported";
-  return isArabicUi() ? "بانتظار الإعلان" : "Pending";
+  return isArabicUi() ? "معلّق" : "Pending";
 }
 
 function resultTone(status, reported) {
@@ -461,19 +534,6 @@ function resultTone(status, reported) {
 
 function normalizedStatus(value) {
   return String(value || "NOT_REPORTED").trim().toUpperCase();
-}
-
-function displayFinancialValue(value, display, unit, raw = null) {
-  const displayText = textOrNull(display);
-  if (displayText) return displayText;
-  const rawText = typeof raw === "string" ? textOrNull(raw) : null;
-  if (rawText) return rawText;
-  const number = numberOrNull(value);
-  if (!Number.isFinite(number)) return "—";
-  const unitText = String(unit || "").trim();
-  if (unitText === "%" || /percent/i.test(unitText)) return `${formatNumber(number, 2)}%`;
-  if (unitText === "$" || /usd|dollar/i.test(unitText)) return `$${formatNumber(number, 2)}`;
-  return `${formatNumber(number, 2)}${unitText ? ` ${unitText}` : ""}`;
 }
 
 function formatNumber(value, maximumFractionDigits = 2) {
@@ -518,7 +578,6 @@ function bindExperience(host, viewKey) {
       scheduleEnhancement();
     });
   });
-
   host.querySelectorAll("[data-fet-quarter]").forEach((button) => {
     button.addEventListener("click", () => {
       const quarter = Number(button.dataset.fetQuarter);
@@ -540,9 +599,10 @@ function revealSelectedQuarter(host) {
   });
 }
 
-function removeMobileEnhancement(shell) {
-  shell.removeAttribute("data-earnings-table-enhanced");
-  shell.querySelector(HUB_SELECTOR)?.remove();
+function removeMobileEnhancement(shell = null) {
+  shell?.removeAttribute("data-earnings-table-enhanced");
+  shell?.querySelector(HUB_SELECTOR)?.remove();
+  if (typeof document !== "undefined") document.documentElement.classList.remove(ACTIVE_CLASS);
 }
 
 function uniqueText(values = []) {
@@ -569,322 +629,33 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-function ensureStyles() {
-  if (document.getElementById(STYLE_ID)) return;
-  const style = document.createElement("style");
-  style.id = STYLE_ID;
-  style.textContent = `
-    @media (max-width: 899px) {
-      .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] {
-        overflow-x: hidden !important;
-      }
-      .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] > :not(.quarterly-scorecard-header):not(.franklin-earnings-hub) {
-        display: none !important;
-      }
-      .franklin-earnings-hub {
-        --fet-bg: #0b0e14;
-        --fet-panel: #0d1117;
-        --fet-panel-2: #101722;
-        --fet-line: rgba(148, 163, 184, .18);
-        --fet-line-strong: rgba(148, 163, 184, .28);
-        --fet-text: #f4f7fb;
-        --fet-muted: #94a3b8;
-        --fet-blue: #60a5fa;
-        --fet-green: #34d399;
-        --fet-red: #fb7185;
-        --fet-amber: #fbbf24;
-        display: grid;
-        gap: 14px;
-        min-width: 0;
-        margin: 0;
-        padding: 0 0 calc(18px + env(safe-area-inset-bottom));
-        color: var(--fet-text);
-        direction: rtl;
-      }
-      html[dir="ltr"] .franklin-earnings-hub { direction: ltr; }
-      .fet-section-tabs {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        min-height: 52px;
-        border-bottom: 1px solid var(--fet-line);
-        background: rgba(13, 17, 23, .72);
-      }
-      .fet-section-tabs button {
-        position: relative;
-        min-height: 52px;
-        border: 0;
-        background: transparent;
-        color: var(--fet-muted);
-        font: inherit;
-        font-size: 15px;
-        font-weight: 700;
-        cursor: pointer;
-      }
-      .fet-section-tabs button::after {
-        content: "";
-        position: absolute;
-        inset-inline: 18%;
-        bottom: -1px;
-        height: 3px;
-        border-radius: 999px 999px 0 0;
-        background: transparent;
-      }
-      .fet-section-tabs button.active { color: var(--fet-text); }
-      .fet-section-tabs button.active::after { background: var(--fet-blue); }
-      .fet-quarter-rail {
-        display: flex;
-        gap: 9px;
-        width: 100%;
-        min-width: 0;
-        overflow-x: auto;
-        overflow-y: hidden;
-        padding: 0 2px 3px;
-        direction: ltr;
-        scroll-snap-type: x proximity;
-        overscroll-behavior-inline: contain;
-        scrollbar-width: none;
-        -webkit-overflow-scrolling: touch;
-      }
-      .fet-quarter-rail::-webkit-scrollbar { display: none; }
-      .fet-quarter-pill {
-        position: relative;
-        flex: 0 0 auto;
-        min-width: 142px;
-        min-height: 66px;
-        display: grid;
-        align-content: center;
-        gap: 3px;
-        padding: 10px 13px;
-        border: 1px solid var(--fet-line-strong);
-        border-radius: 15px;
-        background: rgba(13, 17, 23, .84);
-        color: var(--fet-muted);
-        text-align: start;
-        direction: ltr;
-        scroll-snap-align: center;
-        font: inherit;
-        cursor: pointer;
-      }
-      .fet-quarter-pill strong { color: #d9e1ec; font-size: 14px; font-weight: 760; }
-      .fet-quarter-pill span { font-size: 12px; font-weight: 720; }
-      .fet-quarter-pill small {
-        position: absolute;
-        top: 7px;
-        inset-inline-end: 8px;
-        font-size: 9.5px;
-        color: var(--fet-blue);
-      }
-      .fet-quarter-pill.tone-beat span { color: var(--fet-green); }
-      .fet-quarter-pill.tone-miss span { color: var(--fet-red); }
-      .fet-quarter-pill.tone-mixed span { color: var(--fet-amber); }
-      .fet-quarter-pill.tone-upcoming span { color: var(--fet-blue); }
-      .fet-quarter-pill.active {
-        border-color: var(--fet-blue);
-        background: linear-gradient(180deg, rgba(96, 165, 250, .13), rgba(13, 17, 23, .92));
-        box-shadow: inset 0 0 0 1px rgba(96, 165, 250, .18), 0 10px 30px rgba(0, 0, 0, .18);
-      }
-      .fet-quarter-pill.active strong { color: #fff; }
-      .fet-tab-panel { min-width: 0; }
-      .fet-quarter-card,
-      .fet-summary-card {
-        min-width: 0;
-        overflow: hidden;
-        border: 1px solid rgba(96, 165, 250, .24);
-        border-radius: 20px;
-        background:
-          radial-gradient(circle at 8% 0%, rgba(96, 165, 250, .10), transparent 34%),
-          linear-gradient(180deg, rgba(16, 23, 34, .98), rgba(10, 15, 22, .98));
-        box-shadow: 0 22px 50px rgba(0, 0, 0, .20);
-      }
-      .fet-quarter-card.tone-beat,
-      .fet-summary-card.tone-beat { border-color: rgba(52, 211, 153, .30); }
-      .fet-quarter-card.tone-miss,
-      .fet-summary-card.tone-miss { border-color: rgba(251, 113, 133, .30); }
-      .fet-quarter-card.tone-mixed,
-      .fet-summary-card.tone-mixed { border-color: rgba(251, 191, 36, .30); }
-      .fet-quarter-card-head,
-      .fet-summary-card > header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 17px 16px 14px;
-      }
-      .fet-quarter-card-head > div,
-      .fet-summary-card > header > div { min-width: 0; }
-      .fet-quarter-card-head span,
-      .fet-summary-card > header span {
-        display: block;
-        margin-bottom: 4px;
-        color: var(--fet-blue);
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: .02em;
-      }
-      .fet-quarter-card-head h3,
-      .fet-summary-card > header h3 {
-        margin: 0;
-        color: #fff;
-        font-size: 20px;
-        line-height: 1.25;
-      }
-      .fet-quarter-card-head p {
-        margin: 7px 0 0;
-        color: var(--fet-muted);
-        font-size: 12.5px;
-        line-height: 1.65;
-      }
-      .fet-state-badge,
-      .fet-summary-card > header > b {
-        flex: 0 0 auto;
-        min-height: 34px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 7px 10px;
-        border: 1px solid rgba(96, 165, 250, .30);
-        border-radius: 11px;
-        background: rgba(37, 99, 235, .12);
-        color: var(--fet-blue);
-        font-size: 12px;
-        font-weight: 800;
-      }
-      .tone-beat .fet-state-badge,
-      .fet-summary-card.tone-beat > header > b { border-color: rgba(52, 211, 153, .28); background: rgba(16, 185, 129, .10); color: var(--fet-green); }
-      .tone-miss .fet-state-badge,
-      .fet-summary-card.tone-miss > header > b { border-color: rgba(251, 113, 133, .28); background: rgba(244, 63, 94, .10); color: var(--fet-red); }
-      .tone-mixed .fet-state-badge,
-      .fet-summary-card.tone-mixed > header > b { border-color: rgba(251, 191, 36, .28); background: rgba(245, 158, 11, .10); color: var(--fet-amber); }
-      .fet-table-title {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 0 16px 10px;
-      }
-      .fet-table-title h4 { margin: 0; font-size: 14px; line-height: 1.45; }
-      .fet-table-title span { flex: 0 0 auto; color: var(--fet-muted); font-size: 11px; }
-      .fet-table-wrap {
-        margin: 0 12px 12px;
-        overflow: hidden;
-        border: 1px solid var(--fet-line-strong);
-        border-radius: 15px;
-        background: rgba(7, 11, 17, .58);
-      }
-      .fet-table {
-        width: 100%;
-        border-collapse: collapse;
-        table-layout: fixed;
-        direction: inherit;
-      }
-      .fet-table .fet-col-metric { width: 29%; }
-      .fet-table th,
-      .fet-table td {
-        min-width: 0;
-        padding: 12px 7px;
-        border-bottom: 1px solid var(--fet-line);
-        border-inline-start: 1px solid var(--fet-line);
-        vertical-align: middle;
-        overflow-wrap: anywhere;
-      }
-      .fet-table tr:last-child > * { border-bottom: 0; }
-      .fet-table tr > *:first-child { border-inline-start: 0; }
-      .fet-table thead th {
-        background: rgba(30, 41, 59, .34);
-        color: #9fb0c7;
-        font-size: 10.5px;
-        line-height: 1.35;
-        font-weight: 760;
-        text-align: center;
-      }
-      .fet-table thead th:first-child { text-align: start; }
-      .fet-table tbody th { color: #f3f6fb; text-align: start; }
-      .fet-table tbody th strong { display: block; font-size: 12.5px; line-height: 1.45; font-weight: 690; }
-      .fet-table tbody th small { display: block; margin-top: 3px; color: var(--fet-muted); font-size: 9.5px; line-height: 1.35; }
-      .fet-table tbody td { color: #e5eaf1; font-size: 12.5px; text-align: center; font-variant-numeric: tabular-nums; }
-      .fet-table .fet-actual.tone-beat { color: var(--fet-green); font-weight: 800; }
-      .fet-table .fet-actual.tone-miss { color: var(--fet-red); font-weight: 800; }
-      .fet-table .fet-actual.tone-mixed { color: var(--fet-amber); font-weight: 800; }
-      .fet-result {
-        display: grid;
-        justify-items: center;
-        gap: 2px;
-        line-height: 1.15;
-      }
-      .fet-result strong { font-size: 11.5px; }
-      .fet-result small { font-size: 10.5px; font-weight: 760; white-space: nowrap; }
-      .fet-result.tone-beat { color: var(--fet-green); }
-      .fet-result.tone-miss { color: var(--fet-red); }
-      .fet-result.tone-mixed { color: var(--fet-amber); }
-      .fet-result.tone-pending,
-      .fet-result.tone-neutral { color: var(--fet-muted); }
-      .fet-highlights {
-        margin: 0 12px 14px;
-        border: 1px solid var(--fet-line);
-        border-radius: 14px;
-        background: rgba(15, 23, 42, .32);
-      }
-      .fet-highlights summary {
-        min-height: 48px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 0 13px;
-        color: #dce4ef;
-        font-size: 13px;
-        font-weight: 720;
-        cursor: pointer;
-        list-style: none;
-      }
-      .fet-highlights summary::-webkit-details-marker { display: none; }
-      .fet-highlights[open] summary b { transform: rotate(180deg); }
-      .fet-highlights summary b { color: var(--fet-muted); transition: transform .18s ease; }
-      .fet-highlights > div { display: grid; gap: 8px; padding: 0 13px 13px; }
-      .fet-highlights p { margin: 0; padding-top: 8px; border-top: 1px solid var(--fet-line); color: #bdc8d7; font-size: 12px; line-height: 1.65; }
-      .fet-summary-hero { margin: 0 12px 12px; padding: 15px; border: 1px solid var(--fet-line); border-radius: 15px; background: rgba(7, 11, 17, .50); }
-      .fet-summary-hero > span { color: var(--fet-muted); font-size: 11px; }
-      .fet-summary-hero > strong { display: block; margin-top: 5px; color: #fff; font-size: 24px; line-height: 1.25; }
-      .fet-summary-hero p { margin: 9px 0 0; color: #bdc8d7; font-size: 12.5px; line-height: 1.7; }
-      .fet-summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 12px 12px; }
-      .fet-summary-metric { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 52px; padding: 11px 12px; border: 1px solid var(--fet-line); border-radius: 13px; background: rgba(15, 23, 42, .34); }
-      .fet-summary-metric span { color: var(--fet-muted); font-size: 11px; }
-      .fet-summary-metric strong { color: #eef3f9; font-size: 17px; }
-      .fet-summary-metric.tone-beat strong { color: var(--fet-green); }
-      .fet-summary-metric.tone-miss strong { color: var(--fet-red); }
-      .fet-summary-metric.tone-pending strong { color: var(--fet-blue); }
-      .fet-outlook-block { margin: 0 12px 12px; padding: 13px; border: 1px solid var(--fet-line); border-radius: 14px; background: rgba(15, 23, 42, .30); }
-      .fet-outlook-block h4 { margin: 0 0 10px; font-size: 13px; }
-      .fet-outlook-block > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-      .fet-outlook-block span { display: grid; gap: 3px; padding: 9px; border-radius: 10px; background: rgba(7, 11, 17, .52); }
-      .fet-outlook-block small { color: var(--fet-muted); font-size: 10px; }
-      .fet-outlook-block strong { color: #dce5f1; font-size: 11.5px; line-height: 1.4; }
-      .fet-empty-quarter,
-      .fet-empty-experience { display: grid; gap: 7px; margin: 12px; padding: 18px; border: 1px dashed var(--fet-line-strong); border-radius: 15px; background: rgba(15, 23, 42, .24); text-align: center; }
-      .fet-empty-quarter strong,
-      .fet-empty-experience strong { font-size: 14px; }
-      .fet-empty-quarter span,
-      .fet-empty-experience p { margin: 0; color: var(--fet-muted); font-size: 12px; line-height: 1.6; }
-      .fet-empty-experience > span { color: var(--fet-blue); font-weight: 800; }
-    }
-    @media (max-width: 374px) {
-      .fet-quarter-pill { min-width: 132px; }
-      .fet-table th,
-      .fet-table td { padding-inline: 5px; }
-      .fet-table thead th { font-size: 10px; }
-      .fet-table tbody th strong,
-      .fet-table tbody td { font-size: 11.5px; }
-      .fet-result strong { font-size: 10.5px; }
-      .fet-result small { font-size: 9.5px; }
-    }
-  `;
-  document.head.append(style);
+function installStylesheet() {
+  if (typeof document === "undefined") return;
+  const existing = document.getElementById(STYLESHEET_ID);
+  if (existing) {
+    stylesheetReady = true;
+    scheduleEnhancement();
+    return;
+  }
+  const link = document.createElement("link");
+  link.id = STYLESHEET_ID;
+  link.rel = "stylesheet";
+  link.href = STYLESHEET_URL;
+  link.addEventListener("load", () => {
+    stylesheetReady = true;
+    scheduleEnhancement();
+  }, { once: true });
+  link.addEventListener("error", () => {
+    stylesheetReady = false;
+    removeMobileEnhancement(document.querySelector(".quarterly-scorecard-shell"));
+  }, { once: true });
+  document.head.appendChild(link);
 }
 
-const store = currentStore();
-store?.subscribe?.(scheduleEnhancement);
-const app = document.getElementById("app");
-if (app) new MutationObserver(scheduleEnhancement).observe(app, { childList: true, subtree: true });
-window.addEventListener("resize", scheduleEnhancement, { passive: true });
-window.addEventListener("pageshow", scheduleEnhancement);
-scheduleEnhancement();
+if (typeof document !== "undefined" && typeof window !== "undefined") {
+  installStylesheet();
+  const app = document.getElementById("app");
+  if (app) new MutationObserver(scheduleEnhancement).observe(app, { childList: true, subtree: true });
+  window.addEventListener("resize", scheduleEnhancement, { passive: true });
+  window.addEventListener("pageshow", scheduleEnhancement);
+}

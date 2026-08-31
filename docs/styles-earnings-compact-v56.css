@@ -1,214 +1,611 @@
-/* Franklin compact earnings mobile patch v56
-   Presentation only: denser Perplexity-inspired mobile proportions, no financial logic changes. */
+/* Franklin earnings presentation v57
+   One scoped mobile source of truth. It changes presentation only and never writes
+   to Franklin state, storage, saved reports, calculations, or financial judgments. */
+
 @media (max-width: 899px) {
-  .scorecard-app-shell .mobile-bottom-nav,
-  .scorecard-app-shell + .mobile-bottom-nav,
-  body:has(.quarterly-scorecard-shell) .mobile-bottom-nav {
+  html.franklin-quarterly-earnings-active .mobile-bottom-nav {
     display: none !important;
   }
 
-  .scorecard-app-shell .mobile-page-content {
-    padding-bottom: 24px !important;
+  html.franklin-quarterly-earnings-active .scorecard-app-shell .mobile-app-frame {
+    padding-bottom: 0 !important;
   }
 
-  .quarterly-scorecard-shell > .quarterly-scorecard-header {
-    min-height: 92px !important;
-    padding: 12px 14px !important;
+  .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] {
+    --fet-bg: #0e1011;
+    --fet-panel: #17191a;
+    --fet-raised: #1c1e20;
+    --fet-line: rgba(255, 255, 255, 0.075);
+    --fet-line-strong: rgba(255, 255, 255, 0.12);
+    --fet-text: #f0f1f2;
+    --fet-text-soft: #c7cacc;
+    --fet-muted: #8f969d;
+    --fet-dim: #697078;
+    --fet-accent: #59cfc0;
+    --fet-accent-soft: rgba(89, 207, 192, 0.11);
+    --fet-positive: #55c271;
+    --fet-negative: #f06b78;
+    --fet-warning: #d7a64d;
+    min-height: 100dvh;
+    overflow-x: hidden !important;
+    background: var(--fet-bg) !important;
+    color: var(--fet-text);
   }
 
-  .quarterly-scorecard-titlebar h2 {
-    font-size: 22px !important;
-    line-height: 1.25 !important;
+  .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] > :not(.quarterly-scorecard-header):not(.franklin-earnings-hub) {
+    display: none !important;
   }
 
-  .quarterly-scorecard-titlebar span,
-  .quarterly-scorecard-titlebar strong,
-  .figma-scorecard-meta {
-    font-size: 12px !important;
+  .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] > .quarterly-scorecard-header {
+    width: 100% !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: calc(env(safe-area-inset-top) + 9px) 15px 10px !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--fet-line) !important;
+    border-radius: 0 !important;
+    background: #111314 !important;
+    box-shadow: none !important;
   }
 
-  .franklin-earnings-hub {
+  .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .quarterly-scorecard-titlebar {
+    min-height: 38px !important;
     gap: 10px !important;
   }
 
-  .fet-section-tabs {
-    min-height: 48px !important;
+  .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .scorecard-back {
+    flex: 0 0 36px !important;
+    width: 36px !important;
+    height: 36px !important;
+    padding: 0 !important;
+    border: 1px solid var(--fet-line-strong) !important;
+    background: var(--fet-raised) !important;
+    color: var(--fet-text-soft) !important;
+    font-size: 21px !important;
+  }
+
+  .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .quarterly-scorecard-titlebar > div {
+    gap: 1px !important;
+  }
+
+  .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .quarterly-scorecard-titlebar h2 {
     margin: 0 !important;
+    color: var(--fet-text) !important;
+    font-size: 20px !important;
+    line-height: 1.3 !important;
+    font-weight: 680 !important;
+  }
+
+  .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .quarterly-scorecard-titlebar > div > span,
+  .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .quarterly-scorecard-titlebar > div > strong,
+  .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .figma-scorecard-meta {
+    color: var(--fet-muted) !important;
+    font-size: 11.5px !important;
+    line-height: 1.35 !important;
+    font-weight: 450 !important;
+  }
+
+  .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .figma-scorecard-meta strong {
+    color: var(--fet-accent) !important;
+    font-weight: 650 !important;
+  }
+
+  .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .scorecard-year-select select {
+    min-width: 68px !important;
+    min-height: 34px !important;
+    padding: 4px 8px !important;
+    border: 1px solid var(--fet-line-strong) !important;
+    border-radius: 10px !important;
+    background: var(--fet-raised) !important;
+    color: var(--fet-text-soft) !important;
+    font-size: 12px !important;
+  }
+
+  .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .quarterly-scorecard-targets,
+  .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .quarterly-scorecard-actions {
+    display: none !important;
+  }
+
+  .franklin-earnings-hub {
+    width: 100%;
+    min-width: 0;
+    display: grid;
+    gap: 10px;
+    padding-bottom: calc(18px + env(safe-area-inset-bottom));
+    color: var(--fet-text);
+    direction: rtl;
+  }
+
+  html[dir="ltr"] .franklin-earnings-hub {
+    direction: ltr;
+  }
+
+  .fet-section-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-height: 44px;
+    border-bottom: 1px solid var(--fet-line);
+    background: #111314;
   }
 
   .fet-section-tabs button {
-    min-height: 48px !important;
-    padding: 8px 14px !important;
-    font-size: 14px !important;
-    font-weight: 600 !important;
+    position: relative;
+    min-height: 44px;
+    padding: 6px 12px;
+    border: 0;
+    background: transparent;
+    color: var(--fet-muted);
+    font: inherit;
+    font-size: 13.5px;
+    line-height: 1.2;
+    font-weight: 580;
+  }
+
+  .fet-section-tabs button::after {
+    content: "";
+    position: absolute;
+    right: 22%;
+    bottom: -1px;
+    left: 22%;
+    height: 2px;
+    border-radius: 999px 999px 0 0;
+    background: transparent;
+  }
+
+  .fet-section-tabs button.active {
+    color: var(--fet-text);
+  }
+
+  .fet-section-tabs button.active::after {
+    background: var(--fet-accent);
   }
 
   .fet-quarter-rail {
-    gap: 7px !important;
-    padding: 8px 0 6px !important;
-    scroll-padding-inline: 12px !important;
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 14px 2px;
+    direction: ltr;
+    scroll-padding-inline: 14px;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .fet-quarter-rail::-webkit-scrollbar {
+    display: none;
   }
 
   .fet-quarter-pill {
-    min-width: 126px !important;
-    min-height: 58px !important;
-    padding: 8px 11px !important;
-    gap: 2px !important;
-    border-radius: 11px !important;
+    flex: 0 0 auto;
+    min-width: 116px;
+    min-height: 46px;
+    display: grid;
+    align-content: center;
+    gap: 2px;
+    padding: 7px 10px;
+    border: 1px solid var(--fet-line-strong);
+    border-radius: 12px;
+    background: var(--fet-panel);
+    color: var(--fet-muted);
+    text-align: start;
+    direction: ltr;
+    scroll-snap-align: center;
+    font: inherit;
   }
 
   .fet-quarter-pill strong {
-    font-size: 14px !important;
-    line-height: 1.2 !important;
+    color: var(--fet-text-soft);
+    font-size: 13px;
+    line-height: 1.2;
+    font-weight: 650;
+    white-space: nowrap;
   }
 
-  .fet-quarter-pill span,
-  .fet-quarter-pill small {
-    font-size: 10.5px !important;
-    line-height: 1.3 !important;
+  .fet-quarter-pill span {
+    overflow: hidden;
+    color: var(--fet-muted);
+    font-size: 10.5px;
+    line-height: 1.25;
+    font-weight: 520;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .fet-quarter-pill small {
-    display: none !important;
+  .fet-quarter-pill.tone-beat span { color: var(--fet-positive); }
+  .fet-quarter-pill.tone-miss span { color: var(--fet-negative); }
+  .fet-quarter-pill.tone-mixed span { color: var(--fet-warning); }
+  .fet-quarter-pill.tone-upcoming span { color: var(--fet-accent); }
+  .fet-quarter-pill.tone-future span { color: #8fb8b2; }
+  .fet-quarter-pill.tone-missing span { color: var(--fet-dim); }
+
+  .fet-quarter-pill.active {
+    border-color: rgba(89, 207, 192, 0.70);
+    background: var(--fet-accent-soft);
+    box-shadow: inset 0 0 0 1px rgba(89, 207, 192, 0.08);
   }
 
-  .fet-quarter-card {
-    padding: 14px !important;
-    border-radius: 15px !important;
+  .fet-quarter-pill.active strong {
+    color: var(--fet-text);
   }
 
-  .fet-quarter-card-head {
-    margin-bottom: 10px !important;
-    gap: 8px !important;
+  .fet-tab-panel {
+    min-width: 0;
+    padding: 0 14px;
   }
 
-  .fet-quarter-card-head > div > span {
-    font-size: 10.5px !important;
+  .fet-quarter-card,
+  .fet-summary-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--fet-line-strong);
+    border-radius: 16px;
+    background: var(--fet-panel);
+    box-shadow: none;
   }
 
-  .fet-quarter-card-head h3 {
-    margin: 2px 0 !important;
-    font-size: 21px !important;
-    line-height: 1.2 !important;
+  .fet-quarter-card.tone-beat,
+  .fet-summary-card.tone-beat { border-color: rgba(85, 194, 113, 0.30); }
+  .fet-quarter-card.tone-miss,
+  .fet-summary-card.tone-miss { border-color: rgba(240, 107, 120, 0.30); }
+  .fet-quarter-card.tone-mixed,
+  .fet-summary-card.tone-mixed { border-color: rgba(215, 166, 77, 0.30); }
+  .fet-quarter-card.tone-upcoming,
+  .fet-summary-card.tone-upcoming { border-color: rgba(89, 207, 192, 0.26); }
+
+  .fet-quarter-card-head,
+  .fet-summary-card > header {
+    min-height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 13px 9px;
   }
 
-  .fet-quarter-card-head p {
-    margin: 3px 0 0 !important;
-    max-width: 36ch !important;
-    font-size: 11.5px !important;
-    line-height: 1.55 !important;
+  .fet-quarter-card-head > div,
+  .fet-summary-card > header > div {
+    min-width: 0;
   }
 
-  .fet-state-badge {
-    padding: 5px 8px !important;
-    border-radius: 8px !important;
-    font-size: 10.5px !important;
+  .fet-quarter-card-head span,
+  .fet-summary-card > header span {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--fet-muted);
+    font-size: 10.5px;
+    line-height: 1.3;
+    font-weight: 520;
   }
 
-  .fet-table-title {
-    margin: 8px 0 7px !important;
+  .fet-quarter-card-head h3,
+  .fet-summary-card > header h3 {
+    margin: 0;
+    color: var(--fet-text);
+    font-size: 18px;
+    line-height: 1.2;
+    font-weight: 680;
   }
 
-  .fet-table-title h4 {
-    font-size: 14px !important;
-    line-height: 1.35 !important;
+  .fet-state-badge,
+  .fet-summary-card > header > b {
+    flex: 0 0 auto;
+    min-height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 8px;
+    border: 1px solid var(--fet-line-strong);
+    border-radius: 9px;
+    background: var(--fet-raised);
+    color: var(--fet-muted);
+    font-size: 10.5px;
+    line-height: 1.2;
+    font-weight: 650;
   }
 
-  .fet-table-title span {
-    font-size: 10.5px !important;
+  .tone-upcoming .fet-state-badge,
+  .fet-summary-card.tone-upcoming > header > b {
+    border-color: rgba(89, 207, 192, 0.28);
+    background: var(--fet-accent-soft);
+    color: var(--fet-accent);
+  }
+
+  .tone-beat .fet-state-badge,
+  .fet-summary-card.tone-beat > header > b {
+    border-color: rgba(85, 194, 113, 0.26);
+    background: rgba(85, 194, 113, 0.08);
+    color: var(--fet-positive);
+  }
+
+  .tone-miss .fet-state-badge,
+  .fet-summary-card.tone-miss > header > b {
+    border-color: rgba(240, 107, 120, 0.26);
+    background: rgba(240, 107, 120, 0.08);
+    color: var(--fet-negative);
+  }
+
+  .tone-mixed .fet-state-badge,
+  .fet-summary-card.tone-mixed > header > b {
+    border-color: rgba(215, 166, 77, 0.26);
+    background: rgba(215, 166, 77, 0.08);
+    color: var(--fet-warning);
+  }
+
+  .fet-quarter-context {
+    margin: 0;
+    padding: 0 13px 9px;
+    color: var(--fet-muted);
+    font-size: 11.5px;
+    line-height: 1.55;
   }
 
   .fet-table-wrap {
-    border-radius: 12px !important;
+    margin: 0 10px 10px;
+    overflow: hidden;
+    border: 1px solid var(--fet-line-strong);
+    border-radius: 13px;
+    background: #111314;
   }
 
   .fet-table {
-    table-layout: fixed !important;
-    font-size: 12px !important;
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    direction: inherit;
   }
 
-  .fet-table col:nth-child(1) { width: 43% !important; }
-  .fet-table col:nth-child(2) { width: 29% !important; }
-  .fet-table col:nth-child(3) { width: 28% !important; }
-  .fet-table col:nth-child(4) { width: 0 !important; }
+  .fet-table-target col:first-child { width: 58%; }
+  .fet-table-target col:last-child { width: 42%; }
+  .fet-table-reported col:first-child { width: 42%; }
+  .fet-table-reported col:nth-child(2) { width: 28%; }
+  .fet-table-reported col:nth-child(3) { width: 30%; }
+
+  .fet-table th,
+  .fet-table td {
+    min-width: 0;
+    padding: 9px 11px;
+    border-bottom: 1px solid var(--fet-line);
+    vertical-align: middle;
+    overflow-wrap: anywhere;
+  }
+
+  .fet-table tr:last-child > * {
+    border-bottom: 0;
+  }
 
   .fet-table thead th {
-    padding: 7px 8px !important;
-    font-size: 10px !important;
-    line-height: 1.25 !important;
-    font-weight: 550 !important;
+    background: var(--fet-raised);
+    color: var(--fet-muted);
+    font-size: 10.5px;
+    line-height: 1.25;
+    font-weight: 560;
+    text-align: center;
   }
 
-  .fet-table thead th:nth-child(4),
-  .fet-table tbody td:nth-child(4) {
-    display: none !important;
+  .fet-table thead th:first-child {
+    text-align: start;
   }
 
-  .fet-table tbody th,
-  .fet-table tbody td {
-    height: auto !important;
-    min-height: 0 !important;
-    padding: 9px 8px !important;
-    vertical-align: middle !important;
-    font-size: 12px !important;
-    line-height: 1.4 !important;
+  .fet-table tbody th {
+    color: var(--fet-text);
+    text-align: start;
   }
 
   .fet-table tbody th strong {
-    display: block !important;
-    font-size: 12.5px !important;
-    line-height: 1.4 !important;
-    font-weight: 600 !important;
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--fet-text);
+    font-size: 13px;
+    line-height: 1.4;
+    font-weight: 580;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
-  .fet-table tbody th small {
-    display: block !important;
-    margin-top: 1px !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-    color: #7f8da3 !important;
-    font-size: 9.5px !important;
-    line-height: 1.25 !important;
+  .fet-table tbody td {
+    color: var(--fet-text-soft);
+    font-size: 13px;
+    line-height: 1.35;
+    font-weight: 520;
+    text-align: center;
+    font-variant-numeric: tabular-nums lining-nums;
   }
 
-  .fet-table tbody td,
   .fet-table tbody td bdi {
-    font-size: 12px !important;
-    line-height: 1.35 !important;
-    font-weight: 500 !important;
+    white-space: normal;
   }
 
-  .fet-actual.tone-beat { color: #55c271 !important; }
-  .fet-actual.tone-miss { color: #f06b78 !important; }
-  .fet-actual.tone-mixed { color: #d7a64d !important; }
-
-  .fet-quarter-card.tone-upcoming .fet-table tbody td:nth-child(3) {
-    color: #7f8da3 !important;
+  .fet-actual-cell {
+    display: table-cell;
   }
 
-  .fet-highlights,
-  .fet-quarter-highlights {
-    margin-top: 9px !important;
-    font-size: 11px !important;
+  .fet-actual {
+    display: block;
+    color: var(--fet-text-soft);
+    font-size: 13px;
+    line-height: 1.25;
+    font-weight: 650;
   }
 
-  .fet-summary-card,
-  .fet-summary-hero,
-  .fet-summary-grid > * {
-    border-radius: 13px !important;
+  .fet-result {
+    display: block;
+    margin-top: 2px;
+    color: var(--fet-muted);
+    font-size: 10.5px;
+    line-height: 1.25;
+    font-weight: 560;
   }
 
-  .fet-summary-card h3,
-  .fet-summary-hero h3 {
-    font-size: 17px !important;
+  .fet-actual.tone-beat,
+  .fet-result.tone-beat { color: var(--fet-positive); }
+  .fet-actual.tone-miss,
+  .fet-result.tone-miss { color: var(--fet-negative); }
+  .fet-actual.tone-mixed,
+  .fet-result.tone-mixed { color: var(--fet-warning); }
+
+  .fet-highlights {
+    margin: 0 10px 10px;
+    border-top: 1px solid var(--fet-line);
   }
 
-  .fet-summary-card p,
-  .fet-summary-hero p,
-  .fet-summary-grid span,
-  .fet-summary-grid small {
-    font-size: 11.5px !important;
-    line-height: 1.55 !important;
+  .fet-highlights summary {
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 2px;
+    color: var(--fet-text-soft);
+    font-size: 12px;
+    line-height: 1.3;
+    font-weight: 560;
+    list-style: none;
+  }
+
+  .fet-highlights summary::-webkit-details-marker { display: none; }
+  .fet-highlights summary b { color: var(--fet-dim); }
+  .fet-highlights[open] summary b { transform: rotate(180deg); }
+
+  .fet-highlights > div {
+    display: grid;
+    gap: 7px;
+    padding-bottom: 10px;
+  }
+
+  .fet-highlights p {
+    margin: 0;
+    padding-top: 7px;
+    border-top: 1px solid var(--fet-line);
+    color: var(--fet-text-soft);
+    font-size: 11.5px;
+    line-height: 1.6;
+  }
+
+  .fet-summary-hero {
+    margin: 0 10px 9px;
+    padding: 11px 12px;
+    border-top: 1px solid var(--fet-line);
+  }
+
+  .fet-summary-hero > strong {
+    display: block;
+    color: var(--fet-text);
+    font-size: 17px;
+    line-height: 1.3;
+    font-weight: 650;
+  }
+
+  .fet-summary-hero p {
+    margin: 4px 0 0;
+    color: var(--fet-muted);
+    font-size: 11.5px;
+    line-height: 1.55;
+  }
+
+  .fet-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0 10px 10px;
+    overflow: hidden;
+    border: 1px solid var(--fet-line);
+    border-radius: 11px;
+  }
+
+  .fet-summary-metric {
+    min-width: 0;
+    padding: 8px 4px;
+    border-inline-start: 1px solid var(--fet-line);
+    text-align: center;
+  }
+
+  .fet-summary-metric:first-child { border-inline-start: 0; }
+  .fet-summary-metric span { display: block; color: var(--fet-muted); font-size: 10px; line-height: 1.25; }
+  .fet-summary-metric strong { display: block; margin-top: 2px; color: var(--fet-text); font-size: 13px; line-height: 1.2; }
+  .fet-summary-metric.tone-beat strong { color: var(--fet-positive); }
+  .fet-summary-metric.tone-miss strong { color: var(--fet-negative); }
+
+  .fet-outlook-block {
+    margin: 0 10px 10px;
+    padding-top: 9px;
+    border-top: 1px solid var(--fet-line);
+  }
+
+  .fet-outlook-block h4 {
+    margin: 0 0 7px;
+    color: var(--fet-text-soft);
+    font-size: 12px;
+    line-height: 1.3;
+    font-weight: 580;
+  }
+
+  .fet-outlook-block > div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .fet-outlook-block span {
+    min-width: 0;
+    padding: 8px;
+    border: 1px solid var(--fet-line);
+    border-radius: 10px;
+    background: var(--fet-raised);
+  }
+
+  .fet-outlook-block small,
+  .fet-outlook-block strong {
+    display: block;
+  }
+
+  .fet-outlook-block small { color: var(--fet-muted); font-size: 10px; line-height: 1.25; }
+  .fet-outlook-block strong { margin-top: 2px; color: var(--fet-text-soft); font-size: 11.5px; line-height: 1.35; }
+
+  .fet-empty-quarter,
+  .fet-empty-experience {
+    margin: 0 10px 10px;
+    padding: 18px 14px;
+    border: 1px dashed var(--fet-line-strong);
+    border-radius: 13px;
+    text-align: center;
+  }
+
+  .fet-empty-experience {
+    margin: 0 14px;
+    background: var(--fet-panel);
+  }
+
+  .fet-empty-quarter strong,
+  .fet-empty-experience strong {
+    display: block;
+    color: var(--fet-text-soft);
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .fet-empty-quarter span,
+  .fet-empty-experience p,
+  .fet-empty-experience span {
+    display: block;
+    margin: 5px 0 0;
+    color: var(--fet-muted);
+    font-size: 11.5px;
+    line-height: 1.55;
+  }
+
+  @media (max-width: 374px) {
+    .fet-tab-panel { padding-inline: 10px; }
+    .fet-quarter-rail { padding-inline: 10px; }
+    .fet-quarter-pill { min-width: 108px; }
+    .fet-table th,
+    .fet-table td { padding-inline: 8px; }
+    .fet-table tbody th strong,
+    .fet-table tbody td,
+    .fet-actual { font-size: 12.5px; }
   }
 }

@@ -1,37 +1,90 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import {
+  buildQuarterlyEarningsViewModel,
+  compactRequirementDisplay,
+  EARNINGS_TABLE_EXPERIENCE_VERSION
+} from "../src/ui/earningsTableExperience.js";
 
-const index = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
-const styles = readFileSync(new URL("../styles-mobile-scorecard-figma.css", import.meta.url), "utf8");
-const enhancer = readFileSync(new URL("../src/ui/quarterlyScorecardMobileFigma.js", import.meta.url), "utf8");
-const earningsTable = readFileSync(new URL("../src/ui/earningsTableExperience.js", import.meta.url), "utf8");
+const earnings = readFileSync(new URL("../src/ui/earningsTableExperience.js", import.meta.url), "utf8");
+const compactStyles = readFileSync(new URL("../styles-earnings-compact-v56.css", import.meta.url), "utf8");
+const editorialStyles = readFileSync(new URL("../styles-editorial-finance-v53.css", import.meta.url), "utf8");
+const serviceWorker = readFileSync(new URL("../service-worker.js", import.meta.url), "utf8");
 const syncScript = readFileSync(new URL("../scripts/sync-deploy.mjs", import.meta.url), "utf8");
 
-assert.ok(index.includes("styles-mobile-scorecard-figma.css"), "Figma mobile scorecard stylesheet must load.");
-assert.ok(main.includes("quarterlyScorecardMobileFigma.js"), "Figma mobile scorecard enhancer must load from the guarded runtime.");
-assert.ok(main.includes("earningsTableExperience.js?v=v55-earnings-table"), "The unified earnings table experience must load from the guarded runtime.");
-assert.ok(syncScript.includes("styles-mobile-scorecard-figma.css"), "Deployment sync must include the Figma mobile stylesheet.");
-assert.ok(styles.includes("@media (max-width: 899px)"), "Figma scorecard layer must be mobile-only.");
-assert.ok(styles.includes("#0b0e14"), "Figma canvas color must be preserved.");
-assert.ok(styles.includes("#0d1117"), "Figma header/navigation color must be preserved.");
-assert.ok(styles.includes("#60a5fa"), "Figma blue accent must be preserved.");
-assert.ok(styles.includes("#34d399"), "Figma positive accent must be preserved.");
-assert.ok(styles.includes("grid-template-columns: repeat(2, minmax(0, 1fr))"), "Quarter cells must use the approved 2x2 mobile layout.");
-assert.ok(styles.includes("overflow-x: hidden"), "Mobile scorecard must prevent horizontal overflow.");
-assert.ok(enhancer.includes("متابعة الأرباع"), "Approved mobile Arabic title must be used.");
-assert.ok(enhancer.includes("متفوق على المطلوب"), "Execution status labels must be available without inventing financial values.");
-assert.equal(styles.includes("font-size: 9px"), false, "Important mobile labels must not fall back to 9px.");
+assert.equal(EARNINGS_TABLE_EXPERIENCE_VERSION, "v57");
+assert.ok(editorialStyles.includes("Franklin Editorial Finance v53"), "Codex editorial presentation must be restored intact.");
+assert.ok(editorialStyles.includes("--editorial-font"), "The global editorial system must not be replaced by a one-line import.");
+assert.equal(editorialStyles.trim().startsWith("@import"), false);
+assert.ok(serviceWorker.includes("v57-earnings-clean"));
+assert.ok(serviceWorker.includes("styles-earnings-compact-v56.css"));
+assert.ok(syncScript.includes("styles-earnings-compact-v56.css"));
+assert.ok(main.includes("earningsTableExperience.js?v=v57-earnings-clean"));
+assert.ok(main.includes("if (!earningsTableReady)"));
+assert.ok(main.includes("quarterlyScorecardMobileFigma.js"), "The previous mobile scorecard remains available only as a safe fallback.");
+assert.ok(main.indexOf("earningsTableExperience.js?v=v57-earnings-clean") < main.indexOf("quarterlyScorecardMobileFigma.js"));
 
-assert.ok(earningsTable.includes('data-fet-tab="summary"'), "Summary tab must be available above the earnings table.");
-assert.ok(earningsTable.includes('data-fet-tab="earnings"'), "Earnings tab must be available above the earnings table.");
-assert.ok(earningsTable.includes("fet-quarter-rail"), "Quarter selection must be horizontally scrollable.");
-assert.ok(earningsTable.includes("المطلوب للـ Bull"), "Upcoming quarters must show the saved Bull requirement.");
-assert.ok(earningsTable.includes('return "Beat"'), "Reported requirements must expose Beat status.");
-assert.ok(earningsTable.includes('return "Miss"'), "Reported requirements must expose Miss status.");
-assert.ok(earningsTable.includes("fet-actual.tone-beat"), "Beat actuals must receive the positive color treatment.");
-assert.ok(earningsTable.includes("fet-actual.tone-miss"), "Miss actuals must receive the negative color treatment.");
-assert.ok(earningsTable.includes("Franklin shows only saved targets and does not invent forecasts"), "Upcoming-quarter UI must not fabricate consensus values.");
-assert.ok(earningsTable.includes("buildQuarterlyEarningsViewModel"), "The table must be generated from the canonical quarterly scorecard model.");
+assert.ok(earnings.includes('data-fet-tab="summary"'));
+assert.ok(earnings.includes('data-fet-tab="earnings"'));
+assert.ok(earnings.includes('const columns = reported ? "reported" : "target"'));
+assert.ok(compactStyles.includes(".fet-table-target"));
+assert.ok(compactStyles.includes(".fet-table-reported"));
+assert.equal(earnings.includes("<col><col><col><col>"), false, "The mobile table must not create a hidden fourth column.");
+assert.equal(earnings.includes("localStorage"), false, "Presentation code must not touch persisted Franklin data.");
+assert.equal(earnings.includes("sessionStorage"), false, "Presentation code must not touch persisted Franklin data.");
+assert.equal(earnings.includes("store.set("), false, "Presentation code must not mutate the application store.");
 
-console.log("Figma mobile Quarterly Scorecard presentation tests passed.");
+assert.ok(compactStyles.includes("html.franklin-quarterly-earnings-active .mobile-bottom-nav"));
+assert.ok(compactStyles.includes("safe-area-inset-top"));
+assert.ok(compactStyles.includes("--fet-accent: #59cfc0"), "Franklin's own accent must remain the primary identity color.");
+assert.equal(compactStyles.includes(":has("), false, "The screen must not depend on :has() to hide navigation.");
+assert.equal(compactStyles.includes("font-size: 9px"), false, "Readable mobile text must not fall to 9px.");
+assert.equal(compactStyles.includes("radial-gradient"), false, "The earnings card should stay quiet and editorial, not decorative.");
+
+const allOpen = buildQuarterlyEarningsViewModel({
+  ticker: "SPCX",
+  year: 2026,
+  latestReportedQuarter: null,
+  quarters: [1, 2, 3].map((quarter) => ({ quarter, label: `Q${quarter}`, lifecycleStatus: "OPEN", evaluated: false })),
+  rows: [{
+    key: "revenue",
+    label: "نمو الإيراد",
+    secondaryLabel: "Revenue Growth",
+    cells: {
+      1: { requiredValue: 9, unit: "USD billion", type: "minimum", status: "NOT_REPORTED" },
+      2: { requiredValue: 10, unit: "USD billion", type: "minimum", status: "NOT_REPORTED" },
+      3: { requiredValue: 11.5, unit: "USD billion", type: "minimum", status: "NOT_REPORTED" }
+    }
+  }]
+});
+assert.equal(allOpen.quarters.find((quarter) => quarter.quarter === 3).phase, "upcoming");
+assert.equal(allOpen.quarters.find((quarter) => quarter.quarter === 2).phase, "missing");
+assert.equal(allOpen.quarters.find((quarter) => quarter.quarter === 1).phase, "missing");
+assert.equal(allOpen.defaultQuarter, 3);
+
+const afterReported = buildQuarterlyEarningsViewModel({
+  ticker: "DEMO",
+  year: 2026,
+  latestReportedQuarter: 2,
+  quarters: [
+    { quarter: 2, label: "Q2", evaluated: true },
+    { quarter: 3, label: "Q3", evaluated: false, lifecycleStatus: "OPEN" }
+  ],
+  rows: [{
+    key: "margin",
+    label: "الهامش",
+    cells: {
+      2: { requiredValue: 35, actualValue: 37, unit: "%", type: "minimum", status: "PASSED", reported: true },
+      3: { requiredValue: 39, unit: "%", type: "minimum", status: "NOT_REPORTED" }
+    }
+  }]
+});
+assert.equal(afterReported.quarters.find((quarter) => quarter.quarter === 3).phase, "upcoming");
+assert.equal(afterReported.quarters.find((quarter) => quarter.quarter === 2).phase, "reported");
+
+assert.equal(compactRequirementDisplay({ requiredValue: 11.5, requiredDisplay: "11.5 مليار دولار أو أكثر", unit: "USD billion", type: "minimum" }), "≥ $11.5B");
+assert.equal(compactRequirementDisplay({ requiredValue: 37, requiredDisplay: "37% أو أكثر", unit: "%", type: "minimum" }), "≥ 37%");
+assert.equal(compactRequirementDisplay({ requiredValue: 1.1, requiredDisplay: "1.1 مليار دولار أو أقل", unit: "USD billion", type: "maximum" }), "≤ $1.1B");
+
+console.log("Franklin earnings v57 presentation contract passed.");
