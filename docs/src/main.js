@@ -59,6 +59,11 @@ async function installOptionalRuntime(store, cloud, auditBootstrapError) {
     "Earnings table experience"
   );
   const earningsTableReady = earningsTable.EARNINGS_TABLE_EXPERIENCE_VERSION === "v57";
+
+  // Install the stock workspace shell first and with an explicit version so every
+  // stock page receives the same selected-company header before presentation helpers load.
+  await loadOptional("./ui/stockWorkspaceNavigation.js?v=v60-shared-stock-header", "Shared stock workspace");
+
   const optionalModules = [
     loadOptional("./ui/mobile2Enhancer.js", "Mobile enhancer"),
     loadOptional("./ui/quarterlyResultsEnhancer.js", "Quarterly results enhancer"),

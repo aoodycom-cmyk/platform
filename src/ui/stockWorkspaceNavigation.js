@@ -1,10 +1,11 @@
 import { getExternalAnalysis } from "../externalAnalysis/storage.js";
+import { companyLogoMarkup } from "./foundation.js";
 
-export const STOCK_WORKSPACE_NAV_VERSION = "v59";
+export const STOCK_WORKSPACE_NAV_VERSION = "v60";
 
 const MOBILE_MAX_WIDTH = 899;
-const STYLE_ID = "franklin-stock-workspace-v59";
-const STYLE_URL = "./styles-stock-workspace-v58.css?v=v59-unified-shell";
+const STYLE_ID = "franklin-stock-workspace-v60";
+const STYLE_URL = "./styles-stock-workspace-v58.css?v=v60-shared-stock-header";
 const STOCK_PANELS = new Set(["external-report", "quarterly-scorecard", "company-profile", "strengths-risks"]);
 
 let scheduledFrame = 0;
@@ -35,26 +36,60 @@ function mountNavigation(store, root) {
   const mobile = window.innerWidth <= MOBILE_MAX_WIDTH;
   const active = mobile && STOCK_PANELS.has(activePanel);
   document.documentElement.classList.toggle("franklin-stock-workspace-active", active);
-  root.querySelectorAll("[data-stock-workspace-nav]").forEach((node) => node.remove());
+  root.querySelectorAll("[data-stock-workspace-nav], [data-stock-workspace-header]").forEach((node) => node.remove());
   if (!active || !styleReady) return;
 
   normalizeEarningsTable(root);
   const context = resolveStockContext(state);
   if (!context.ticker) return;
   const report = getExternalAnalysis(state.externalAnalyses || {}, context.ticker, context.reportId || "latest");
-  const hasCompanyProfile = Boolean(report?.companyProfile);
+  if (!report) return;
+  const hasCompanyProfile = Boolean(report.companyProfile);
   const frame = root.querySelector(`.mobile-app-frame.panel-${activePanel}`) || root.querySelector(".mobile-app-frame");
-  const header = frame?.querySelector(":scope > .mobile-app-header");
-  if (!frame || !header) return;
+  const nativeHeader = frame?.querySelector(":scope > .mobile-app-header");
+  if (!frame || !nativeHeader) return;
+
+  const sharedHeader = buildSharedStockHeader(report, state);
+  nativeHeader.insertAdjacentElement("afterend", sharedHeader);
 
   const nav = document.createElement("nav");
   nav.className = "franklin-stock-page-nav";
   nav.dataset.stockWorkspaceNav = "true";
   nav.setAttribute("aria-label", isArabicUi() ? "صفحات السهم" : "Stock pages");
   nav.innerHTML = pageButtons(activePanel, hasCompanyProfile);
-  header.insertAdjacentElement("afterend", nav);
+  sharedHeader.insertAdjacentElement("afterend", nav);
+
   root.querySelector(".owner-presentation-edit-trigger-fallback")?.remove();
   if (activePanel === "external-report") markLegacyEarningsDetail(root);
+}
+
+function buildSharedStockHeader(report, state) {
+  const ticker = report?.company?.ticker || "—";
+  const companyName = report?.company?.name || ticker;
+  const logoUrl = report?.presentation?.companyLogoDataUrl || "";
+  const updated = report?.reportPeriod || report?.analysisDate || "—";
+  const header = document.createElement("header");
+  header.className = "mobile-app-header report-app-bar v31-report-app-bar franklin-shared-stock-header";
+  header.dataset.stockWorkspaceHeader = "true";
+  header.innerHTML = `
+    <button class="header-icon-button report-back-button" data-panel="home" aria-label="${escapeHtml(isArabicUi() ? "العودة إلى المكتبة" : "Back to My Stocks")}" title="${escapeHtml(isArabicUi() ? "العودة إلى المكتبة" : "Back to My Stocks")}"><span aria-hidden="true">${isArabicUi() ? "›" : "‹"}</span></button>
+    <details class="mobile-app-menu">
+      <summary aria-label="${escapeHtml(isArabicUi() ? "المزيد" : "More")}" title="${escapeHtml(isArabicUi() ? "المزيد" : "More")}"><span aria-hidden="true">•••</span></summary>
+      <div><div class="language-toggle" role="group" aria-label="Language"><button class="${state.language === "ar" ? "active" : ""}" data-language="ar">العربية</button><span></span><button class="${state.language === "en" ? "active" : ""}" data-language="en">English</button></div></div>
+    </details>
+    <div class="report-app-identity">
+      ${companyLogoMarkup({ ticker, name: companyName, logoUrl, className: "report-company-logo" })}
+      <div class="report-app-identity-copy">
+        <div>
+          <strong dir="auto">${escapeHtml(companyName)}</strong>
+          ${report?.companyProfile
+            ? `<button class="report-profile-link" data-profile-ticker="${escapeHtml(ticker)}" data-profile-report-id="${escapeHtml(report.id || "latest")}"><bdi dir="ltr">${escapeHtml(ticker)}</bdi></button>`
+            : `<span class="report-ticker-pill"><bdi dir="ltr">${escapeHtml(ticker)}</bdi></span>`}
+        </div>
+        <span>${isArabicUi() ? "آخر تحديث" : "Last update"}: <bdi dir="ltr">${escapeHtml(updated)}</bdi></span>
+      </div>
+    </div>`;
+  return header;
 }
 
 function pageButtons(activePanel, hasCompanyProfile) {
