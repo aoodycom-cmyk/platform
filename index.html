@@ -10,10 +10,10 @@
   <meta name="apple-mobile-web-app-title" content="Franklin Research">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png">
-  <link rel="manifest" href="./manifest.webmanifest?v=v62-agreed-ui-fixes">
+  <link rel="manifest" href="./manifest.webmanifest?v=v63-single-stock-shell">
   <script>
     (function () {
-      var version = "v62-agreed-ui-fixes";
+      var version = "v63-single-stock-shell";
       window.__FRANKLIN_BOOT_VERSION = version;
       window.__FRANKLIN_BOOT_EVENTS = [];
       function escapeRegExp(value){return String(value).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
@@ -31,26 +31,27 @@
     }());
   </script>
   <script>
-    (function(){var version="v62-agreed-ui-fixes",forceReset=/(?:[?&](?:fresh|reset-pwa)=)/.test(window.location.search||"");if(!("serviceWorker" in navigator)||!("caches" in window))return;if(!forceReset&&sessionStorage.getItem("franklin-cache-reset")===version)return;sessionStorage.setItem("franklin-cache-reset",version);Promise.all([navigator.serviceWorker.getRegistrations().then(function(items){return Promise.all(items.map(function(item){return item.unregister();}));}),caches.keys().then(function(keys){return Promise.all(keys.filter(function(key){return key.indexOf("franklin-research")===0;}).map(function(key){return caches.delete(key);}));})]).finally(function(){if(!forceReset){window.location.reload();return;}var nextUrl=new URL(window.location.href);nextUrl.searchParams.delete("fresh");nextUrl.searchParams.delete("reset-pwa");nextUrl.searchParams.set("v",version);window.location.replace(nextUrl.toString());});}());
+    (function(){var version="v63-single-stock-shell",forceReset=/(?:[?&](?:fresh|reset-pwa)=)/.test(window.location.search||"");if(!("serviceWorker" in navigator)||!("caches" in window))return;if(!forceReset&&sessionStorage.getItem("franklin-cache-reset")===version)return;sessionStorage.setItem("franklin-cache-reset",version);Promise.all([navigator.serviceWorker.getRegistrations().then(function(items){return Promise.all(items.map(function(item){return item.unregister();}));}),caches.keys().then(function(keys){return Promise.all(keys.filter(function(key){return key.indexOf("franklin-research")===0;}).map(function(key){return caches.delete(key);}));})]).finally(function(){if(!forceReset){window.location.reload();return;}var nextUrl=new URL(window.location.href);nextUrl.searchParams.delete("fresh");nextUrl.searchParams.delete("reset-pwa");nextUrl.searchParams.set("v",version);window.location.replace(nextUrl.toString());});}());
   </script>
   <link rel="stylesheet" href="./styles.css?v=v52-rtl-financial-presentation">
-  <link rel="stylesheet" href="./styles-mobile-scorecard-figma.css?v=v62-agreed-ui-fixes">
-  <link rel="stylesheet" href="./styles-quarterly-earnings-entry.css?v=v62-agreed-ui-fixes">
-  <link rel="stylesheet" href="./styles-desktop.css?v=v62-agreed-ui-fixes">
-  <link rel="stylesheet" href="./styles-premium.css?v=v62-agreed-ui-fixes">
-  <link rel="stylesheet" href="./styles-v11-mobile-cleanup.css?v=v62-agreed-ui-fixes">
+  <link rel="stylesheet" href="./styles-mobile-scorecard-figma.css?v=v63-single-stock-shell">
+  <link rel="stylesheet" href="./styles-quarterly-earnings-entry.css?v=v63-single-stock-shell">
+  <link rel="stylesheet" href="./styles-desktop.css?v=v63-single-stock-shell">
+  <link rel="stylesheet" href="./styles-premium.css?v=v63-single-stock-shell">
+  <link rel="stylesheet" href="./styles-v11-mobile-cleanup.css?v=v63-single-stock-shell">
   <link rel="stylesheet" href="./styles-mobile2.css?v=v52-rtl-financial-presentation">
   <link rel="stylesheet" href="./styles-visual-system.css?v=v39-visible-owner-presentation">
   <link rel="stylesheet" href="./styles-franklin-v2.css?v=v40-franklin-mobile-v2">
   <link rel="stylesheet" href="./styles-design-director-v45.css?v=v45-design-director">
   <link rel="stylesheet" href="./styles-mobile-hotfix-v46.css?v=v52-rtl-financial-presentation">
-  <link rel="stylesheet" href="./styles-editorial-finance-v53.css?v=v62-agreed-ui-fixes">
-  <link rel="stylesheet" href="./styles-stock-workspace-v61.css?v=v62-agreed-ui-fixes">
-  <link rel="stylesheet" href="./styles-agreed-ui-fixes-v62.css?v=v62-agreed-ui-fixes">
-  <script src="./backend-config.js?v=v62-agreed-ui-fixes"></script>
+  <link rel="stylesheet" href="./styles-editorial-finance-v53.css?v=v63-single-stock-shell">
+  <link rel="stylesheet" href="./styles-stock-workspace-v61.css?v=v63-single-stock-shell">
+  <link rel="stylesheet" href="./styles-agreed-ui-fixes-v62.css?v=v63-single-stock-shell">
+  <link rel="stylesheet" href="./styles-stock-workspace-v63.css?v=v63-single-stock-shell">
+  <script src="./backend-config.js?v=v63-single-stock-shell"></script>
 </head>
 <body>
   <div id="app" data-franklin-boot-placeholder="true"><main aria-hidden="true" style="min-height:100dvh;background:#0e1011"></main></div>
-  <script type="module" src="./src/main.js?v=v62-agreed-ui-fixes"></script>
+  <script type="module" src="./src/main.js?v=v63-single-stock-shell"></script>
 </body>
 </html>
