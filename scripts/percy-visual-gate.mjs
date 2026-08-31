@@ -13,9 +13,14 @@ const context = await browser.newContext({
   locale: 'ar-SA'
 });
 const page = await context.newPage();
-const errors = [];
-page.on('pageerror', error => errors.push(`pageerror: ${error.message}`));
-page.on('console', message => { if (message.type() === 'error') errors.push(`console: ${message.text()}`); });
+const pageErrors = [];
+const criticalResourceFailures = [];
+page.on('pageerror', error => pageErrors.push(`pageerror: ${error.message}`));
+page.on('response', response => {
+  if (response.status() < 400) return;
+  const url = response.url();
+  if (/\.(?:js|css)(?:\?|$)/i.test(url)) criticalResourceFailures.push(`${response.status()} ${url}`);
+});
 
 await page.goto(BASE_URL, { waitUntil: 'networkidle' });
 await page.waitForFunction(() => Boolean(window.__equityResearchStore), null, { timeout: 15000 });
@@ -49,15 +54,15 @@ await page.evaluate(async () => {
 await page.waitForTimeout(700);
 
 const captures = [
-  ['Summary', async () => navigate('summary')],
-  ['Earnings', async () => navigate('earnings')],
-  ['Company', async () => navigate('company')],
-  ['Strengths Risks', async () => navigate('strengths')]
+  ['Summary', 'summary'],
+  ['Earnings', 'earnings'],
+  ['Company', 'company'],
+  ['Strengths Risks', 'strengths']
 ];
 
 const measurements = {};
-for (const [name, open] of captures) {
-  await open();
+for (const [name, tab] of captures) {
+  await navigate(tab);
   await page.waitForTimeout(650);
   measurements[name] = await measureStockPage();
   await percySnapshot(page, `Franklin · ${name}`, { widths, minHeight: 844 });
@@ -95,9 +100,10 @@ if (stock.length) {
 if (!exportMetrics.found) failures.push('Export: page root not found');
 if (exportMetrics.overflow > 0) failures.push(`Export: horizontal overflow ${exportMetrics.overflow}px`);
 if (exportMetrics.background && exportMetrics.bodyBackground && exportMetrics.background !== exportMetrics.bodyBackground) failures.push(`Export: background differs from app background (${exportMetrics.background} vs ${exportMetrics.bodyBackground})`);
-if (errors.length) failures.push(...errors.slice(0, 10));
+failures.push(...pageErrors.slice(0, 10));
+failures.push(...criticalResourceFailures.slice(0, 10).map(item => `critical resource: ${item}`));
 
-console.log('FRANKLIN_VISUAL_MEASUREMENTS=' + JSON.stringify({ measurements, exportMetrics, errors }, null, 2));
+console.log('FRANKLIN_VISUAL_MEASUREMENTS=' + JSON.stringify({ measurements, exportMetrics, pageErrors, criticalResourceFailures }, null, 2));
 if (failures.length) {
   console.error('\nFRANKLIN VISUAL QUALITY GATE FAILED');
   failures.forEach(failure => console.error(`- ${failure}`));
