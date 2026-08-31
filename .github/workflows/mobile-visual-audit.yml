@@ -3,6 +3,8 @@ name: Franklin iPhone Visual Audit
 on:
   push:
     branches: [audit/visual-shell-20260831]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
@@ -29,6 +31,7 @@ jobs:
       - name: Capture all stock pages at iPhone size
         run: node scripts/mobile-visual-audit.mjs
       - name: Upload visual audit
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: franklin-iphone-visual-audit
