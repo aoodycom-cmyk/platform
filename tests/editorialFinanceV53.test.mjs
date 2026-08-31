@@ -2,20 +2,29 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-const css = readFileSync(new URL("../styles-editorial-finance-v53.css", import.meta.url), "utf8");
+const entry = readFileSync(new URL("../styles-editorial-finance-v53.css", import.meta.url), "utf8");
+const css = readFileSync(new URL("../styles-editorial-finance-base-v53.css", import.meta.url), "utf8");
+const earningsCss = readFileSync(new URL("../styles-earnings-compact-v56.css", import.meta.url), "utf8");
 const components = readFileSync(new URL("../src/ui/components.js", import.meta.url), "utf8");
 const main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
 const worker = readFileSync(new URL("../service-worker.js", import.meta.url), "utf8");
 const sync = readFileSync(new URL("../scripts/sync-deploy.mjs", import.meta.url), "utf8");
 
 const editorialIndex = html.indexOf("styles-editorial-finance-v53.css");
-assert.ok(editorialIndex > html.indexOf("styles-mobile-hotfix-v46.css"), "Editorial Finance must be the final CSS layer so legacy overrides cannot shrink its typography.");
+assert.ok(editorialIndex > html.indexOf("styles-mobile-hotfix-v46.css"), "Editorial Finance must be the final application CSS entry point.");
 assert.ok(editorialIndex < html.indexOf("src/main.js"), "Editorial Finance must load before the application mounts.");
-assert.match(html, /src\/main\.js\?v=v54-launch-hotfix/, "The changed report markup must use a fresh asset version.");
-assert.match(main, /components\.js\?v=v54-launch-hotfix/, "The application entry point must fetch the redesigned component module under the new asset version.");
-assert.match(worker, /editorial-v54-hotfix/, "The PWA cache must advance for the visual release.");
-assert.ok(worker.includes('"./styles-editorial-finance-v53.css"'), "The editorial layer must remain available offline.");
-assert.ok(sync.includes('"styles-editorial-finance-v53.css"'), "Deploy copies must be generated from the canonical editorial stylesheet.");
+assert.match(html, /src\/main\.js\?v=v54-launch-hotfix/, "The stable application entry URL remains unchanged.");
+assert.match(main, /components\.js\?v=v54-launch-hotfix/, "The report component asset contract remains unchanged.");
+assert.match(worker, /editorial-v54-hotfix/, "The PWA cache retains the launch-hotfix lineage while advancing the earnings release.");
+
+assert.ok(entry.includes("styles-editorial-finance-base-v53.css"), "The full Codex editorial layer must remain the base presentation.");
+assert.ok(entry.includes("styles-earnings-compact-v56.css"), "The isolated earnings layer must load after the editorial base.");
+assert.ok(worker.includes('"./styles-editorial-finance-v53.css"'));
+assert.ok(worker.includes('"./styles-editorial-finance-base-v53.css"'));
+assert.ok(worker.includes('"./styles-earnings-compact-v56.css"'));
+assert.ok(sync.includes('"styles-editorial-finance-v53.css"'));
+assert.ok(sync.includes('"styles-editorial-finance-base-v53.css"'));
+assert.ok(sync.includes('"styles-earnings-compact-v56.css"'));
 
 for (const token of [
   "--editorial-surface: #17191a",
@@ -26,10 +35,12 @@ for (const token of [
 ]) {
   assert.ok(css.includes(token), `Editorial token missing: ${token}`);
 }
-assert.match(css, /@media \(max-width: 899px\)/, "The redesign must remain iPhone-first and avoid destabilizing desktop reports.");
-assert.match(css, /font-size:\s*15\.5px/, "Arabic analysis copy must be comfortably readable on iPhone.");
-assert.match(css, /font-variant-numeric:\s*tabular-nums lining-nums/, "Financial values must align with tabular numerals.");
-assert.equal(css.includes("linear-gradient("), false, "The editorial layer must use calm tonal surfaces rather than generated-looking gradients.");
+assert.match(css, /@media \(max-width: 899px\)/, "The Codex redesign must remain iPhone-first.");
+assert.match(css, /font-size:\s*15\.5px/, "Arabic analysis copy must remain comfortably readable on iPhone.");
+assert.match(css, /font-variant-numeric:\s*tabular-nums lining-nums/, "Financial values must keep tabular numerals.");
+assert.equal(css.includes("linear-gradient("), false, "The Codex editorial base must keep calm tonal surfaces.");
+assert.equal(earningsCss.includes("linear-gradient("), false, "The earnings screen must keep the same quiet Franklin identity.");
+assert.ok(earningsCss.includes('data-earnings-table-enhanced="true"'), "Earnings overrides must remain isolated from the rest of Franklin.");
 
 for (const contract of [
   "thesis-balance-card",
@@ -41,11 +52,11 @@ for (const contract of [
 ]) {
   assert.ok(components.includes(contract), `Thesis balance presentation contract missing: ${contract}`);
 }
-assert.ok(components.includes('isSupport ? "support" : "risk"'), "The thesis preview must expose distinct support and risk tones.");
-assert.ok(components.includes("report.metadata?.franklinV3Report?.strengths"), "Rich canonical strength evidence must be preferred over flattened legacy strings.");
-assert.ok(components.includes("report.metadata?.franklinV3Report?.risks"), "Rich canonical risk evidence must be preserved.");
-assert.ok(components.includes("new Set(ids.map"), "Duplicate source IDs must not inflate the displayed provenance count.");
-assert.ok(components.includes('data-panel="strengths-risks"'), "The preview card must retain the full evidence navigation.");
-assert.equal(components.includes("فرصة الاستثمار • Investment Opportunity"), false, "Arabic report headings must not contain mixed-language clutter.");
+assert.ok(components.includes('isSupport ? "support" : "risk"'));
+assert.ok(components.includes("report.metadata?.franklinV3Report?.strengths"));
+assert.ok(components.includes("report.metadata?.franklinV3Report?.risks"));
+assert.ok(components.includes("new Set(ids.map"));
+assert.ok(components.includes('data-panel="strengths-risks"'));
+assert.equal(components.includes("فرصة الاستثمار • Investment Opportunity"), false);
 
-console.log("Franklin Editorial Finance v53: PASS");
+console.log("Franklin Editorial Finance v53 restored base: PASS");

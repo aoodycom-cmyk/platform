@@ -1,0 +1,770 @@
+/* Franklin Editorial Finance v53
+   A reversible, mobile-first presentation layer inspired by premium research
+   products. Financial logic and stored analysis data are intentionally untouched. */
+
+:root {
+  --editorial-bg: #f4f5f6;
+  --editorial-surface: #ffffff;
+  --editorial-surface-raised: #f0f2f3;
+  --editorial-line: rgba(15, 23, 42, 0.10);
+  --editorial-line-strong: rgba(15, 23, 42, 0.16);
+  --editorial-text: #16191d;
+  --editorial-text-soft: #444a50;
+  --editorial-muted: #747b82;
+  --editorial-dim: #969ca2;
+  --editorial-accent: #138d82;
+  --editorial-positive: #248a46;
+  --editorial-positive-surface: rgba(36, 138, 70, 0.075);
+  --editorial-negative: #c84758;
+  --editorial-negative-surface: rgba(200, 71, 88, 0.07);
+  --editorial-warning: #a8731b;
+  --editorial-radius-card: 18px;
+  --editorial-radius-control: 12px;
+  --editorial-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Arabic", "Geeza Pro", "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+}
+
+html[data-theme="dark"] {
+  --editorial-bg: #0e1011;
+  --editorial-surface: #17191a;
+  --editorial-surface-raised: #1c1e20;
+  --editorial-line: rgba(255, 255, 255, 0.075);
+  --editorial-line-strong: rgba(255, 255, 255, 0.12);
+  --editorial-text: #f0f1f2;
+  --editorial-text-soft: #c7cacc;
+  --editorial-muted: #9a9fa4;
+  --editorial-dim: #74797e;
+  --editorial-accent: #59cfc0;
+  --editorial-positive: #55c271;
+  --editorial-positive-surface: rgba(85, 194, 113, 0.085);
+  --editorial-negative: #f06b78;
+  --editorial-negative-surface: rgba(240, 107, 120, 0.085);
+  --editorial-warning: #d7a64d;
+}
+
+@media (max-width: 899px) {
+  html,
+  body,
+  button,
+  input,
+  select,
+  textarea,
+  summary {
+    font-family: var(--editorial-font) !important;
+  }
+
+  html[dir="rtl"] :where(h1, h2, h3, h4, p, span, strong, small, button, summary, label) {
+    letter-spacing: 0 !important;
+  }
+
+  html[data-theme="dark"] body,
+  html[data-theme="dark"] .mobile-app-frame {
+    background: var(--editorial-bg) !important;
+    color: var(--editorial-text) !important;
+  }
+
+  .external-report-shell,
+  .stock-decision-workspace {
+    width: 100%;
+  }
+
+  .stock-decision-flow {
+    gap: 28px !important;
+  }
+
+  .v31-report-block {
+    gap: 12px !important;
+  }
+
+  .v31-report-block > h3,
+  .stock-report-section > header h3,
+  html[data-theme="dark"] .stock-report-section > header h3,
+  .thesis-balance-heading h3 {
+    margin: 0 !important;
+    color: var(--editorial-text) !important;
+    font-size: 20px !important;
+    line-height: 1.4 !important;
+    font-weight: 650 !important;
+  }
+
+  .v31-report-block > h3,
+  .stock-report-section:not(.v31-investment-tabs-section) > header {
+    padding: 0 4px !important;
+  }
+
+  .v31-report-block > h3 span {
+    color: var(--editorial-muted) !important;
+    font-weight: 400 !important;
+  }
+
+  .stock-report-section:not(.v31-investment-tabs-section) {
+    display: grid !important;
+    gap: 11px !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  .stock-report-section:not(.v31-investment-tabs-section) > header,
+  html[data-theme="dark"] .stock-report-section:not(.v31-investment-tabs-section) > header {
+    min-height: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  .stock-report-section:not(.v31-investment-tabs-section) > div,
+  html[data-theme="dark"] .stock-report-section:not(.v31-investment-tabs-section) > div {
+    padding: 17px !important;
+    overflow: hidden;
+    border: 1px solid var(--editorial-line-strong) !important;
+    border-radius: var(--editorial-radius-card) !important;
+    background: var(--editorial-surface) !important;
+  }
+
+  .investment-opportunity-section > div,
+  html[data-theme="dark"] .investment-opportunity-section > div {
+    padding: 18px !important;
+    border-color: var(--editorial-line-strong) !important;
+    border-radius: var(--editorial-radius-card) !important;
+    background: var(--editorial-surface) !important;
+  }
+
+  .stock-report-section p,
+  .stock-report-section li,
+  .stock-report-section td,
+  .investment-summary-workspace > p,
+  html[data-theme="dark"] .investment-summary-workspace > p {
+    color: var(--editorial-text-soft) !important;
+    font-size: 15.5px !important;
+    line-height: 1.85 !important;
+    font-weight: 400 !important;
+  }
+
+  .v31-stock-decision,
+  .terminal-stock-header.v31-stock-decision,
+  .v31-valuation-range-card,
+  .v31-assessment-card,
+  .v31-tracker-progress-card,
+  .library-company-card,
+  .v31-library-stock-row,
+  .m2-library-card {
+    border-color: var(--editorial-line-strong) !important;
+    border-radius: var(--editorial-radius-card) !important;
+    background: var(--editorial-surface) !important;
+    background-image: none !important;
+    box-shadow: none !important;
+  }
+
+  .v31-stock-decision,
+  .terminal-stock-header.v31-stock-decision {
+    padding: 18px !important;
+    gap: 18px !important;
+  }
+
+  .v31-current-price-hero > strong,
+  .v31-base-value-number strong,
+  .v31-range-values strong,
+  .stock-summary-metric strong,
+  .v31-current-price strong,
+  .v31-fair-value-line strong,
+  .v31-morningstar-line strong,
+  .v31-upside-line b,
+  [dir="ltr"] {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  .v31-current-price-hero > strong {
+    color: var(--editorial-text) !important;
+    font-size: 46px !important;
+    line-height: 1 !important;
+    font-weight: 650 !important;
+  }
+
+  .v31-current-price-hero > span,
+  .v31-current-price-hero > small,
+  .v31-base-value-card > p,
+  .v31-range-values span,
+  .stock-summary-metric span,
+  .v31-current-price span,
+  .v31-fair-value-line span,
+  .v31-morningstar-line span,
+  .v31-upside-line span {
+    color: var(--editorial-muted) !important;
+    font-size: 12px !important;
+    line-height: 1.55 !important;
+    font-weight: 450 !important;
+  }
+
+  .v31-recommendation-banner {
+    min-height: 48px !important;
+    border-width: 1px !important;
+    border-radius: var(--editorial-radius-control) !important;
+    font-weight: 650 !important;
+  }
+
+  .v31-recommendation-banner strong {
+    font-size: 17px !important;
+    font-weight: 650 !important;
+  }
+
+  .v31-base-value-card {
+    padding: 14px !important;
+    border: 1px solid var(--editorial-line) !important;
+    border-radius: 14px !important;
+    background: var(--editorial-surface-raised) !important;
+  }
+
+  .v31-base-value-number strong {
+    font-size: 28px !important;
+    font-weight: 650 !important;
+  }
+
+  .v31-base-value-number em {
+    border-width: 1px !important;
+    font-weight: 600 !important;
+  }
+
+  .v31-valuation-range-card {
+    padding: 18px 16px 16px !important;
+    gap: 16px !important;
+  }
+
+  .v31-range-line {
+    background: var(--editorial-surface-raised) !important;
+  }
+
+  .v31-range-line::before {
+    border-color: var(--editorial-text) !important;
+    background: var(--editorial-bg) !important;
+    box-shadow: 0 0 0 3px rgba(89, 207, 192, 0.16) !important;
+  }
+
+  .v31-range-values strong {
+    font-size: 16px !important;
+    font-weight: 650 !important;
+  }
+
+  .v31-valuation-range-card > p {
+    padding-top: 14px !important;
+    border-top-color: var(--editorial-line) !important;
+    color: var(--editorial-text-soft) !important;
+    font-size: 13px !important;
+    line-height: 1.75 !important;
+  }
+
+  .v31-assessment-card > header {
+    border-bottom-color: var(--editorial-line) !important;
+  }
+
+  .compact-metric-rows > div,
+  .estimate-revision-row,
+  .source-readable-card,
+  .company-glossary-item > summary {
+    min-height: 52px !important;
+    border-bottom-color: var(--editorial-line) !important;
+  }
+
+  .compact-metric-rows > div {
+    padding: 11px 0 !important;
+  }
+
+  .compact-metric-rows span,
+  .source-readable-card span,
+  .company-glossary-item > summary bdi {
+    color: var(--editorial-muted) !important;
+    font-size: 13px !important;
+    line-height: 1.55 !important;
+  }
+
+  .compact-metric-rows strong,
+  .source-readable-card strong,
+  .company-glossary-item > summary strong {
+    color: var(--editorial-text) !important;
+    font-size: 16px !important;
+    line-height: 1.5 !important;
+    font-weight: 550 !important;
+  }
+
+  .compact-drill-row,
+  .company-glossary-item,
+  .stock-report-section .compact-evidence-row {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .compact-drill-row {
+    padding: 0 !important;
+    border-top: 1px solid var(--editorial-line) !important;
+  }
+
+  .compact-drill-row:first-child {
+    border-top: 0 !important;
+  }
+
+  .compact-drill-row summary {
+    min-height: 54px !important;
+    color: var(--editorial-text) !important;
+    font-size: 15px !important;
+    line-height: 1.5 !important;
+    font-weight: 550 !important;
+  }
+
+  .compact-drill-row summary strong,
+  .compact-drill-row summary em {
+    color: var(--editorial-muted) !important;
+    font-weight: 450 !important;
+  }
+
+  .company-glossary-list {
+    gap: 0 !important;
+  }
+
+  .company-glossary-item {
+    border-top: 1px solid var(--editorial-line) !important;
+  }
+
+  .company-glossary-item:first-child {
+    border-top: 0 !important;
+  }
+
+  .company-glossary-item > summary {
+    padding-inline: 0 !important;
+  }
+
+  .company-glossary-item > div {
+    padding: 0 0 16px !important;
+  }
+
+  .company-glossary-item p,
+  .company-glossary-item small {
+    color: var(--editorial-text-soft) !important;
+    font-size: 15px !important;
+    line-height: 1.85 !important;
+  }
+
+  .stock-report-section .compact-evidence-items {
+    gap: 0 !important;
+  }
+
+  .stock-report-section .compact-evidence-items li {
+    padding: 0 !important;
+    border-top: 1px solid var(--editorial-line) !important;
+  }
+
+  .stock-report-section .compact-evidence-items li:first-child {
+    border-top: 0 !important;
+  }
+
+  .stock-report-section .compact-evidence-row {
+    min-height: 58px !important;
+    padding: 13px 0 !important;
+  }
+
+  .stock-report-section .compact-evidence-row strong {
+    color: var(--editorial-text) !important;
+    font-size: 15.5px !important;
+    line-height: 1.6 !important;
+    font-weight: 550 !important;
+  }
+
+  .stock-report-section .compact-evidence-row small {
+    color: var(--editorial-muted) !important;
+    font-size: 13px !important;
+    line-height: 1.6 !important;
+    font-weight: 400 !important;
+  }
+
+  .evidence-row-chevron {
+    color: var(--editorial-dim) !important;
+    font-size: 20px !important;
+    font-weight: 400 !important;
+  }
+
+  .library-card-grid {
+    gap: 14px !important;
+  }
+
+  .v31-library-stock-row,
+  .library-company-card.v31-library-stock-row {
+    padding: 17px !important;
+    gap: 15px !important;
+  }
+
+  .v31-library-stock-row .library-company-identity > div > strong {
+    color: var(--editorial-text) !important;
+    font-size: 17px !important;
+    line-height: 1.45 !important;
+    font-weight: 650 !important;
+  }
+
+  .v31-library-stock-row .library-company-identity > div > span {
+    color: var(--editorial-muted) !important;
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+  }
+
+  .v31-library-price-block {
+    border-top: 1px solid var(--editorial-line) !important;
+    border-bottom: 1px solid var(--editorial-line) !important;
+  }
+
+  .v31-current-price,
+  .v31-fair-value-line,
+  .v31-morningstar-line,
+  .v31-upside-line {
+    min-height: 68px !important;
+    padding: 12px 7px 10px !important;
+    border-inline-end-color: var(--editorial-line) !important;
+  }
+
+  .v31-current-price strong,
+  .v31-fair-value-line strong,
+  .v31-morningstar-line strong,
+  .v31-upside-line b {
+    font-size: 17px !important;
+    line-height: 1.3 !important;
+    font-weight: 650 !important;
+  }
+
+  .v2-library-scenarios {
+    gap: 0 !important;
+    border: 1px solid var(--editorial-line) !important;
+    border-radius: 13px !important;
+    overflow: hidden;
+  }
+
+  .v2-library-scenarios > span {
+    min-height: 54px !important;
+    border-radius: 0 !important;
+    border-inline-start: 1px solid var(--editorial-line) !important;
+    background: var(--editorial-surface-raised) !important;
+  }
+
+  .v2-library-scenarios > span:first-child {
+    border-inline-start: 0 !important;
+  }
+
+  .v2-library-scenarios small {
+    color: var(--editorial-muted) !important;
+    font-size: 11px !important;
+  }
+
+  .v2-library-scenarios b {
+    font-size: 14px !important;
+    font-weight: 650 !important;
+  }
+
+  /* Thesis balance: one coherent card, two evidence tones, one full-width divider. */
+  .v2-strengths-entry,
+  .thesis-balance-section {
+    display: grid !important;
+    gap: 12px !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .thesis-balance-heading {
+    padding-inline: 4px;
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 14px;
+  }
+
+  .thesis-balance-heading > div {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+  }
+
+  .thesis-balance-heading p {
+    margin: 0;
+    color: var(--editorial-accent);
+    font-size: 11px;
+    line-height: 1.4;
+    font-weight: 650;
+  }
+
+  .thesis-balance-heading > span {
+    flex: 0 0 auto;
+    color: var(--editorial-muted);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .thesis-balance-card,
+  .thesis-balance-full-card {
+    overflow: hidden;
+    border: 1px solid var(--editorial-line-strong);
+    border-radius: var(--editorial-radius-card);
+    background: var(--editorial-surface);
+  }
+
+  .thesis-balance-side {
+    padding: 18px 17px 20px;
+    display: grid;
+    gap: 12px;
+  }
+
+  .thesis-balance-side.support {
+    background: var(--editorial-positive-surface);
+  }
+
+  .thesis-balance-side.risk {
+    background: var(--editorial-negative-surface);
+  }
+
+  .thesis-balance-side > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .thesis-tone-pill,
+  .thesis-source-pill {
+    min-height: 32px;
+    padding: 5px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.3;
+    font-weight: 600;
+  }
+
+  .thesis-balance-side.support .thesis-tone-pill {
+    color: var(--editorial-positive);
+    background: rgba(85, 194, 113, 0.10);
+  }
+
+  .thesis-balance-side.risk .thesis-tone-pill {
+    color: var(--editorial-negative);
+    background: rgba(240, 107, 120, 0.11);
+  }
+
+  .thesis-tone-pill i {
+    direction: ltr;
+    font-size: 16px;
+    font-style: normal;
+    line-height: 1;
+  }
+
+  .thesis-source-pill {
+    padding-inline: 9px;
+    border: 1px solid var(--editorial-line);
+    color: var(--editorial-muted);
+    background: rgba(0, 0, 0, 0.05);
+    font-weight: 500;
+  }
+
+  .thesis-source-pill::before {
+    width: 6px;
+    height: 6px;
+    content: "";
+    border-radius: 999px;
+    background: var(--editorial-accent);
+  }
+
+  .thesis-balance-side > strong {
+    color: var(--editorial-text);
+    font-size: 17px;
+    line-height: 1.6;
+    font-weight: 600;
+  }
+
+  .thesis-balance-side > p {
+    margin: 0;
+    color: var(--editorial-text-soft);
+    font-size: 15.5px;
+    line-height: 1.85;
+    font-weight: 400;
+  }
+
+  .thesis-balance-divider {
+    width: 100%;
+    height: 1px;
+    background: var(--editorial-line-strong);
+  }
+
+  .thesis-balance-open {
+    width: 100%;
+    min-height: 54px;
+    padding: 10px 17px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 0;
+    border-top: 1px solid var(--editorial-line);
+    border-radius: 0;
+    color: var(--editorial-accent);
+    background: var(--editorial-surface);
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 600;
+    text-align: start;
+  }
+
+  .thesis-balance-open b {
+    color: var(--editorial-muted);
+    font-size: 23px;
+    line-height: 1;
+    font-weight: 400;
+  }
+
+  .thesis-balance-page {
+    gap: 16px !important;
+  }
+
+  .thesis-balance-page .v2-page-heading {
+    margin-bottom: 2px;
+  }
+
+  .thesis-balance-page .v2-page-heading button {
+    border-color: var(--editorial-line-strong);
+    border-radius: var(--editorial-radius-control);
+    color: var(--editorial-text);
+    background: var(--editorial-surface);
+  }
+
+  .thesis-balance-page .v2-page-heading p {
+    color: var(--editorial-accent);
+  }
+
+  .thesis-balance-page .v2-page-heading h1 {
+    color: var(--editorial-text);
+    font-size: 23px;
+    line-height: 1.4;
+    font-weight: 650;
+  }
+
+  .thesis-balance-intro {
+    margin: 0 4px 2px;
+    color: var(--editorial-muted);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+
+  .thesis-balance-group {
+    padding: 18px 17px 10px;
+    gap: 9px !important;
+  }
+
+  .thesis-balance-group.support {
+    background: var(--editorial-positive-surface);
+  }
+
+  .thesis-balance-group.risk {
+    background: var(--editorial-negative-surface);
+  }
+
+  .thesis-balance-full-card .thesis-balance-group > header {
+    min-height: 38px;
+  }
+
+  .thesis-balance-full-card .thesis-balance-group h2 {
+    min-height: 32px;
+    margin: 0;
+    padding: 5px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.4;
+    font-weight: 600;
+  }
+
+  .thesis-balance-full-card .thesis-balance-group.support h2 {
+    color: var(--editorial-positive);
+    background: rgba(85, 194, 113, 0.10);
+  }
+
+  .thesis-balance-full-card .thesis-balance-group.risk h2 {
+    color: var(--editorial-negative);
+    background: rgba(240, 107, 120, 0.11);
+  }
+
+  .thesis-balance-full-card .thesis-balance-group h2 i {
+    direction: ltr;
+    font-size: 16px;
+    font-style: normal;
+  }
+
+  .thesis-balance-full-card .thesis-balance-group > header > span {
+    min-width: 30px;
+    min-height: 30px;
+    border: 1px solid var(--editorial-line);
+    color: var(--editorial-muted);
+    background: transparent;
+  }
+
+  .thesis-balance-full-card .v2-evidence-group li {
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-top: 1px solid var(--editorial-line) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  .thesis-balance-full-card .v2-evidence-group li:first-child {
+    border-top: 0 !important;
+  }
+
+  .thesis-balance-full-card .compact-evidence-items {
+    gap: 0 !important;
+  }
+
+  .thesis-balance-full-card .compact-evidence-row {
+    min-height: 66px !important;
+    padding: 14px 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    color: var(--editorial-text);
+    background: transparent !important;
+  }
+
+  .thesis-balance-full-card .compact-evidence-row strong {
+    color: var(--editorial-text);
+    font-size: 16px;
+    line-height: 1.65;
+    font-weight: 550;
+  }
+
+  .thesis-balance-full-card .compact-evidence-row small {
+    color: var(--editorial-muted);
+    font-size: 13px;
+    line-height: 1.65;
+  }
+
+  .primary-btn,
+  .icon-btn,
+  .mobile-nav:not(.quarterly-scorecard-nav) button {
+    border-radius: var(--editorial-radius-control) !important;
+  }
+
+  .mobile-nav:not(.quarterly-scorecard-nav) {
+    border-top-color: var(--editorial-line-strong) !important;
+    background: rgba(14, 16, 17, 0.96) !important;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  :where(button, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--editorial-accent) !important;
+    outline-offset: 3px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thesis-balance-open,
+  .compact-evidence-row,
+  .compact-drill-row summary {
+    transition: none !important;
+  }
+}

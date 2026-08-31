@@ -54,11 +54,20 @@ function restorePreviousAuditState() {
 }
 
 async function installOptionalRuntime(store, cloud, auditBootstrapError) {
+  const earningsTable = await loadOptional(
+    "./ui/earningsTableExperience.js?v=v57-earnings-single-source",
+    "Earnings table experience"
+  );
+
+  // The prior Figma enhancer remains available as a safe visual fallback only.
+  // Loading both implementations together caused race conditions and conflicting DOM mutations.
+  if (!earningsTable.EARNINGS_TABLE_EXPERIENCE_VERSION) {
+    await loadOptional("./ui/quarterlyScorecardMobileFigma.js", "Quarterly scorecard mobile UI fallback");
+  }
+
   await Promise.all([
     loadOptional("./ui/mobile2Enhancer.js", "Mobile enhancer"),
     loadOptional("./ui/quarterlyResultsEnhancer.js", "Quarterly results enhancer"),
-    loadOptional("./ui/quarterlyScorecardMobileFigma.js", "Quarterly scorecard mobile UI"),
-    loadOptional("./ui/earningsTableExperience.js?v=v55-earnings-table", "Earnings table experience"),
     loadOptional("./ui/quarterlyEarningsEntry.js", "Quarterly earnings entry"),
     loadOptional("./ui/quarterlyEarningsJsonPromptV2.js", "Quarterly JSON prompt"),
     loadOptional("./ui/socialImageExport.js", "Social image export"),

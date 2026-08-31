@@ -1,2 +1,8 @@
-/* Load compact earnings presentation last so it can override legacy mobile scorecard sizing. */
-@import url("./styles-earnings-compact-v56.css?v=v56-compact-earnings");
+@import url("./styles-editorial-finance-base-v53.css?v=v57-editorial-restored");
+@import url("./styles-earnings-compact-v56.css?v=v57-earnings-single-source");
+
+/*
+  Franklin presentation entry point.
+  The original Codex editorial layer is preserved verbatim in the base file.
+  The earnings stylesheet is isolated and loaded after it for the quarterly screen only.
+*/
