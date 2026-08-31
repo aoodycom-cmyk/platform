@@ -1,0 +1,13 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+const nav=readFileSync(new URL("../src/ui/stockWorkspaceNavigation.js",import.meta.url),"utf8");
+const editor=readFileSync(new URL("../src/ui/reportPresentationEditor.js",import.meta.url),"utf8");
+const styles=readFileSync(new URL("../styles-stock-workspace-v58.css",import.meta.url),"utf8");
+const worker=readFileSync(new URL("../service-worker.js",import.meta.url),"utf8");
+const sync=readFileSync(new URL("../scripts/sync-deploy.mjs",import.meta.url),"utf8");
+for(const page of ["summary","earnings","company","strengths"])assert.ok(nav.includes(`data-stock-page="${page}"`));
+assert.ok(nav.includes("openExternalReport"));assert.ok(nav.includes("openQuarterlyScorecard"));assert.ok(nav.includes("openCompanyProfile"));assert.ok(nav.includes("normalizeEarningsTable"));assert.ok(nav.includes("franklin-summary-legacy-earnings-detail"));assert.equal(nav.includes("localStorage"),false);assert.equal(nav.includes("sessionStorage"),false);
+assert.ok(styles.includes("franklin-stock-workspace-active .mobile-bottom-nav"));assert.ok(styles.includes("franklin-stock-page-tabs"));assert.ok(styles.includes("fet-section-tabs"));assert.ok(styles.includes("fet-table-unified"));assert.ok(styles.includes("text-align: right"));assert.ok(styles.includes("text-align: left"));
+assert.ok(editor.includes("stockWorkspaceNavigation.js?v=v58-stock-pages"));assert.ok(editor.includes("owner-presentation-dialog"));assert.ok(editor.includes("data-owner-presentation-open"));assert.ok(editor.includes("بيانات بطاقة الشركة"));assert.equal(editor.includes("<details open>"),false);
+assert.ok(worker.includes("v58-stock-pages"));assert.ok(worker.includes("styles-stock-workspace-v58.css"));assert.ok(worker.includes("stockWorkspaceNavigation.js"));assert.ok(sync.includes("styles-stock-workspace-v58.css"));
+console.log("Franklin stock workspace v58 contract passed.");
