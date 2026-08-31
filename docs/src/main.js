@@ -5,6 +5,7 @@ import { migrateFranklinState, summarizeFranklinState } from "./state/migration.
 const root = document.getElementById("app");
 const APP_STATE_KEY = "equityResearchV4State";
 const AUDIT_PREVIOUS_STATE_KEY = "franklinAuditPreviousLocalStateV1";
+const MOBILE_PRESENTATION_MAX_WIDTH = 899;
 
 bootFranklin();
 
@@ -54,11 +55,14 @@ function restorePreviousAuditState() {
 }
 
 async function installOptionalRuntime(store, cloud, auditBootstrapError) {
+  const scorecardPresentation = window.innerWidth <= MOBILE_PRESENTATION_MAX_WIDTH
+    ? loadOptional("./ui/earningsTableV57.js?v=v57-earnings-single-source", "Earnings table experience")
+    : loadOptional("./ui/quarterlyScorecardMobileFigma.js?v=v57-desktop-scorecard", "Quarterly scorecard desktop outlook");
+
   await Promise.all([
     loadOptional("./ui/mobile2Enhancer.js", "Mobile enhancer"),
     loadOptional("./ui/quarterlyResultsEnhancer.js", "Quarterly results enhancer"),
-    loadOptional("./ui/quarterlyScorecardMobileFigma.js", "Quarterly scorecard mobile UI"),
-    loadOptional("./ui/earningsTableExperience.js?v=v55-earnings-table", "Earnings table experience"),
+    scorecardPresentation,
     loadOptional("./ui/quarterlyEarningsEntry.js", "Quarterly earnings entry"),
     loadOptional("./ui/quarterlyEarningsJsonPromptV2.js", "Quarterly JSON prompt"),
     loadOptional("./ui/socialImageExport.js", "Social image export"),

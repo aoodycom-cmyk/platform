@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-v11-franklin-mobile-v2-v52-editorial-v54-hotfix-v55-earnings-table";
+const CACHE_NAME = "franklin-research-v11-franklin-mobile-v2-v52-editorial-v57-earnings-single-source";
 const STATIC_ASSETS = [
   "./offline.html",
   "./rescue.html",
@@ -15,6 +15,7 @@ const STATIC_ASSETS = [
   "./styles-design-director-v45.css",
   "./styles-mobile-hotfix-v46.css",
   "./styles-editorial-finance-v53.css",
+  "./styles-earnings-v57.css",
   "./manifest.webmanifest",
   "./src/main.js",
   "./src/pwa.js",
@@ -26,6 +27,7 @@ const STATIC_ASSETS = [
   "./src/ui/mobile2Enhancer.js",
   "./src/ui/quarterlyScorecardMobileFigma.js",
   "./src/ui/earningsTableExperience.js",
+  "./src/ui/earningsTableV57.js",
   "./src/ui/quarterlyEarningsEntry.js",
   "./src/ui/quarterlyEarningsJsonPromptV2.js",
   "./src/ui/quarterlyScorecardExport.js",
