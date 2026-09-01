@@ -10,10 +10,10 @@
   <meta name="apple-mobile-web-app-title" content="Franklin Research">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png">
-  <link rel="manifest" href="./manifest.webmanifest?v=visual-qa-20260901-7">
+  <link rel="manifest" href="./manifest.webmanifest?v=compact-visual-20260901-1">
   <script>
     (function () {
-      var version = "visual-qa-20260901-7";
+      var version = "compact-visual-20260901-1";
       window.__FRANKLIN_BOOT_VERSION = version;
       window.__FRANKLIN_BOOT_EVENTS = [];
       function escapeRegExp(value){return String(value).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
@@ -31,25 +31,25 @@
     }());
   </script>
   <script>
-    (function(){var version="visual-qa-20260901-7",forceReset=/(?:[?&](?:fresh|reset-pwa)=)/.test(window.location.search||"");if(!("serviceWorker" in navigator)||!("caches" in window))return;if(!forceReset&&sessionStorage.getItem("franklin-cache-reset")===version)return;sessionStorage.setItem("franklin-cache-reset",version);Promise.all([navigator.serviceWorker.getRegistrations().then(function(items){return Promise.all(items.map(function(item){return item.unregister();}));}),caches.keys().then(function(keys){return Promise.all(keys.filter(function(key){return key.indexOf("franklin-research")===0;}).map(function(key){return caches.delete(key);}));})]).finally(function(){if(!forceReset){window.location.reload();return;}var nextUrl=new URL(window.location.href);nextUrl.searchParams.delete("fresh");nextUrl.searchParams.delete("reset-pwa");nextUrl.searchParams.set("v",version);window.location.replace(nextUrl.toString());});}());
+    (function(){var version="compact-visual-20260901-1",forceReset=/(?:[?&](?:fresh|reset-pwa)=)/.test(window.location.search||"");if(!("serviceWorker" in navigator)||!("caches" in window))return;if(!forceReset&&sessionStorage.getItem("franklin-cache-reset")===version)return;sessionStorage.setItem("franklin-cache-reset",version);Promise.all([navigator.serviceWorker.getRegistrations().then(function(items){return Promise.all(items.map(function(item){return item.unregister();}));}),caches.keys().then(function(keys){return Promise.all(keys.filter(function(key){return key.indexOf("franklin-research")===0;}).map(function(key){return caches.delete(key);}));})]).finally(function(){if(!forceReset){window.location.reload();return;}var nextUrl=new URL(window.location.href);nextUrl.searchParams.delete("fresh");nextUrl.searchParams.delete("reset-pwa");nextUrl.searchParams.set("v",version);window.location.replace(nextUrl.toString());});}());
   </script>
-  <link rel="stylesheet" href="./styles.css?v=visual-qa-20260901-7">
-  <link rel="stylesheet" href="./styles-mobile-scorecard-figma.css?v=visual-qa-20260901-7">
-  <link rel="stylesheet" href="./styles-quarterly-earnings-entry.css?v=visual-qa-20260901-7">
-  <link rel="stylesheet" href="./styles-desktop.css?v=visual-qa-20260901-7">
-  <link rel="stylesheet" href="./styles-premium.css?v=visual-qa-20260901-7">
-  <link rel="stylesheet" href="./styles-v11-mobile-cleanup.css?v=visual-qa-20260901-7">
-  <link rel="stylesheet" href="./styles-mobile2.css?v=visual-qa-20260901-7">
-  <link rel="stylesheet" href="./styles-visual-system.css?v=visual-qa-20260901-7">
-  <link rel="stylesheet" href="./styles-franklin-v2.css?v=visual-qa-20260901-7">
-  <link rel="stylesheet" href="./styles-design-director-v45.css?v=visual-qa-20260901-7">
-  <link rel="stylesheet" href="./styles-mobile-hotfix-v46.css?v=visual-qa-20260901-7">
-  <link rel="stylesheet" href="./styles-editorial-finance-v53.css?v=visual-qa-20260901-7">
-  <link rel="stylesheet" href="./styles-stock-workspace-v61.css?v=visual-qa-20260901-7">
-  <script src="./backend-config.js?v=visual-qa-20260901-7"></script>
+  <link rel="stylesheet" href="./styles.css?v=compact-visual-20260901-1">
+  <link rel="stylesheet" href="./styles-mobile-scorecard-figma.css?v=compact-visual-20260901-1">
+  <link rel="stylesheet" href="./styles-quarterly-earnings-entry.css?v=compact-visual-20260901-1">
+  <link rel="stylesheet" href="./styles-desktop.css?v=compact-visual-20260901-1">
+  <link rel="stylesheet" href="./styles-premium.css?v=compact-visual-20260901-1">
+  <link rel="stylesheet" href="./styles-v11-mobile-cleanup.css?v=compact-visual-20260901-1">
+  <link rel="stylesheet" href="./styles-mobile2.css?v=compact-visual-20260901-1">
+  <link rel="stylesheet" href="./styles-visual-system.css?v=compact-visual-20260901-1">
+  <link rel="stylesheet" href="./styles-franklin-v2.css?v=compact-visual-20260901-1">
+  <link rel="stylesheet" href="./styles-design-director-v45.css?v=compact-visual-20260901-1">
+  <link rel="stylesheet" href="./styles-mobile-hotfix-v46.css?v=compact-visual-20260901-1">
+  <link rel="stylesheet" href="./styles-editorial-finance-v53.css?v=compact-visual-20260901-1">
+  <link rel="stylesheet" href="./styles-stock-workspace-v61.css?v=compact-visual-20260901-1">
+  <script src="./backend-config.js?v=compact-visual-20260901-1"></script>
 </head>
 <body>
   <div id="app" data-franklin-boot-placeholder="true"><main aria-hidden="true" style="min-height:100dvh;background:#0e1011"></main></div>
-  <script type="module" src="./src/main.js?v=visual-qa-20260901-7"></script>
+  <script type="module" src="./src/main.js?v=compact-visual-20260901-1"></script>
 </body>
 </html>

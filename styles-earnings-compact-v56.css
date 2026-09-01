@@ -184,13 +184,13 @@
   .fet-quarter-pill {
     flex: 0 0 auto;
     min-width: 116px;
-    min-height: 46px;
+    min-height: 44px;
     display: grid;
     align-content: center;
     gap: 2px;
     padding: 7px 10px;
     border: 1px solid var(--fet-line-strong);
-    border-radius: 12px;
+    border-radius: 8px;
     background: var(--fet-panel);
     color: var(--fet-muted);
     text-align: start;
@@ -244,7 +244,7 @@
     min-width: 0;
     overflow: hidden;
     border: 1px solid var(--fet-line-strong);
-    border-radius: 16px;
+    border-radius: 12px;
     background: var(--fet-panel);
     box-shadow: none;
   }
@@ -260,12 +260,12 @@
 
   .fet-quarter-card-head,
   .fet-summary-card > header {
-    min-height: 62px;
+    min-height: 56px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    padding: 12px 13px 9px;
+    padding: 10px 12px 8px;
   }
 
   .fet-quarter-card-head > div,
@@ -349,7 +349,7 @@
     margin: 0 10px 10px;
     overflow: hidden;
     border: 1px solid var(--fet-line-strong);
-    border-radius: 13px;
+    border-radius: 8px;
     background: #111314;
   }
 
@@ -571,7 +571,7 @@
     margin: 0 10px 10px;
     padding: 18px 14px;
     border: 1px dashed var(--fet-line-strong);
-    border-radius: 13px;
+    border-radius: 12px;
     text-align: center;
   }
 

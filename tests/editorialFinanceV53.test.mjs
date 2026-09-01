@@ -11,23 +11,23 @@ const sync = readFileSync(new URL("../scripts/sync-deploy.mjs", import.meta.url)
 const editorialIndex = html.indexOf("styles-editorial-finance-v53.css");
 assert.ok(editorialIndex > html.indexOf("styles-mobile-hotfix-v46.css"), "Editorial Finance must be the final CSS layer so legacy overrides cannot shrink its typography.");
 assert.ok(editorialIndex < html.indexOf("src/main.js"), "Editorial Finance must load before the application mounts.");
-assert.match(html, /src\/main\.js\?v=visual-qa-20260901-7/, "The changed report markup must use a fresh asset version.");
-assert.match(main, /components\.js\?v=visual-qa-20260901-7/, "The application entry point must fetch the refined component module under the new asset version.");
-assert.match(worker, /visual-qa-20260901-7/, "The PWA cache must advance for the visual release.");
+assert.match(html, /src\/main\.js\?v=compact-visual-20260901-1/, "The changed report markup must use a fresh asset version.");
+assert.match(main, /components\.js\?v=compact-visual-20260901-1/, "The application entry point must fetch the refined component module under the new asset version.");
+assert.match(worker, /compact-visual-20260901-1/, "The PWA cache must advance for the visual release.");
 assert.ok(worker.includes('"./styles-editorial-finance-v53.css"'), "The editorial layer must remain available offline.");
 assert.ok(sync.includes('"styles-editorial-finance-v53.css"'), "Deploy copies must be generated from the canonical editorial stylesheet.");
 
 for (const token of [
   "--editorial-surface: #17191a",
   "--editorial-line: rgba(255, 255, 255, 0.075)",
-  "--editorial-radius-card: 18px",
+  "--editorial-radius-card: 12px",
   "--editorial-positive-surface",
   "--editorial-negative-surface"
 ]) {
   assert.ok(css.includes(token), `Editorial token missing: ${token}`);
 }
 assert.match(css, /@media \(max-width: 899px\)/, "The redesign must remain iPhone-first and avoid destabilizing desktop reports.");
-assert.match(css, /font-size:\s*14px/, "Arabic analysis copy must remain compact and readable on iPhone.");
+assert.match(css, /font-size:\s*13\.5px/, "Arabic analysis copy must remain compact and readable on iPhone.");
 assert.match(css, /font-variant-numeric:\s*tabular-nums lining-nums/, "Financial values must align with tabular numerals.");
 assert.equal(css.includes("linear-gradient("), false, "The editorial layer must use calm tonal surfaces rather than generated-looking gradients.");
 

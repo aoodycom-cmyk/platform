@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const components = readFileSync(new URL("../src/ui/components.js", import.meta.url), "utf8");
+const foundation = readFileSync(new URL("../src/ui/foundation.js", import.meta.url), "utf8");
 const mobileStyles = readFileSync(new URL("../styles-mobile2.css", import.meta.url), "utf8");
 
 const homeSearchSource = components.slice(
@@ -11,7 +12,6 @@ const homeSearchSource = components.slice(
 
 assert.equal(homeSearchSource.includes("state.notice"), false, "Library Home must not reserve persistent layout space for save notices.");
 for (const contract of [
-  "v31-library-header",
   "v31-library-stock-row",
   "v31-stock-decision",
   "v31-valuation-range-card",
@@ -22,6 +22,7 @@ for (const contract of [
 ]) {
   assert.ok(components.includes(contract), `Franklin V3.1 presentation contract missing: ${contract}`);
 }
+assert.ok(foundation.includes("v31-library-header"), "The Library header must use the shared Franklin header primitive.");
 for (const selector of [
   ".v31-library-stock-row",
   ".v31-stock-decision",
@@ -33,9 +34,9 @@ for (const selector of [
 ]) {
   assert.ok(mobileStyles.includes(selector), `Franklin V3.1 style missing: ${selector}`);
 }
-assert.ok(mobileStyles.includes("--mobile-card-title-size: 18px"), "Mobile report cards must share one title scale.");
-assert.ok(mobileStyles.includes("--mobile-card-body-size: 14px"), "Mobile report cards must share one body scale.");
-assert.ok(mobileStyles.includes("--mobile-card-label-size: 10px"), "Mobile report labels must remain legible without assistive zoom.");
+assert.ok(mobileStyles.includes("--mobile-card-title-size: 14px"), "Mobile report cards must share one compact title scale.");
+assert.ok(mobileStyles.includes("--mobile-card-body-size: 13.5px"), "Mobile report cards must share one compact body scale.");
+assert.ok(mobileStyles.includes("--mobile-card-label-size: 11px"), "Mobile report labels must remain legible without assistive zoom.");
 assert.ok(mobileStyles.includes(".mobile-report-facts { grid-template-columns:repeat(2,minmax(0,1fr))"), "Top facts must use wider two-column mobile cards.");
 assert.ok(mobileStyles.includes(".mobile-report-facts article:last-child { grid-column:1 / -1"), "The update/date fact must receive a full-width scan row.");
 assert.ok(mobileStyles.includes(".stock-summary-metric strong { font-size:20px"), "Scenario values must use restrained mobile typography.");

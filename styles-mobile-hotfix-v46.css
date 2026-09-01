@@ -7,7 +7,7 @@
     bottom: 0 !important;
     width: 100% !important;
     max-width: 430px !important;
-    min-height: calc(72px + env(safe-area-inset-bottom)) !important;
+    min-height: calc(64px + env(safe-area-inset-bottom)) !important;
     margin: 0 auto !important;
     padding: 6px 8px max(7px, env(safe-area-inset-bottom)) !important;
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
@@ -17,7 +17,7 @@
 
   .mobile-nav:not(.quarterly-scorecard-nav) button {
     min-width: 0 !important;
-    min-height: 54px !important;
+    min-height: 48px !important;
     padding: 4px 2px !important;
     gap: 3px !important;
     overflow: hidden;
@@ -130,9 +130,9 @@
   .social-export-company-card {
     display: grid;
     gap: 12px;
-    padding: 14px;
+    padding: 12px;
     border: 1px solid var(--dd-line);
-    border-radius: 8px;
+    border-radius: 12px;
     background: #111314;
   }
 
@@ -143,8 +143,8 @@
   }
 
   .social-export-company-card > header .company-logo {
-    width: 42px;
-    height: 42px;
+    width: 36px;
+    height: 36px;
   }
 
   .social-export-company-card > header > div {
@@ -156,7 +156,7 @@
   .social-export-company-card > header strong {
     overflow: hidden;
     color: var(--dd-text-primary);
-    font-size: 15px;
+    font-size: 14px;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
