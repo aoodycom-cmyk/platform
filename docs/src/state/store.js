@@ -1027,7 +1027,7 @@ export function createStore() {
 
   function openCompanyProfile(ticker, reportId = "latest") {
     const report = ensureExternalCompletionStatus(getExternalAnalysis(state.externalAnalyses, ticker, reportId));
-    if (!report?.companyProfile) return;
+    if (!report) return;
     set({
       externalReportSelection: { ticker: report.company.ticker, reportId: report.id },
       company: externalReportCompanyShell(report),

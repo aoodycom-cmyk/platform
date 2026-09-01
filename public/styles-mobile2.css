@@ -513,6 +513,25 @@ body {
   background: var(--bg-elevated);
 }
 
+.panel-home .library-empty-state,
+.panel-home .empty-home-state {
+  padding: 24px 12px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+
+.panel-history .history-library-panel,
+.panel-settings .settings-panel {
+  margin: 0;
+  padding: 10px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .v31-library-header {
   min-height: 116px !important;
   padding-top: max(22px, env(safe-area-inset-top)) !important;

@@ -26,7 +26,6 @@ const FILES = [
   "styles-earnings-compact-v56.css",
   "styles-stock-workspace-v58.css",
   "styles-stock-workspace-v61.css",
-  "styles-agreed-ui-fixes-v62.css",
   "service-worker.js",
   "manifest.webmanifest",
   "offline.html",

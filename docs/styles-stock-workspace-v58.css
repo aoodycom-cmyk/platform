@@ -21,6 +21,12 @@
   .franklin-stock-page-tabs button.active::after { background: #59cfc0; }
   .franklin-stock-page-tabs button:disabled { opacity: .38; }
 
+  .franklin-shared-stock-header .franklin-stock-menu > div {
+    right: auto !important;
+    left: 0 !important;
+    max-width: calc(100vw - 32px);
+  }
+
   /* Presentation editing belongs to the persistent header menu, not the page rail. */
   .franklin-stock-menu > div { display: grid; gap: 8px; }
   .franklin-stock-menu-edit { min-height: 36px; padding: 7px 10px; border: 0; border-radius: 9px; background: rgba(89,207,192,.09); color: #59cfc0; font: inherit; font-size: 12.5px; font-weight: 650; text-align: start; }
@@ -118,6 +124,36 @@
   .panel-company-profile .company-profile-header h2 { font-size: 19px !important; line-height: 1.28 !important; }
   .panel-company-profile .company-profile-shell h3 { font-size: 16px !important; line-height: 1.35 !important; }
   .panel-company-profile .company-profile-shell p { font-size: 13.5px !important; line-height: 1.7 !important; }
+  .panel-company-profile .company-profile-facts dl { margin: 0; display: grid; }
+  .panel-company-profile .company-profile-facts dl > div { min-height: 44px; padding: 10px 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; border-bottom: 1px solid rgba(255,255,255,.075); }
+  .panel-company-profile .company-profile-facts dl > div:last-child { border-bottom: 0; }
+  .panel-company-profile .company-profile-facts dt { color: #9a9fa4; font-size: 12px; }
+  .panel-company-profile .company-profile-facts dd { margin: 0; color: #f0f1f2; font-size: 13.5px; font-weight: 620; text-align: end; }
+  .panel-company-profile .company-profile-note { margin: 14px 0 0; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.075); color: #9a9fa4 !important; }
+
+  .franklin-decision-hero-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); border-top: 1px solid rgba(255,255,255,.075); }
+  .franklin-decision-hero-kpis article { min-width: 0; padding: 12px 0 0; display: grid; gap: 4px; background: transparent; }
+  .franklin-decision-hero-kpis article + article { padding-inline-start: 14px; border-inline-start: 1px solid rgba(255,255,255,.075); }
+  .franklin-decision-hero-kpis span { color: #9a9fa4; font-size: 11px; line-height: 1.4; }
+  .franklin-decision-hero-kpis strong { color: #f0f1f2; font-size: 18px; line-height: 1.25; font-variant-numeric: tabular-nums lining-nums; }
+
+  .franklin-earnings-hub .fet-quarter-rail { scroll-padding-inline: 10px; scroll-snap-type: x proximity; }
+  .franklin-earnings-hub .fet-quarter-pill { scroll-snap-align: start; }
+
+  /* Consolidated stock typography: one scale shared by Summary, Earnings, Company and Risks. */
+  html.franklin-stock-workspace-active .mobile-page-content,
+  html.franklin-stock-workspace-active .mobile-page-content p,
+  html.franklin-stock-workspace-active .mobile-page-content li,
+  html.franklin-stock-workspace-active .mobile-page-content td,
+  html.franklin-stock-workspace-active .mobile-page-content th { font-size: 13.5px; }
+  html.franklin-stock-workspace-active .mobile-page-content h1,
+  html.franklin-stock-workspace-active .mobile-page-content h2,
+  html.franklin-stock-workspace-active .mobile-page-content h3 { font-family: inherit !important; letter-spacing: 0 !important; }
+  html.franklin-stock-workspace-active .mobile-page-content h1 { font-size: 20px !important; line-height: 1.35 !important; }
+  html.franklin-stock-workspace-active .mobile-page-content h2 { font-size: 18px !important; line-height: 1.4 !important; }
+  html.franklin-stock-workspace-active .mobile-page-content h3 { font-size: 16px !important; line-height: 1.45 !important; }
+  html.franklin-stock-workspace-active .mobile-page-content small,
+  html.franklin-stock-workspace-active .mobile-page-content .eyebrow { font-size: 11px !important; }
 
   /* Match the editorial hierarchy used elsewhere in the stock workspace. */
   .panel-strengths-risks .strengths-risks-shell h1,
