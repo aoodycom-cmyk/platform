@@ -11,7 +11,7 @@ const sync = readFileSync(new URL("../scripts/sync-deploy.mjs", import.meta.url)
 const editorialIndex = html.indexOf("styles-editorial-finance-v53.css");
 assert.ok(editorialIndex > html.indexOf("styles-mobile-hotfix-v46.css"), "Editorial Finance must be the final CSS layer so legacy overrides cannot shrink its typography.");
 assert.ok(editorialIndex < html.indexOf("src/main.js"), "Editorial Finance must load before the application mounts.");
-assert.match(html, /src\/main\.js\?v=v54-launch-hotfix/, "The changed report markup must use a fresh asset version.");
+assert.match(html, /src\/main\.js\?v=v62-agreed-ui-fixes/, "The changed report markup must use a fresh asset version.");
 assert.match(main, /components\.js\?v=v54-launch-hotfix/, "The application entry point must fetch the redesigned component module under the new asset version.");
 assert.match(worker, /editorial-v54-hotfix/, "The PWA cache must advance for the visual release.");
 assert.ok(worker.includes('"./styles-editorial-finance-v53.css"'), "The editorial layer must remain available offline.");

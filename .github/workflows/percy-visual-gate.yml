@@ -1,0 +1,56 @@
+name: Franklin Percy Visual Gate
+
+on:
+  push:
+    branches:
+      - qa/percy-visual-gate
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  visual-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
+      PERCY_BRANCH: ${{ github.head_ref || github.ref_name }}
+      PERCY_TARGET_BRANCH: main
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build Franklin
+        run: npm run build
+
+      - name: Install visual QA tooling
+        run: |
+          npm install --no-save playwright@1.55.0 @percy/cli @percy/playwright
+          npx playwright install --with-deps chromium
+
+      - name: Start Franklin
+        run: |
+          python3 -m http.server 4321 -d public > /tmp/franklin-http.log 2>&1 &
+          sleep 2
+
+      - name: Verify Percy token
+        run: |
+          if [ -z "$PERCY_TOKEN" ]; then
+            echo "PERCY_TOKEN is missing from GitHub Actions secrets"
+            exit 1
+          fi
+          case "$PERCY_TOKEN" in
+            web_*) echo "Percy token format looks correct" ;;
+            *) echo "PERCY_TOKEN must contain only the web_... token value"; exit 1 ;;
+          esac
+
+      - name: Run Percy + structural visual quality gate
+        run: npx percy exec -- node scripts/percy-visual-gate.mjs

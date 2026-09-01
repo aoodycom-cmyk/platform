@@ -5,6 +5,8 @@ const rootCss = readFileSync(new URL("../styles-desktop.css", import.meta.url), 
 const publicCss = readFileSync(new URL("../public/styles-desktop.css", import.meta.url), "utf8");
 const docsCss = readFileSync(new URL("../docs/styles-desktop.css", import.meta.url), "utf8");
 const index = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+const baseStylesIndex = index.indexOf("styles.css?");
+const desktopStylesIndex = index.indexOf("styles-desktop.css?");
 
 assert.equal(publicCss, rootCss, "public desktop stylesheet must match canonical root stylesheet");
 assert.equal(docsCss, rootCss, "docs desktop stylesheet must match canonical root stylesheet");
@@ -16,6 +18,6 @@ assert.ok(rootCss.includes("1440px"), "scorecard desktop canvas must support the
 assert.ok(rootCss.includes('"detail annual"') && rootCss.includes('"detail main"'), "desktop scorecard must place detail panel beside annual summary and matrix");
 assert.ok(rootCss.includes(".quarterly-scorecard-layout") && rootCss.includes("display: contents"), "scorecard nested layout must participate in the Figma desktop grid");
 assert.ok(rootCss.includes(".quarterly-mobile-cards") && rootCss.includes("display: none"), "desktop scorecard must render the matrix instead of enlarged mobile cards");
-assert.ok(index.includes("styles-desktop.css?v=v11-franklin-v36-20260823-financial-contract-v3"), "app must load the desktop responsive layer after the existing styles");
+assert.ok(baseStylesIndex >= 0 && desktopStylesIndex > baseStylesIndex, "app must load the desktop responsive layer after the existing styles");
 
 console.log("Desktop responsive and Figma scorecard regression tests passed.");

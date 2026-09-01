@@ -4,224 +4,53 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Franklin Research 11.0.0</title>
-  <meta name="theme-color" content="#07080d">
+  <meta name="theme-color" content="#0e1011">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Franklin Research">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png">
-  <link rel="manifest" href="./manifest.webmanifest?v=v11-franklin-v36-20260823-financial-contract-v3">
+  <link rel="manifest" href="./manifest.webmanifest?v=v62-agreed-ui-fixes">
   <script>
     (function () {
-      var version = "v11-franklin-v36-20260823-financial-contract-v3";
+      var version = "v62-agreed-ui-fixes";
       window.__FRANKLIN_BOOT_VERSION = version;
       window.__FRANKLIN_BOOT_EVENTS = [];
-
-      function escapeRegExp(value) {
-        return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      }
-
-      if (!String.prototype.replaceAll) {
-        String.prototype.replaceAll = function (search, replacement) {
-          var text = String(this);
-          if (search instanceof RegExp) {
-            if (!search.global) throw new TypeError("replaceAll requires a global RegExp");
-            return text.replace(search, replacement);
-          }
-          return text.replace(new RegExp(escapeRegExp(search), "g"), replacement);
-        };
-      }
-
-      if (!String.prototype.matchAll) {
-        String.prototype.matchAll = function (regexp) {
-          var source = String(this);
-          var flags = regexp instanceof RegExp ? regexp.flags : "";
-          if (flags.indexOf("g") === -1) flags += "g";
-          var matcher = regexp instanceof RegExp ? new RegExp(regexp.source, flags) : new RegExp(regexp, "g");
-          var matches = [];
-          var match;
-          while ((match = matcher.exec(source)) !== null) {
-            matches.push(match);
-            if (match[0] === "") matcher.lastIndex += 1;
-          }
-          return matches[Symbol.iterator]();
-        };
-      }
-
-      if (!Array.prototype.at) {
-        Array.prototype.at = function (index) {
-          var length = this.length >>> 0;
-          var offset = Number(index) || 0;
-          if (offset < 0) offset += length;
-          return offset < 0 || offset >= length ? undefined : this[offset];
-        };
-      }
-
-      if (window.Promise && !Promise.prototype.finally) {
-        Promise.prototype.finally = function (callback) {
-          var P = this.constructor || Promise;
-          return this.then(
-            function (value) { return P.resolve(callback()).then(function () { return value; }); },
-            function (reason) { return P.resolve(callback()).then(function () { throw reason; }); }
-          );
-        };
-      }
-
-      function recordBootIssue(type, detail) {
-        window.__FRANKLIN_BOOT_EVENTS.push({
-          type: type,
-          detail: String(detail && (detail.message || detail.reason || detail.error || detail) || "Unknown boot issue").slice(0, 260),
-          at: new Date().toISOString()
-        });
-      }
-
-      function escapeHtml(value) {
-        return String(value || "")
-          .replace(/[&<>"']/g, function (char) {
-            return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char];
-          });
-      }
-
-      function showBootFallback(reason) {
-        if (window.__FRANKLIN_APP_READY) return;
-        var root = document.getElementById("app");
-        if (!root || root.dataset.franklinMounted === "true") return;
-        var events = window.__FRANKLIN_BOOT_EVENTS || [];
-        var latest = events.length ? events[events.length - 1].detail : String(reason || "Safari did not finish loading Franklin.");
-        root.innerHTML = '<main style="min-height:100dvh;display:grid;place-items:center;padding:20px;background:#07080d;color:#f1f3f9;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Tahoma,Arial,sans-serif;box-sizing:border-box"><section dir="rtl" style="width:min(100%,430px);display:grid;gap:14px;padding:20px;border:1px solid #303851;border-radius:16px;background:#111422;box-shadow:0 20px 60px rgba(0,0,0,.36)"><h1 style="margin:0;font-size:22px;line-height:1.35">تعذر فتح فرانكلين</h1><p style="margin:0;color:#c5cad8;font-size:14px;line-height:1.7">بياناتك محفوظة. أعد المحاولة، أو استخدم الإصلاح الآمن إذا استمرت المشكلة.</p><details style="border-top:1px solid #242b3f;padding-top:10px;color:#9aa1b6"><summary style="min-height:44px;display:flex;align-items:center;cursor:pointer;font-size:13px">تفاصيل تقنية</summary><code dir="ltr" style="display:block;white-space:pre-wrap;word-break:break-word;padding:11px;border:1px solid #1f253b;border-radius:10px;background:#0b0d16;color:#9aa1b6;font-size:12px;line-height:1.5">' + escapeHtml(latest) + '</code></details><a href="./rescue.html?v=' + version + '&fresh=' + Date.now() + '" style="min-height:48px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:#2dd4bf;color:#07100f;text-decoration:none;font-weight:800">إصلاح المشكلة وفتح فرانكلين</a><button type="button" onclick="window.location.reload()" style="min-height:48px;border:1px solid #303851;border-radius:11px;background:#181c2e;color:#f1f3f9;font:inherit;font-weight:800">إعادة المحاولة</button></section></main>';
-      }
-
-      window.addEventListener("error", function (event) {
-        recordBootIssue("error", event.error || event.message);
-        window.setTimeout(function () { showBootFallback(event.message); }, 250);
-      });
-      window.addEventListener("unhandledrejection", function (event) {
-        recordBootIssue("unhandledrejection", event.reason);
-        window.setTimeout(function () { showBootFallback(event.reason); }, 250);
-      });
-      window.addEventListener("franklin:boot-ready", function () {
-        window.__FRANKLIN_APP_READY = true;
-      });
-      window.setTimeout(function () {
-        var root = document.getElementById("app");
-        if (!window.__FRANKLIN_APP_READY && root && root.dataset.franklinMounted !== "true") {
-          showBootFallback("Boot timed out before Franklin mounted.");
-        }
-      }, 6500);
+      function escapeRegExp(value){return String(value).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
+      if(!String.prototype.replaceAll){String.prototype.replaceAll=function(search,replacement){var text=String(this);if(search instanceof RegExp){if(!search.global)throw new TypeError("replaceAll requires a global RegExp");return text.replace(search,replacement);}return text.replace(new RegExp(escapeRegExp(search),"g"),replacement);};}
+      if(!String.prototype.matchAll){String.prototype.matchAll=function(regexp){var source=String(this),flags=regexp instanceof RegExp?regexp.flags:"";if(flags.indexOf("g")===-1)flags+="g";var matcher=regexp instanceof RegExp?new RegExp(regexp.source,flags):new RegExp(regexp,"g"),matches=[],match;while((match=matcher.exec(source))!==null){matches.push(match);if(match[0]==="")matcher.lastIndex+=1;}return matches[Symbol.iterator]();};}
+      if(!Array.prototype.at){Array.prototype.at=function(index){var length=this.length>>>0,offset=Number(index)||0;if(offset<0)offset+=length;return offset<0||offset>=length?undefined:this[offset];};}
+      if(window.Promise&&!Promise.prototype.finally){Promise.prototype.finally=function(callback){var P=this.constructor||Promise;return this.then(function(value){return P.resolve(callback()).then(function(){return value;});},function(reason){return P.resolve(callback()).then(function(){throw reason;});});};}
+      function recordBootIssue(type,detail){window.__FRANKLIN_BOOT_EVENTS.push({type:type,detail:String(detail&&(detail.message||detail.reason||detail.error||detail)||"Unknown boot issue").slice(0,260),at:new Date().toISOString()});}
+      function escapeHtml(value){return String(value||"").replace(/[&<>"']/g,function(char){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[char];});}
+      function showBootFallback(reason){if(window.__FRANKLIN_APP_READY)return;var root=document.getElementById("app");if(!root||root.dataset.franklinMounted==="true")return;var events=window.__FRANKLIN_BOOT_EVENTS||[],latest=events.length?events[events.length-1].detail:String(reason||"Safari did not finish loading Franklin.");root.innerHTML='<main style="min-height:100dvh;display:grid;place-items:center;padding:20px;background:#0e1011;color:#f0f1f2;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Tahoma,Arial,sans-serif;box-sizing:border-box"><section dir="rtl" style="width:min(100%,430px);display:grid;gap:14px;padding:20px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:#17191a"><h1 style="margin:0;font-size:22px">تعذر فتح فرانكلين</h1><p>بياناتك محفوظة. أعد المحاولة.</p><details style="border-top:1px solid rgba(255,255,255,.12);padding-top:10px;color:#9aa1b6"><summary style="min-height:44px;display:flex;align-items:center;cursor:pointer;font-size:13px">تفاصيل تقنية</summary><code dir="ltr" style="display:block;white-space:pre-wrap;word-break:break-word;padding:11px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#0e1011;color:#9aa1b6;font-size:12px;line-height:1.5">'+escapeHtml(latest)+'</code></details><button onclick="window.location.reload()">إعادة المحاولة</button></section></main>';}
+      window.addEventListener("error",function(event){recordBootIssue("error",event.error||event.message);window.setTimeout(function(){showBootFallback(event.message);},250);});
+      window.addEventListener("unhandledrejection",function(event){recordBootIssue("unhandledrejection",event.reason);window.setTimeout(function(){showBootFallback(event.reason);},250);});
+      window.addEventListener("franklin:boot-ready",function(){window.__FRANKLIN_APP_READY=true;});
+      window.setTimeout(function(){var root=document.getElementById("app");if(!window.__FRANKLIN_APP_READY&&root&&root.dataset.franklinMounted!=="true")showBootFallback("Boot timed out before Franklin mounted.");},6500);
     }());
   </script>
   <script>
-    (function () {
-      var version = "v11-franklin-v36-20260823-financial-contract-v3";
-      var forceReset = /(?:[?&](?:fresh|reset-pwa)=)/.test(window.location.search || "");
-      if (!("serviceWorker" in navigator) || !("caches" in window)) return;
-      if (!forceReset && sessionStorage.getItem("franklin-cache-reset") === version) return;
-      sessionStorage.setItem("franklin-cache-reset", version);
-      Promise.all([
-        navigator.serviceWorker.getRegistrations().then(function (items) {
-          return Promise.all(items.map(function (item) { return item.unregister(); }));
-        }),
-        caches.keys().then(function (keys) {
-          return Promise.all(keys.filter(function (key) { return key.indexOf("franklin-research") === 0; }).map(function (key) { return caches.delete(key); }));
-        })
-      ]).finally(function () {
-        if (!forceReset) {
-          window.location.reload();
-          return;
-        }
-        try {
-          var nextUrl = new URL(window.location.href);
-          nextUrl.searchParams.delete("fresh");
-          nextUrl.searchParams.delete("reset-pwa");
-          nextUrl.searchParams.set("v", version);
-          window.location.replace(nextUrl.toString());
-        } catch (_) {
-          window.location.replace("./?v=" + version);
-        }
-      });
-    }());
+    (function(){var version="v62-agreed-ui-fixes",forceReset=/(?:[?&](?:fresh|reset-pwa)=)/.test(window.location.search||"");if(!("serviceWorker" in navigator)||!("caches" in window))return;if(!forceReset&&sessionStorage.getItem("franklin-cache-reset")===version)return;sessionStorage.setItem("franklin-cache-reset",version);Promise.all([navigator.serviceWorker.getRegistrations().then(function(items){return Promise.all(items.map(function(item){return item.unregister();}));}),caches.keys().then(function(keys){return Promise.all(keys.filter(function(key){return key.indexOf("franklin-research")===0;}).map(function(key){return caches.delete(key);}));})]).finally(function(){if(!forceReset){window.location.reload();return;}var nextUrl=new URL(window.location.href);nextUrl.searchParams.delete("fresh");nextUrl.searchParams.delete("reset-pwa");nextUrl.searchParams.set("v",version);window.location.replace(nextUrl.toString());});}());
   </script>
   <link rel="stylesheet" href="./styles.css?v=v52-rtl-financial-presentation">
-  <link rel="stylesheet" href="./styles-mobile-scorecard-figma.css?v=v11-franklin-v36-20260823-financial-contract-v3">
-  <link rel="stylesheet" href="./styles-quarterly-earnings-entry.css?v=v11-franklin-v36-20260823-financial-contract-v3">
-  <link rel="stylesheet" href="./styles-desktop.css?v=v11-franklin-v36-20260823-financial-contract-v3">
-  <link rel="stylesheet" href="./styles-premium.css?v=v11-franklin-v36-20260823-financial-contract-v3">
-  <link rel="stylesheet" href="./styles-v11-mobile-cleanup.css?v=v11-franklin-v36-20260823-financial-contract-v3">
+  <link rel="stylesheet" href="./styles-mobile-scorecard-figma.css?v=v62-agreed-ui-fixes">
+  <link rel="stylesheet" href="./styles-quarterly-earnings-entry.css?v=v62-agreed-ui-fixes">
+  <link rel="stylesheet" href="./styles-desktop.css?v=v62-agreed-ui-fixes">
+  <link rel="stylesheet" href="./styles-premium.css?v=v62-agreed-ui-fixes">
+  <link rel="stylesheet" href="./styles-v11-mobile-cleanup.css?v=v62-agreed-ui-fixes">
   <link rel="stylesheet" href="./styles-mobile2.css?v=v52-rtl-financial-presentation">
   <link rel="stylesheet" href="./styles-visual-system.css?v=v39-visible-owner-presentation">
   <link rel="stylesheet" href="./styles-franklin-v2.css?v=v40-franklin-mobile-v2">
   <link rel="stylesheet" href="./styles-design-director-v45.css?v=v45-design-director">
   <link rel="stylesheet" href="./styles-mobile-hotfix-v46.css?v=v52-rtl-financial-presentation">
-  <link rel="stylesheet" href="./styles-editorial-finance-v53.css?v=v54-launch-hotfix">
-  <script src="./backend-config.js?v=v54-launch-hotfix"></script>
-  <script>
-    (function () {
-      var originalUrlToString = URL.prototype.toString;
-      var lastAuditUrl = "";
-
-      function showAuditLink(url) {
-        if (!url || url === lastAuditUrl) return;
-        lastAuditUrl = url;
-        sessionStorage.setItem("franklin-last-audit-url", url);
-        var existing = document.getElementById("franklin-audit-link-fallback");
-        if (existing) existing.remove();
-
-        var wrap = document.createElement("div");
-        wrap.id = "franklin-audit-link-fallback";
-        wrap.style.cssText = "position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.72);display:grid;place-items:end center;padding:16px;box-sizing:border-box";
-        wrap.innerHTML = '<section dir="rtl" style="width:min(100%,520px);background:#111422;color:#f1f3f9;border:1px solid #303851;border-radius:20px;padding:18px;font-family:system-ui;box-shadow:0 28px 70px rgba(0,0,0,.5)"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><strong style="font-size:17px">رابط فحص Franklin جاهز</strong><button type="button" data-audit-close style="width:44px;height:44px;border:0;border-radius:12px;background:#181c2e;color:#fff;font-size:22px">×</button></div><p style="font-size:13px;line-height:1.7;color:#c5cad8">احتفظ بهذا الرابط أو أرسله مباشرة. صلاحية الرابط 24 ساعة وهو للقراءة فقط.</p><textarea data-audit-url readonly dir="ltr" style="box-sizing:border-box;width:100%;min-height:96px;border:1px solid #303851;border-radius:12px;background:#0b0d16;color:#f1f3f9;padding:10px;font-size:13px;line-height:1.5;resize:none"></textarea><div style="display:grid;gap:10px;margin-top:12px"><button type="button" data-audit-copy style="min-height:48px;border:0;border-radius:12px;background:#2dd4bf;color:#07100f;font-weight:800">نسخ الرابط</button><button type="button" data-audit-share style="min-height:48px;border:1px solid #303851;border-radius:12px;background:#181c2e;color:#fff;font-weight:750">مشاركة الرابط</button></div></section>';
-        document.body.appendChild(wrap);
-        var field = wrap.querySelector("[data-audit-url]");
-        var copy = wrap.querySelector("[data-audit-copy]");
-        var share = wrap.querySelector("[data-audit-share]");
-        field.value = url;
-
-        copy.addEventListener("click", async function () {
-          var copied = false;
-          try {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-              await navigator.clipboard.writeText(url);
-              copied = true;
-            }
-          } catch (_) {}
-          if (!copied) {
-            field.focus();
-            field.select();
-            field.setSelectionRange(0, field.value.length);
-            try { copied = document.execCommand("copy"); } catch (_) {}
-          }
-          copy.textContent = copied ? "تم النسخ ✓" : "حدد الرابط ثم اختر نسخ";
-        });
-
-        if (navigator.share) {
-          share.addEventListener("click", function () {
-            navigator.share({ title: "Franklin Audit", url: url }).catch(function () {});
-          });
-        } else {
-          share.style.display = "none";
-        }
-        wrap.querySelector("[data-audit-close]").addEventListener("click", function () { wrap.remove(); });
-      }
-
-      URL.prototype.toString = function () {
-        var value = originalUrlToString.call(this);
-        if (typeof value === "string" && value.indexOf("#audit=") !== -1) {
-          setTimeout(function () { showAuditLink(value); }, 0);
-        }
-        return value;
-      };
-
-      window.addEventListener("pageshow", function () {
-        var saved = sessionStorage.getItem("franklin-last-audit-url");
-        if (saved && saved.indexOf("#audit=") !== -1) lastAuditUrl = saved;
-      });
-    }());
-  </script>
+  <link rel="stylesheet" href="./styles-editorial-finance-v53.css?v=v62-agreed-ui-fixes">
+  <link rel="stylesheet" href="./styles-stock-workspace-v61.css?v=v62-agreed-ui-fixes">
+  <link rel="stylesheet" href="./styles-agreed-ui-fixes-v62.css?v=v62-agreed-ui-fixes">
+  <script src="./backend-config.js?v=v62-agreed-ui-fixes"></script>
 </head>
 <body>
-  <div id="app" data-franklin-boot-placeholder="true">
-    <main aria-hidden="true" style="min-height:100dvh;background:#07080d"></main>
-  </div>
-  <script type="module" src="./src/main.js?v=v54-launch-hotfix"></script>
+  <div id="app" data-franklin-boot-placeholder="true"><main aria-hidden="true" style="min-height:100dvh;background:#0e1011"></main></div>
+  <script type="module" src="./src/main.js?v=v62-agreed-ui-fixes"></script>
 </body>
 </html>
