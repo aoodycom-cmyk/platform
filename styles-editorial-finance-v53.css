@@ -68,7 +68,7 @@ html[data-theme="dark"] {
   }
 
   .stock-decision-flow {
-    gap: 28px !important;
+    gap: 22px !important;
   }
 
   .v31-report-block {
@@ -81,7 +81,7 @@ html[data-theme="dark"] {
   .thesis-balance-heading h3 {
     margin: 0 !important;
     color: var(--editorial-text) !important;
-    font-size: 20px !important;
+    font-size: 18px !important;
     line-height: 1.4 !important;
     font-weight: 650 !important;
   }
@@ -129,14 +129,76 @@ html[data-theme="dark"] {
     background: var(--editorial-surface) !important;
   }
 
+  .latest-earnings-summary {
+    display: grid;
+    gap: 14px;
+  }
+
+  .latest-earnings-summary-status,
+  .latest-earnings-summary-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .latest-earnings-summary-status span {
+    color: var(--editorial-muted);
+    font-size: 12px;
+    font-weight: 550;
+  }
+
+  .latest-earnings-summary-status strong {
+    color: var(--editorial-text);
+    font-size: 14px;
+    font-weight: 650;
+  }
+
+  .latest-earnings-summary-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0;
+    border-block: 1px solid var(--editorial-line);
+  }
+
+  .latest-earnings-summary-metrics > div {
+    min-width: 0;
+    padding: 12px 8px;
+    text-align: center;
+  }
+
+  .latest-earnings-summary-metrics > div + div {
+    border-inline-start: 1px solid var(--editorial-line);
+  }
+
+  .latest-earnings-summary-metrics dt {
+    min-height: 34px;
+    color: var(--editorial-muted);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .latest-earnings-summary-metrics dd {
+    margin: 4px 0 0;
+    color: var(--editorial-text);
+    font-size: 17px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  .latest-earnings-summary-actions > button {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
   .stock-report-section p,
   .stock-report-section li,
   .stock-report-section td,
   .investment-summary-workspace > p,
   html[data-theme="dark"] .investment-summary-workspace > p {
     color: var(--editorial-text-soft) !important;
-    font-size: 15.5px !important;
-    line-height: 1.85 !important;
+    font-size: 14px !important;
+    line-height: 1.7 !important;
     font-weight: 400 !important;
   }
 
@@ -157,8 +219,8 @@ html[data-theme="dark"] {
 
   .v31-stock-decision,
   .terminal-stock-header.v31-stock-decision {
-    padding: 18px !important;
-    gap: 18px !important;
+    padding: 16px !important;
+    gap: 14px !important;
   }
 
   .v31-current-price-hero > strong,
@@ -175,7 +237,7 @@ html[data-theme="dark"] {
 
   .v31-current-price-hero > strong {
     color: var(--editorial-text) !important;
-    font-size: 46px !important;
+    font-size: 40px !important;
     line-height: 1 !important;
     font-weight: 650 !important;
   }
@@ -196,26 +258,27 @@ html[data-theme="dark"] {
   }
 
   .v31-recommendation-banner {
-    min-height: 48px !important;
+    min-height: 44px !important;
     border-width: 1px !important;
     border-radius: var(--editorial-radius-control) !important;
     font-weight: 650 !important;
   }
 
   .v31-recommendation-banner strong {
-    font-size: 17px !important;
+    font-size: 15px !important;
     font-weight: 650 !important;
   }
 
   .v31-base-value-card {
-    padding: 14px !important;
-    border: 1px solid var(--editorial-line) !important;
-    border-radius: 14px !important;
-    background: var(--editorial-surface-raised) !important;
+    padding: 14px 0 0 !important;
+    border: 0 !important;
+    border-top: 1px solid var(--editorial-line) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
   }
 
   .v31-base-value-number strong {
-    font-size: 28px !important;
+    font-size: 24px !important;
     font-weight: 650 !important;
   }
 
@@ -498,8 +561,8 @@ html[data-theme="dark"] {
   .thesis-balance-full-card {
     overflow: hidden;
     border: 1px solid var(--editorial-line-strong);
-    border-radius: var(--editorial-radius-card);
-    background: var(--editorial-surface);
+    border-radius: 8px;
+    background: transparent;
   }
 
   .thesis-balance-side {
@@ -509,11 +572,13 @@ html[data-theme="dark"] {
   }
 
   .thesis-balance-side.support {
-    background: var(--editorial-positive-surface);
+    border-inline-start: 2px solid color-mix(in srgb, var(--editorial-positive) 48%, transparent);
+    background: transparent;
   }
 
   .thesis-balance-side.risk {
-    background: var(--editorial-negative-surface);
+    border-inline-start: 2px solid color-mix(in srgb, var(--editorial-negative) 48%, transparent);
+    background: transparent;
   }
 
   .thesis-balance-side > header {
@@ -571,16 +636,16 @@ html[data-theme="dark"] {
 
   .thesis-balance-side > strong {
     color: var(--editorial-text);
-    font-size: 17px;
-    line-height: 1.6;
+    font-size: 15px;
+    line-height: 1.55;
     font-weight: 600;
   }
 
   .thesis-balance-side > p {
     margin: 0;
     color: var(--editorial-text-soft);
-    font-size: 15.5px;
-    line-height: 1.85;
+    font-size: 13.5px;
+    line-height: 1.7;
     font-weight: 400;
   }
 
@@ -637,7 +702,7 @@ html[data-theme="dark"] {
 
   .thesis-balance-page .v2-page-heading h1 {
     color: var(--editorial-text);
-    font-size: 23px;
+    font-size: 20px;
     line-height: 1.4;
     font-weight: 650;
   }
@@ -645,21 +710,23 @@ html[data-theme="dark"] {
   .thesis-balance-intro {
     margin: 0 4px 2px;
     color: var(--editorial-muted);
-    font-size: 14px;
-    line-height: 1.8;
+    font-size: 13.5px;
+    line-height: 1.7;
   }
 
   .thesis-balance-group {
-    padding: 18px 17px 10px;
+    padding: 15px 14px 8px;
     gap: 9px !important;
   }
 
   .thesis-balance-group.support {
-    background: var(--editorial-positive-surface);
+    border-inline-start: 2px solid color-mix(in srgb, var(--editorial-positive) 48%, transparent);
+    background: transparent;
   }
 
   .thesis-balance-group.risk {
-    background: var(--editorial-negative-surface);
+    border-inline-start: 2px solid color-mix(in srgb, var(--editorial-negative) 48%, transparent);
+    background: transparent;
   }
 
   .thesis-balance-full-card .thesis-balance-group > header {
@@ -681,12 +748,12 @@ html[data-theme="dark"] {
 
   .thesis-balance-full-card .thesis-balance-group.support h2 {
     color: var(--editorial-positive);
-    background: rgba(85, 194, 113, 0.10);
+    background: transparent;
   }
 
   .thesis-balance-full-card .thesis-balance-group.risk h2 {
     color: var(--editorial-negative);
-    background: rgba(240, 107, 120, 0.11);
+    background: transparent;
   }
 
   .thesis-balance-full-card .thesis-balance-group h2 i {

@@ -11,9 +11,9 @@ const sync = readFileSync(new URL("../scripts/sync-deploy.mjs", import.meta.url)
 const editorialIndex = html.indexOf("styles-editorial-finance-v53.css");
 assert.ok(editorialIndex > html.indexOf("styles-mobile-hotfix-v46.css"), "Editorial Finance must be the final CSS layer so legacy overrides cannot shrink its typography.");
 assert.ok(editorialIndex < html.indexOf("src/main.js"), "Editorial Finance must load before the application mounts.");
-assert.match(html, /src\/main\.js\?v=v62-agreed-ui-fixes/, "The changed report markup must use a fresh asset version.");
-assert.match(main, /components\.js\?v=v54-launch-hotfix/, "The application entry point must fetch the redesigned component module under the new asset version.");
-assert.match(worker, /editorial-v54-hotfix/, "The PWA cache must advance for the visual release.");
+assert.match(html, /src\/main\.js\?v=visual-qa-20260901-7/, "The changed report markup must use a fresh asset version.");
+assert.match(main, /components\.js\?v=visual-qa-20260901-7/, "The application entry point must fetch the refined component module under the new asset version.");
+assert.match(worker, /visual-qa-20260901-7/, "The PWA cache must advance for the visual release.");
 assert.ok(worker.includes('"./styles-editorial-finance-v53.css"'), "The editorial layer must remain available offline.");
 assert.ok(sync.includes('"styles-editorial-finance-v53.css"'), "Deploy copies must be generated from the canonical editorial stylesheet.");
 
@@ -27,7 +27,7 @@ for (const token of [
   assert.ok(css.includes(token), `Editorial token missing: ${token}`);
 }
 assert.match(css, /@media \(max-width: 899px\)/, "The redesign must remain iPhone-first and avoid destabilizing desktop reports.");
-assert.match(css, /font-size:\s*15\.5px/, "Arabic analysis copy must be comfortably readable on iPhone.");
+assert.match(css, /font-size:\s*14px/, "Arabic analysis copy must remain compact and readable on iPhone.");
 assert.match(css, /font-variant-numeric:\s*tabular-nums lining-nums/, "Financial values must align with tabular numerals.");
 assert.equal(css.includes("linear-gradient("), false, "The editorial layer must use calm tonal surfaces rather than generated-looking gradients.");
 
@@ -47,5 +47,7 @@ assert.ok(components.includes("report.metadata?.franklinV3Report?.risks"), "Rich
 assert.ok(components.includes("new Set(ids.map"), "Duplicate source IDs must not inflate the displayed provenance count.");
 assert.ok(components.includes('data-panel="strengths-risks"'), "The preview card must retain the full evidence navigation.");
 assert.equal(components.includes("فرصة الاستثمار • Investment Opportunity"), false, "Arabic report headings must not contain mixed-language clutter.");
+assert.ok(components.includes("latest-earnings-summary-metrics"), "Summary must use the compact latest-earnings outcome instead of duplicating the full Earnings workflow.");
+assert.ok(css.includes(".latest-earnings-summary-actions"), "The compact Summary earnings action must belong to the editorial visual system.");
 
 console.log("Franklin Editorial Finance v53: PASS");

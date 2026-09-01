@@ -1,5 +1,5 @@
 import { createStore } from "./state/store.js";
-import { mountApp } from "./ui/components.js?v=v54-launch-hotfix";
+import { mountApp } from "./ui/components.js?v=visual-qa-20260901-7";
 import { migrateFranklinState, summarizeFranklinState } from "./state/migration.js";
 
 const root = document.getElementById("app");
@@ -62,7 +62,7 @@ async function installOptionalRuntime(store, cloud, auditBootstrapError) {
 
   // Install the stock workspace shell first and with an explicit version so every
   // stock page receives the same selected-company header before presentation helpers load.
-  await loadOptional("./ui/stockWorkspaceNavigation.js?v=v61-premium-shell", "Shared stock workspace");
+  await loadOptional("./ui/stockWorkspaceNavigation.js?v=visual-qa-20260901-7", "Shared stock workspace");
 
   const optionalModules = [
     loadOptional("./ui/mobile2Enhancer.js", "Mobile enhancer"),
@@ -71,7 +71,7 @@ async function installOptionalRuntime(store, cloud, auditBootstrapError) {
     loadOptional("./ui/quarterlyEarningsJsonPromptV2.js", "Quarterly JSON prompt"),
     loadOptional("./ui/socialImageExport.js", "Social image export"),
     loadOptional("./ui/socialImageExportQualityPatch.js", "Social image export HD quality"),
-    loadOptional("./ui/reportPresentationEditor.js?v=v44-owner-fields", "Report presentation editor")
+    loadOptional("./ui/reportPresentationEditor.js?v=visual-qa-20260901-7", "Report presentation editor")
   ];
   if (!earningsTableReady) {
     optionalModules.push(loadOptional("./ui/quarterlyScorecardMobileFigma.js", "Quarterly scorecard mobile fallback"));

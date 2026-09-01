@@ -1,11 +1,11 @@
 import { getExternalAnalysis } from "../externalAnalysis/storage.js";
 import { companyLogoMarkup } from "./foundation.js";
 
-export const STOCK_WORKSPACE_NAV_VERSION = "v61";
+export const STOCK_WORKSPACE_NAV_VERSION = "visual-refinement-20260901-7";
 
 const MOBILE_MAX_WIDTH = 899;
 const STYLE_ID = "franklin-stock-workspace-v61";
-const STYLE_URL = "./styles-stock-workspace-v61.css?v=v61-premium-shell-final";
+const STYLE_URL = "./styles-stock-workspace-v61.css?v=visual-refinement-20260901-7";
 const STOCK_PANELS = new Set(["external-report", "quarterly-scorecard", "company-profile", "strengths-risks"]);
 
 let scheduledFrame = 0;
@@ -16,7 +16,7 @@ export function installStockWorkspaceNavigation(store, root = document.getElemen
   root.dataset.stockWorkspaceNavigationInstalled = "true";
   const mount = () => scheduleMount(store, root);
   store.subscribe?.(mount);
-  new MutationObserver(mount).observe(root, { childList: true, subtree: true });
+  new MutationObserver(mount).observe(root, { childList: true });
   root.addEventListener("click", (event) => handleNavigationClick(event, store));
   window.addEventListener("resize", mount, { passive: true });
   window.addEventListener("pageshow", mount);
@@ -36,8 +36,13 @@ function mountNavigation(store, root) {
   const mobile = window.innerWidth <= MOBILE_MAX_WIDTH;
   const active = mobile && STOCK_PANELS.has(activePanel);
   document.documentElement.classList.toggle("franklin-stock-workspace-active", active);
-  root.querySelectorAll("[data-stock-workspace-nav], [data-stock-workspace-header]").forEach((node) => node.remove());
-  if (!active || !styleReady) return;
+  const mountedHeader = root.querySelector("[data-stock-workspace-header]");
+  const mountedNav = root.querySelector("[data-stock-workspace-nav]");
+  if (!active || !styleReady) {
+    mountedHeader?.remove();
+    mountedNav?.remove();
+    return;
+  }
 
   normalizeEarningsTable(root);
   const context = resolveStockContext(state);
@@ -49,14 +54,35 @@ function mountNavigation(store, root) {
   const nativeHeader = frame?.querySelector(":scope > .mobile-app-header");
   if (!frame || !nativeHeader) return;
 
+  const signature = JSON.stringify({
+    activePanel,
+    ticker: context.ticker,
+    reportId: context.reportId || "latest",
+    language: state.language || "ar",
+    updated: report.reportPeriod || report.analysisDate || "—",
+    hasCompanyProfile
+  });
+  if (
+    mountedHeader?.parentElement === frame
+    && mountedNav?.parentElement === frame
+    && mountedHeader.dataset.stockWorkspaceSignature === signature
+  ) {
+    if (activePanel === "external-report") markLegacyEarningsDetail(root);
+    return;
+  }
+
+  mountedHeader?.remove();
+  mountedNav?.remove();
+
   const sharedHeader = buildSharedStockHeader(report, state);
+  sharedHeader.dataset.stockWorkspaceSignature = signature;
   nativeHeader.insertAdjacentElement("afterend", sharedHeader);
 
   const nav = document.createElement("nav");
   nav.className = "franklin-stock-page-nav";
   nav.dataset.stockWorkspaceNav = "true";
   nav.setAttribute("aria-label", isArabicUi() ? "صفحات السهم" : "Stock pages");
-  nav.innerHTML = pageButtons(activePanel, hasCompanyProfile);
+  nav.innerHTML = pageButtons(activePanel);
   sharedHeader.insertAdjacentElement("afterend", nav);
 
   root.querySelector(".owner-presentation-edit-trigger-fallback")?.remove();
@@ -74,9 +100,9 @@ function buildSharedStockHeader(report, state) {
   header.innerHTML = `
     <button class="header-icon-button report-back-button" data-panel="home" aria-label="${escapeHtml(isArabicUi() ? "العودة إلى المكتبة" : "Back to My Stocks")}" title="${escapeHtml(isArabicUi() ? "العودة إلى المكتبة" : "Back to My Stocks")}"><span aria-hidden="true">${isArabicUi() ? "›" : "‹"}</span></button>
     <details class="mobile-app-menu franklin-stock-menu">
-      <summary aria-label="${escapeHtml(isArabicUi() ? "المزيد" : "More")}" title="${escapeHtml(isArabicUi() ? "المزيد" : "More")}"><span aria-hidden="true">•••</span></summary>
+      <summary data-stock-menu-toggle aria-label="${escapeHtml(isArabicUi() ? "المزيد" : "More")}" title="${escapeHtml(isArabicUi() ? "المزيد" : "More")}"><span aria-hidden="true">•••</span></summary>
       <div>
-        <button type="button" class="franklin-stock-menu-edit" data-stock-edit>${escapeHtml(isArabicUi() ? "تحرير بيانات العرض" : "Edit display")}</button>
+        <button type="button" class="franklin-stock-menu-edit" data-stock-edit data-owner-presentation-open>${escapeHtml(isArabicUi() ? "تحرير بيانات العرض" : "Edit display")}</button>
         <div class="language-toggle" role="group" aria-label="Language"><button class="${state.language === "ar" ? "active" : ""}" data-language="ar">العربية</button><span></span><button class="${state.language === "en" ? "active" : ""}" data-language="en">English</button></div>
       </div>
     </details>
@@ -95,26 +121,60 @@ function buildSharedStockHeader(report, state) {
   return header;
 }
 
-function pageButtons(activePanel, hasCompanyProfile) {
+function pageButtons(activePanel) {
   const pages = [
     ["summary", isArabicUi() ? "الملخص" : "Summary", activePanel === "external-report", false],
     ["earnings", isArabicUi() ? "الأرباح" : "Earnings", activePanel === "quarterly-scorecard", false],
-    ["company", isArabicUi() ? "الشركة" : "Company", activePanel === "company-profile", !hasCompanyProfile],
+    ["company", isArabicUi() ? "الشركة" : "Company", activePanel === "company-profile", false],
     ["strengths", isArabicUi() ? "المزايا والمخاطر" : "Strengths & Risks", activePanel === "strengths-risks", false]
   ];
   return `<div class="franklin-stock-page-tabs" role="tablist">${pages.map(([key,label,selected,disabled]) => `<button type="button" role="tab" data-stock-page="${key}" aria-selected="${selected}" class="${selected ? "active" : ""}" ${disabled ? "disabled aria-disabled=\"true\"" : ""}>${escapeHtml(label)}</button>`).join("")}</div>`;
 }
 
 function handleNavigationClick(event, store) {
+  const sharedHeader = event.target.closest?.("[data-stock-workspace-header]");
+  if (sharedHeader) {
+    const menuToggle = event.target.closest?.("[data-stock-menu-toggle]");
+    if (menuToggle) {
+      event.preventDefault();
+      const menu = menuToggle.closest("details");
+      if (menu) menu.open = !menu.open;
+      return;
+    }
+    const back = event.target.closest?.("[data-panel='home']");
+    if (back) {
+      event.preventDefault();
+      store.set?.({ activePanel: "home", notice: "" });
+      return;
+    }
+    const language = event.target.closest?.("[data-language]");
+    if (language) {
+      event.preventDefault();
+      store.setLanguage?.(language.dataset.language);
+      return;
+    }
+    const profile = event.target.closest?.("[data-profile-ticker]");
+    if (profile) {
+      event.preventDefault();
+      store.openCompanyProfile?.(profile.dataset.profileTicker, profile.dataset.profileReportId || "latest");
+      return;
+    }
+  }
+
   const edit = event.target.closest?.("[data-stock-edit]");
   if (edit) {
     event.preventDefault();
+    const menu = edit.closest("details");
+    if (menu) menu.open = false;
     const context = resolveStockContext(store.state || {});
     if (!context.ticker) return;
-    if (store.state?.activePanel !== "external-report") store.openExternalReport?.(context.ticker, context.reportId || "latest");
+    if (store.state?.activePanel === "external-report") {
+      openPresentationDialog();
+      return;
+    }
+    store.openExternalReport?.(context.ticker, context.reportId || "latest");
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      const dialog = document.querySelector("[data-owner-presentation-dialog]");
-      if (dialog?.showModal && !dialog.open) dialog.showModal();
+      openPresentationDialog();
     }));
     return;
   }
@@ -157,7 +217,17 @@ function normalizeEarningsTable(root) {
 function markLegacyEarningsDetail(root) {
   const flow = root.querySelector(".panel-external-report .stock-decision-flow");
   if (!flow) return;
-  [...flow.children].forEach((child) => { if (child.querySelector?.("[data-action='open-quarterly-scorecard']")) child.classList.add("franklin-summary-legacy-earnings-detail"); });
+  [...flow.children].forEach((child) => {
+    if (child.classList.contains("latest-earnings-summary-section")) return;
+    if (child.querySelector?.("[data-action='open-quarterly-scorecard']")) child.classList.add("franklin-summary-legacy-earnings-detail");
+  });
+}
+
+function openPresentationDialog() {
+  const dialog = document.querySelector("[data-owner-presentation-dialog]");
+  if (!dialog || dialog.open) return;
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else dialog.setAttribute("open", "");
 }
 
 function ensureStylesheet(onReady) {

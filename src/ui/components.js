@@ -20,6 +20,7 @@ import { downloadQuarterlyScorecardPng, shareQuarterlyScorecardPng } from "./qua
 import { copyTextForMobile } from "./clipboard.js";
 import { formatJsonFileSize } from "../externalAnalysis/jsonFileImport.js";
 import { riskAssessmentMetric, valuationAssessmentMetric } from "./reportAssessmentMetrics.js";
+import { decisionHeroModel } from "../financialSafety/decisionHeroUx.js";
 import {
   appHeaderMarkup,
   bindCompanyLogoFallbacks,
@@ -103,12 +104,15 @@ function installPromptCopyDelegation(root, store) {
 function render(root, store, actions) {
   const activePanel = visiblePanel(store.state.activePanel);
   const state = activePanel === store.state.activePanel ? store.state : { ...store.state, activePanel };
+  const panelChanged = root.dataset.renderedPanel !== activePanel;
+  root.dataset.renderedPanel = activePanel;
   setupArabicDocument(state.language);
   document.documentElement.dataset.theme = "dark";
   if (activePanel === "home") {
     root.innerHTML = homeDashboard(state);
     bindCompanyLogoFallbacks(root);
     bind(root, store, actions);
+    resetPanelScroll(panelChanged);
     return;
   }
   root.innerHTML = `
@@ -129,6 +133,12 @@ function render(root, store, actions) {
   `;
   bindCompanyLogoFallbacks(root);
   bind(root, store, actions);
+  resetPanelScroll(panelChanged);
+}
+
+function resetPanelScroll(panelChanged) {
+  if (!panelChanged || typeof window === "undefined") return;
+  requestAnimationFrame(() => window.scrollTo(0, 0));
 }
 
 function homeDashboard(state) {
@@ -1708,13 +1718,27 @@ function companyProfileView(state) {
     `;
   }
   if (!hasReadableCompanyProfile(profile)) {
+    const ticker = report.company?.ticker || "-";
+    const companyName = report.company?.name || ticker;
     return `
-      <section class="panel empty-home-state company-profile-empty">
-        <p class="eyebrow">${uiLabel("Company Profile")}</p>
-        <strong>${uiLabel("Company profile unavailable")}</strong>
-        <p>${uiLabel("This saved analysis does not include an educational company profile.")}</p>
-        <button class="primary-btn" data-action="copy-full-analysis-prompt">${uiLabel("نسخ برومبت تحليل السهم")}</button>
-        <button class="icon-btn" data-panel="home">${uiLabel("Back to My Stocks")}</button>
+      <section class="external-report-shell company-profile-shell">
+        <header class="panel company-profile-header">
+          <div>
+            <p class="eyebrow">${uiLabel("Company Profile")}</p>
+            <h2>${escapeHtml(companyName)}</h2>
+            <strong dir="ltr">${escapeHtml(ticker)}</strong>
+          </div>
+        </header>
+        <section class="panel company-profile-section company-profile-facts">
+          <h3>${isArabicUi() ? "بيانات الشركة" : "Company facts"}</h3>
+          <dl>
+            ${companyProfileFact(isArabicUi() ? "القطاع" : "Sector", report.company?.sector)}
+            ${companyProfileFact(isArabicUi() ? "الصناعة" : "Industry", report.company?.industry)}
+            ${companyProfileFact(isArabicUi() ? "العملة" : "Currency", report.company?.currency || report.market?.currency, "ltr")}
+            ${companyProfileFact(isArabicUi() ? "فترة التقرير" : "Report period", report.reportPeriod || report.analysisDate, "ltr")}
+          </dl>
+          <p class="company-profile-note">${uiLabel("This saved analysis does not include an educational company profile.")}</p>
+        </section>
       </section>
     `;
   }
@@ -1750,6 +1774,11 @@ function hasReadableCompanyProfile(profile = null) {
     || (Array.isArray(profile.activities) && profile.activities.length)
     || (Array.isArray(profile.mainGrowthDrivers) && profile.mainGrowthDrivers.length)
   );
+}
+
+function companyProfileFact(label, value, direction = "auto") {
+  if (value === null || value === undefined || String(value).trim() === "") return "";
+  return `<div><dt>${escapeHtml(label)}</dt><dd dir="${escapeHtml(direction)}">${escapeHtml(value)}</dd></div>`;
 }
 
 function companyProfileSection(title, value) {
@@ -2182,7 +2211,28 @@ function stockDecisionHeader(report = {}, completion = {}) {
         ${Number.isFinite(numericValue(priceAtAnalysis)) ? `<p>${uiLabel("Price at Analysis")}: <bdi dir="ltr">${money(priceAtAnalysis, 0)}</bdi></p>` : ""}
         ${Number.isFinite(numericValue(report.presentation?.morningstarFairValue)) ? `<p>Morningstar: <bdi dir="ltr">${money(report.presentation.morningstarFairValue, 0)}</bdi></p>` : ""}
       </div>
+      ${decisionHeroSummary(report)}
     </header>
+  `;
+}
+
+function decisionHeroSummary(report = {}) {
+  const model = decisionHeroModel(report);
+  const metrics = [
+    Number.isFinite(model.probabilityWeighted) ? {
+      label: isArabicUi() ? "القيمة الاحتمالية" : "Probability-weighted value",
+      value: money(model.probabilityWeighted, model.probabilityWeighted >= 100 ? 0 : 2)
+    } : null,
+    Number.isFinite(model.confidence) ? {
+      label: isArabicUi() ? "الثقة" : "Confidence",
+      value: `${Math.round(model.confidence)}%`
+    } : null
+  ].filter(Boolean);
+  if (!metrics.length) return "";
+  return `
+    <div class="franklin-decision-hero-kpis" aria-label="${isArabicUi() ? "مؤشرات القرار" : "Decision metrics"}">
+      ${metrics.map((metric) => `<article><span>${escapeHtml(metric.label)}</span><strong dir="ltr">${escapeHtml(metric.value)}</strong></article>`).join("")}
+    </div>
   `;
 }
 
@@ -2354,51 +2404,25 @@ function latestEarningsWorkspace(report = {}) {
       </div>
     `);
   }
-  const rows = earningsSnapshotRows(report);
-  const hasGuidance = hasRenderableContent(guidanceTableView(report));
   const assessment = previous?.requirementsAssessment || report.requirementsAssessment || {};
+  const achievement = numericValue(assessment.achievementOfReportedWeightPct ?? assessment.weightedAchievement);
   return stockSection(uiLabel("Latest Earnings Execution"), `
-    <div class="earnings-dashboard latest-earnings-terminal">
-      <div class="earnings-dashboard-head">
-        <div>
-          <p class="eyebrow">${escapeHtml(report.reportPeriod || report.analysisDate || "")}</p>
-        </div>
+    <div class="latest-earnings-summary">
+      <div class="latest-earnings-summary-status">
+        <span>${escapeHtml(report.reportPeriod || report.analysisDate || "—")}</span>
+        <strong>${escapeHtml(requirementsStatusLabel(assessment.overallStatus))}</strong>
+      </div>
+      <dl class="latest-earnings-summary-metrics">
+        <div><dt>${uiLabel("Passed")}</dt><dd dir="ltr">${assessmentNumberText(assessment.passedRequirements ?? assessment.passed)}</dd></div>
+        <div><dt>${uiLabel("Failed")}</dt><dd dir="ltr">${assessmentNumberText(assessment.failedRequirements ?? assessment.failed)}</dd></div>
+        <div><dt>${uiLabel("Requirement achievement")}</dt><dd dir="ltr">${Number.isFinite(achievement) ? `${Math.round(achievement)}%` : "—"}</dd></div>
+      </dl>
+      <div class="latest-earnings-summary-actions">
         <button class="compact-inline-action" data-action="open-earnings-update">${uiLabel("تحليل إعلان جديد")}</button>
+        <button class="primary-btn" data-action="open-quarterly-scorecard" data-scorecard-ticker="${escapeHtml(report.company?.ticker || "")}" data-scorecard-report-id="${escapeHtml(report.id || "latest")}">${uiLabel("Quarterly Scorecard")}</button>
       </div>
-      <div class="earnings-status-grid">
-        ${compactCardMetric(uiLabel("Passed"), assessmentNumberText(assessment.passedRequirements ?? assessment.passed))}
-        ${compactCardMetric(uiLabel("Partially Passed"), assessmentNumberText(assessment.partiallyPassedRequirements ?? assessment.partiallyPassed))}
-        ${compactCardMetric(uiLabel("Failed"), assessmentNumberText(assessment.failedRequirements ?? assessment.failed))}
-        ${compactCardMetric(uiLabel("Requirement achievement"), Number.isFinite(numericValue(assessment.achievementOfReportedWeightPct ?? assessment.weightedAchievement)) ? `${Math.round(numericValue(assessment.achievementOfReportedWeightPct ?? assessment.weightedAchievement))}%` : "—")}
-        ${Number.isFinite(numericValue(assessment.coverageWeightPct)) ? compactCardMetric(uiLabel("Coverage"), `${Math.round(numericValue(assessment.coverageWeightPct))}%`) : ""}
-        ${Number.isFinite(numericValue(assessment.achievementOfTotalWeightPct)) ? compactCardMetric(uiLabel("Total Achievement"), `${Math.round(numericValue(assessment.achievementOfTotalWeightPct))}%`) : ""}
-      </div>
-      ${assessment.overallStatus ? `<p class="earnings-overall">${escapeHtml(requirementsStatusLabel(assessment.overallStatus))}</p>` : ""}
-      ${rows.length ? externalDetail(uiLabel("Earnings Snapshot"), metricRows(rows)) : ""}
-      ${hasPreviousEvaluation ? externalDetail(uiLabel("Earnings Requirement Results"), previousRequirementExecutionView(previous, { earningsPeriod: report.reportPeriod }), true) : ""}
-      ${hasGuidance ? externalDetail(uiLabel("Guidance"), guidanceTableView(report)) : ""}
     </div>
-  `);
-}
-
-function earningsSnapshotRows(report = {}) {
-  const highlights = report.financialHighlights || {};
-  const growth = report.growthHighlights || {};
-  return [
-    [financialTerm("Revenue"), highlights.revenue],
-    [uiLabel("Revenue Growth"), highlights.revenueGrowthPct ?? growth.revenueGrowth],
-    [financialTerm("EPS"), highlights.epsNormalized ?? highlights.epsReported ?? growth.epsGrowth],
-    [financialTerm("Operating Margin"), highlights.operatingMarginPct ?? growth.marginTrend],
-    [financialTerm("Free Cash Flow"), highlights.freeCashFlow],
-    [uiLabel("Guidance"), firstGuidanceValue(report)]
-  ].filter(([, value]) => value !== null && value !== undefined && value !== "");
-}
-
-function firstGuidanceValue(report = {}) {
-  const current = Array.isArray(report.guidance) ? report.guidance[0] : null;
-  if (!current) return "";
-  if (typeof current === "string") return current;
-  return `${current.arabicTopic || current.topic || current.title || uiLabel("Guidance")}: ${formatAnyValue(current.currentGuidance || current.guidance || current.value)}`;
+  `, "latest-earnings-summary-section");
 }
 
 function metricRows(rows = []) {

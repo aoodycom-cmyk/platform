@@ -1715,10 +1715,10 @@ label {
   max-height: min(78dvh, 680px);
   padding: 18px 14px calc(18px + env(safe-area-inset-bottom));
   display: grid;
-  gap: 14px;
+  gap: 10px;
   border: 1px solid var(--line);
   border-bottom: 0;
-  border-radius: 14px 14px 0 0;
+  border-radius: 12px 12px 0 0;
   background: var(--surface-1);
   box-shadow: var(--shadow-sheet);
   overflow-y: auto;
@@ -1762,24 +1762,25 @@ label {
 .evidence-detail-head h3 {
   margin: 0;
   color: var(--ink);
-  font-size: 19px;
+  font-size: 18px;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
 .evidence-detail-fields {
   display: grid;
-  gap: 9px;
+  gap: 0;
 }
 
 .evidence-detail-fields section {
   min-width: 0;
-  padding: 11px;
+  padding: 12px 0;
   display: grid;
   gap: 5px;
-  border: 1px solid var(--line-soft);
-  border-radius: 9px;
-  background: var(--surface-2);
+  border: 0;
+  border-top: 1px solid var(--line-soft);
+  border-radius: 0;
+  background: transparent;
 }
 
 .evidence-detail-fields strong {

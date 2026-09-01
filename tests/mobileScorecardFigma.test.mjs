@@ -17,7 +17,7 @@ assert.equal(EARNINGS_TABLE_EXPERIENCE_VERSION, "v57");
 assert.ok(editorialStyles.includes("Franklin Editorial Finance v53"), "Codex editorial presentation must be restored intact.");
 assert.ok(editorialStyles.includes("--editorial-font"), "The global editorial system must not be replaced by a one-line import.");
 assert.equal(editorialStyles.trim().startsWith("@import"), false);
-assert.ok(serviceWorker.includes("v57-earnings-clean"));
+assert.ok(serviceWorker.includes("visual-qa-20260901-7"));
 assert.ok(serviceWorker.includes("styles-earnings-compact-v56.css"));
 assert.ok(syncScript.includes("styles-earnings-compact-v56.css"));
 assert.ok(main.includes("earningsTableExperience.js?v=v57-earnings-clean"));
