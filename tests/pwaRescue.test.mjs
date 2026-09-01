@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const VERSION = "visual-qa-20260901-7";
+const VERSION = "compact-visual-20260901-1";
 const index = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const serviceWorker = readFileSync(new URL("../service-worker.js", import.meta.url), "utf8");
 const rescue = readFileSync(new URL("../rescue.html", import.meta.url), "utf8");

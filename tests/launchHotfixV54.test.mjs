@@ -19,11 +19,11 @@ assert.equal(html.includes("جاري فتح Franklin"), false, "Normal boot must
 assert.ok(html.includes('aria-hidden="true"'), "Normal boot should use a silent placeholder.");
 assert.ok(html.includes("<details") && html.includes("تفاصيل تقنية"), "Raw Safari diagnostics must stay behind progressive disclosure.");
 assert.ok(html.indexOf("<details") < html.indexOf("<code"), "Safari diagnostic code must be nested under the details control.");
-assert.match(html, /backend-config\.js\?v=visual-qa-20260901-7/, "Safari recovery configuration must bypass the previous cached detector.");
+assert.match(html, /backend-config\.js\?v=compact-visual-20260901-1/, "Safari recovery configuration must bypass the previous cached detector.");
 
 assert.ok(components.includes('isArabicUi() ? "›" : "‹"'), "Arabic report back actions must point toward the RTL return direction.");
 assert.ok(foundation.includes('language === "ar" ? "›" : "‹"'), "Arabic generic back actions must point toward the RTL return direction.");
-assert.match(html, /visual-qa-20260901-7/, "The visual refinement must bypass stale iPhone assets.");
-assert.match(worker, /visual-qa-20260901-7/, "The PWA cache must advance for the visual refinement.");
+assert.match(html, /compact-visual-20260901-1/, "The visual refinement must bypass stale iPhone assets.");
+assert.match(worker, /compact-visual-20260901-1/, "The PWA cache must advance for the visual refinement.");
 
 console.log("Franklin launch hotfix v54: PASS");

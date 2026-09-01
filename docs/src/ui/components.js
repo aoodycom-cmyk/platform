@@ -180,25 +180,23 @@ function mobileAppHeader(state, isHome = false) {
 }
 
 function libraryAppHeader(state) {
-  return `
-    <header class="mobile-app-header library-app-header v31-library-header">
-      <div class="v31-library-heading">
-        <strong>${isArabicUi() ? "فرانكلين" : "Franklin"}</strong>
-        <span dir="ltr">FRANKLIN RESEARCH</span>
-      </div>
-      <div class="v31-library-controls">
-        <button class="header-icon-button header-add-button" data-action="open-external-import" aria-label="${uiLabel("إضافة سهم")}" title="${uiLabel("إضافة سهم")}"><span aria-hidden="true">+</span></button>
-        <label class="v31-library-sort">
-          <span>${isArabicUi() ? "ترتيب" : "Sort"} <b aria-hidden="true">•</b> <bdi dir="ltr">Sort</bdi></span>
-          <select data-library-sort aria-label="${uiLabel("Sort")}">
-            ${watchlistFilterOption("latest", uiLabel("Latest Update"), state.librarySort)}
-            ${watchlistFilterOption("upside", uiLabel("Highest Upside"), state.librarySort)}
-            ${watchlistFilterOption("ticker", uiLabel("Ticker"), state.librarySort)}
-          </select>
-        </label>
-      </div>
-    </header>
+  const sortControl = `
+    <label class="v31-library-sort">
+      <span>${isArabicUi() ? "ترتيب" : "Sort"} <b aria-hidden="true">•</b> <bdi dir="ltr">Sort</bdi></span>
+      <select data-library-sort aria-label="${uiLabel("Sort")}">
+        ${watchlistFilterOption("latest", uiLabel("Latest Update"), state.librarySort)}
+        ${watchlistFilterOption("upside", uiLabel("Highest Upside"), state.librarySort)}
+        ${watchlistFilterOption("ticker", uiLabel("Ticker"), state.librarySort)}
+      </select>
+    </label>
   `;
+  return appHeaderMarkup({
+    title: uiLabel("Library"),
+    isHome: true,
+    language: state.language,
+    label: uiLabel,
+    contextualActions: sortControl
+  });
 }
 
 function externalReportAppBar(state) {

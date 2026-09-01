@@ -137,8 +137,8 @@ try {
   assert.equal(app.status, 200);
   assert.ok(app.text.includes("Franklin Research 11.0.0"));
   assert.ok(app.text.includes("apple-mobile-web-app-title"));
-  assert.ok(app.text.includes("styles.css?v=visual-qa-20260901-7"));
-  assert.ok(app.text.includes("styles-mobile2.css?v=visual-qa-20260901-7"));
+  assert.ok(app.text.includes("styles.css?v=compact-visual-20260901-1"));
+  assert.ok(app.text.includes("styles-mobile2.css?v=compact-visual-20260901-1"));
   assert.match(app.text, /src\/main\.js\?v=[A-Za-z0-9._-]+/);
   assert.ok(app.text.includes("franklin-cache-reset"));
 

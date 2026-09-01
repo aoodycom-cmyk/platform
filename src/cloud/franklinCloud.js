@@ -334,7 +334,7 @@ function cloudStyles() {
   const style = document.createElement("style");
   style.id = "franklin-cloud-styles";
   style.textContent = `
-    .franklin-cloud-trigger{position:fixed;left:16px;bottom:max(18px,env(safe-area-inset-bottom));z-index:9000;min-width:48px;height:48px;border-radius:999px;border:1px solid var(--line,#293047);background:rgba(17,20,34,.96);color:var(--ink,#fff);font:700 13px/1 system-ui;box-shadow:0 12px 32px rgba(0,0,0,.28);padding:0 14px}
+    .franklin-cloud-trigger{position:fixed;left:16px;bottom:calc(72px + env(safe-area-inset-bottom));z-index:9000;min-width:40px;height:40px;border-radius:8px;border:1px solid var(--line,#293047);background:rgba(17,20,34,.96);color:var(--ink,#fff);font:700 12px/1 system-ui;box-shadow:0 12px 32px rgba(0,0,0,.28);padding:0 12px}
     .franklin-cloud-backdrop{position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.66);display:grid;place-items:end center;padding:16px}
     .franklin-cloud-panel{width:min(100%,520px);max-height:88vh;overflow:auto;border:1px solid var(--line,#293047);border-radius:20px;background:var(--surface,#111422);color:var(--ink,#fff);padding:18px;box-shadow:0 28px 70px rgba(0,0,0,.5);font-family:system-ui}
     .franklin-cloud-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.franklin-cloud-head h2{font-size:18px;margin:0}.franklin-cloud-close{width:44px;height:44px;border:0;border-radius:12px;background:var(--surface-2,#181c2e);color:inherit;font-size:22px}

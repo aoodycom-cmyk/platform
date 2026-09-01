@@ -47,24 +47,22 @@ export function bindCompanyLogoFallbacks(root) {
   });
 }
 
-export function appHeaderMarkup({ title, isHome = false, language = "ar", label }) {
+export function appHeaderMarkup({ title = "", isHome = false, language = "ar", label, contextualActions = "" }) {
   const text = typeof label === "function" ? label : (value) => value;
   const addStockLabel = escapeHtml(text("إضافة سهم"));
   const homeLabel = escapeHtml(text("Home"));
   const moreLabel = escapeHtml(text("More"));
+  const brandLabel = escapeHtml(text("Franklin Research"));
   return `
-    <header class="mobile-app-header ${isHome ? "library-app-header" : ""}">
-      <div class="mobile-brand">
+    <header class="mobile-app-header global-app-header ${isHome ? "library-app-header v31-library-header" : ""}" aria-label="${escapeHtml(title || text("Franklin Research"))}">
+      <div class="mobile-brand" role="img" aria-label="${brandLabel}">
         ${companyLogoMarkup({ name: "Franklin", logoUrl: "./assets/icon-192.png", className: "app-logo" })}
-        <div>
-          <strong>${language === "ar" ? "فرانكلين" : "Franklin"}</strong>
-          <span dir="ltr">FRANKLIN RESEARCH</span>
-        </div>
       </div>
       <div class="mobile-header-actions">
         ${isHome
           ? `<button class="header-icon-button header-add-button" data-action="open-external-import" aria-label="${addStockLabel}" title="${addStockLabel}"><span aria-hidden="true">+</span></button>`
           : `<button class="header-icon-button back-home" data-panel="home" aria-label="${homeLabel}" title="${homeLabel}"><span aria-hidden="true">${language === "ar" ? "›" : "‹"}</span></button>`}
+        ${contextualActions}
         <details class="mobile-app-menu">
           <summary aria-label="${moreLabel}" title="${moreLabel}"><span aria-hidden="true">•••</span></summary>
           <div>

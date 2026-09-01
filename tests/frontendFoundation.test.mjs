@@ -54,8 +54,12 @@ assert.ok(logo.includes("bad.png"));
 
 const header = appHeaderMarkup({ title: "مكتبتي", isHome: true, language: "ar", label: (value) => value });
 assert.ok(header.includes("mobile-app-header"));
+assert.ok(header.includes("global-app-header"));
 assert.ok(header.includes("إضافة سهم"));
 assert.ok(header.includes("company-logo"));
+assert.equal(header.includes("FRANKLIN RESEARCH"), false, "The global header must not render the legacy wordmark.");
+assert.equal(header.includes("<strong>فرانكلين</strong>"), false, "The global header must remain logo-only.");
+assert.ok(header.includes('role="img"'), "The logo-only brand must keep an accessible name.");
 
 const nav = bottomNavigationMarkup({
   panels: [["home", "المكتبة"], ["history", "السجل"]],
