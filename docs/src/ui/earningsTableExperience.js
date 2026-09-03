@@ -68,8 +68,10 @@ function enhanceQuarterlyEarningsExperience() {
   if (!host) {
     host = document.createElement("section");
     host.className = "franklin-earnings-hub";
+    const timeline = shell.querySelector(":scope > .quarterly-earnings-timeline");
     const header = shell.querySelector(":scope > .quarterly-scorecard-header");
-    if (header) header.insertAdjacentElement("afterend", host);
+    if (timeline) timeline.insertAdjacentElement("afterend", host);
+    else if (header) header.insertAdjacentElement("afterend", host);
     else shell.prepend(host);
   }
 

@@ -1,4 +1,6 @@
-export const FRANKLIN_STATE_SCHEMA_VERSION = 1;
+import { normalizeQuarterlyEarningsHistory } from "../externalAnalysis/quarterlyHistory.js";
+
+export const FRANKLIN_STATE_SCHEMA_VERSION = 2;
 
 export const FRANKLIN_STATE_BACKUP_PREFIXES = [
   "franklinBootRecoveryBackup:",
@@ -6,39 +8,52 @@ export const FRANKLIN_STATE_BACKUP_PREFIXES = [
   "franklinPreCloudRestoreBackupV1",
   "franklinPreCloudRestoreBackupV1:",
   "franklinPreLocalRestoreBackupV1:",
-  "franklinPreCloudPushBackupV1:"
+  "franklinPreCloudPushBackupV1:",
+  "franklinPreStateMigrationBackupV2:"
 ];
 
 export function migrateFranklinState(rawState = {}, options = {}) {
   const diagnostics = {
     schemaVersion: FRANKLIN_STATE_SCHEMA_VERSION,
+    previousSchemaVersion: normalizeInputSchemaVersion(rawState?.stateSchemaVersion),
     warnings: [],
-    quarantinedReports: []
+    quarantinedReports: [],
+    dryRun: Boolean(options.dryRun),
+    migrationStats: null
   };
   const source = cloneState(rawState);
   const input = source && typeof source === "object" && !Array.isArray(source) ? source : {};
   if (source !== input) diagnostics.warnings.push({ path: "$", issue: "state-root-not-object" });
 
+  const externalAnalyses = normalizeExternalAnalysesForBoot(input.externalAnalyses, diagnostics);
+  const quarterlyMigration = normalizeQuarterlyEarningsHistory(
+    input.quarterlyEarningsHistory,
+    externalAnalyses,
+    options
+  );
+  diagnostics.migrationStats = quarterlyMigration.stats;
+
   const state = {
     ...input,
-    stateSchemaVersion: normalizeSchemaVersion(input.stateSchemaVersion),
+    stateSchemaVersion: FRANKLIN_STATE_SCHEMA_VERSION,
     manualInputs: plainObject(input.manualInputs) ? input.manualInputs : { averageCost: "", morningstarFairValue: "", notes: "" },
     evaluatedCompanies: normalizeArray(input.evaluatedCompanies, "evaluatedCompanies", diagnostics),
     compareSelectedTickers: normalizeArray(input.compareSelectedTickers, "compareSelectedTickers", diagnostics),
     history: normalizeArray(input.history, "history", diagnostics),
     watchList: normalizeArray(input.watchList, "watchList", diagnostics),
     watchDraft: plainObject(input.watchDraft) ? input.watchDraft : { thesis: "", targetPrice: "", reviewDate: "", notes: "" },
-    externalAnalyses: normalizeExternalAnalysesForBoot(input.externalAnalyses, diagnostics),
+    externalAnalyses,
     historicalRequirementSets: normalizeHistoricalRequirementSetsForBoot(input.historicalRequirementSets, diagnostics),
+    quarterlyEarningsHistory: quarterlyMigration.history,
     libraryFilter: typeof input.libraryFilter === "string" ? input.libraryFilter : "all",
     librarySort: typeof input.librarySort === "string" ? input.librarySort : "latest",
-    evaluatedSort: plainObject(input.evaluatedSort) ? input.evaluatedSort : undefined,
+    ...(plainObject(input.evaluatedSort) ? { evaluatedSort: input.evaluatedSort } : {}),
     rankingFilter: typeof input.rankingFilter === "string" ? input.rankingFilter : "all",
     sectorFilter: typeof input.sectorFilter === "string" ? input.sectorFilter : "all"
   };
 
   state.externalReportSelection = normalizeExternalSelection(input.externalReportSelection, state.externalAnalyses, diagnostics);
-  state.__franklinMigration = diagnostics;
+  state.__franklinMigration = input.__franklinMigration || diagnostics;
   if (options.includeRawBackupKey) state.__franklinRawBackupKey = options.includeRawBackupKey;
   return { state, diagnostics };
 }
@@ -49,6 +64,13 @@ export function summarizeFranklinState(state = {}) {
   const reportCount = Object.values(externalAnalyses).reduce((sum, reports) => sum + (Array.isArray(reports) ? reports.length : 0), 0);
   const historicalRequirementSets = plainObject(state.historicalRequirementSets) ? state.historicalRequirementSets : {};
   const historicalRequirementSetCount = Object.values(historicalRequirementSets).reduce((sum, sets) => sum + (Array.isArray(sets) ? sets.length : 0), 0);
+  const quarterlyEarningsHistory = plainObject(state.quarterlyEarningsHistory) ? state.quarterlyEarningsHistory : {};
+  const quarterlyHistoryCount = Object.values(quarterlyEarningsHistory).reduce((sum, records) => sum + (Array.isArray(records) ? records.length : 0), 0);
+  const reportedQuarterCount = Object.values(quarterlyEarningsHistory).reduce((sum, records) => sum + (Array.isArray(records) ? records.filter((record) => record?.status === "REPORTED").length : 0), 0);
+  const upcomingQuarterCount = quarterlyHistoryCount - reportedQuarterCount;
+  const quarterlySourceCount = Object.values(quarterlyEarningsHistory).reduce((sum, records) => sum + (Array.isArray(records)
+    ? records.reduce((inner, record) => inner + (Array.isArray(record?.sources) ? record.sources.length : 0), 0)
+    : 0), 0);
   const supplementCount = Object.values(externalAnalyses).reduce((sum, reports) => {
     if (!Array.isArray(reports)) return sum;
     return sum + reports.reduce((inner, report) => inner + (Array.isArray(report?.supplements) ? report.supplements.length : 0), 0);
@@ -57,6 +79,10 @@ export function summarizeFranklinState(state = {}) {
     tickerCount,
     reportCount,
     historicalRequirementSetCount,
+    quarterlyHistoryCount,
+    reportedQuarterCount,
+    upcomingQuarterCount,
+    quarterlySourceCount,
     supplementCount,
     evaluatedCompanyCount: Array.isArray(state.evaluatedCompanies) ? state.evaluatedCompanies.length : 0
   };
@@ -64,6 +90,42 @@ export function summarizeFranklinState(state = {}) {
 
 export function countExternalReports(state = {}) {
   return summarizeFranklinState(state).reportCount;
+}
+
+export function migrateStoredFranklinState(storage = globalThis.localStorage, key = "equityResearchV4State", options = {}) {
+  if (!storage) throw new Error("Franklin persistent storage is unavailable.");
+  const raw = storage.getItem(key) || "{}";
+  const parsed = parseStateText(raw);
+  if (!parsed.ok) throw new Error(`Franklin state JSON is invalid: ${parsed.error}`);
+  const migrated = migrateFranklinState(parsed.value, { ...options, dryRun: Boolean(options.dryRun) });
+  const serialized = JSON.stringify(migrated.state);
+  const changed = stableStateText(migrated.state) !== stableStateText(parsed.value);
+  const result = {
+    ...migrated,
+    changed,
+    dryRun: Boolean(options.dryRun),
+    backupKey: null,
+    persisted: false,
+    verified: false
+  };
+  if (options.dryRun || !changed) return { ...result, persisted: !changed, verified: !changed };
+
+  const now = options.now instanceof Date ? options.now : new Date();
+  const hasOriginalData = plainObject(parsed.value) && Object.keys(parsed.value).length > 0;
+  const backupKey = hasOriginalData ? `franklinPreStateMigrationBackupV2:${now.toISOString()}` : null;
+  if (backupKey) storage.setItem(backupKey, raw);
+  try {
+    storage.setItem(key, serialized);
+    if (storage.getItem(key) !== serialized) throw new Error("Franklin state migration verification failed.");
+    return { ...result, backupKey, persisted: true, verified: true };
+  } catch (error) {
+    try {
+      storage.setItem(key, raw);
+    } catch {
+      // The original migration exception is more useful than a best-effort rollback error.
+    }
+    throw error;
+  }
 }
 
 export function findLocalFranklinBackups(storage = globalThis.localStorage) {
@@ -84,6 +146,7 @@ export function findLocalFranklinBackups(storage = globalThis.localStorage) {
       tickerCount: summary.tickerCount || 0,
       reportCount: summary.reportCount || 0,
       requirementSetCount: summary.historicalRequirementSetCount || 0,
+      quarterlyHistoryCount: summary.quarterlyHistoryCount || 0,
       supplementCount: summary.supplementCount || 0,
       sizeBytes: raw ? raw.length : 0,
       checksum: checksumText(raw || ""),
@@ -153,12 +216,13 @@ export function validateRestoredCandidate(originalState = {}, candidateState = {
   const errors = [];
   if (before.reportCount > 0 && after.reportCount < before.reportCount) errors.push("RESTORE_DROPPED_REPORTS");
   if (before.historicalRequirementSetCount > 0 && after.historicalRequirementSetCount < before.historicalRequirementSetCount) errors.push("RESTORE_DROPPED_REQUIREMENT_SETS");
+  if (before.quarterlyHistoryCount > 0 && after.quarterlyHistoryCount < before.quarterlyHistoryCount) errors.push("RESTORE_DROPPED_QUARTERS");
   return { valid: errors.length === 0, errors, before, after };
 }
 
-function normalizeSchemaVersion(value) {
+function normalizeInputSchemaVersion(value) {
   const numeric = Number(value);
-  return Number.isFinite(numeric) && numeric > 0 ? numeric : FRANKLIN_STATE_SCHEMA_VERSION;
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : 0;
 }
 
 function normalizeArray(value, path, diagnostics) {
@@ -314,6 +378,7 @@ function backupReason(key) {
   if (key.startsWith("franklinPreCloudRestoreBackupV1")) return "pre-cloud-restore";
   if (key.startsWith("franklinPreLocalRestoreBackupV1:")) return "pre-local-restore";
   if (key.startsWith("franklinPreCloudPushBackupV1:")) return "pre-cloud-push";
+  if (key.startsWith("franklinPreStateMigrationBackupV2:")) return "pre-state-migration-v2";
   return "recovery";
 }
 
@@ -325,6 +390,14 @@ function checksumText(text) {
     hash = Math.imul(hash, 16777619);
   }
   return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
+function stableStateText(value) {
+  if (Array.isArray(value)) return `[${value.map(stableStateText).join(",")}]`;
+  if (plainObject(value)) {
+    return `{${Object.keys(value).filter((key) => value[key] !== undefined).sort().map((key) => `${JSON.stringify(key)}:${stableStateText(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
 }
 
 function normalizeTicker(value) {

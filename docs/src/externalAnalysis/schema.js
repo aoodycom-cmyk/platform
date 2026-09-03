@@ -29,14 +29,27 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
     sourceConversation: null,
     analysisDate: null,
     reportPeriod: null,
+    fiscalIdentity: {
+      fiscalQuarter: null,
+      fiscalYear: null,
+      periodEndDate: null,
+      earningsReleaseDate: null
+    },
     company: {
       ticker: null,
       name: null,
       sector: null,
       industry: null,
-      currency: "USD"
+      currency: "USD",
+      reportingCurrency: null,
+      tradingCurrency: null,
+      securityUnit: null
     },
     companyProfile: null,
+    companyGlossary: [],
+    dataQuality: null,
+    classification: null,
+    businessQuality: null,
     market: {
       userAverageCost: null
     },
@@ -58,6 +71,11 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
       marginOfSafetyPercent: null,
       confidenceLevel: null
     },
+    marketPrice: null,
+    latestQuarter: null,
+    financialNormalization: null,
+    forecast: null,
+    valuation: null,
     valuationMethodology: null,
     valuationResults: [],
     forecastAssumptions: null,
@@ -94,6 +112,8 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
       capitalAllocation: null,
       earningsQuality: null
     },
+    strengths: [],
+    weaknesses: [],
     risks: [],
     catalysts: [],
     thesis: {
@@ -142,6 +162,7 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
       mode: null,
       requirements: []
     },
+    nextRequirements: null,
     previousRequirementsEvaluation: {
       requirementSetId: null,
       ticker: null,
@@ -175,6 +196,8 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
     primaryValuationMethod: null,
     valuationSelectionReason: null,
     sources: [],
+    limitations: [],
+    audit: null,
     rawAnalysis,
     rawAnalysisOriginal: rawAnalysis,
     supplements: [],
@@ -196,13 +219,18 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
       updatedAt: timestamp,
       importMethod: null,
       parserVersion: EXTERNAL_ANALYSIS_PARSER_VERSION,
-      rawHash: rawAnalysis ? hashText(rawAnalysis) : null
+      rawHash: rawAnalysis ? hashText(rawAnalysis) : null,
+      correctedAnalysisId: null,
+      correctionConflicts: []
     }
   };
 }
 
 export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", options = {}) {
   const originalInput = input && typeof input === "object" ? input : {};
+  const nativeV3 = isFranklinV3Report(originalInput)
+    ? originalInput
+    : (originalInput.metadata?.franklinV3Report?.schemaVersion === "franklin-fair-value/v3" ? originalInput.metadata.franklinV3Report : null);
   if (isFranklinV3Report(originalInput)) {
     input = franklinV3ToExternalReport(originalInput, rawAnalysis);
   }
@@ -213,6 +241,8 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
   const base = createEmptyExternalAnalysisReport(rawAnalysis || input.rawAnalysisOriginal || input.rawAnalysis || "", now);
   const source = input.source ?? input.metadata?.source ?? base.source;
   const companyInput = input.company || {};
+  const nativeIdentity = nativeV3?.reportIdentity || input.fiscalIdentity || {};
+  const nativeCompany = nativeV3?.company || {};
   const marketInput = input.market || {};
   const scoresInput = input.scores || {};
   const fairValueSummary = normalizeFairValueSummary(input);
@@ -229,15 +259,28 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
     sourceConversation: nullableString(input.sourceConversation),
     analysisDate: normalizeDate(input.analysisDate ?? input.date),
     reportPeriod: nullableString(input.reportPeriod ?? input.period),
+    fiscalIdentity: {
+      fiscalQuarter: nullableString(nativeIdentity.fiscalQuarter),
+      fiscalYear: Number.isInteger(nativeIdentity.fiscalYear) ? nativeIdentity.fiscalYear : null,
+      periodEndDate: nullableString(nativeIdentity.periodEndDate),
+      earningsReleaseDate: nullableString(nativeIdentity.earningsReleaseDate)
+    },
     company: {
       ticker: normalizeTicker(companyInput.ticker ?? input.ticker ?? input.symbol),
       name: nullableString(companyInput.name ?? input.companyName ?? input.name),
       sector: nullableString(companyInput.sector ?? input.sector),
       industry: nullableString(companyInput.industry ?? input.industry),
-      currency: nullableString(companyInput.currency ?? input.currency) || "USD"
+      currency: nullableString(companyInput.currency ?? input.currency ?? nativeCompany.tradingCurrency) || "USD",
+      reportingCurrency: nullableString(companyInput.reportingCurrency ?? nativeCompany.reportingCurrency),
+      tradingCurrency: nullableString(companyInput.tradingCurrency ?? nativeCompany.tradingCurrency ?? companyInput.currency),
+      securityUnit: nullableString(companyInput.securityUnit ?? nativeCompany.securityUnit)
     },
     presentation: normalizePresentation(input.presentation),
     companyProfile: normalizeCompanyProfile(input.companyProfile),
+    companyGlossary: preserveArray(input.companyGlossary ?? nativeV3?.companyGlossary),
+    dataQuality: normalizeOptionalObject(input.dataQuality ?? nativeV3?.dataQuality),
+    classification: normalizeOptionalObject(input.classification ?? nativeV3?.classification),
+    businessQuality: normalizeOptionalObject(input.businessQuality ?? nativeV3?.businessQuality),
     market: {
       userAverageCost: toNullableNumber(marketInput.userAverageCost ?? input.userAverageCost)
     },
@@ -250,6 +293,11 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
       management: toNullableNumber(scoresInput.management ?? input.managementScore)
     },
     fairValueSummary,
+    marketPrice: normalizeOptionalObject(input.marketPrice ?? nativeV3?.marketPrice),
+    latestQuarter: normalizeOptionalObject(input.latestQuarter ?? nativeV3?.latestQuarter),
+    financialNormalization: normalizeOptionalObject(input.financialNormalization ?? nativeV3?.financialNormalization),
+    forecast: normalizeOptionalObject(input.forecast ?? nativeV3?.forecast),
+    valuation: normalizeOptionalObject(input.valuation ?? nativeV3?.valuation),
     valuationMethodology: normalizeOptionalObject(input.valuationMethodology),
     valuationResults: normalizeValuationResults(input.valuationResults, input.valuationMethods),
     forecastAssumptions: normalizeOptionalObject(input.forecastAssumptions),
@@ -261,11 +309,19 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
       strengths: normalizeStringArray(input.quality?.strengths),
       weaknesses: normalizeStringArray(input.quality?.weaknesses)
     },
-    risks: normalizeItems(input.risks ?? input.mainRisks, ["title", "severity", "explanation", "whatToMonitor", "thesisBreaker"]),
-    catalysts: normalizeItems(input.catalysts, ["title", "explanation"]),
+    strengths: preserveArray(input.strengths ?? nativeV3?.strengths),
+    weaknesses: preserveArray(input.weaknesses ?? nativeV3?.weaknesses),
+    risks: normalizeItems(input.risks ?? input.mainRisks, ["title", "severity", "explanation", "whatToMonitor", "thesisBreaker", "sourceIds"]),
+    catalysts: normalizeItems(input.catalysts, ["title", "explanation", "timeframe", "sourceIds"]),
     thesis: {
       shortSummary: nullableString(input.thesis?.shortSummary ?? input.shortSummary ?? input.thesisSummary),
-      fullSummary: nullableString(input.thesis?.fullSummary ?? input.fullSummary)
+      fullSummary: nullableString(input.thesis?.fullSummary ?? input.fullSummary),
+      status: nullableString(input.thesis?.status ?? nativeV3?.thesis?.status),
+      previousSummary: nullableString(input.thesis?.previousSummary ?? nativeV3?.thesis?.previousSummary),
+      updatedSummary: nullableString(input.thesis?.updatedSummary ?? nativeV3?.thesis?.updatedSummary),
+      changeReason: nullableString(input.thesis?.changeReason ?? nativeV3?.thesis?.changeReason),
+      keySupports: preserveArray(input.thesis?.keySupports ?? nativeV3?.thesis?.keySupports),
+      keyThreats: preserveArray(input.thesis?.keyThreats ?? nativeV3?.thesis?.keyThreats)
     },
     earningsQuality: {
       status: nullableString(input.earningsQuality?.status),
@@ -278,13 +334,16 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
     estimateRevisions: normalizeEstimateRevisions(input.estimateRevisions),
     companySpecificKpis: normalizeCompanySpecificKpis(input.companySpecificKpis),
     priceTargetRequirements,
+    nextRequirements: normalizeOptionalObject(input.nextRequirements ?? nativeV3?.nextRequirements),
     previousRequirementsEvaluation: normalizePreviousRequirementsEvaluation(input.previousRequirementsEvaluation),
     requirementsAssessment,
     scenarios: normalizeExternalScenarios(input.scenarios),
     primaryValuationMethod: nullableString(input.primaryValuationMethod ?? input.metadata?.primaryValuationMethod),
     valuationSelectionReason: nullableString(input.valuationSelectionReason ?? input.metadata?.valuationSelectionReason),
-    sources: normalizeItems(input.sources, ["title", "url", "sourceType"]),
-    rawAnalysis: String(rawAnalysis || input.rawAnalysis || input.rawAnalysisOriginal || ""),
+    sources: normalizeItems(input.sources, ["id", "title", "url", "sourceType", "date", "usedFor"]),
+    limitations: preserveArray(input.limitations ?? nativeV3?.limitations),
+    audit: normalizeOptionalObject(input.audit ?? nativeV3?.audit),
+    rawAnalysis: String(input.rawAnalysis || rawAnalysis || input.rawAnalysisOriginal || ""),
     rawAnalysisOriginal: String(input.rawAnalysisOriginal || rawAnalysis || input.rawAnalysis || ""),
     supplements: normalizeSupplements(input.supplements),
     completionStatus: input.completionStatus && typeof input.completionStatus === "object" ? preserveNulls(input.completionStatus) : base.completionStatus,
@@ -303,7 +362,9 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
       valuationSelectionReason: input.metadata?.valuationSelectionReason ?? null,
       fairValueLimitations: Array.isArray(input.metadata?.fairValueLimitations) ? input.metadata.fairValueLimitations : [],
       analysisType: input.metadata?.analysisType ?? null,
-      franklinV3Report: input.metadata?.franklinV3Report ?? null,
+      correctedAnalysisId: input.metadata?.correctedAnalysisId ?? null,
+      correctionConflicts: preserveArray(input.metadata?.correctionConflicts),
+      franklinV3Report: input.metadata?.franklinV3Report ?? nativeV3 ?? null,
       franklinV3: input.metadata?.franklinV3 ?? null
     }
   };
@@ -395,6 +456,7 @@ function normalizeCanonicalDecision(input = {}) {
   return {
     // Priority: canonical decision.action -> legacy decision.verdict -> recommendation -> final/executive decision.
     action,
+    scope: nullableString(decision.scope),
     confidence: normalizeConfidence(decision.confidence ?? recommendation.confidence ?? executive.confidence ?? input.dashboardExport?.confidence),
     investmentScore: firstNumber(decision.investmentScore, executive.investmentScore, input.dashboardExport?.investmentScore, input.scores?.overall, input.overallScore, input.investmentScore),
     rationale,
@@ -507,6 +569,10 @@ function normalizeValuationResults(results, legacyMethods) {
 
 function normalizeOptionalObject(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? preserveNulls(value) : null;
+}
+
+function preserveArray(value) {
+  return Array.isArray(value) ? value.map(preserveNulls) : [];
 }
 
 function normalizeNarrativeList(value) {
@@ -720,7 +786,7 @@ function normalizeDate(value) {
   const clean = nullableString(value);
   if (!clean) return null;
   const parsed = new Date(clean);
-  if (!Number.isNaN(parsed.getTime())) return clean.slice(0, 10);
+  if (!Number.isNaN(parsed.getTime())) return clean;
   return clean;
 }
 

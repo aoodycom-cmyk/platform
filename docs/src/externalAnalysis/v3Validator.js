@@ -31,6 +31,36 @@ import { validateArabicNarrativeQuality } from "./arabicNarrativeQuality.js";
 
 const WEIGHT_TOLERANCE = 0.01;
 const ASSESSMENT_TOLERANCE = 0.1;
+const V3_TOP_LEVEL_FIELDS = new Set([
+  "schemaVersion",
+  "methodologyVersion",
+  "analysisType",
+  "outputLanguage",
+  "companyGlossary",
+  "reportIdentity",
+  "company",
+  "companyProfile",
+  "dataQuality",
+  "classification",
+  "businessQuality",
+  "strengths",
+  "weaknesses",
+  "marketPrice",
+  "latestQuarter",
+  "financialNormalization",
+  "forecast",
+  "previousRequirementsEvaluation",
+  "valuation",
+  "thesis",
+  "decision",
+  "nextRequirements",
+  "risks",
+  "catalysts",
+  "monitoringChecklist",
+  "sources",
+  "limitations",
+  "audit"
+]);
 
 export function validateFranklinV3Report(input = {}, context = {}) {
   const errors = [];
@@ -46,6 +76,7 @@ export function validateFranklinV3Report(input = {}, context = {}) {
     errors.push(fieldError("analysisType", "analysisType must be INITIAL or EARNINGS_REVALUATION."));
   }
 
+  validateUnknownTopLevelFields(input, errors);
   validateRequiredSections(input, errors);
   validateFiscalIdentity(input, context, errors);
   validateDateChronology(input, errors);
@@ -67,6 +98,14 @@ export function validateFranklinV3Report(input = {}, context = {}) {
   if (input.analysisType === "EARNINGS_REVALUATION") validateEarningsRevaluationRules(input, context, errors, warnings);
 
   return { valid: errors.length === 0, errors, warnings };
+}
+
+function validateUnknownTopLevelFields(input, errors) {
+  for (const key of Object.keys(input || {})) {
+    if (!V3_TOP_LEVEL_FIELDS.has(key)) {
+      errors.push(fieldError(key, `Unknown top-level property ${key} is not allowed by ${FRANKLIN_FAIR_VALUE_SCHEMA_VERSION}.`));
+    }
+  }
 }
 
 export function calculateV3RequirementAssessment(requirements = []) {

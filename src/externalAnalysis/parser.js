@@ -1,10 +1,14 @@
 import { normalizeExternalAnalysisReport } from "./schema.js";
 import { upsertQuarterlyEarningsDigestSupplement } from "./quarterlyEarningsDigest.js";
 import { inflateQuarterlyEarningsLitePayload, isQuarterlyEarningsLitePayload } from "./quarterlyEarningsLite.js";
-import { normalizeFranklinV3Input } from "./v3InputNormalizer.js";
 import { isFranklinV3Report } from "./v3Contract.js";
-import { validateFranklinV3Report } from "./v3Validator.js";
 import { inspectJsonImportText, JsonImportError } from "./jsonFileImport.js";
+import {
+  assertDispatchedPayloadValid,
+  assertDispatchedRouteAccepted,
+  dispatchJsonPayload,
+  JSON_IMPORT_ROUTES
+} from "./jsonContractRouter.js";
 
 let quarterlyEarningsLiteReportResolver = null;
 
@@ -26,34 +30,61 @@ export async function parseExternalAnalysisInput(text, { parseUnstructured, now 
     localJson = parseJsonCandidate(rawAnalysis);
   }
   if (localJson.ok) {
-    if (isFranklinV3Report(localJson.value)) {
-      const normalizedV3 = normalizeFranklinV3Input(localJson.value);
-      assertValidFranklinV3(normalizedV3, { currentReport, expectedTicker, expectedReportPeriod });
+    const dispatched = dispatchJsonPayload(localJson.value, {
+      intendedRoute: JSON_IMPORT_ROUTES.FULL_ANALYSIS,
+      existingReport: currentReport,
+      rawText: rawAnalysis,
+      now,
+      context: { currentReport, expectedTicker, expectedReportPeriod }
+    });
+    assertDispatchedRouteAccepted(dispatched, localJson.value);
+    assertDispatchedPayloadValid(dispatched, localJson.value);
+    if (dispatched.action === "redirect-to-supplement") {
+      return {
+        route: JSON_IMPORT_ROUTES.SUPPLEMENT,
+        supplement: dispatched.value,
+        schemaVersion: dispatched.schemaVersion,
+        payloadType: dispatched.payloadType,
+        parserSource: "Franklin JSON Contract Router",
+        usedAi: false
+      };
+    }
+    if (isFranklinV3Report(dispatched.value)) {
+      const normalizedV3 = dispatched.value;
       return {
         report: normalizeExternalAnalysisReport(normalizedV3, rawAnalysis, { now, importMethod: "franklin_v3_json" }),
+        route: JSON_IMPORT_ROUTES.FULL_ANALYSIS,
+        schemaVersion: dispatched.schemaVersion,
+        payloadType: dispatched.payloadType,
         parserSource: "Franklin v3 JSON Parser",
         usedAi: false
       };
     }
-    if (isQuarterlyEarningsLitePayload(localJson.value)) {
-      const baseReport = currentReport || await resolveQuarterlyEarningsLiteReport(localJson.value);
+    if (isQuarterlyEarningsLitePayload(dispatched.value)) {
+      const baseReport = currentReport || await resolveQuarterlyEarningsLiteReport(dispatched.value);
       if (!baseReport) {
         const error = new Error("Quarterly earnings lite JSON requires an existing saved report for this ticker.");
         error.userMessage = "هذا JSON تحديث أرباح ربع ويحتاج فتح السهم المحفوظ من شاشة التقرير قبل الاستيراد.";
         throw error;
       }
-      const inflated = inflateQuarterlyEarningsLitePayload(baseReport, localJson.value, rawAnalysis, now);
+      const inflated = inflateQuarterlyEarningsLitePayload(baseReport, dispatched.value, rawAnalysis, now);
       return {
         report: {
           ...inflated,
-          supplements: upsertQuarterlyEarningsDigestSupplement(inflated.supplements, inflated.reportPeriod, localJson.value)
+          supplements: upsertQuarterlyEarningsDigestSupplement(inflated.supplements, inflated.reportPeriod, dispatched.value)
         },
+        route: JSON_IMPORT_ROUTES.QUARTERLY_EARNINGS,
+        schemaVersion: dispatched.schemaVersion,
+        payloadType: dispatched.payloadType,
         parserSource: "Quarterly Earnings Lite Parser",
         usedAi: false
       };
     }
     return {
-      report: normalizeExternalAnalysisReport(localJson.value, rawAnalysis, { now, importMethod: "structured_json" }),
+      report: dispatched.value,
+      route: JSON_IMPORT_ROUTES.FULL_ANALYSIS,
+      schemaVersion: dispatched.schemaVersion,
+      payloadType: dispatched.payloadType,
       parserSource: "Local JSON Parser",
       usedAi: false
     };
@@ -67,35 +98,34 @@ export async function parseExternalAnalysisInput(text, { parseUnstructured, now 
   }
   const parsed = await parseUnstructured(rawAnalysis);
   const parsedValue = parsed.report || parsed;
-  const normalizedParsedValue = isFranklinV3Report(parsedValue) ? normalizeFranklinV3Input(parsedValue) : parsedValue;
-  if (isFranklinV3Report(normalizedParsedValue)) {
-    assertValidFranklinV3(normalizedParsedValue, { currentReport, expectedTicker, expectedReportPeriod });
+  const dispatched = dispatchJsonPayload(parsedValue, {
+    intendedRoute: JSON_IMPORT_ROUTES.FULL_ANALYSIS,
+    existingReport: currentReport,
+    rawText: rawAnalysis,
+    now,
+    context: { currentReport, expectedTicker, expectedReportPeriod }
+  });
+  assertDispatchedRouteAccepted(dispatched, parsedValue);
+  assertDispatchedPayloadValid(dispatched, parsedValue);
+  if (dispatched.action === "redirect-to-supplement") {
+    return {
+      route: JSON_IMPORT_ROUTES.SUPPLEMENT,
+      supplement: dispatched.value,
+      schemaVersion: dispatched.schemaVersion,
+      payloadType: dispatched.payloadType,
+      parserSource: parsed.source || "OpenAI Backend Parser",
+      usedAi: true
+    };
   }
+  const normalizedParsedValue = dispatched.value;
   return {
     report: normalizeExternalAnalysisReport(normalizedParsedValue, rawAnalysis, { now, importMethod: "openai_backend_parser" }),
+    route: dispatched.route,
+    schemaVersion: dispatched.schemaVersion,
+    payloadType: dispatched.payloadType,
     parserSource: parsed.source || "OpenAI Backend Parser",
     usedAi: true
   };
-}
-
-function assertValidFranklinV3(value, context = {}) {
-  const validation = validateFranklinV3Report(value, {
-    currentReport: context.currentReport,
-    expectedTicker: context.expectedTicker || context.currentReport?.company?.ticker,
-    expectedReportPeriod: context.expectedReportPeriod
-  });
-  if (validation.valid) return;
-  const message = validation.errors.slice(0, 6).map((error) => `${error.field}: ${error.message}`).join("\n");
-  const error = new Error(`Franklin v3 JSON is not valid.\n${message}`);
-  const marketErrors = validation.errors.filter((item) => String(item.field || "").startsWith("marketPrice."));
-  const arithmeticErrors = validation.errors.filter((item) => /arithmetic|inconsistent|must equal|sum to 100/i.test(String(item.message || "")));
-  error.userMessage = marketErrors.length
-    ? "مصدر سعر السوق غير مطابق لعقد Franklin. راجع marketPrice والمصدر المرتبط به."
-    : arithmeticErrors.length
-      ? "يوجد خطأ حسابي في التقييم. لم يغيّر Franklin الأرقام ولم يحفظ التحليل."
-      : "فشل التحقق من عقد Franklin. راجع الأخطاء الموضحة قبل الاستيراد.";
-  error.validation = validation;
-  throw error;
 }
 
 export function parseJsonCandidate(text) {

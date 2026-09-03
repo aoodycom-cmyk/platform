@@ -348,7 +348,7 @@ function normalizeCompanyProfile(value = null) {
     summary: value.summary || null,
     businessModel: value.businessModel || null,
     activities: Array.isArray(value.activities) ? value.activities : [],
-    customers: Array.isArray(value.customers) ? value.customers.join(", ") : value.customers || null,
+    customers: Array.isArray(value.customers) ? value.customers : value.customers || null,
     mainGrowthDrivers: Array.isArray(value.mainGrowthDrivers) ? value.mainGrowthDrivers : []
   };
 }
@@ -367,9 +367,9 @@ function scoreToTen(value) {
 }
 
 function normalizeDate(value) {
-  if (!value) return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? String(value).slice(0, 10) : String(value).slice(0, 10);
+  if (value === null || value === undefined) return null;
+  const clean = String(value).trim();
+  return clean || null;
 }
 
 function trendFromChange(value) {

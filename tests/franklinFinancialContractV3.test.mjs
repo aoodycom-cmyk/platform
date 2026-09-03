@@ -21,15 +21,15 @@ import {
 
 const now = new Date("2026-07-25T10:00:00.000Z");
 
-const goldenA = initialV3();
+export const goldenA = initialV3();
 const parsedInitial = await parseExternalAnalysisInput(JSON.stringify(goldenA), { now });
 const savedInitial = saveExternalAnalysis({}, parsedInitial.report, { now });
-const previousReport = attachRequirementSetIdentityToReport(savedInitial.report, now);
+export const previousReport = attachRequirementSetIdentityToReport(savedInitial.report, now);
 const previousSnapshot = JSON.stringify(previousReport);
 let historicalRequirementSets = applyHistoricalRequirementLifecycle({}, previousReport, {}, now);
 const previousSet = historicalRequirementSets.VTH[0];
 
-const goldenB = earningsV3(previousReport, { bear: 80, base: 115, bull: 155, reviewStatus: "UPDATED", mode: "ADVANCE_TARGET", targetScenario: "BULL", targetValue: 155 });
+export const goldenB = earningsV3(previousReport, { bear: 80, base: 115, bull: 155, reviewStatus: "UPDATED", mode: "ADVANCE_TARGET", targetScenario: "BULL", targetValue: 155 });
 const goldenC = earningsV3(previousReport, { bear: 70, base: 100, bull: 140, reviewStatus: "UNCHANGED", mode: "DEFEND_BASE", targetScenario: "BASE_DEFENSE", targetValue: 100 });
 const goldenD = earningsV3(previousReport, { bear: 50, base: 75, bull: 105, reviewStatus: "UPDATED", thesisStatus: "WEAKENED", mode: "RECOVERY", targetScenario: "RECOVERY", targetValue: 95 });
 

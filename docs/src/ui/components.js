@@ -1925,10 +1925,11 @@ function quarterlyScorecardView(state) {
   const scorecard = buildQuarterlyScorecard({
     historicalRequirementSets: state.historicalRequirementSets,
     externalAnalyses: state.externalAnalyses,
+    quarterlyEarningsHistory: state.quarterlyEarningsHistory,
     ticker: selection.ticker,
     year: selection.year
   });
-  if (!scorecard?.rows?.length) {
+  if (!scorecard?.rows?.length && !scorecard?.earningsTimeline?.length) {
     return `
       <section class="panel quarterly-scorecard-empty">
         <h2>${uiLabel("Quarterly Scorecard")}</h2>
@@ -1942,16 +1943,159 @@ function quarterlyScorecardView(state) {
   return `
     <section class="quarterly-scorecard-shell" data-scorecard-ticker="${escapeHtml(scorecard.ticker)}" data-scorecard-year="${escapeHtml(scorecard.year)}">
       ${quarterlyScorecardHeader(scorecard)}
-      ${quarterlyAnnualSummary(scorecard)}
-      <div class="quarterly-scorecard-layout">
+      ${quarterlyEarningsTimeline(scorecard, selection.selectedEarningsQuarter)}
+      ${scorecard.rows.length ? quarterlyAnnualSummary(scorecard) : ""}
+      ${scorecard.rows.length ? `<div class="quarterly-scorecard-layout">
         <section class="quarterly-scorecard-main panel">
           ${quarterlyDesktopMatrix(scorecard)}
           ${quarterlyMobileCards(scorecard)}
         </section>
         ${quarterlyDetailPanel(selected, isDefaultSelection)}
-      </div>
+      </div>` : ""}
     </section>
   `;
+}
+
+function quarterlyEarningsTimeline(scorecard = {}, selectedQuarterKey = null) {
+  const timeline = Array.isArray(scorecard.earningsTimeline) ? scorecard.earningsTimeline : [];
+  if (!timeline.length) return "";
+  const selected = timeline.find((record) => record.quarterKey === selectedQuarterKey) || timeline.at(-1);
+  return `
+    <section class="panel quarterly-earnings-timeline" data-quarterly-earnings-history>
+      <header>
+        <div>
+          <span>${isArabicUi() ? "السجل الربعي" : "Quarterly history"}</span>
+          <strong>${escapeHtml(selected.companyName || scorecard.companyName || scorecard.ticker)}</strong>
+        </div>
+        <div class="quarterly-period-selector" role="tablist" aria-label="${isArabicUi() ? "اختيار الربع" : "Select quarter"}">
+          ${timeline.map((record) => `
+            <button type="button" role="tab" data-quarter-history-key="${escapeHtml(record.quarterKey)}" aria-selected="${record.quarterKey === selected.quarterKey}" class="${record.quarterKey === selected.quarterKey ? "active" : ""}">
+              <bdi dir="ltr">${escapeHtml(`${record.fiscalQuarter} ${record.fiscalYear}`)}</bdi>
+              <small>${record.status === "UPCOMING" ? (isArabicUi() ? "قادم" : "Upcoming") : (isArabicUi() ? "معلن" : "Reported")}</small>
+            </button>
+          `).join("")}
+        </div>
+      </header>
+      ${selected.status === "UPCOMING" ? quarterlyUpcomingRequirements(selected) : quarterlyReportedResults(selected)}
+    </section>
+  `;
+}
+
+function quarterlyReportedResults(record = {}) {
+  const quarter = record.latestQuarter || {};
+  const core = Object.entries(quarter.coreMetrics || {}).map(([key, metric]) => ({
+    key,
+    label: quarterMetricLabel(key),
+    actual: metric?.actualDisplay ?? metric?.actualValue,
+    consensus: metric?.consensusDisplay ?? metric?.consensusValue,
+    unit: metric?.unit || null,
+    result: metric?.result || "NA"
+  })).filter((item) => item.actual !== null && item.actual !== undefined || item.consensus !== null && item.consensus !== undefined);
+  const kpis = (Array.isArray(quarter.companySpecificKpis) ? quarter.companySpecificKpis : []).map((item, index) => ({
+    key: item?.id || `kpi-${index}`,
+    label: localizedExternalText({ ar: item?.arabicName, en: item?.name, text: item?.name || item?.arabicName }) || `KPI ${index + 1}`,
+    actual: item?.actualDisplay ?? item?.actualValue,
+    consensus: item?.consensusDisplay ?? item?.consensusValue,
+    unit: item?.unit || null,
+    result: item?.result || "NA"
+  }));
+  const rows = [...core, ...kpis];
+  return `
+    <div class="quarterly-history-detail" data-quarter-status="REPORTED" data-quarter-key="${escapeHtml(record.quarterKey)}">
+      <div class="quarterly-history-meta">
+        <strong><bdi dir="ltr">${escapeHtml(`${record.fiscalQuarter} ${record.fiscalYear}`)}</bdi></strong>
+        <span>${isArabicUi() ? "نهاية الفترة" : "Period end"}: <bdi dir="ltr">${escapeHtml(record.periodEndDate || "—")}</bdi></span>
+        <span>${isArabicUi() ? "تاريخ التحليل" : "Analysis date"}: <bdi dir="ltr">${escapeHtml(record.analysisDate || "—")}</bdi></span>
+      </div>
+      ${quarter.summary ? `<p class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(quarter.summary)}</p>` : ""}
+      ${rows.length ? `
+        <div class="quarterly-results-table-wrap">
+          <table class="quarterly-results-table">
+            <thead><tr><th>${isArabicUi() ? "المقياس" : "Metric"}</th><th>${isArabicUi() ? "المتوقع" : "Expected"}</th><th>${isArabicUi() ? "الفعلي" : "Actual"}</th><th>${isArabicUi() ? "النتيجة" : "Result"}</th></tr></thead>
+            <tbody>${rows.map((item) => `<tr data-quarter-metric="${escapeHtml(item.key)}"><th>${escapeHtml(item.label)}</th><td dir="ltr">${escapeHtml(quarterMetricValue(item.consensus, item.unit))}</td><td dir="ltr">${escapeHtml(quarterMetricValue(item.actual, item.unit))}</td><td><span class="quarter-result quarter-result-${escapeHtml(String(item.result).toLowerCase())}">${escapeHtml(item.result)}</span></td></tr>`).join("")}</tbody>
+          </table>
+        </div>
+      ` : `<p class="muted">${isArabicUi() ? "لا توجد قيم فعلية أو متوقعة موثقة لهذا الربع." : "No documented actual or expected values for this quarter."}</p>`}
+      ${quarterlyGuidanceList(quarter.guidance)}
+      ${quarterlyHistorySources(record.sources)}
+    </div>
+  `;
+}
+
+function quarterlyUpcomingRequirements(record = {}) {
+  const requirements = Array.isArray(record.requirements) ? record.requirements : [];
+  return `
+    <div class="quarterly-history-detail quarterly-upcoming-detail" data-quarter-status="UPCOMING" data-quarter-key="${escapeHtml(record.quarterKey)}">
+      <div class="quarterly-history-meta">
+        <strong>${isArabicUi() ? "متطلبات الربع القادم" : "Upcoming-quarter requirements"} <bdi dir="ltr">${escapeHtml(`${record.fiscalQuarter} ${record.fiscalYear}`)}</bdi></strong>
+        <span>${escapeHtml(record.requirementsMeta?.summary || "")}</span>
+      </div>
+      <div class="quarterly-upcoming-requirements">
+        ${requirements.map((item, index) => `
+          <div data-upcoming-requirement="${escapeHtml(item.id || `requirement-${index + 1}`)}">
+            <span class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(item.arabicName || item.name || item.metric || `Requirement ${index + 1}`)}</span>
+            <strong dir="ltr">${escapeHtml(item.requiredDisplay || quarterMetricValue(item.requiredValue, item.unit))}</strong>
+            <small>${escapeHtml(item.status || "NOT_REPORTED")}</small>
+          </div>
+        `).join("")}
+      </div>
+      ${quarterlyHistorySources(record.sources)}
+    </div>
+  `;
+}
+
+function quarterlyGuidanceList(guidance = []) {
+  const items = Array.isArray(guidance) ? guidance : [];
+  if (!items.length) return "";
+  return `
+    <details class="quarterly-history-guidance">
+      <summary>${isArabicUi() ? "توجيهات الإدارة" : "Management guidance"}</summary>
+      <div>${items.map((item) => `<p><strong>${escapeHtml(item?.topic || item?.period || "Guidance")}</strong><span dir="ltr">${escapeHtml(item?.currentGuidance ?? guidanceRange(item) ?? "—")}</span></p>`).join("")}</div>
+    </details>
+  `;
+}
+
+function quarterlyHistorySources(sources = []) {
+  const items = Array.isArray(sources) ? sources : [];
+  if (!items.length) return "";
+  return `<details class="quarterly-history-sources"><summary>${isArabicUi() ? "مصادر الربع" : "Quarter sources"} (${items.length})</summary><ul>${items.map((source) => {
+    const url = safeQuarterlySourceUrl(source?.url);
+    return `<li>${url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title || source.id || source.url)}</a>` : escapeHtml(source?.title || source?.id || "Source")}</li>`;
+  }).join("")}</ul></details>`;
+}
+
+function safeQuarterlySourceUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return ["http:", "https:"].includes(url.protocol) ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function quarterMetricLabel(key) {
+  const labels = {
+    revenue: isArabicUi() ? "الإيرادات" : "Revenue",
+    eps: isArabicUi() ? "ربحية السهم" : "EPS",
+    grossMarginPct: isArabicUi() ? "الهامش الإجمالي" : "Gross margin",
+    operatingMarginPct: isArabicUi() ? "هامش التشغيل" : "Operating margin",
+    freeCashFlow: isArabicUi() ? "التدفق النقدي الحر" : "Free cash flow",
+    cash: isArabicUi() ? "النقد" : "Cash",
+    debt: isArabicUi() ? "الدين" : "Debt"
+  };
+  return labels[key] || key;
+}
+
+function quarterMetricValue(value, unit) {
+  if (value === null || value === undefined || value === "") return "—";
+  return [String(value), unit].filter(Boolean).join(" ");
+}
+
+function guidanceRange(item = {}) {
+  const low = item.currentLow;
+  const high = item.currentHigh;
+  if (low === null || low === undefined || high === null || high === undefined) return null;
+  return `${low}–${high}${item.unit ? ` ${item.unit}` : ""}`;
 }
 
 function quarterlyScorecardHeader(scorecard = {}) {
@@ -2310,6 +2454,7 @@ function dataHealthTerminalGuard(report = {}, completion = {}) {
   if (!completion) return "";
   const missingRequired = completion.missingRequiredPaths?.length || completion.details?.criticalRequired?.length || 0;
   const missingRecommended = completion.missingRecommendedPaths?.length || completion.details?.recommended?.length || 0;
+  const hasCompletionWork = missingRequired + missingRecommended > 0;
   const status = String(completion.status || "incomplete");
   const tone = status === "complete" ? "complete" : status === "invalid" || status === "has_conflicts" ? "invalid" : "incomplete";
   const statusText = status === "complete"
@@ -2318,7 +2463,7 @@ function dataHealthTerminalGuard(report = {}, completion = {}) {
       ? (isArabicUi() ? "التحديث غير موثّق" : "Update not verified")
       : (isArabicUi() ? "بيانات ناقصة" : "Missing data");
   return `
-    <section class="data-health-terminal-guard ${tone}">
+    <section class="data-health-terminal-guard ${tone}${hasCompletionWork ? " has-completion-work" : ""}">
       <div>
         <span class="guard-icon" aria-hidden="true"></span>
         <div>
@@ -2326,11 +2471,11 @@ function dataHealthTerminalGuard(report = {}, completion = {}) {
           <p>${boundedPercent(completion.completionPct)}% ${uiLabel("Data Completion")}</p>
         </div>
       </div>
-      ${status === "complete" ? "" : `<div class="guard-stats">
+      ${hasCompletionWork ? `<div class="guard-stats">
         <span>${uiLabel("Required")}: <b>${escapeHtml(String(missingRequired))}</b></span>
         <span>${uiLabel("Recommended")}: <b>${escapeHtml(String(missingRecommended))}</b></span>
         <button class="icon-btn" data-action="start-report-supplement" data-external-ticker="${escapeHtml(report.company?.ticker || "")}" data-external-report-id="${escapeHtml(report.id || "")}">${uiLabel("إكمال البيانات")}</button>
-      </div>`}
+      </div>` : ""}
     </section>
   `;
 }
@@ -6875,6 +7020,9 @@ function bind(root, store, actions) {
       if (!button.disabled) store.selectQuarterlyScorecardCell(button.dataset.scorecardMetric, button.dataset.scorecardQuarter);
     });
   });
+  root.querySelectorAll("[data-quarter-history-key]").forEach((button) => {
+    button.addEventListener("click", () => store.selectQuarterlyEarningsQuarter(button.dataset.quarterHistoryKey));
+  });
   root.querySelector("[data-action='close-scorecard-detail']")?.addEventListener("click", () => {
     store.selectQuarterlyScorecardCell(null, null);
   });
@@ -7414,6 +7562,7 @@ function selectedQuarterlyScorecard(store) {
   return buildQuarterlyScorecard({
     historicalRequirementSets: store.state.historicalRequirementSets,
     externalAnalyses: store.state.externalAnalyses,
+    quarterlyEarningsHistory: store.state.quarterlyEarningsHistory,
     ticker: selection.ticker,
     year: selection.year
   });

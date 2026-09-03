@@ -1,45 +1,11 @@
 import { validateExternalAnalysisReport } from "./externalAnalysisSchemaValidator.js";
 import { diagnosticRowsForPaths, getByPath, isMissing, valuePresent } from "./fieldPaths.js";
+import { SUPPLEMENT_FIELD_DEFINITIONS, SUPPLEMENT_FIELD_PRIORITY } from "./supplementContract.js";
 
 export { isMissing, valuePresent } from "./fieldPaths.js";
 
-export const FIELD_PRIORITY = {
-  CRITICAL: "critical",
-  RECOMMENDED: "recommended",
-  OPTIONAL: "optional"
-};
-
-export const FIELD_REQUIREMENTS = [
-  requirement("company.ticker", "رمز السهم", "Ticker", FIELD_PRIORITY.CRITICAL, "Text", "لا يمكن حفظ التقرير أو ربطه بالشركة بدون رمز السهم."),
-  requirement("analysisDate", "تاريخ التحليل", "Analysis Date", FIELD_PRIORITY.CRITICAL, "Date", "مطلوب لتثبيت النسخة ومقارنتها بالتحليلات السابقة."),
-  requirement("fairValueSummary.currentPrice", "السعر وقت التحليل", "Price at Analysis", FIELD_PRIORITY.CRITICAL, "Number", "مطلوب لفهم السياق السعري وقت إعداد التقرير."),
-  requirement("fairValueSummary.fairValueLow", "القيمة العادلة في Bear", "Bear Fair Value", FIELD_PRIORITY.CRITICAL, "Number", "مطلوب لقياس الهبوط المحتمل."),
-  requirement("fairValueSummary.fairValueBase", "القيمة العادلة الأساسية", "Base Fair Value", FIELD_PRIORITY.CRITICAL, "Number", "لا يمكن عرض تقييم السهم بدون السيناريو الأساسي."),
-  requirement("fairValueSummary.fairValueHigh", "القيمة العادلة في Bull", "Bull Fair Value", FIELD_PRIORITY.CRITICAL, "Number", "مطلوب لقياس أعلى نطاق منطقي للتقييم."),
-  requirement("thesis.shortSummary", "ملخص فرضية الاستثمار", "Investment Thesis Summary", FIELD_PRIORITY.CRITICAL, "Text", "مطلوب حتى يعرف القارئ لماذا توجد هذه الفرضية.", ["thesis.fullSummary"]),
-  requirement("risks", "المخاطر الرئيسية", "Key Risks", FIELD_PRIORITY.CRITICAL, "Array", "مطلوب لعرض المخاطر التي قد تغير القرار."),
-  requirement("decision.action", "التوصية النهائية", "Investment Verdict", FIELD_PRIORITY.CRITICAL, "Text", "مطلوب لإكمال التقرير الاستثماري."),
-  requirement("scores.quality", "Quality Score", "Quality Score", FIELD_PRIORITY.RECOMMENDED, "Number", "يحسن قراءة جودة الشركة لكنه لا يمنع حفظ التقرير."),
-  requirement("scores.growth", "Growth Score", "Growth Score", FIELD_PRIORITY.RECOMMENDED, "Number", "يحسن قراءة النمو لكنه لا يمنع حفظ التقرير."),
-  requirement("scores.valuation", "Valuation Score", "Valuation Score", FIELD_PRIORITY.RECOMMENDED, "Number", "يحسن قراءة التقييم لكنه لا يمنع حفظ التقرير."),
-  requirement("scores.risk", "Risk Score", "Risk Score", FIELD_PRIORITY.RECOMMENDED, "Number", "يحسن قراءة المخاطر لكنه لا يمنع حفظ التقرير."),
-  requirement("decision.investmentScore", "Investment Score", "Investment Score", FIELD_PRIORITY.RECOMMENDED, "Number", "يحسن قراءة التقرير لكنه لا يمنع الحفظ."),
-  requirement("valuationResults", "طرق التقييم", "Valuation Results", FIELD_PRIORITY.RECOMMENDED, "Array", "توضح كيف وصل التحليل الخارجي إلى Fair Value."),
-  requirement("earningsQuality.status", "جودة الأرباح", "Earnings Quality", FIELD_PRIORITY.RECOMMENDED, "Text", "تساعد على فهم مدى قابلية الأرباح للاستمرار."),
-  requirement("catalysts", "المحفزات", "Catalysts", FIELD_PRIORITY.RECOMMENDED, "Array", "تساعد على معرفة ما قد يرفع أو يخفض الفرضية."),
-  requirement("monitoringChecklist", "عناصر المتابعة", "Monitoring Checklist", FIELD_PRIORITY.RECOMMENDED, "Array", "تساعد المستثمر على متابعة الفرضية لاحقًا."),
-  requirement("financialHighlights", "أبرز البيانات المالية", "Financial Highlights", FIELD_PRIORITY.RECOMMENDED, "Object", "تحسن قراءة التقرير المالي المختصر."),
-  requirement("sources", "المصادر", "Sources", FIELD_PRIORITY.RECOMMENDED, "Array", "ترفع قابلية التدقيق والمراجعة."),
-  requirement("decision.rationale", "سبب التوصية", "Decision Rationale", FIELD_PRIORITY.RECOMMENDED, "Text", "يوضح لماذا انتهى التحليل إلى هذه التوصية."),
-  requirement("scores.moat", "Moat Score", "Moat Score", FIELD_PRIORITY.OPTIONAL, "Number", "حقل اختياري لتحسين عمق التقرير."),
-  requirement("scores.management", "Management Score", "Management Score", FIELD_PRIORITY.OPTIONAL, "Number", "حقل اختياري لتحسين تقييم الإدارة."),
-  requirement("company.sector", "القطاع", "Sector", FIELD_PRIORITY.OPTIONAL, "Text", "يساعد على التصنيف فقط."),
-  requirement("company.industry", "الصناعة", "Industry", FIELD_PRIORITY.OPTIONAL, "Text", "يساعد على التصنيف فقط."),
-  requirement("market.userAverageCost", "متوسط تكلفة المستخدم", "User Average Cost", FIELD_PRIORITY.OPTIONAL, "Number", "اختياري وشخصي للمستخدم."),
-  requirement("decision.buyZone", "منطقة الشراء", "Buy Zone", FIELD_PRIORITY.OPTIONAL, "Text", "تحسين إضافي للتقرير."),
-  requirement("decision.fairZone", "منطقة السعر العادل", "Fair Zone", FIELD_PRIORITY.OPTIONAL, "Text", "تحسين إضافي للتقرير."),
-  requirement("decision.expensiveZone", "منطقة الغلاء", "Expensive Zone", FIELD_PRIORITY.OPTIONAL, "Text", "تحسين إضافي للتقرير.")
-];
+export const FIELD_PRIORITY = SUPPLEMENT_FIELD_PRIORITY;
+export const FIELD_REQUIREMENTS = SUPPLEMENT_FIELD_DEFINITIONS;
 
 export function analyzeExternalAnalysisCompletion(report = {}, validation = validateExternalAnalysisReport(report), options = {}) {
   const missingRequired = missingByPriority(report, FIELD_PRIORITY.CRITICAL);
@@ -189,20 +155,6 @@ export function requirementSatisfied(report, item) {
 
 export function getPath(object, path) {
   return getByPath(object, path);
-}
-
-function requirement(path, labelAr, labelEn, priority, expectedType, reasonAr, alternatives = []) {
-  return {
-    path,
-    technicalName: path,
-    labelAr,
-    labelEn,
-    priority,
-    expectedType,
-    reasonAr,
-    reasonEn: reasonAr,
-    alternatives
-  };
 }
 
 function resolveCompletionStatus({ draft, missingRequired, validation, nonMissingErrors, conflictingPaths }) {

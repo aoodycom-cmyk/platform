@@ -17,6 +17,7 @@ const RESTORABLE_KEYS = [
   "externalAnalyses",
   "externalReportSelection",
   "historicalRequirementSets",
+  "quarterlyEarningsHistory",
   "stateSchemaVersion",
   "history",
   "watchList"
@@ -96,6 +97,9 @@ export function previewInvestmentDataBackup(backup = {}) {
     companyCount: summary.tickerCount,
     externalReportCount: summary.reportCount,
     historicalRequirementSets: summary.historicalRequirementSetCount,
+    quarterlyHistoryCount: summary.quarterlyHistoryCount,
+    reportedQuarterCount: summary.reportedQuarterCount,
+    upcomingQuarterCount: summary.upcomingQuarterCount,
     supplementCount: summary.supplementCount,
     evaluatedCompanies: Array.isArray(data.evaluatedCompanies) ? data.evaluatedCompanies.length : 0,
     historyItems: Array.isArray(data.history) ? data.history.length : 0,
@@ -115,6 +119,7 @@ export function mergeInvestmentDataBackup(currentState = {}, backup = {}) {
     watchList: mergeByIdOrTicker(currentState.watchList, incoming.watchList),
     externalAnalyses: mergeExternalAnalyses(currentState.externalAnalyses, incoming.externalAnalyses),
     historicalRequirementSets: mergeHistoricalRequirementSets(currentState.historicalRequirementSets, incoming.historicalRequirementSets),
+    quarterlyEarningsHistory: mergeQuarterlyEarningsHistory(currentState.quarterlyEarningsHistory, incoming.quarterlyEarningsHistory),
     manualInputs: { ...(currentState.manualInputs || {}), ...(incoming.manualInputs || {}) },
     company: incoming.company || currentState.company,
     externalReportSelection: incoming.externalReportSelection || currentState.externalReportSelection
@@ -127,6 +132,22 @@ function mergeHistoricalRequirementSets(current = {}, incoming = {}) {
     if (!Array.isArray(sets)) continue;
     const currentSets = result[ticker] || [];
     result[ticker] = mergeByIdOrTicker(currentSets, sets);
+  }
+  return result;
+}
+
+function mergeQuarterlyEarningsHistory(current = {}, incoming = {}) {
+  const result = { ...(current || {}) };
+  for (const [ticker, records] of Object.entries(incoming || {})) {
+    if (!Array.isArray(records)) continue;
+    const currentRecords = result[ticker] || [];
+    const byQuarter = new Map(currentRecords.map((record) => [record?.quarterKey || record?.id, record]));
+    for (const record of records) {
+      const key = record?.quarterKey || record?.id;
+      if (!key || byQuarter.has(key)) continue;
+      byQuarter.set(key, record);
+    }
+    result[ticker] = [...byQuarter.values()];
   }
   return result;
 }

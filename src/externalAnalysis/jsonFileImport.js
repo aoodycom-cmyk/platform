@@ -1,6 +1,8 @@
-import { isFranklinV3Report } from "./v3Contract.js";
-import { normalizeFranklinV3Input } from "./v3InputNormalizer.js";
-import { validateFranklinV3Report } from "./v3Validator.js";
+import {
+  dispatchJsonPayload,
+  formatArabicDiagnostic,
+  JSON_IMPORT_ROUTES
+} from "./jsonContractRouter.js";
 
 export const JSON_IMPORT_MAX_BYTES = 12 * 1024 * 1024;
 
@@ -46,7 +48,7 @@ export async function readLocalJsonFile(file, options = {}) {
 export function inspectJsonImportText(text, options = {}) {
   const rawText = String(text ?? "");
   if (!rawText.trim()) throw importError("EMPTY_FILE", "ملف التحليل فارغ. اختر ملف JSON يحتوي على التحليل الكامل.", "The JSON input is empty.");
-  const jsonText = stripJsonCodeFence(rawText);
+  const jsonText = stripJsonCodeFence(rawText.replace(/^\uFEFF/, "")).replace(/^\uFEFF/, "");
   assertStructurallyCompleteJson(jsonText);
 
   let value;
@@ -62,30 +64,48 @@ export function inspectJsonImportText(text, options = {}) {
     throw importError("INVALID_JSON_ROOT", "ملف غير صالح. يجب أن يحتوي الملف على كائن JSON واحد.", "The JSON root must be an object.");
   }
 
-  if (/^franklin-fair-value\//.test(String(value.schemaVersion || "")) && value.schemaVersion !== "franklin-fair-value/v3") {
-    throw importError("UNSUPPORTED_SCHEMA", "إصدار عقد Franklin غير مدعوم. استخدم franklin-fair-value/v3.", `Unsupported schemaVersion: ${value.schemaVersion}`);
-  }
-
-  const missing = requiredSectionErrors(value);
-  if (missing.length) {
+  const dispatched = dispatchJsonPayload(value, {
+    intendedRoute: options.intendedRoute || JSON_IMPORT_ROUTES.FULL_ANALYSIS,
+    existingReport: options.validationContext?.currentReport,
+    rawText,
+    context: options.validationContext || {}
+  });
+  const missingCoreSections = value.schemaVersion === "franklin-fair-value/v3"
+    ? ["reportIdentity", "valuation", "sources"].filter((field) => field === "sources"
+      ? !Array.isArray(value[field])
+      : !value[field] || typeof value[field] !== "object" || Array.isArray(value[field]))
+    : [];
+  if (missingCoreSections.length) {
     throw new JsonImportError(
       "INCOMPLETE_REPORT",
       "ملف التحليل غير مكتمل. يبدو أن إنشاء JSON انقطع قبل النهاية. أعد تنزيل الملف الكامل من ChatGPT ثم حاول مرة أخرى.",
-      `Missing required report sections: ${missing.map((item) => item.field).join(", ")}`,
-      missing
+      `Missing required report sections: ${missingCoreSections.join(", ")}`,
+      missingCoreSections.map((field) => ({
+        field,
+        jsonPath: `$.${field}`,
+        schemaVersion: value.schemaVersion,
+        expected: field === "sources" ? "array" : "object",
+        received: value[field],
+        receivedType: valueType(value[field]),
+        recommendedRoute: "أعد تنزيل تحليل Franklin v3 الكامل.",
+        message: `${field} is missing from the report.`
+      }))
     );
   }
-
-  const normalized = isFranklinV3Report(value) ? normalizeFranklinV3Input(value) : value;
-  const validation = isFranklinV3Report(normalized)
-    ? validateFranklinV3Report(normalized, options.validationContext || {})
-    : { valid: true, errors: [], warnings: [] };
+  const normalized = dispatched.value;
+  const validation = dispatched.validation;
   return {
     rawText,
     jsonText,
-    value: normalized,
+    value,
+    normalizedValue: normalized,
     validation,
-    summary: analysisFileSummary(normalized)
+    summary: analysisFileSummary(normalized),
+    contract: dispatched.contract,
+    route: dispatched.route,
+    action: dispatched.action,
+    payloadType: dispatched.payloadType,
+    recommendedRoute: dispatched.recommendedRoute
   };
 }
 
@@ -158,28 +178,29 @@ export function describeImportValidationErrors(errors = [], value = {}) {
   return (Array.isArray(errors) ? errors : []).map((item) => {
     const field = String(item?.field || "json");
     const message = String(item?.message || "Validation failed.");
-    return {
+    const diagnostic = {
       ...item,
       field,
       currentValue: displayValue(readPath(value, field)),
-      requiredValue: expectedValue(field, message),
-      suggestion: repairSuggestion(field, message)
+      requiredValue: item.expected || expectedValue(field, message),
+      suggestion: item.recommendedRoute || repairSuggestion(field, message),
+      schemaVersion: item.schemaVersion || value?.schemaVersion || "غير معروف",
+      payloadType: item.payloadType || null,
+      received: item.received !== undefined ? item.received : readPath(value, field),
+      receivedType: item.receivedType || valueType(readPath(value, field))
     };
+    return { ...diagnostic, technicalMessage: message, messageAr: formatArabicDiagnostic({
+      ...diagnostic,
+      field: item.jsonPath || `$.${field}`,
+      expected: diagnostic.requiredValue,
+      recommendedRoute: diagnostic.suggestion
+    }), message: formatArabicDiagnostic({
+      ...diagnostic,
+      field: item.jsonPath || `$.${field}`,
+      expected: diagnostic.requiredValue,
+      recommendedRoute: diagnostic.suggestion
+    }) };
   });
-}
-
-function requiredSectionErrors(value) {
-  const missing = [];
-  if (!value.schemaVersion) missing.push(sectionError("schemaVersion"));
-  if (value.schemaVersion === "franklin-fair-value/v3") {
-    for (const field of ["reportIdentity", "valuation", "sources"]) {
-      const section = value[field];
-      if (field === "sources" ? !Array.isArray(section) : (!section || typeof section !== "object" || Array.isArray(section))) {
-        missing.push(sectionError(field));
-      }
-    }
-  }
-  return missing;
 }
 
 function readPath(value, path) {
@@ -217,16 +238,6 @@ function repairSuggestion(field, message) {
   return "أعد تنزيل JSON الكامل من ChatGPT وتحقق من هذا الحقل قبل الاستيراد.";
 }
 
-function sectionError(field) {
-  return {
-    field,
-    currentValue: "غير موجود",
-    requiredValue: "قسم أساسي كامل",
-    suggestion: `أعد تنزيل الملف الكامل وتأكد من وجود ${field}.`,
-    message: `${field} is missing from the report.`
-  };
-}
-
 function incompleteJsonError(details = "") {
   return importError(
     "INCOMPLETE_JSON",
@@ -237,4 +248,11 @@ function incompleteJsonError(details = "") {
 
 function importError(code, userMessage, technicalDetails) {
   return new JsonImportError(code, userMessage, technicalDetails);
+}
+
+function valueType(value) {
+  if (value === undefined) return "missing";
+  if (value === null) return "null";
+  if (Array.isArray(value)) return "array";
+  return typeof value;
 }

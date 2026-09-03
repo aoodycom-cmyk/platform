@@ -155,6 +155,9 @@ export function attachRequirementSetIdentityToReport(report = {}, now = new Date
 export function findRequirementSetMatch(report = {}, requirementSets = {}, options = {}) {
   const ticker = normalizeTicker(report.company?.ticker || report.ticker);
   if (!ticker) return { status: "none", reason: "missing_ticker", candidates: [] };
+  if (isCanonicalV3InitialAnalysis(report)) {
+    return { status: "none", reason: "canonical_initial_has_no_previous_evaluation", candidates: [] };
+  }
   const openSets = (requirementSets[ticker] || []).filter((set) => set.status === "OPEN");
   if (!openSets.length) return { status: "none", reason: "no_open_sets", candidates: [] };
 
@@ -436,6 +439,12 @@ function isCanonicalV3EarningsRevaluation(report = {}) {
     && metadata.franklinV3?.analysisType === "EARNINGS_REVALUATION"
     && canonical?.schemaVersion === "franklin-fair-value/v3"
     && canonical?.analysisType === "EARNINGS_REVALUATION";
+}
+
+function isCanonicalV3InitialAnalysis(report = {}) {
+  const canonical = report?.metadata?.franklinV3Report;
+  return canonical?.schemaVersion === "franklin-fair-value/v3"
+    && canonical?.analysisType === "INITIAL";
 }
 
 function isSameSetAsPreviousEvaluation(set, evaluation) {

@@ -15,6 +15,13 @@ assert.ok(index.includes("caches.keys"), "index should clear Franklin caches");
 
 assert.match(serviceWorker, /franklin-research-[A-Za-z0-9._-]+/, "service worker should use a versioned Franklin cache name");
 assert.ok(serviceWorker.includes("\"./rescue.html\""), "service worker should make the rescue page available");
+for (const modulePath of [
+  "./src/externalAnalysis/jsonContractRouter.js",
+  "./src/externalAnalysis/quarterlyHistory.js",
+  "./src/externalAnalysis/supplementContract.js"
+]) {
+  assert.ok(serviceWorker.includes(`"${modulePath}"`), `${modulePath} should be available to an updated offline app`);
+}
 assert.equal(serviceWorker.includes("\"./\""), false, "service worker should not precache the app shell route");
 assert.equal(serviceWorker.includes("\"./index.html\""), false, "service worker should not precache index.html");
 
