@@ -1,4 +1,8 @@
 import { EXTERNAL_ANALYSIS_ORIGIN, hashText, normalizeExternalAnalysisReport } from "./schema.js";
+import {
+  normalizeFiscalQuarterPeriod,
+  parseFiscalQuarterPeriod
+} from "./fiscalQuarterPeriod.js";
 
 export function normalizeExternalAnalysesCollection(collection = {}) {
   if (!collection || typeof collection !== "object") return {};
@@ -182,7 +186,7 @@ function normalizeTicker(value) {
 function sameAnalysisIdentity(left = {}, right = {}) {
   return normalizeTicker(left.company?.ticker) === normalizeTicker(right.company?.ticker)
     && analysisType(left) === analysisType(right)
-    && String(left.reportPeriod || "").trim() === String(right.reportPeriod || "").trim()
+    && sameReportPeriod(left.reportPeriod, right.reportPeriod)
     && String(left.analysisDate || "").trim() === String(right.analysisDate || "").trim();
 }
 
@@ -217,7 +221,7 @@ function sameFiscalQuarterIdentity(left = {}, right = {}) {
 function fiscalQuarterIdentity(report = {}) {
   const native = report.metadata?.franklinV3Report?.reportIdentity || {};
   const fiscal = report.fiscalIdentity || {};
-  const period = parseFiscalPeriod(report.reportPeriod);
+  const period = parseFiscalQuarterPeriod(report.reportPeriod);
   const ticker = normalizeTicker(report.company?.ticker || native.ticker);
   const fiscalQuarter = normalizeFiscalQuarter(fiscal.fiscalQuarter || native.fiscalQuarter || period?.fiscalQuarter);
   const fiscalYear = Number(fiscal.fiscalYear || native.fiscalYear || period?.fiscalYear) || null;
@@ -230,17 +234,16 @@ function fiscalQuarterIdentity(report = {}) {
   };
 }
 
-function parseFiscalPeriod(value) {
-  const clean = String(value || "").trim().toUpperCase();
-  const quarter = clean.match(/Q\s*([1-4])/);
-  const year = clean.match(/20\d{2}/);
-  if (!quarter || !year) return null;
-  return { fiscalQuarter: `Q${quarter[1]}`, fiscalYear: Number(year[0]) };
-}
-
 function normalizeFiscalQuarter(value) {
   const match = String(value || "").trim().toUpperCase().match(/^Q?\s*([1-4])$/);
   return match ? `Q${match[1]}` : null;
+}
+
+function sameReportPeriod(left, right) {
+  const leftQuarter = normalizeFiscalQuarterPeriod(left);
+  const rightQuarter = normalizeFiscalQuarterPeriod(right);
+  if (leftQuarter || rightQuarter) return Boolean(leftQuarter && rightQuarter && leftQuarter === rightQuarter);
+  return String(left || "").trim() === String(right || "").trim();
 }
 
 function compareCorrectionVersions(left = {}, right = {}) {

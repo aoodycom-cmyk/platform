@@ -1,3 +1,10 @@
+import {
+  fiscalQuarterPeriodFromParts,
+  nextFiscalQuarterPeriod,
+  normalizeFiscalQuarterPeriod,
+  parseFiscalQuarterPeriod
+} from "./fiscalQuarterPeriod.js";
+
 export const FRANKLIN_FAIR_VALUE_SCHEMA_VERSION = "franklin-fair-value/v3";
 export const FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION = "fair-value-methodology/v2";
 
@@ -275,7 +282,7 @@ export function buildFranklinV3ReportTemplate(options = {}) {
       requirementSetId: null,
       mode: null,
       previousQuarter: selectedPeriod.reportPeriod || previous.reportPeriod || null,
-      targetQuarter: null,
+      targetQuarter: nextFiscalQuarterPeriod(selectedPeriod.reportPeriod || previous.reportPeriod),
       currentJustifiedValue: null,
       targetValue: null,
       targetScenario: null,
@@ -300,19 +307,17 @@ export function buildFranklinV3ReportTemplate(options = {}) {
 }
 
 export function reportPeriodFromV3Identity(identity = {}) {
-  const quarter = normalizeFiscalQuarter(identity.fiscalQuarter);
-  const year = identity.fiscalYear === null || identity.fiscalYear === undefined ? null : String(identity.fiscalYear).trim();
-  if (quarter && year) return `${quarter} ${year}`;
-  return quarter || year || null;
+  return fiscalQuarterPeriodFromParts(identity.fiscalQuarter, identity.fiscalYear);
 }
 
 export function parseReportPeriod(value) {
-  const clean = String(value || "").trim().toUpperCase();
-  const match = clean.match(/Q\s*([1-4]).*?((?:FY)?\s*20[0-9]{2}|20[0-9]{2})/i);
-  if (!match) return { fiscalQuarter: null, fiscalYear: null, reportPeriod: null };
-  const fiscalQuarter = `Q${match[1]}`;
-  const year = match[2].replace(/[^0-9]/g, "");
-  return { fiscalQuarter, fiscalYear: year ? Number(year) : null, reportPeriod: `${fiscalQuarter} ${year}` };
+  const period = parseFiscalQuarterPeriod(value);
+  if (!period) return { fiscalQuarter: null, fiscalYear: null, reportPeriod: null };
+  return {
+    fiscalQuarter: period.fiscalQuarter,
+    fiscalYear: period.fiscalYear,
+    reportPeriod: period.reportPeriod
+  };
 }
 
 export function normalizeFiscalQuarter(value) {
@@ -340,11 +345,14 @@ export function previousCanonicalState(report = {}) {
     companyName: report?.company?.name || canonical?.reportIdentity?.companyName || null,
     sector: report?.company?.sector || canonical?.company?.sector || null,
     industry: report?.company?.industry || canonical?.company?.industry || null,
-    reportPeriod: report?.reportPeriod || reportPeriodFromV3Identity(canonical?.reportIdentity || {}),
+    reportPeriod: normalizeFiscalQuarterPeriod(report?.reportPeriod)
+      || reportPeriodFromV3Identity(canonical?.reportIdentity || {}),
     tradingCurrency,
     securityUnit,
     thesisSummary: report?.thesis?.shortSummary || report?.thesis?.fullSummary || canonical?.thesis?.updatedSummary || null,
-    requirementTargetQuarter: requirementBlock.targetQuarter || requirementBlock.earningsPeriod || null,
+    requirementTargetQuarter: normalizeFiscalQuarterPeriod(
+      requirementBlock.targetQuarter || requirementBlock.earningsPeriod
+    ),
     requirementWeightTotal: sumRequirementWeights(requirements),
     requirements,
     valuation: {

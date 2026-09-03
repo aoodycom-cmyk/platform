@@ -2,6 +2,7 @@ import { fairValueAnalysisToExternalReport, isFairValueAnalysisReport } from "./
 import { setByPath } from "./fieldPaths.js";
 import { franklinV3ToExternalReport } from "./v3Adapter.js";
 import { isFranklinV3Report } from "./v3Contract.js";
+import { normalizeFiscalQuarterPeriodOrOriginal } from "./fiscalQuarterPeriod.js";
 import {
   normalizeCompanySpecificKpis,
   normalizeExternalRecommendation,
@@ -228,11 +229,12 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
 
 export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", options = {}) {
   const originalInput = input && typeof input === "object" ? input : {};
-  const nativeV3 = isFranklinV3Report(originalInput)
+  const rawNativeV3 = isFranklinV3Report(originalInput)
     ? originalInput
     : (originalInput.metadata?.franklinV3Report?.schemaVersion === "franklin-fair-value/v3" ? originalInput.metadata.franklinV3Report : null);
+  const nativeV3 = normalizeFiscalQuarterFields(rawNativeV3);
   if (isFranklinV3Report(originalInput)) {
-    input = franklinV3ToExternalReport(originalInput, rawAnalysis);
+    input = franklinV3ToExternalReport(nativeV3, rawAnalysis);
   }
   if (isFairValueAnalysisReport(originalInput)) {
     input = fairValueAnalysisToExternalReport(originalInput);
@@ -258,7 +260,7 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
     sourceModel: nullableString(input.sourceModel ?? input.model ?? input.metadata?.sourceModel),
     sourceConversation: nullableString(input.sourceConversation),
     analysisDate: normalizeDate(input.analysisDate ?? input.date),
-    reportPeriod: nullableString(input.reportPeriod ?? input.period),
+    reportPeriod: normalizeFiscalQuarterPeriodOrOriginal(input.reportPeriod ?? input.period),
     fiscalIdentity: {
       fiscalQuarter: nullableString(nativeIdentity.fiscalQuarter),
       fiscalYear: Number.isInteger(nativeIdentity.fiscalYear) ? nativeIdentity.fiscalYear : null,
@@ -334,7 +336,7 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
     estimateRevisions: normalizeEstimateRevisions(input.estimateRevisions),
     companySpecificKpis: normalizeCompanySpecificKpis(input.companySpecificKpis),
     priceTargetRequirements,
-    nextRequirements: normalizeOptionalObject(input.nextRequirements ?? nativeV3?.nextRequirements),
+    nextRequirements: normalizeFiscalQuarterFields(input.nextRequirements ?? nativeV3?.nextRequirements),
     previousRequirementsEvaluation: normalizePreviousRequirementsEvaluation(input.previousRequirementsEvaluation),
     requirementsAssessment,
     scenarios: normalizeExternalScenarios(input.scenarios),
@@ -364,7 +366,7 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
       analysisType: input.metadata?.analysisType ?? null,
       correctedAnalysisId: input.metadata?.correctedAnalysisId ?? null,
       correctionConflicts: preserveArray(input.metadata?.correctionConflicts),
-      franklinV3Report: input.metadata?.franklinV3Report ?? nativeV3 ?? null,
+      franklinV3Report: normalizeFiscalQuarterFields(input.metadata?.franklinV3Report ?? nativeV3),
       franklinV3: input.metadata?.franklinV3 ?? null
     }
   };
@@ -569,6 +571,19 @@ function normalizeValuationResults(results, legacyMethods) {
 
 function normalizeOptionalObject(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? preserveNulls(value) : null;
+}
+
+function normalizeFiscalQuarterFields(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.map(normalizeFiscalQuarterFields);
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => {
+    if (["previousQuarter", "targetQuarter", "earningsPeriod"].includes(key)) {
+      return [key, normalizeFiscalQuarterPeriodOrOriginal(item)];
+    }
+    if (item && typeof item === "object") return [key, normalizeFiscalQuarterFields(item)];
+    return [key, item === undefined ? null : item];
+  }));
 }
 
 function preserveArray(value) {

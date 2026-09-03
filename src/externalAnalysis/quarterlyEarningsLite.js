@@ -3,6 +3,10 @@ import {
   upsertQuarterlyForwardOutlookSupplement
 } from "./quarterlyForwardOutlook.js";
 import { normalizeRequirementsAssessment } from "./requirements.js";
+import {
+  normalizeFiscalQuarterPeriod,
+  normalizeFiscalQuarterPeriodOrOriginal
+} from "./fiscalQuarterPeriod.js";
 
 export const QUARTERLY_EARNINGS_LITE_SCHEMA = "quarterly-earnings-lite/v1";
 
@@ -40,7 +44,8 @@ export function buildQuarterlyEarningsLitePrompt(report = {}, options = {}) {
   const requirementBlock = report.priceTargetRequirements || {};
   const requirements = compactRequirements(requirementBlock.requirements || []);
   const currentThesis = trimText(report.thesis?.shortSummary, 520);
-  const targetQuarter = trimText(requirementBlock.targetQuarter || requirementBlock.earningsPeriod, 40);
+  const targetQuarter = normalizeFiscalQuarterPeriod(requirementBlock.targetQuarter || requirementBlock.earningsPeriod)
+    || trimText(requirementBlock.targetQuarter || requirementBlock.earningsPeriod, 40);
   const template = {
     schemaVersion: QUARTERLY_EARNINGS_LITE_SCHEMA,
     ticker: ticker || null,
@@ -175,7 +180,9 @@ export function inflateQuarterlyEarningsLitePayload(currentReport = {}, payload 
   const currentMetadata = currentReport.metadata || {};
   const baseAnalysisId = currentMetadata.baseAnalysisId || currentReport.id || null;
   const baseAnalysisDate = currentMetadata.baseAnalysisDate || currentReport.analysisDate || null;
-  const baseReportPeriod = currentMetadata.baseReportPeriod || currentReport.reportPeriod || null;
+  const baseReportPeriod = normalizeFiscalQuarterPeriodOrOriginal(
+    currentMetadata.baseReportPeriod || currentReport.reportPeriod
+  );
   const valuationAsOfDate = currentMetadata.valuationAsOfDate || baseAnalysisDate;
   const decisionAsOfDate = currentMetadata.decisionAsOfDate || baseAnalysisDate;
 
@@ -227,8 +234,10 @@ export function inflateQuarterlyEarningsLitePayload(currentReport = {}, payload 
       targetDescription: requirementBlock.targetDescription || null,
       summary: summary || null,
       matchType: "quarterly_earnings_lite",
-      previousQuarter: requirementBlock.previousQuarter || null,
-      targetQuarter: requirementBlock.targetQuarter || requirementBlock.earningsPeriod || reportPeriod,
+      previousQuarter: normalizeFiscalQuarterPeriodOrOriginal(requirementBlock.previousQuarter),
+      targetQuarter: normalizeFiscalQuarterPeriodOrOriginal(
+        requirementBlock.targetQuarter || requirementBlock.earningsPeriod || reportPeriod
+      ),
       requirements,
       requirementsAssessment
     },
@@ -261,8 +270,8 @@ export function validateQuarterlyAssessmentIntegrity({
   requirements = [],
   requirementsAssessment = null
 } = {}) {
-  const reportQuarter = normalizeQuarterPeriod(reportPeriod);
-  const targetQuarter = normalizeQuarterPeriod(targetPeriod);
+  const reportQuarter = normalizeFiscalQuarterPeriod(reportPeriod);
+  const targetQuarter = normalizeFiscalQuarterPeriod(targetPeriod);
   const items = Array.isArray(requirements) ? requirements : [];
   const counts = requirementStatusCounts(items);
   const atTarget = Boolean(reportQuarter && targetQuarter && reportQuarter === targetQuarter);
@@ -473,13 +482,6 @@ function hasMaterialAssessment(value) {
     || ASSESSMENT_COUNT_FIELDS.some((field) => value[field] !== null)
     || Boolean(trimText(value.overallStatus, 120))
     || Boolean(trimText(value.summary, 400));
-}
-
-function normalizeQuarterPeriod(value) {
-  const text = String(value || "").trim().toUpperCase();
-  const quarter = text.match(/\bQ([1-4])\b/);
-  const year = text.match(/(20\d{2})/);
-  return quarter && year ? `Q${quarter[1]} ${year[1]}` : null;
 }
 
 function metricNumber(item) {

@@ -22,12 +22,14 @@ import {
   FRANKLIN_V3_THESIS_STATUSES,
   FRANKLIN_V3_VALUATION_ROLES
 } from "./v3Contract.js";
+import { normalizeFiscalQuarterPeriod } from "./fiscalQuarterPeriod.js";
 
 // Normalizes representation-only differences produced by LLMs before strict V3 validation.
 // It never changes financial numbers, valuation outputs, requirement thresholds, or decisions.
 export function normalizeFranklinV3Input(input = {}) {
   if (!input || typeof input !== "object" || Array.isArray(input)) return input;
   const value = clone(input);
+  normalizeFiscalQuarterFields(value);
 
   value.analysisType = canonicalEnum(value.analysisType, FRANKLIN_V3_ANALYSIS_TYPES);
   if (value.valuation) value.valuation.reviewStatus = canonicalEnum(value.valuation.reviewStatus, FRANKLIN_V3_REVIEW_STATUSES);
@@ -111,6 +113,22 @@ function normalizeMarketPriceSourceUsage(value) {
     : [];
   if (!usedFor.some((item) => normalizeToken(item) === "marketprice")) {
     source.usedFor = [...usedFor, "marketPrice"];
+  }
+}
+
+function normalizeFiscalQuarterFields(value) {
+  if (!value || typeof value !== "object") return;
+  if (Array.isArray(value)) {
+    value.forEach(normalizeFiscalQuarterFields);
+    return;
+  }
+  for (const [key, child] of Object.entries(value)) {
+    if (["previousQuarter", "targetQuarter", "earningsPeriod"].includes(key)) {
+      const canonical = normalizeFiscalQuarterPeriod(child);
+      if (canonical) value[key] = canonical;
+      continue;
+    }
+    normalizeFiscalQuarterFields(child);
   }
 }
 

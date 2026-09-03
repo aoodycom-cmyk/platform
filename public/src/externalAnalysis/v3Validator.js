@@ -28,6 +28,13 @@ import {
   reportPeriodFromV3Identity
 } from "./v3Contract.js";
 import { validateArabicNarrativeQuality } from "./arabicNarrativeQuality.js";
+import {
+  FRANKLIN_FISCAL_QUARTER_FORMAT,
+  fiscalQuarterPeriodsEqual,
+  isCanonicalFiscalQuarterPeriod,
+  nextFiscalQuarterPeriod,
+  normalizeFiscalQuarterPeriod
+} from "./fiscalQuarterPeriod.js";
 
 const WEIGHT_TOLERANCE = 0.01;
 const ASSESSMENT_TOLERANCE = 0.1;
@@ -187,7 +194,7 @@ function validateFiscalIdentity(input, context, errors) {
     errors.push(fieldError("reportIdentity.ticker", `Ticker mismatch. Expected ${context.expectedTicker}, received ${identity.ticker}.`));
   }
   const expectedPeriod = context.expectedReportPeriod || null;
-  if (expectedPeriod && normalizedPeriod(reportPeriodFromV3Identity(identity)) !== normalizedPeriod(expectedPeriod)) {
+  if (expectedPeriod && !fiscalQuarterPeriodsEqual(reportPeriodFromV3Identity(identity), expectedPeriod)) {
     errors.push(fieldError("reportIdentity", `Fiscal identity mismatch. Expected ${expectedPeriod}, received ${reportPeriodFromV3Identity(identity) || "unspecified"}.`));
   }
 }
@@ -542,8 +549,9 @@ function validateNextRequirements(input, errors) {
   const requirements = Array.isArray(next.requirements) ? next.requirements : [];
   if (!FRANKLIN_V3_NEXT_REQUIREMENT_MODES.includes(next.mode)) errors.push(fieldError("nextRequirements.mode", "nextRequirements.mode is not supported."));
   if (!FRANKLIN_V3_TARGET_SCENARIOS.includes(next.targetScenario)) errors.push(fieldError("nextRequirements.targetScenario", "nextRequirements.targetScenario is not supported."));
-  if (!hasText(next.previousQuarter)) errors.push(fieldError("nextRequirements.previousQuarter", "nextRequirements.previousQuarter is required."));
-  if (!hasText(next.targetQuarter)) errors.push(fieldError("nextRequirements.targetQuarter", "nextRequirements.targetQuarter is required."));
+  validateCanonicalQuarterField("nextRequirements.previousQuarter", next.previousQuarter, errors, { required: true });
+  validateCanonicalQuarterField("nextRequirements.targetQuarter", next.targetQuarter, errors, { required: true });
+  if (hasText(next.earningsPeriod)) validateCanonicalQuarterField("nextRequirements.earningsPeriod", next.earningsPeriod, errors);
   if (!Number.isFinite(numberOrNull(next.currentJustifiedValue))) errors.push(fieldError("nextRequirements.currentJustifiedValue", "nextRequirements.currentJustifiedValue is required."));
   if (!Number.isFinite(numberOrNull(next.targetValue))) errors.push(fieldError("nextRequirements.targetValue", "nextRequirements.targetValue is required."));
   if (requirements.length < 4) errors.push(fieldError("nextRequirements.requirements", "New requirement set must contain at least 4 requirements."));
@@ -685,13 +693,29 @@ function validatePreviousRequirements(input, previousSet = {}, errors) {
   if (previousSet.requirementSetId && evaluation.requirementSetId !== previousSet.requirementSetId) {
     errors.push(fieldError("previousRequirementsEvaluation.requirementSetId", "Previous requirementSetId mismatch."));
   }
+  if (hasText(evaluation.previousQuarter)) {
+    validateCanonicalQuarterField("previousRequirementsEvaluation.previousQuarter", evaluation.previousQuarter, errors);
+    const expectedPrevious = normalizeFiscalQuarterPeriod(previousSet.previousQuarter);
+    const actualPrevious = normalizeFiscalQuarterPeriod(evaluation.previousQuarter);
+    if (expectedPrevious && actualPrevious && actualPrevious !== expectedPrevious) {
+      errors.push(fieldError("previousRequirementsEvaluation.previousQuarter", `Previous previousQuarter mismatch. Expected "${expectedPrevious}".`));
+    }
+  }
+  if (hasText(evaluation.earningsPeriod)) {
+    validateCanonicalQuarterField("previousRequirementsEvaluation.earningsPeriod", evaluation.earningsPeriod, errors);
+    const reportPeriod = reportPeriodFromV3Identity(input.reportIdentity || {});
+    if (normalizeFiscalQuarterPeriod(evaluation.earningsPeriod) !== reportPeriod) {
+      errors.push(fieldError("previousRequirementsEvaluation.earningsPeriod", `previousRequirementsEvaluation.earningsPeriod must match reportIdentity fiscal period. Expected "${reportPeriod}".`));
+    }
+  }
   if (previousSet.targetQuarter || previousSet.earningsPeriod) {
-    const expectedTarget = previousSet.targetQuarter || previousSet.earningsPeriod;
-    if (normalizedPeriod(evaluation.targetQuarter) !== normalizedPeriod(expectedTarget)) {
-      errors.push(fieldError("previousRequirementsEvaluation.targetQuarter", `Previous targetQuarter mismatch. Expected ${expectedTarget}.`));
+    const expectedTarget = normalizeFiscalQuarterPeriod(previousSet.targetQuarter || previousSet.earningsPeriod);
+    validateCanonicalQuarterField("previousRequirementsEvaluation.targetQuarter", evaluation.targetQuarter, errors, { required: true });
+    if (normalizeFiscalQuarterPeriod(evaluation.targetQuarter) !== expectedTarget) {
+      errors.push(fieldError("previousRequirementsEvaluation.targetQuarter", `Previous targetQuarter mismatch. Expected "${expectedTarget || previousSet.targetQuarter || previousSet.earningsPeriod}".`));
     }
     const reportPeriod = reportPeriodFromV3Identity(input.reportIdentity || {});
-    if (normalizedPeriod(reportPeriod) !== normalizedPeriod(expectedTarget)) {
+    if (!fiscalQuarterPeriodsEqual(reportPeriod, expectedTarget)) {
       errors.push(fieldError("reportIdentity.fiscalQuarter", "This earnings revaluation cannot evaluate an OPEN requirement set for a different fiscal quarter."));
     }
   }
@@ -830,12 +854,14 @@ function validateRevaluationStatusAndChanges(input, errors) {
 function validateNextQuarterProgression(input, errors) {
   const currentPeriod = reportPeriodFromV3Identity(input.reportIdentity || {});
   const next = input.nextRequirements || {};
-  if (currentPeriod && normalizedPeriod(next.previousQuarter) !== normalizedPeriod(currentPeriod)) {
-    errors.push(fieldError("nextRequirements.previousQuarter", "nextRequirements.previousQuarter must equal the current canonical report period."));
+  const previousQuarter = normalizeFiscalQuarterPeriod(next.previousQuarter);
+  if (currentPeriod && previousQuarter && previousQuarter !== currentPeriod) {
+    errors.push(fieldError("nextRequirements.previousQuarter", `nextRequirements.previousQuarter must match reportIdentity fiscal period. Expected "${currentPeriod}".`));
   }
-  const expectedTarget = nextFiscalQuarter(currentPeriod);
-  if (expectedTarget && normalizedPeriod(next.targetQuarter) !== normalizedPeriod(expectedTarget)) {
-    errors.push(fieldError("nextRequirements.targetQuarter", `nextRequirements.targetQuarter must be ${expectedTarget}.`));
+  const expectedTarget = nextFiscalQuarterPeriod(currentPeriod);
+  const targetQuarter = normalizeFiscalQuarterPeriod(next.targetQuarter);
+  if (expectedTarget && targetQuarter && targetQuarter !== expectedTarget) {
+    errors.push(fieldError("nextRequirements.targetQuarter", `nextRequirements.targetQuarter must be the immediately following fiscal quarter. Expected "${expectedTarget}".`));
   }
 }
 
@@ -1075,15 +1101,6 @@ function assertAuditValue(path, supplied, calculated, errors) {
   }
 }
 
-function nextFiscalQuarter(period) {
-  const match = String(period || "").toUpperCase().match(/Q\s*([1-4]).*?(20\d{2})/);
-  if (!match) return null;
-  const quarter = Number(match[1]);
-  const year = Number(match[2]);
-  if (quarter === 4) return `Q1 ${year + 1}`;
-  return `Q${quarter + 1} ${year}`;
-}
-
 function pctChange(next, previous) {
   if (!Number.isFinite(next) || !Number.isFinite(previous)) return null;
   if (previous === 0) return next === 0 ? 0 : null;
@@ -1172,8 +1189,16 @@ function hasText(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function normalizedPeriod(value) {
-  return String(value || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+function validateCanonicalQuarterField(path, value, errors, options = {}) {
+  if (!hasText(value)) {
+    if (options.required) errors.push(fieldError(path, `${path} is required.`));
+    return false;
+  }
+  if (!isCanonicalFiscalQuarterPeriod(value)) {
+    errors.push(fieldError(path, `${path} must use Franklin quarter format "${FRANKLIN_FISCAL_QUARTER_FORMAT}", for example "Q4 2026".`));
+    return false;
+  }
+  return true;
 }
 
 function sameValue(left, right) {

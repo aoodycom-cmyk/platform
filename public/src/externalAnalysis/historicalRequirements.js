@@ -3,6 +3,10 @@ import {
   normalizeRequirementList,
   normalizeRequirementsAssessment
 } from "./requirements.js";
+import {
+  fiscalQuarterPeriodKey,
+  normalizeFiscalQuarterPeriodOrOriginal
+} from "./fiscalQuarterPeriod.js";
 
 export const REQUIREMENT_SET_STATUSES = ["OPEN", "EVALUATED", "SUPERSEDED", "CANCELLED"];
 
@@ -49,12 +53,17 @@ export function createRequirementSetFromReport(report = {}, now = new Date()) {
   const ticker = normalizeTicker(report.company?.ticker || report.ticker);
   if (!ticker) return null;
   const createdAt = block.createdAt || report.metadata?.importedAt || dateToIso(report.analysisDate, now);
+  const earningsPeriod = normalizeFiscalQuarterPeriodOrOriginal(block.earningsPeriod || report.reportPeriod);
+  const previousQuarter = normalizeFiscalQuarterPeriodOrOriginal(block.previousQuarter);
+  const targetQuarter = normalizeFiscalQuarterPeriodOrOriginal(
+    block.targetQuarter || block.earningsPeriod || report.reportPeriod
+  );
   const status = normalizeRequirementSetStatus(block.status)
     || inferRequirementSetStatus(block.requirements);
   const requirementSetId = block.requirementSetId
     || createRequirementSetId({
       ticker,
-      earningsPeriod: block.earningsPeriod || report.reportPeriod,
+      earningsPeriod,
       createdAt,
       createdFromAnalysisId: block.createdFromAnalysisId || report.id
     });
@@ -64,9 +73,9 @@ export function createRequirementSetFromReport(report = {}, now = new Date()) {
     ticker,
     createdAt,
     createdFromAnalysisId: block.createdFromAnalysisId || report.id || null,
-    earningsPeriod: block.earningsPeriod || report.reportPeriod || null,
-    previousQuarter: block.previousQuarter || null,
-    targetQuarter: block.targetQuarter || block.earningsPeriod || report.reportPeriod || null,
+    earningsPeriod,
+    previousQuarter,
+    targetQuarter,
     currentJustifiedValue: block.currentJustifiedValue,
     targetValue: block.targetValue,
     nextTargetValue: block.nextTargetValue || block.targetValue,
@@ -223,13 +232,15 @@ export function buildRequirementEvaluation(requirementSet = {}, report = {}, mat
   });
   const supplied = report.previousRequirementsEvaluation?.requirementsAssessment || report.requirementsAssessment || {};
   const requirementsAssessment = normalizeRequirementsAssessment(supplied);
-  const reportedEarningsPeriod = extractReportedEarningsPeriod(report) || requirementSet.earningsPeriod;
+  const reportedEarningsPeriod = normalizeFiscalQuarterPeriodOrOriginal(
+    extractReportedEarningsPeriod(report) || requirementSet.earningsPeriod
+  );
   return {
     requirementSetId: requirementSet.requirementSetId,
     ticker: requirementSet.ticker,
     earningsPeriod: reportedEarningsPeriod,
-    previousQuarter: requirementSet.previousQuarter || null,
-    targetQuarter: requirementSet.targetQuarter || requirementSet.earningsPeriod || null,
+    previousQuarter: normalizeFiscalQuarterPeriodOrOriginal(requirementSet.previousQuarter),
+    targetQuarter: normalizeFiscalQuarterPeriodOrOriginal(requirementSet.targetQuarter || requirementSet.earningsPeriod),
     createdAt: requirementSet.createdAt,
     createdFromAnalysisId: requirementSet.createdFromAnalysisId,
     targetValue: requirementSet.targetValue,
@@ -243,10 +254,7 @@ export function buildRequirementEvaluation(requirementSet = {}, report = {}, mat
 }
 
 export function normalizedEarningsPeriod(value) {
-  return String(value || "")
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "");
+  return fiscalQuarterPeriodKey(value) || "";
 }
 
 function markRequirementSetEvaluated(collection, evaluation, report, now) {
@@ -308,9 +316,9 @@ function normalizeRequirementSet(input = {}) {
     ticker,
     createdAt,
     createdFromAnalysisId: input.createdFromAnalysisId || null,
-    earningsPeriod: input.earningsPeriod || null,
-    previousQuarter: textOrNull(input.previousQuarter),
-    targetQuarter: textOrNull(input.targetQuarter || input.earningsPeriod),
+    earningsPeriod: normalizeFiscalQuarterPeriodOrOriginal(input.earningsPeriod),
+    previousQuarter: normalizeFiscalQuarterPeriodOrOriginal(input.previousQuarter),
+    targetQuarter: normalizeFiscalQuarterPeriodOrOriginal(input.targetQuarter || input.earningsPeriod),
     currentJustifiedValue: numberOrNull(input.currentJustifiedValue),
     targetValue: numberOrNull(input.targetValue),
     nextTargetValue: numberOrNull(input.nextTargetValue ?? input.targetValue),
@@ -375,7 +383,9 @@ function extractActualRequirementResults(report = {}, requirementSet = {}) {
   if (Array.isArray(direct)) return direct;
 
   const block = report.priceTargetRequirements || {};
-  const blockPeriodMatches = normalizedEarningsPeriod(block.earningsPeriod) === normalizedEarningsPeriod(requirementSet.earningsPeriod);
+  const blockPeriod = normalizedEarningsPeriod(block.earningsPeriod);
+  const requirementPeriod = normalizedEarningsPeriod(requirementSet.earningsPeriod);
+  const blockPeriodMatches = Boolean(blockPeriod && requirementPeriod && blockPeriod === requirementPeriod);
   const blockIdMatches = block.requirementSetId && block.requirementSetId === requirementSet.requirementSetId;
   if ((blockPeriodMatches || blockIdMatches) && Array.isArray(block.requirements)) return block.requirements;
   return [];
@@ -450,7 +460,9 @@ function isCanonicalV3InitialAnalysis(report = {}) {
 function isSameSetAsPreviousEvaluation(set, evaluation) {
   if (!set || !evaluation) return false;
   if (set.requirementSetId && set.requirementSetId === evaluation.requirementSetId) return true;
-  return normalizedEarningsPeriod(set.earningsPeriod) === normalizedEarningsPeriod(evaluation.earningsPeriod)
+  const setPeriod = normalizedEarningsPeriod(set.earningsPeriod);
+  const evaluationPeriod = normalizedEarningsPeriod(evaluation.earningsPeriod);
+  return Boolean(setPeriod && evaluationPeriod && setPeriod === evaluationPeriod)
     && normalizeTicker(set.ticker) === normalizeTicker(evaluation.ticker);
 }
 

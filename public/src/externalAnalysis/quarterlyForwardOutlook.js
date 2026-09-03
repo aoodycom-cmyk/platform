@@ -1,3 +1,5 @@
+import { normalizeFiscalQuarterPeriod } from "./fiscalQuarterPeriod.js";
+
 export const QUARTERLY_FORWARD_OUTLOOK_KIND = "quarterly_forward_outlook/v1";
 
 const GROWTH_OUTLOOKS = new Set(["accelerating", "stable", "slowing", "unclear"]);
@@ -20,11 +22,11 @@ export function normalizeQuarterlyForwardOutlook(value) {
 }
 
 export function upsertQuarterlyForwardOutlookSupplement(supplements = [], period = "", value = null) {
-  const normalizedPeriod = normalizeQuarterPeriod(period);
+  const normalizedPeriod = normalizeFiscalQuarterPeriod(period);
   const normalizedOutlook = normalizeQuarterlyForwardOutlook(value);
   const existing = (Array.isArray(supplements) ? supplements : []).filter((item) => {
     if (!item || typeof item !== "object") return false;
-    return !(item.kind === QUARTERLY_FORWARD_OUTLOOK_KIND && normalizeQuarterPeriod(item.period) === normalizedPeriod);
+    return !(item.kind === QUARTERLY_FORWARD_OUTLOOK_KIND && normalizeFiscalQuarterPeriod(item.period) === normalizedPeriod);
   });
   if (!normalizedPeriod || !normalizedOutlook) return existing;
   return [
@@ -42,14 +44,14 @@ export function buildQuarterlyForwardOutlookIndex(reports = [], year = null) {
   const index = {};
   const orderedReports = [...(Array.isArray(reports) ? reports : [])].sort((left, right) => dateValue(left) - dateValue(right));
   for (const report of orderedReports) {
-    const directPeriod = normalizeQuarterPeriod(report?.reportPeriod);
+    const directPeriod = normalizeFiscalQuarterPeriod(report?.reportPeriod);
     const directOutlook = normalizeQuarterlyForwardOutlook(report?.forwardOutlook);
     if (directPeriod && directOutlook && (!selectedYear || directPeriod.endsWith(String(selectedYear)))) {
       index[quarterNumber(directPeriod)] = directOutlook;
     }
     for (const supplement of Array.isArray(report?.supplements) ? report.supplements : []) {
       if (supplement?.kind !== QUARTERLY_FORWARD_OUTLOOK_KIND) continue;
-      const period = normalizeQuarterPeriod(supplement.period);
+      const period = normalizeFiscalQuarterPeriod(supplement.period);
       if (!period) continue;
       const parsedYear = Number(period.slice(-4));
       if (selectedYear && parsedYear !== selectedYear) continue;
@@ -75,13 +77,6 @@ export function hasMaterialForwardOutlook(value) {
 function normalizeEnum(value, allowed, fallback) {
   const clean = String(value || "").trim().toLowerCase();
   return allowed.has(clean) ? clean : fallback;
-}
-
-function normalizeQuarterPeriod(value) {
-  const text = String(value || "").trim().toUpperCase();
-  const quarter = text.match(/\bQ([1-4])\b/);
-  const year = text.match(/(20\d{2})/);
-  return quarter && year ? `Q${quarter[1]} ${year[1]}` : null;
 }
 
 function quarterNumber(period) {

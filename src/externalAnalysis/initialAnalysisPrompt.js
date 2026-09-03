@@ -95,6 +95,8 @@ export function buildInitialAnalysisPrompt(options = {}) {
         `methodologyVersion يجب أن يكون ${FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION}`,
         "analysisType يجب أن يكون INITIAL",
         "previousRequirementsEvaluation = null",
+        "nextRequirements.previousQuarter وnextRequirements.targetQuarter يجب أن يستخدما الصيغة الحرفية Q{1-4} YYYY.",
+        "nextRequirements.previousQuarter يجب أن يساوي فترة reportIdentity، وtargetQuarter يجب أن يكون الربع المالي التالي مباشرة.",
         "nextRequirements.currentJustifiedValue يجب أن يساوي valuation.current.base",
         "marketPrice.currency وvaluation.current.currency يجب أن يساويا company.tradingCurrency"
       ],
@@ -109,6 +111,14 @@ export function buildInitialAnalysisPrompt(options = {}) {
         thesisPreviousSummary: null,
         nextRequirementSetId: null,
         nextRequirementStatuses: "NOT_REPORTED"
+      },
+      quarterPeriodRules: {
+        exactFormat: "Q{1-4} YYYY",
+        correctExamples: ["Q3 2026", "Q4 2026"],
+        incorrectExamples: ["FY2026 Q3", "Q3 FY2026"],
+        previousQuarter: "must equal reportIdentity fiscalQuarter + fiscalYear",
+        targetQuarter: "must equal the immediately following fiscal quarter unless Franklin lifecycle logic intentionally supplies another target",
+        mandatoryPreOutputValidation: "Before output, verify both fields use the exact format and the quarter transition is correct."
       },
       arithmeticChecks: [
         "Bear <= Base <= Bull",
@@ -148,6 +158,7 @@ export function buildInitialAnalysisPrompt(options = {}) {
       "كل طريقة تقييم قابلة للتتبع من formula وsteps إلى computedFairValue",
       "متوسط الطرق والحكم التحليلي يتصالحان حسابيًا مع Base",
       "الفرضية والمخاطر والمحفزات والمتطلبات القادمة موجودة",
+      "صيغة previousQuarter وtargetQuarter هي Q{1-4} YYYY، والأول يطابق ربع التقرير والثاني هو الربع التالي مباشرة",
       "المصادر قابلة للتتبع ولا توجد أرقام مختلقة",
       "JSON صالح ومتوافق مع القالب حرفيًا"
     ],
@@ -165,6 +176,8 @@ export function buildInitialAnalysisPrompt(options = {}) {
     "أنشئ companyGlossary من 4 إلى 12 مصطلحًا فنيًا خاصًا بالشركة. أي مصطلح إنجليزي فني يظهر في السرد يجب أن يكون مشروحًا في هذا القاموس.",
     ticker ? `قيمة ticker داخل القالب: \"ticker\": \"${ticker}\"` : "قيمة ticker داخل القالب يجب أن تكون null إذا لم يتوفر رمز صالح.",
     "كل status في nextRequirements.requirements يجب أن يكون NOT_REPORTED.",
+    "QUARTER FORMAT GATE — nextRequirements.previousQuarter وnextRequirements.targetQuarter يجب أن يكونا حرفيًا بصيغة Q1-Q4 ثم مسافة ثم YYYY، مثل \"Q3 2026\" و\"Q4 2026\". الصيغ \"FY2026 Q3\" و\"Q3 FY2026\" ممنوعة.",
+    "قبل إخراج JSON تحقق إلزاميًا أن previousQuarter يطابق reportIdentity fiscalQuarter/fiscalYear وأن targetQuarter هو الربع المالي التالي مباشرة، إلا إذا زودت دورة Franklin هدفًا مختلفًا مقصودًا.",
     "Franklin يعيّن Requirement Set ID الدائم بعد نجاح الحفظ؛ nextRequirements.requirementSetId = null.",
     "sourceType: Investor Relations | SEC | Earnings Call | Market Data | Consensus Data | Trusted Financial News | User Provided | Other",
     "valuationRole: PRIMARY | SECONDARY | CROSS_CHECK",

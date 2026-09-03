@@ -1,4 +1,5 @@
 import { reportPeriodFromV3Identity } from "./v3Contract.js";
+import { normalizeFiscalQuarterPeriod } from "./fiscalQuarterPeriod.js";
 
 export function franklinV3ToExternalReport(input = {}, rawAnalysis = "") {
   const identity = input.reportIdentity || {};
@@ -122,7 +123,7 @@ function normalizeCompanyGlossary(value) {
 }
 
 function nextRequirementsFromV3(value = {}, reportPeriod, identity = {}) {
-  const targetQuarter = value.targetQuarter || null;
+  const targetQuarter = normalizeFiscalQuarterPeriod(value.targetQuarter);
   return {
     requirementSetId: value.requirementSetId || null,
     mode: value.mode || null,
@@ -133,7 +134,7 @@ function nextRequirementsFromV3(value = {}, reportPeriod, identity = {}) {
     targetDescription: value.targetDescription || null,
     summary: value.summary || null,
     createdAt: identity.analysisDate || null,
-    previousQuarter: value.previousQuarter || reportPeriod || null,
+    previousQuarter: normalizeFiscalQuarterPeriod(value.previousQuarter || reportPeriod),
     targetQuarter,
     earningsPeriod: targetQuarter,
     requirements: requirementsFromV3(value.requirements, { future: true }),
@@ -166,8 +167,8 @@ function previousEvaluationFromV3(value, input = {}, reportPeriod = null) {
     targetDescription: null,
     summary: value.assessment?.summary || null,
     matchType: "franklin_v3_canonical",
-    previousQuarter: null,
-    targetQuarter: value.targetQuarter || reportPeriod,
+    previousQuarter: normalizeFiscalQuarterPeriod(value.previousQuarter),
+    targetQuarter: normalizeFiscalQuarterPeriod(value.targetQuarter || reportPeriod),
     requirements: requirementsFromV3(value.requirements, { future: false }),
     requirementsAssessment: assessment
   };

@@ -1,3 +1,5 @@
+import { normalizeFiscalQuarterPeriod as normalizeQuarterPeriod } from "../externalAnalysis/fiscalQuarterPeriod.js";
+
 const QUARTERLY_IMPORT_METHOD = "quarterly_earnings_lite";
 const REPORTED_STATUSES = new Set(["PASSED", "PARTIALLY_PASSED", "FAILED", "EXCEEDED"]);
 
@@ -401,13 +403,6 @@ function requirementKeys(item = {}) {
   return [item.id, item.metric, item.name, item.arabicName]
     .map((value) => String(value || "").trim().toLowerCase())
     .filter(Boolean);
-}
-
-function normalizeQuarterPeriod(value) {
-  const text = String(value || "").trim().toUpperCase();
-  const quarter = text.match(/\bQ([1-4])\b/);
-  const year = text.match(/(20\d{2})/);
-  return quarter && year ? `Q${quarter[1]} ${year[1]}` : null;
 }
 
 function normalizeTicker(value) {

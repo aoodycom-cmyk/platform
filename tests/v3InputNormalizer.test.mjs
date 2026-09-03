@@ -58,9 +58,15 @@ const raw = {
   nextRequirements: {
     mode: "advance target",
     targetScenario: "intermediate",
+    previousQuarter: "FY2026 Q3",
+    targetQuarter: "Q4 FY2026",
+    earningsPeriod: "FY 2026 Q4",
     requirements: [{ type: "Minimum", importance: "High", status: "not reported" }]
   },
   previousRequirementsEvaluation: {
+    previousQuarter: "2026 Q2",
+    targetQuarter: "FY2026 Q3",
+    earningsPeriod: "Q3 FY 2026",
     requirements: [{ status: "partially passed" }],
     assessment: { overallStatus: "mixed" }
   },
@@ -107,16 +113,23 @@ assert.equal(normalized.forecast.changedAssumptions[0].direction, null, "unsuppo
 assert.equal(normalized.forecast.changedAssumptions[1].direction, "UP");
 assert.equal(normalized.nextRequirements.mode, "ADVANCE_TARGET");
 assert.equal(normalized.nextRequirements.targetScenario, "INTERMEDIATE");
+assert.equal(normalized.nextRequirements.previousQuarter, "Q3 2026");
+assert.equal(normalized.nextRequirements.targetQuarter, "Q4 2026");
+assert.equal(normalized.nextRequirements.earningsPeriod, "Q4 2026");
 assert.equal(normalized.nextRequirements.requirements[0].type, "minimum");
 assert.equal(normalized.nextRequirements.requirements[0].importance, "high");
 assert.equal(normalized.nextRequirements.requirements[0].status, "NOT_REPORTED");
 assert.equal(normalized.previousRequirementsEvaluation.requirements[0].status, "PARTIALLY_PASSED");
+assert.equal(normalized.previousRequirementsEvaluation.previousQuarter, "Q2 2026");
+assert.equal(normalized.previousRequirementsEvaluation.targetQuarter, "Q3 2026");
+assert.equal(normalized.previousRequirementsEvaluation.earningsPeriod, "Q3 2026");
 assert.equal(normalized.previousRequirementsEvaluation.assessment.overallStatus, "MIXED");
 assert.equal(normalized.sources[0].type, "Investor Relations");
 
 assert.equal(raw.company.securityUnit, "common share", "normalization must not mutate the pasted raw object");
 assert.equal(raw.dataQuality.confidence, 0.91);
 assert.equal(raw.latestQuarter.forwardOutlook.growthOutlook, "strong growth");
+assert.equal(raw.nextRequirements.previousQuarter, "FY2026 Q3");
 assert.equal(raw.forecast.yearlyForecast[0].revenue.basis, "management guidance");
 
 console.log("Franklin V3 input normalization regression: PASS");

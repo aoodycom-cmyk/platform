@@ -1,3 +1,9 @@
+import {
+  normalizeFiscalQuarterPeriod,
+  normalizeFiscalQuarterPeriodOrOriginal,
+  parseFiscalQuarterPeriod
+} from "./fiscalQuarterPeriod.js";
+
 export const QUARTERLY_HISTORY_SCHEMA_VERSION = "franklin-quarterly-history/v1";
 export const QUARTERLY_HISTORY_STATUSES = ["REPORTED", "UPCOMING"];
 
@@ -63,11 +69,11 @@ export function createReportedQuarterRecord(report = {}, options = {}) {
   if (!identity.ticker || !identity.fiscalYear || !identity.fiscalQuarter || !isObject(latestQuarter)) return null;
   const analysisDate = identity.analysisDate || report.analysisDate || null;
   const sources = cloneArray(report.sources || report.metadata?.franklinV3Report?.sources);
-  const evaluation = cloneValue(
+  const evaluation = normalizeEvaluationPeriods(cloneValue(
     report.previousRequirementsEvaluation
       || report.metadata?.franklinV3Report?.previousRequirementsEvaluation
       || null
-  );
+  ));
   const requirements = freezeRequirements(evaluation?.requirements || []);
   const requirementSetId = evaluation?.requirementSetId
     || report.metadata?.franklinV3Report?.reportIdentity?.previousRequirementSetId
@@ -136,8 +142,8 @@ export function createUpcomingQuarterRecord(report = {}, options = {}) {
     requirementSetId: next.requirementSetId || report.priceTargetRequirements?.requirementSetId || null,
     requirementsMeta: cloneValue({
       mode: next.mode ?? null,
-      previousQuarter: next.previousQuarter ?? report.reportPeriod ?? null,
-      targetQuarter: next.targetQuarter ?? null,
+      previousQuarter: normalizeFiscalQuarterPeriodOrOriginal(next.previousQuarter ?? report.reportPeriod),
+      targetQuarter: normalizeFiscalQuarterPeriodOrOriginal(next.targetQuarter),
       currentJustifiedValue: next.currentJustifiedValue ?? null,
       targetValue: next.targetValue ?? null,
       targetScenario: next.targetScenario ?? null,
@@ -169,7 +175,8 @@ export function evaluateRequirementDeterministically(requirement = {}, actual = 
     ["accountingBasis", requirement.accountingBasis ?? context.accountingBasis, actual.accountingBasis ?? context.actualAccountingBasis],
     ["period", requirement.targetQuarter ?? context.targetQuarter, actual.period ?? context.actualPeriod]
   ];
-  const mismatch = dimensions.find(([, expected, received]) => expected && received && normalizeDimension(expected) !== normalizeDimension(received));
+  const mismatch = dimensions.find(([name, expected, received]) => expected && received
+    && normalizeComparableDimension(name, expected) !== normalizeComparableDimension(name, received));
   if (mismatch) {
     return { evaluated: false, status: "NOT_REPORTED", reason: "DIMENSION_MISMATCH", dimension: mismatch[0], expected: mismatch[1], received: mismatch[2] };
   }
@@ -192,11 +199,8 @@ export function evaluateRequirementDeterministically(requirement = {}, actual = 
 }
 
 export function parseFiscalPeriod(value) {
-  const clean = String(value || "").trim().toUpperCase();
-  const quarter = clean.match(/(?:^|\s)Q\s*([1-4])(?:\s|$)/i) || clean.match(/^Q([1-4])/i);
-  const year = clean.match(/(?:FY\s*)?(20\d{2})/i);
-  if (!quarter || !year) return null;
-  return { fiscalQuarter: `Q${quarter[1]}`, fiscalYear: Number(year[1]) };
+  const period = parseFiscalQuarterPeriod(value);
+  return period ? { fiscalQuarter: period.fiscalQuarter, fiscalYear: period.fiscalYear } : null;
 }
 
 export function createQuarterlyHistoryStats() {
@@ -359,6 +363,8 @@ function finalizeRecord(record, versionSource = {}) {
     fiscalYear: Number(record.fiscalYear),
     fiscalQuarter: normalizeQuarter(record.fiscalQuarter),
     status: record.status === UPCOMING ? UPCOMING : REPORTED,
+    requirementsMeta: normalizeRequirementsMeta(record.requirementsMeta),
+    previousRequirementsEvaluation: normalizeEvaluationPeriods(record.previousRequirementsEvaluation),
     sourceAnalysisIds: uniqueStrings(record.sourceAnalysisIds),
     sources: dedupeSources(record.sources),
     conflicts: mergeConflictLists(record.conflicts)
@@ -430,7 +436,7 @@ function freezeRequirements(requirements = []) {
 
 function requirementsMetaFromEvaluation(evaluation) {
   if (!isObject(evaluation)) return null;
-  return cloneValue({
+  return normalizeRequirementsMeta({
     targetQuarter: evaluation.targetQuarter ?? evaluation.earningsPeriod ?? null,
     targetValue: evaluation.targetValue ?? null,
     targetScenario: evaluation.targetScenario ?? null,
@@ -439,6 +445,20 @@ function requirementsMetaFromEvaluation(evaluation) {
     createdAt: evaluation.createdAt ?? null,
     createdFromAnalysisId: evaluation.createdFromAnalysisId ?? null
   });
+}
+
+function normalizeRequirementsMeta(value) {
+  if (!isObject(value)) return value ?? null;
+  return {
+    ...cloneValue(value),
+    ...(Object.hasOwn(value, "previousQuarter") ? { previousQuarter: normalizeFiscalQuarterPeriodOrOriginal(value.previousQuarter) } : {}),
+    ...(Object.hasOwn(value, "targetQuarter") ? { targetQuarter: normalizeFiscalQuarterPeriodOrOriginal(value.targetQuarter) } : {}),
+    ...(Object.hasOwn(value, "earningsPeriod") ? { earningsPeriod: normalizeFiscalQuarterPeriodOrOriginal(value.earningsPeriod) } : {})
+  };
+}
+
+function normalizeEvaluationPeriods(value) {
+  return normalizeRequirementsMeta(value);
 }
 
 function mergeSources(left = [], right = []) {
@@ -582,6 +602,11 @@ function requirementRange(requirement = {}) {
 
 function normalizeDimension(value) {
   return String(value || "").trim().toUpperCase().replace(/\s+/g, " ");
+}
+
+function normalizeComparableDimension(name, value) {
+  if (name === "period") return normalizeFiscalQuarterPeriod(value) || normalizeDimension(value);
+  return normalizeDimension(value);
 }
 
 function uniqueStrings(values = []) {

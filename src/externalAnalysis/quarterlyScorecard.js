@@ -1,4 +1,8 @@
 import { buildQuarterlyForwardOutlookIndex } from "./quarterlyForwardOutlook.js";
+import {
+  normalizeFiscalQuarterPeriod,
+  parseFiscalQuarterPeriod
+} from "./fiscalQuarterPeriod.js";
 
 const QUARTERS = [1, 2, 3, 4];
 const REQUIREMENT_STATUSES = new Set(["EXCEEDED", "PASSED", "PARTIALLY_PASSED", "FAILED", "NOT_REPORTED"]);
@@ -116,11 +120,8 @@ function structuredCloneSafe(value) {
 }
 
 export function parseQuarterPeriod(value) {
-  const text = String(value || "").trim().toUpperCase();
-  const quarterMatch = text.match(/\bQ([1-4])\b/);
-  const yearMatch = text.match(/(20\d{2})/);
-  if (!quarterMatch || !yearMatch) return null;
-  return { quarter: Number(quarterMatch[1]), year: Number(yearMatch[1]) };
+  const period = parseFiscalQuarterPeriod(value);
+  return period ? { quarter: period.quarter, year: period.year } : null;
 }
 
 export function normalizeRequirementAlias(value) {
@@ -148,7 +149,8 @@ function buildQuarterObservationSets(reports = [], selectedYear) {
         ...evaluation,
         requirementSetId: evaluation.requirementSetId || `OBS-${report.id || `${period.quarter}-${period.year}`}`,
         status: "OBSERVED",
-        earningsPeriod: report.reportPeriod || evaluation.earningsPeriod || `Q${period.quarter} ${period.year}`,
+        earningsPeriod: normalizeFiscalQuarterPeriod(report.reportPeriod || evaluation.earningsPeriod)
+          || `Q${period.quarter} ${period.year}`,
         evaluatedAt: report.analysisDate || report.metadata?.updatedAt || report.metadata?.importedAt || null,
         requirementsAssessment: evaluation.requirementsAssessment || report.requirementsAssessment || null
       }
