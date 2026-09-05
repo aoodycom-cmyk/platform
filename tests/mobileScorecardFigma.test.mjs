@@ -18,13 +18,13 @@ assert.equal(EARNINGS_TABLE_EXPERIENCE_VERSION, "v57");
 assert.ok(editorialStyles.includes("Franklin Editorial Finance v53"), "Codex editorial presentation must be restored intact.");
 assert.ok(editorialStyles.includes("--editorial-font"), "The global editorial system must not be replaced by a one-line import.");
 assert.equal(editorialStyles.trim().startsWith("@import"), false);
-assert.ok(serviceWorker.includes("compact-visual-20260901-1"));
+assert.ok(serviceWorker.includes("earnings-header-20260905-1"));
 assert.ok(serviceWorker.includes("styles-earnings-compact-v56.css"));
 assert.ok(syncScript.includes("styles-earnings-compact-v56.css"));
-assert.ok(main.includes("earningsTableExperience.js?v=v57-earnings-clean"));
+assert.ok(main.includes("earningsTableExperience.js?v=earnings-header-20260905-1"));
 assert.ok(main.includes("if (!earningsTableReady)"));
 assert.ok(main.includes("quarterlyScorecardMobileFigma.js"), "The previous mobile scorecard remains available only as a safe fallback.");
-assert.ok(main.indexOf("earningsTableExperience.js?v=v57-earnings-clean") < main.indexOf("quarterlyScorecardMobileFigma.js"));
+assert.ok(main.indexOf("earningsTableExperience.js?v=earnings-header-20260905-1") < main.indexOf("quarterlyScorecardMobileFigma.js"));
 
 assert.ok(earnings.includes('data-fet-tab="summary"'));
 assert.ok(earnings.includes('data-fet-tab="earnings"'));

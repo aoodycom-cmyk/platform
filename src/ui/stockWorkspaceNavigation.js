@@ -9,7 +9,9 @@ const STYLE_URL = "./styles-stock-workspace-v61.css?v=visual-refinement-20260901
 const STOCK_PANELS = new Set(["external-report", "quarterly-scorecard", "company-profile", "strengths-risks"]);
 
 let scheduledFrame = 0;
+let viewportResetFrame = 0;
 let styleReady = false;
+let mountedPanel = "";
 
 export function installStockWorkspaceNavigation(store, root = document.getElementById("app")) {
   if (!store || !root || root.dataset.stockWorkspaceNavigationInstalled === "true") return;
@@ -41,6 +43,7 @@ function mountNavigation(store, root) {
   if (!active || !styleReady) {
     mountedHeader?.remove();
     mountedNav?.remove();
+    if (!active) mountedPanel = "";
     return;
   }
 
@@ -68,6 +71,7 @@ function mountNavigation(store, root) {
     && mountedHeader.dataset.stockWorkspaceSignature === signature
   ) {
     if (activePanel === "external-report") markLegacyEarningsDetail(root);
+    finishPanelMount(activePanel);
     return;
   }
 
@@ -87,6 +91,21 @@ function mountNavigation(store, root) {
 
   root.querySelector(".owner-presentation-edit-trigger-fallback")?.remove();
   if (activePanel === "external-report") markLegacyEarningsDetail(root);
+  finishPanelMount(activePanel);
+}
+
+function finishPanelMount(activePanel) {
+  if (mountedPanel === activePanel) return;
+  mountedPanel = activePanel;
+  cancelAnimationFrame(viewportResetFrame);
+  viewportResetFrame = requestAnimationFrame(() => {
+    viewportResetFrame = requestAnimationFrame(() => {
+      viewportResetFrame = requestAnimationFrame(() => {
+        window.scrollTo(0, 0);
+        viewportResetFrame = 0;
+      });
+    });
+  });
 }
 
 function buildSharedStockHeader(report, state) {
