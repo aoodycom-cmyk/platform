@@ -38,6 +38,8 @@ assert.equal(earnings.includes("<col><col><col><col>"), false, "The mobile table
 assert.equal(earnings.includes("localStorage"), false, "Presentation code must not touch persisted Franklin data.");
 assert.equal(earnings.includes("sessionStorage"), false, "Presentation code must not touch persisted Franklin data.");
 assert.equal(earnings.includes("store.set("), false, "Presentation code must not mutate the application store.");
+assert.equal(earnings.includes("scrollIntoView"), false, "Centering a quarter must not move the document vertically on iOS.");
+assert.ok(earnings.includes("rail.scrollBy"), "The active quarter must be centered only inside its horizontal rail.");
 
 assert.ok(compactStyles.includes("html.franklin-quarterly-earnings-active .mobile-bottom-nav"));
 assert.ok(compactStyles.includes('> :not(.quarterly-scorecard-header):not(.franklin-earnings-hub) {'), "The enhanced mobile earnings page must hide every legacy scorecard section.");

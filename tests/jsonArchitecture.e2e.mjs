@@ -98,6 +98,8 @@ try {
   const timeline = page.locator("[data-quarterly-earnings-history]");
   assert.equal(await timeline.isVisible(), false, "The legacy quarterly timeline must be hidden when the enhanced earnings table is active.");
   await earningsHub.locator("[data-fet-quarter='3'][aria-pressed='true']").waitFor({ state: "visible" });
+  await page.waitForTimeout(100);
+  assert.equal(await page.evaluate(() => window.scrollY), 0, "Opening Earnings must not shift the shared stock header above the viewport.");
   const upcoming = earningsHub.locator(".fet-quarter-card.tone-upcoming");
   await upcoming.waitFor({ state: "visible" });
   assert.equal(await upcoming.locator(".fet-table-reported").count(), 0);

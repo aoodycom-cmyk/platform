@@ -613,10 +613,13 @@ function bindExperience(host, viewKey) {
 
 function revealSelectedQuarter(host) {
   const active = host.querySelector(".fet-quarter-pill.active");
-  if (!active) return;
+  const rail = active?.closest(".fet-quarter-rail");
+  if (!active || !rail) return;
   requestAnimationFrame(() => {
-    try { active.scrollIntoView({ block: "nearest", inline: "center" }); }
-    catch { active.scrollIntoView(); }
+    const railBox = rail.getBoundingClientRect();
+    const activeBox = active.getBoundingClientRect();
+    const horizontalOffset = activeBox.left + (activeBox.width / 2) - railBox.left - (railBox.width / 2);
+    if (Math.abs(horizontalOffset) >= 1) rail.scrollBy({ left: horizontalOffset, behavior: "auto" });
   });
 }
 
