@@ -1452,6 +1452,9 @@ function supplementaryInputPanel(report, completion, state) {
       <div class="supplement-missing-mini">
         ${missing.slice(0, 6).map((item) => `<span><b>${escapeHtml(item.labelAr || item.path)}</b><em dir="ltr">${escapeHtml(item.path)}</em></span>`).join("")}
       </div>
+      <div class="missing-actions">
+        <button class="primary-btn" data-action="copy-missing-requirements">${uiLabel("نسخ النواقص")}</button>
+      </div>
       <textarea class="paste-box supplement-paste-box" data-supplement-raw dir="auto" placeholder="${uiLabel("Paste supplementary ChatGPT response here.")}">${escapeHtml(supplement.rawText || "")}</textarea>
       <div class="external-import-actions">
         <button class="primary-btn" data-action="parse-external-supplement" ${state.loading ? "disabled" : ""}>${state.loading ? uiLabel("Parsing") : uiLabel("Parse Supplement")}</button>
@@ -2474,6 +2477,7 @@ function dataHealthTerminalGuard(report = {}, completion = {}) {
       ${hasCompletionWork ? `<div class="guard-stats">
         <span>${uiLabel("Required")}: <b>${escapeHtml(String(missingRequired))}</b></span>
         <span>${uiLabel("Recommended")}: <b>${escapeHtml(String(missingRecommended))}</b></span>
+        <button class="icon-btn" data-action="copy-missing-requirements">${uiLabel("نسخ النواقص")}</button>
         <button class="icon-btn" data-action="start-report-supplement" data-external-ticker="${escapeHtml(report.company?.ticker || "")}" data-external-report-id="${escapeHtml(report.id || "")}">${uiLabel("إكمال البيانات")}</button>
       </div>` : ""}
     </section>
@@ -7126,7 +7130,9 @@ function bind(root, store, actions) {
       activateInvestmentDataPanel(area, value);
     });
   });
-  root.querySelector("[data-action='copy-missing-requirements']")?.addEventListener("click", () => copyMissingRequirements(store));
+  root.querySelectorAll("[data-action='copy-missing-requirements']").forEach((button) => {
+    button.addEventListener("click", () => copyMissingRequirements(store));
+  });
   root.querySelector("[data-action='select-copy-fallback']")?.addEventListener("click", () => {
     const textArea = root.querySelector("[data-copy-fallback-text]");
     textArea?.focus();

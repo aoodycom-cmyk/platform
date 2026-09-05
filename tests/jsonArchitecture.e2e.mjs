@@ -116,9 +116,14 @@ try {
     const report = window.__equityResearchStore.state.externalAnalyses?.INTC?.[0];
     return report?.completionStatus || null;
   });
+  const reportCopyButton = page.locator(".data-health-terminal-guard [data-action='copy-missing-requirements']").first();
+  assert.equal(await reportCopyButton.count(), 1, `Missing direct copy action: ${JSON.stringify(completionDiagnostic)}`);
+  await reportCopyButton.click();
+  await waitForState(page, (state) => /تم نسخ طلب استكمال|تعذر النسخ تلقائيًا|Copied completion request|Automatic copy failed/u.test(state.notice || ""));
   assert.equal(await completionButton.count(), 1, `Missing supplement action: ${JSON.stringify(completionDiagnostic)}`);
   await completionButton.click();
   await page.locator("[data-supplement-raw]").waitFor({ state: "visible" });
+  await page.locator(".supplement-sheet [data-action='copy-missing-requirements']").waitFor({ state: "visible" });
   const targetAnalysisId = await page.evaluate(() => window.__equityResearchStore.state.externalImport.draftReport.id);
   const supplement = {
     schemaVersion: "external-analysis-supplement/v1",
