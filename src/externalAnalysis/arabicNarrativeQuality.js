@@ -47,7 +47,10 @@ export function validateArabicNarrativeQuality(input = {}) {
     }
   }
   if (unexplained.size) {
-    errors.push(issue("companyGlossary", `مصطلحات إنجليزية غير مشروحة للمستثمر: ${[...unexplained].slice(0, 8).join("، ")}.`));
+    warnings.push(issue(
+      "companyGlossary",
+      `تنبيه لغوي فقط — عبارات إنجليزية لم تُطابق قاموس الشركة ولن تمنع الاستيراد: ${[...unexplained].slice(0, 8).join("، ")}.`
+    ));
   }
 
   return { errors, warnings };
