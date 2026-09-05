@@ -41,23 +41,26 @@
   /* The scorecard legacy header had a large fixed presentation height. Collapse it to a compact control row. */
   .panel-quarterly-scorecard > .mobile-page-content { margin-inline: 4px !important; }
   .panel-quarterly-scorecard .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] > .quarterly-scorecard-header {
-    min-height: 72px !important;
-    height: 72px !important;
-    max-height: 72px !important;
+    min-height: 56px !important;
+    height: 56px !important;
+    max-height: 56px !important;
     margin: 0 !important;
-    padding: 9px 16px !important;
+    padding: 8px 0 !important;
     overflow: hidden !important;
     border-bottom: 1px solid rgba(255,255,255,.075) !important;
     background: #0e1011 !important;
   }
   .panel-quarterly-scorecard .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .quarterly-scorecard-titlebar {
-    min-height: 52px !important;
-    height: 52px !important;
-    max-height: 52px !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    max-height: 40px !important;
     align-items: center !important;
   }
+  .panel-quarterly-scorecard .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .quarterly-scorecard-titlebar > div > span,
+  .panel-quarterly-scorecard .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .quarterly-scorecard-titlebar > div > strong { display: none !important; }
   .panel-quarterly-scorecard .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .franklin-earnings-hub { gap: 10px !important; }
-  .panel-quarterly-scorecard .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .fet-quarter-rail { padding-top: 8px !important; }
+  .panel-quarterly-scorecard .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .fet-quarter-rail { padding: 8px 0 2px !important; }
+  .panel-quarterly-scorecard .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] .fet-tab-panel { padding-inline: 0 !important; }
 
   .owner-presentation-editor.owner-report-presentation-editor { margin: 0 !important; padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
   .owner-presentation-edit-trigger-fallback { display: none !important; }
@@ -111,7 +114,9 @@
     background: transparent !important;
     box-shadow: none !important;
   }
-  .panel-company-profile .company-profile-shell > .panel {
+  .panel-company-profile .company-profile-grid { gap: 0 !important; }
+  .panel-company-profile .company-profile-shell > .panel,
+  .panel-company-profile .company-profile-grid > .panel {
     margin: 0 !important;
     padding: 16px 12px !important;
     border: 0 !important;
@@ -120,10 +125,16 @@
     background: transparent !important;
     box-shadow: none !important;
   }
-  .panel-company-profile .company-profile-shell > .panel:last-child { border-bottom: 0 !important; }
+  .panel-company-profile .company-profile-shell > .panel:last-child,
+  .panel-company-profile .company-profile-grid > .panel:last-child { border-bottom: 0 !important; }
   .panel-company-profile .company-profile-header h2 { font-size: 19px !important; line-height: 1.28 !important; }
   .panel-company-profile .company-profile-shell h3 { font-size: 16px !important; line-height: 1.35 !important; }
   .panel-company-profile .company-profile-shell p { font-size: 13.5px !important; line-height: 1.7 !important; }
+  .panel-company-profile .company-activity-card { border-color: rgba(255,255,255,.075) !important; background: #17191a !important; background-image: none !important; box-shadow: none !important; }
+  html[dir="rtl"] .panel-company-profile .company-profile-header,
+  html[dir="rtl"] .panel-company-profile .company-profile-section,
+  html[dir="rtl"] .panel-company-profile .company-activity-card,
+  html[dir="rtl"] .panel-company-profile .company-profile-shell :is(h2,h3,p,li,dt,dd,strong,span) { text-align: right !important; }
   .panel-company-profile .company-profile-facts dl { margin: 0; display: grid; }
   .panel-company-profile .company-profile-facts dl > div { min-height: 44px; padding: 10px 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; border-bottom: 1px solid rgba(255,255,255,.075); }
   .panel-company-profile .company-profile-facts dl > div:last-child { border-bottom: 0; }
@@ -137,7 +148,7 @@
   .franklin-decision-hero-kpis span { color: #9a9fa4; font-size: 11px; line-height: 1.4; }
   .franklin-decision-hero-kpis strong { color: #f0f1f2; font-size: 18px; line-height: 1.25; font-variant-numeric: tabular-nums lining-nums; }
 
-  .franklin-earnings-hub .fet-quarter-rail { scroll-padding-inline: 10px; scroll-snap-type: x proximity; }
+  .franklin-earnings-hub .fet-quarter-rail { scroll-padding-inline: 0; scroll-snap-type: x proximity; }
   .franklin-earnings-hub .fet-quarter-pill { scroll-snap-align: start; }
 
   /* Consolidated stock typography: one scale shared by Summary, Earnings, Company and Risks. */

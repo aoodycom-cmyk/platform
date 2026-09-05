@@ -434,7 +434,8 @@ function normalizePresentation(value = {}) {
   const input = value && typeof value === "object" && !Array.isArray(value) ? value : {};
   return {
     companyLogoDataUrl: nullableString(input.companyLogoDataUrl),
-    morningstarFairValue: toNullableNumber(input.morningstarFairValue)
+    morningstarFairValue: toNullableNumber(input.morningstarFairValue),
+    nextEarningsDate: nullableString(input.nextEarningsDate)
   };
 }
 

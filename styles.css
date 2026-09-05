@@ -1694,35 +1694,39 @@ label {
 
 .evidence-detail-dialog {
   z-index: var(--layer-modal);
-  width: min(100%, 440px);
-  max-width: 440px;
-  max-height: 100dvh;
-  margin: auto auto 0;
+  width: min(calc(100% - 24px), 560px);
+  max-width: 560px;
+  max-height: calc(100dvh - 32px);
+  margin: auto;
   padding: 0;
+  box-sizing: border-box;
   color: var(--ink);
-  border: 0;
-  border-radius: 14px 14px 0 0;
-  background: transparent;
-  overflow: visible;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #111314;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.56);
+  overflow: hidden;
 }
 
 .evidence-detail-dialog::backdrop {
-  background: var(--overlay-backdrop);
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(2px);
 }
 
 .evidence-detail-sheet {
   position: relative;
-  max-height: min(78dvh, 680px);
-  padding: 18px 14px calc(18px + env(safe-area-inset-bottom));
+  min-height: min(66dvh, 560px);
+  max-height: calc(100dvh - 32px);
+  padding: 20px 18px;
   display: grid;
+  align-content: start;
   gap: 10px;
-  border: 1px solid var(--line);
-  border-bottom: 0;
-  border-radius: 12px 12px 0 0;
-  background: var(--surface-1);
-  box-shadow: var(--shadow-sheet);
+  border: 0;
+  border-radius: inherit;
+  background: #111314;
   overflow-y: auto;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .evidence-detail-close {
@@ -2033,7 +2037,7 @@ label {
   }
 
   .evidence-detail-sheet {
-    border-bottom: 1px solid var(--line);
+    border: 0;
     border-radius: 14px;
   }
 

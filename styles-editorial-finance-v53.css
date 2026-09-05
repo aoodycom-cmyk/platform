@@ -129,6 +129,73 @@ html[data-theme="dark"] {
     background: var(--editorial-surface) !important;
   }
 
+  .summary-valuation-methods,
+  .summary-valuation-method-list {
+    display: grid;
+  }
+
+  .summary-valuation-selection-reason {
+    margin: 0 0 4px !important;
+    padding: 0 0 14px;
+    display: grid;
+    gap: 5px;
+    border-bottom: 1px solid var(--editorial-line);
+  }
+
+  .summary-valuation-selection-reason > strong,
+  .summary-valuation-method-row p > b {
+    color: var(--editorial-accent);
+    font-size: 11px;
+    line-height: 1.4;
+    font-weight: 650;
+  }
+
+  .summary-valuation-method-row {
+    padding: 14px 0;
+    display: grid;
+    gap: 9px;
+    border-top: 1px solid var(--editorial-line);
+  }
+
+  .summary-valuation-method-row:first-child {
+    border-top: 0;
+  }
+
+  .summary-valuation-method-row:last-child {
+    padding-bottom: 0;
+  }
+
+  .summary-valuation-method-row > header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .summary-valuation-method-row > header > strong {
+    color: var(--editorial-text);
+    font-size: 14px;
+    line-height: 1.45;
+    font-weight: 650;
+  }
+
+  .summary-valuation-method-row > header > span {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--editorial-text-soft);
+    font-size: 12px;
+    line-height: 1.45;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  .summary-valuation-method-row p {
+    margin: 0 !important;
+    display: grid;
+    gap: 4px;
+  }
+
   .latest-earnings-summary {
     display: grid;
     gap: 14px;

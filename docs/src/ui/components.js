@@ -1862,17 +1862,18 @@ function externalAnalysisReportView(state) {
       ${dataHealthTerminalGuard(reportWithCompletion, completion)}
       <section class="stock-decision-flow">
         ${valuationRangeDashboard(report)}
+        ${stockSection(isArabicUi() ? "طرق التقييم" : "Valuation Methods", summaryValuationMethodsDashboard(report), "summary-valuation-methods-section")}
+        ${companyAssessmentPanel(report, { showValuationDetail: false })}
+        ${stockSection(uiLabel("الحكم الاستثماري"), finalDecisionDashboard(report), "summary-investment-verdict-section")}
         ${canonicalFinancialCycleSection(report)}
         ${stockSection(isArabicUi() ? "فرصة الاستثمار" : "Investment Opportunity", investmentSummaryWorkspace(report), "investment-opportunity-section")}
         ${companyGlossarySection(report)}
-        ${companyAssessmentPanel(report)}
         ${stockSection(isArabicUi() ? "بيانات الاستثمار" : "Investment Data", investmentDataTableArea(report), "v31-investment-tabs-section")}
         ${latestEarningsWorkspace(report)}
         ${estimateRevisionsCard(report.estimateRevisions)}
         ${strengthsRisksEntry(report)}
         ${stockSection(uiLabel("المحفزات"), catalystsDashboard(report))}
         ${stockSection(uiLabel("قائمة المتابعة"), monitoringChecklistDashboard(report))}
-        ${stockSection(uiLabel("الحكم الاستثماري"), finalDecisionDashboard(report))}
         ${stockSection(uiLabel("السجل والمصادر"), `
           ${compactTechnicalDetails(reportWithCompletion, completion, history, requirementSets)}
           ${externalDetail(uiLabel("Raw Analysis"), `<pre class="raw-analysis">${escapeHtml(report.rawAnalysisOriginal || report.rawAnalysis || "")}</pre>`)}
@@ -2651,7 +2652,8 @@ function fairValueScenario(label, value, currentPrice, featured = false) {
   `;
 }
 
-function companyAssessmentPanel(report = {}) {
+function companyAssessmentPanel(report = {}, options = {}) {
+  const showValuationDetail = options.showValuationDetail !== false;
   const overall = numericValue(report.decision?.investmentScore);
   const overallPct = Number.isFinite(overall) ? Math.max(0, Math.min(100, overall)) : 0;
   const valuationMetric = valuationAssessmentMetric(report);
@@ -2671,7 +2673,7 @@ function companyAssessmentPanel(report = {}) {
       displayValue: assessmentMetricText(valuationMetric),
       progress: valuationMetric.progress,
       tone: valuationMetric.tone || "positive",
-      detail: valuationMethodsDashboard(report)
+      detail: showValuationDetail ? valuationMethodsDashboard(report) : ""
     },
     {
       ar: "الجودة المالية",
@@ -2917,6 +2919,49 @@ function valuationMethodsDashboard(report = {}) {
       detail: paragraphBlock([row.explanation, row.limitation])
     }))
   });
+}
+
+function summaryValuationMethodsDashboard(report = {}) {
+  const explicitRows = (report.valuationResults || [])
+    .map((value, index) => normalizeValuationMethodForDisplay(value.method || `method-${index + 1}`, value))
+    .filter(Boolean);
+  const selectionReasonText = localizedExternalText(report.valuationSelectionReason || report.metadata?.valuationSelectionReason).trim();
+  const selectionReason = selectionReasonText === "[object Object]" ? "" : selectionReasonText;
+  const primaryMethod = localizedExternalText(report.primaryValuationMethod || report.metadata?.primaryValuationMethod).trim();
+  const rows = explicitRows.length || !primaryMethod
+    ? explicitRows
+    : [{ key: primaryMethod, method: primaryMethod, fairValue: null, explanation: selectionReason }];
+  if (!rows.length) return valuationMethodSummaryView(report) || emptyDashboardState(uiLabel("Not provided in the imported analysis."));
+  return `
+    <div class="summary-valuation-methods">
+      ${selectionReason && explicitRows.length ? `
+        <p class="summary-valuation-selection-reason">
+          <strong>${isArabicUi() ? "سبب اختيار المنهجية" : "Methodology rationale"}</strong>
+          <span class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(selectionReason)}</span>
+        </p>
+      ` : ""}
+      <div class="summary-valuation-method-list">
+        ${rows.map((row) => {
+          const reason = localizedExternalText(row.explanation).trim();
+          const output = formatValuationFairValue(row.fairValue);
+          return `
+            <article class="summary-valuation-method-row">
+              <header>
+                <strong>${escapeHtml(humanValuationMethodLabel(row.method || row.key))}</strong>
+                <span>
+                  ${output !== "—" ? `<bdi dir="ltr">${escapeHtml(output)}</bdi>` : ""}
+                </span>
+              </header>
+              <p>
+                <b>${isArabicUi() ? "سبب الاستخدام" : "Why this method"}</b>
+                <span class="mixed-direction-text" dir="auto">${reason ? mixedDirectionMarkup(reason) : escapeHtml(isArabicUi() ? "لم يذكر التحليل المحفوظ سببًا مستقلًا لهذه الطريقة." : "The saved analysis does not state a separate rationale for this method.")}</span>
+              </p>
+            </article>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `;
 }
 
 function scenariosDashboard(report = {}) {

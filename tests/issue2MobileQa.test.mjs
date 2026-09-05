@@ -45,7 +45,9 @@ assert.ok(styles.includes(".compact-evidence-row"), "Compact evidence row styles
 assert.ok(styles.includes("-webkit-line-clamp: 2"), "Evidence previews must be limited to two lines.");
 assert.ok(styles.includes(".evidence-detail-dialog"), "The mobile Bottom Sheet must be styled.");
 assert.ok(styles.includes("z-index: var(--layer-modal)"), "The Bottom Sheet must use the shared modal layer token.");
-assert.ok(styles.includes("max-height: min(78dvh, 680px)"), "Long evidence details must scroll within a bounded sheet.");
+assert.ok(styles.includes("min-height: min(66dvh, 560px)"), "Evidence details must open as a readable centered card on mobile.");
+assert.ok(styles.includes("background: #111314"), "The evidence dialog must keep an opaque Franklin surface.");
+assert.ok(styles.includes("margin: auto"), "The evidence dialog must be centered instead of anchored to the viewport bottom.");
 assert.ok(styles.includes("overflow-y: auto"), "Long Bottom Sheet content must remain readable.");
 assert.ok(styles.includes(".evidence-detail-close:focus-visible"), "The programmatically focused close button must have a visible keyboard focus state.");
 assert.ok(components.includes("fallbackInertState"), "The non-modal fallback must make background surfaces inert.");

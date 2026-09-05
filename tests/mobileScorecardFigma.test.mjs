@@ -8,6 +8,7 @@ import {
 
 const main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
 const earnings = readFileSync(new URL("../src/ui/earningsTableExperience.js", import.meta.url), "utf8");
+const presentationEditor = readFileSync(new URL("../src/ui/reportPresentationEditor.js", import.meta.url), "utf8");
 const compactStyles = readFileSync(new URL("../styles-earnings-compact-v56.css", import.meta.url), "utf8");
 const editorialStyles = readFileSync(new URL("../styles-editorial-finance-v53.css", import.meta.url), "utf8");
 const serviceWorker = readFileSync(new URL("../service-worker.js", import.meta.url), "utf8");
@@ -28,6 +29,9 @@ assert.ok(main.indexOf("earningsTableExperience.js?v=v57-earnings-clean") < main
 assert.ok(earnings.includes('data-fet-tab="summary"'));
 assert.ok(earnings.includes('data-fet-tab="earnings"'));
 assert.ok(earnings.includes('const columns = reported ? "reported" : "target"'));
+assert.ok(earnings.includes('data-owner-next-earnings-date'), "The upcoming quarter must expose the compact editable earnings date field.");
+assert.ok(presentationEditor.includes('nextEarningsDate'), "The existing presentation editor must persist the owner-entered earnings date.");
+assert.ok(compactStyles.includes(".fet-next-earnings-date"), "The earnings date field must use the compact Earnings visual system.");
 assert.ok(compactStyles.includes(".fet-table-target"));
 assert.ok(compactStyles.includes(".fet-table-reported"));
 assert.equal(earnings.includes("<col><col><col><col>"), false, "The mobile table must not create a hidden fourth column.");
