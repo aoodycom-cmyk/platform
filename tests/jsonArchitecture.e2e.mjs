@@ -93,20 +93,18 @@ try {
 
   await page.locator("[data-stock-page='earnings']").click();
   await waitForState(page, (state) => state.activePanel === "quarterly-scorecard");
+  const earningsHub = page.locator(".quarterly-scorecard-shell[data-earnings-table-enhanced='true'] .franklin-earnings-hub");
+  await earningsHub.waitFor({ state: "visible" });
   const timeline = page.locator("[data-quarterly-earnings-history]");
-  await timeline.waitFor({ state: "visible" });
-  await page.locator("[data-quarter-history-key='INTC:2026:Q2']").click();
-  await page.locator("[data-quarter-status='REPORTED']").waitFor({ state: "visible" });
-  const reportedRows = await page.locator(".quarterly-results-table tbody tr").count();
-  assert.ok(reportedRows >= 2);
-  assert.ok((await page.locator(".quarterly-results-table").innerText()).includes("BEAT"));
-
-  await page.locator("[data-quarter-history-key='INTC:2026:Q3']").click();
-  const upcoming = page.locator("[data-quarter-status='UPCOMING']");
+  assert.equal(await timeline.isVisible(), false, "The legacy quarterly timeline must be hidden when the enhanced earnings table is active.");
+  await earningsHub.locator("[data-fet-quarter='3'][aria-pressed='true']").waitFor({ state: "visible" });
+  const upcoming = earningsHub.locator(".fet-quarter-card.tone-upcoming");
   await upcoming.waitFor({ state: "visible" });
-  assert.equal(await upcoming.locator(".quarterly-results-table").count(), 0);
-  assert.equal(await upcoming.locator("[data-upcoming-requirement]").count(), canonical.nextRequirements.requirements.length);
-  assert.ok((await upcoming.innerText()).includes("NOT_REPORTED"));
+  assert.equal(await upcoming.locator(".fet-table-reported").count(), 0);
+  assert.equal(await upcoming.locator(".fet-table-target tbody tr").count(), canonical.nextRequirements.requirements.length);
+  assert.match(await upcoming.innerText(), /بانتظار الإعلان|Awaiting report/u);
+  assert.equal(await page.locator(".quarterly-scorecard-shell > .fet-table-wrap:visible, .quarterly-scorecard-shell > .quarterly-earnings-timeline:visible").count(), 0);
+  assert.equal(await earningsHub.locator(".fet-table:visible").count(), 1, "Only the enhanced earnings table should be visible.");
   await assertNoHorizontalOverflow(page, "earnings");
 
   await page.locator("[data-stock-page='summary']").click();

@@ -36,6 +36,8 @@ assert.equal(earnings.includes("sessionStorage"), false, "Presentation code must
 assert.equal(earnings.includes("store.set("), false, "Presentation code must not mutate the application store.");
 
 assert.ok(compactStyles.includes("html.franklin-quarterly-earnings-active .mobile-bottom-nav"));
+assert.ok(compactStyles.includes('> :not(.quarterly-scorecard-header):not(.franklin-earnings-hub) {'), "The enhanced mobile earnings page must hide every legacy scorecard section.");
+assert.equal(compactStyles.includes(':not(.franklin-earnings-hub):not(.quarterly-earnings-timeline)'), false, "The legacy quarterly timeline must not remain visible above the enhanced earnings table.");
 assert.ok(compactStyles.includes("safe-area-inset-top"));
 assert.ok(compactStyles.includes("--fet-accent: #59cfc0"), "Franklin's own accent must remain the primary identity color.");
 assert.equal(compactStyles.includes(":has("), false, "The screen must not depend on :has() to hide navigation.");
