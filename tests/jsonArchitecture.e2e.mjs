@@ -91,6 +91,19 @@ try {
   assert.equal(beforeHistory.quarters[1].actualsPresent, false);
   assert.ok(beforeHistory.quarters[1].requirements.every((item) => item.status === "NOT_REPORTED"));
 
+  await page.evaluate(() => {
+    window.__franklinSimulatedSafariAnchor = new Promise((resolve) => {
+      const observer = new MutationObserver(() => {
+        if (!document.querySelector(".franklin-earnings-hub")) return;
+        observer.disconnect();
+        requestAnimationFrame(() => {
+          window.scrollTo(0, 64);
+          resolve();
+        });
+      });
+      observer.observe(document.getElementById("app"), { childList: true, subtree: true });
+    });
+  });
   await page.locator("[data-stock-page='earnings']").click();
   await waitForState(page, (state) => state.activePanel === "quarterly-scorecard");
   const earningsHub = page.locator(".quarterly-scorecard-shell[data-earnings-table-enhanced='true'] .franklin-earnings-hub");
@@ -98,8 +111,9 @@ try {
   const timeline = page.locator("[data-quarterly-earnings-history]");
   assert.equal(await timeline.isVisible(), false, "The legacy quarterly timeline must be hidden when the enhanced earnings table is active.");
   await earningsHub.locator("[data-fet-quarter='3'][aria-pressed='true']").waitFor({ state: "visible" });
+  await page.evaluate(() => window.__franklinSimulatedSafariAnchor);
   await page.waitForTimeout(100);
-  assert.equal(await page.evaluate(() => window.scrollY), 0, "Opening Earnings must not shift the shared stock header above the viewport.");
+  assert.equal(await page.evaluate(() => window.scrollY), 0, "Opening Earnings must restore the shared header after Safari's delayed scroll anchoring.");
   const upcoming = earningsHub.locator(".fet-quarter-card.tone-upcoming");
   await upcoming.waitFor({ state: "visible" });
   assert.equal(await upcoming.locator(".fet-table-reported").count(), 0);
