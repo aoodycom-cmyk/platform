@@ -3,7 +3,7 @@ import {
   parseExternalAnalysisInput,
   setQuarterlyEarningsLiteReportResolver
 } from "../src/externalAnalysis/parser.js";
-import { QUARTERLY_EARNINGS_LITE_SCHEMA } from "../src/externalAnalysis/quarterlyEarningsLite.js";
+import { LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA } from "../src/externalAnalysis/quarterlyEarningsLite.js";
 
 const currentReport = {
   id: "AMZN-existing",
@@ -27,7 +27,7 @@ const currentReport = {
 };
 
 const litePayload = {
-  schemaVersion: QUARTERLY_EARNINGS_LITE_SCHEMA,
+  schemaVersion: LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA,
   ticker: "AMZN",
   quarter: "Q1",
   year: 2026,

@@ -9,7 +9,11 @@ import {
   normalizeExternalAnalysisSupplement
 } from "./supplementSchema.js";
 import { validateExternalAnalysisSupplement } from "./supplementValidator.js";
-import { QUARTERLY_EARNINGS_LITE_SCHEMA } from "./quarterlyEarningsLite.js";
+import {
+  LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA,
+  QUARTERLY_EARNINGS_LITE_SCHEMA,
+  validateQuarterlyEarningsLitePayload
+} from "./quarterlyEarningsLite.js";
 import { FRANKLIN_FAIR_VALUE_SCHEMA_VERSION } from "./v3Contract.js";
 import { normalizeFranklinV3Input } from "./v3InputNormalizer.js";
 import { validateFranklinV3Report } from "./v3Validator.js";
@@ -25,6 +29,7 @@ export const SUPPORTED_JSON_CONTRACTS = Object.freeze([
   contract(FRANKLIN_FAIR_VALUE_SCHEMA_VERSION, "full-analysis", "full-analysis", false),
   contract(EXTERNAL_ANALYSIS_SUPPLEMENT_SCHEMA_VERSION, "missing-data-supplement", "supplement", false),
   contract(QUARTERLY_EARNINGS_LITE_SCHEMA, "quarterly-earnings-update", "quarterly-earnings", false),
+  contract(LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA, "quarterly-earnings-update", "quarterly-earnings", true),
   contract("external-analysis-report/v2", "canonical-analysis-export", "full-analysis", false),
   contract("external-analysis-report/v1", "legacy-analysis", "full-analysis", true),
   contract(FAIR_VALUE_ANALYSIS_SCHEMA_VERSION, "legacy-fair-value-analysis", "full-analysis", true),
@@ -109,8 +114,8 @@ export function dispatchJsonPayload(value, options = {}) {
       validateSupplementEnvelope(value),
       validateExternalAnalysisSupplement(normalizedValue, options.existingReport || {})
     );
-  } else if (contractDefinition.schemaVersion === QUARTERLY_EARNINGS_LITE_SCHEMA) {
-    validation = validateQuarterlyLiteEnvelope(value);
+  } else if ([QUARTERLY_EARNINGS_LITE_SCHEMA, LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA].includes(contractDefinition.schemaVersion)) {
+    validation = validateQuarterlyEarningsLitePayload(value, options.existingReport || context.currentReport || null);
   } else if (contractDefinition.route === JSON_IMPORT_ROUTES.FULL_ANALYSIS) {
     normalizedValue = normalizeExternalAnalysisReport(value, options.rawText || "", { now: options.now });
     validation = validateExternalAnalysisReport(normalizedValue);
@@ -201,22 +206,6 @@ function validateSupplementEnvelope(value) {
   return { valid: errors.length === 0, errors, warnings: [] };
 }
 
-function validateQuarterlyLiteEnvelope(value) {
-  const errors = [];
-  if (!validTicker(value.ticker)) errors.push(validationError("ticker", "valid market ticker", value.ticker, "Quarterly ticker is required."));
-  if (!/^Q[1-4]$/i.test(String(value.quarter || ""))) errors.push(validationError("quarter", "Q1, Q2, Q3, or Q4", value.quarter, "Quarter is invalid."));
-  if (!Number.isInteger(value.year) || value.year < 2000 || value.year > 2100) errors.push(validationError("year", "integer from 2000 to 2100", value.year, "Fiscal year is invalid."));
-  if (value.reportDate !== undefined && value.reportDate !== null && Number.isNaN(new Date(value.reportDate).getTime())) errors.push(validationError("reportDate", "valid ISO date", value.reportDate, "Report date is invalid."));
-  if (!isPlainObject(value.metrics)) errors.push(validationError("metrics", "object", value.metrics, "Quarterly metrics must be an object."));
-  for (const [key, metric] of Object.entries(isPlainObject(value.metrics) ? value.metrics : {})) {
-    if (!isPlainObject(metric)) errors.push(validationError(`metrics.${key}`, "object", metric, "Quarterly metric must be an object."));
-    if (metric?.result !== undefined && !["BEAT", "MISS", "INLINE", "NA"].includes(metric.result)) {
-      errors.push(validationError(`metrics.${key}.result`, "BEAT, MISS, INLINE, or NA", metric.result, "Quarterly metric result is invalid."));
-    }
-  }
-  return { valid: errors.length === 0, errors, warnings: [] };
-}
-
 function validateBackupEnvelope(value) {
   const errors = [];
   if (!isPlainObject(value.data)) errors.push(validationError("data", "backup data object", value.data, "Backup data is missing."));
@@ -280,10 +269,6 @@ function expectedFromMessage(message = "") {
 
 function readPath(value, path) {
   return String(path || "").replace(/^\$\.?/, "").split(".").filter(Boolean).reduce((cursor, key) => cursor == null ? undefined : cursor[key], value);
-}
-
-function validTicker(value) {
-  return /^[A-Z0-9][A-Z0-9.-]{0,11}$/.test(String(value || "").trim().toUpperCase());
 }
 
 function display(value) {

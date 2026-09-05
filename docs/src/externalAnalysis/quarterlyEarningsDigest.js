@@ -1,7 +1,11 @@
 import { normalizeFiscalQuarterPeriod } from "./fiscalQuarterPeriod.js";
+import {
+  LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA,
+  QUARTERLY_EARNINGS_LITE_SCHEMA
+} from "./quarterlyEarningsLite.js";
 
 export const QUARTERLY_EARNINGS_DIGEST_KIND = "quarterly_earnings_digest/v1";
-const LITE_SCHEMA = "quarterly-earnings-lite/v1";
+const LITE_SCHEMAS = new Set([QUARTERLY_EARNINGS_LITE_SCHEMA, LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA]);
 const RESULT_VALUES = new Set(["BEAT", "MISS", "INLINE", "NA"]);
 const METRIC_KEYS = [
   "revenue",
@@ -124,7 +128,7 @@ function parseLitePayload(raw) {
   if (!text) return null;
   try {
     const payload = JSON.parse(text);
-    return payload?.schemaVersion === LITE_SCHEMA ? payload : null;
+    return LITE_SCHEMAS.has(payload?.schemaVersion) ? payload : null;
   } catch {
     return null;
   }

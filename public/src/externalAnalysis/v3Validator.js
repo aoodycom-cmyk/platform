@@ -38,6 +38,7 @@ import {
 
 const WEIGHT_TOLERANCE = 0.01;
 const ASSESSMENT_TOLERANCE = 0.1;
+const REPORTED_PERCENTAGE_TOLERANCE = 0.5;
 const V3_TOP_LEVEL_FIELDS = new Set([
   "schemaVersion",
   "methodologyVersion",
@@ -263,6 +264,13 @@ function validateLatestQuarter(input, errors) {
   validateExactMetricShape("latestQuarter.coreMetrics.freeCashFlow", metrics.freeCashFlow, ["actualValue", "unit", "priorYearValue", "yoyPct", "sourceId"], errors);
   validateExactMetricShape("latestQuarter.coreMetrics.cash", metrics.cash, ["actualValue", "unit", "sourceId"], errors);
   validateExactMetricShape("latestQuarter.coreMetrics.debt", metrics.debt, ["actualValue", "unit", "sourceId"], errors);
+  validateQuarterMetric("latestQuarter.coreMetrics.revenue", metrics.revenue, ["actualValue", "consensusValue", "priorYearValue", "yoyPct", "qoqPct"], errors, { comparable: true, reconcileYoy: true });
+  validateQuarterMetric("latestQuarter.coreMetrics.eps", metrics.eps, ["actualValue", "consensusValue", "priorYearValue", "yoyPct"], errors, { comparable: true, reconcileYoy: true });
+  validateQuarterMetric("latestQuarter.coreMetrics.grossMarginPct", metrics.grossMarginPct, ["actualValue", "consensusValue", "priorYearValue"], errors, { comparable: true });
+  validateQuarterMetric("latestQuarter.coreMetrics.operatingMarginPct", metrics.operatingMarginPct, ["actualValue", "consensusValue", "priorYearValue"], errors, { comparable: true });
+  validateQuarterMetric("latestQuarter.coreMetrics.freeCashFlow", metrics.freeCashFlow, ["actualValue", "priorYearValue", "yoyPct"], errors, { reconcileYoy: true });
+  validateQuarterMetric("latestQuarter.coreMetrics.cash", metrics.cash, ["actualValue"], errors);
+  validateQuarterMetric("latestQuarter.coreMetrics.debt", metrics.debt, ["actualValue"], errors);
   for (const [index, item] of (Array.isArray(latestQuarter.guidance) ? latestQuarter.guidance : []).entries()) {
     validateEnum(`latestQuarter.guidance.${index}.direction`, item?.direction, FRANKLIN_V3_GUIDANCE_DIRECTIONS, errors, { optional: true, lowercase: true });
   }
@@ -921,16 +929,22 @@ function validateAuditTotals(input, errors) {
 function validateSources(input, errors) {
   const sources = Array.isArray(input.sources) ? input.sources : [];
   if (!sources.length) errors.push(fieldError("sources", "At least one traceable source is required."));
-  const sourceIds = new Set(sources.map((source) => source?.id).filter(Boolean));
+  const sourceIds = new Set(sources.map((source) => source?.id).filter(hasText));
+  assertUniqueValues("sources.id", sources.map((source) => source?.id), errors);
   if (input.marketPrice?.sourceId && !sourceIds.has(input.marketPrice.sourceId)) {
     errors.push(fieldError("marketPrice.sourceId", "marketPrice.sourceId must reference a source in sources."));
   }
   for (const [index, source] of sources.entries()) {
-    if (!source?.id) errors.push(fieldError(`sources.${index}.id`, "Source id is required."));
-    if (!source?.title) errors.push(fieldError(`sources.${index}.title`, "Source title is required."));
+    if (!hasText(source?.id)) errors.push(fieldError(`sources.${index}.id`, "Source id must be a non-empty string."));
+    if (!hasText(source?.title)) errors.push(fieldError(`sources.${index}.title`, "Source title must be a non-empty string."));
     validateEnum(`sources.${index}.type`, source?.type, FRANKLIN_V3_SOURCE_TYPES, errors, { exact: true });
     if (!validDate(source?.date)) errors.push(fieldError(`sources.${index}.date`, "Source date is required."));
-    if (!Array.isArray(source?.usedFor)) errors.push(fieldError(`sources.${index}.usedFor`, "Source usedFor must be an array."));
+    if (source?.url !== null && source?.url !== undefined && !validHttpUrl(source.url)) {
+      errors.push(fieldError(`sources.${index}.url`, "Source URL must be a valid http(s) URL or null."));
+    }
+    if (!Array.isArray(source?.usedFor) || !source.usedFor.length || source.usedFor.some((item) => !hasText(item))) {
+      errors.push(fieldError(`sources.${index}.usedFor`, "Source usedFor must be a non-empty string array."));
+    }
   }
   const marketSource = sources.find((source) => source?.id && source.id === input.marketPrice?.sourceId);
   if (input.marketPrice?.sourceId && !sourceUsedFor(marketSource, "marketPrice")) {
@@ -1090,6 +1104,55 @@ function validateExactMetricShape(path, value, expectedKeys, errors) {
   }
 }
 
+function validateQuarterMetric(path, value, numericFields, errors, options = {}) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return;
+  for (const field of numericFields) {
+    const supplied = value[field];
+    if (supplied !== null && supplied !== undefined && !Number.isFinite(supplied)) {
+      errors.push(fieldError(`${path}.${field}`, `${path}.${field} must be a finite JSON number or null.`));
+    }
+  }
+
+  const actual = Number.isFinite(value.actualValue) ? value.actualValue : null;
+  const consensus = Number.isFinite(value.consensusValue) ? value.consensusValue : null;
+  if (Number.isFinite(actual) && !hasText(value.sourceId)) {
+    errors.push(fieldError(`${path}.sourceId`, "A reported quarterly metric requires sourceId."));
+  }
+
+  if (options.comparable) {
+    const suppliedResult = normalizeEnum(value.result);
+    if (Number.isFinite(consensus) && !Number.isFinite(actual)) {
+      errors.push(fieldError(`${path}.actualValue`, "consensusValue cannot be supplied without actualValue."));
+    }
+    if (Number.isFinite(actual) && Number.isFinite(consensus)) {
+      const expectedResult = comparisonResult(actual, consensus);
+      if (suppliedResult !== expectedResult) {
+        errors.push(fieldError(`${path}.result`, `${path}.result must be ${expectedResult} for actualValue ${actual} versus consensusValue ${consensus}.`));
+      }
+    } else if (suppliedResult !== "NA") {
+      errors.push(fieldError(`${path}.result`, "BEAT, MISS, or INLINE requires both actualValue and consensusValue; otherwise result must be NA."));
+    }
+  }
+
+  if (options.reconcileYoy && value.yoyPct !== null && value.yoyPct !== undefined) {
+    const prior = Number.isFinite(value.priorYearValue) ? value.priorYearValue : null;
+    if (!Number.isFinite(actual) || !Number.isFinite(prior) || prior === 0) {
+      errors.push(fieldError(`${path}.yoyPct`, "yoyPct requires numeric actualValue and non-zero priorYearValue."));
+    } else {
+      const expectedYoy = ((actual / prior) - 1) * 100;
+      if (!within(expectedYoy, value.yoyPct, REPORTED_PERCENTAGE_TOLERANCE)) {
+        errors.push(fieldError(`${path}.yoyPct`, `${path}.yoyPct is arithmetically inconsistent with actualValue and priorYearValue.`));
+      }
+    }
+  }
+}
+
+function comparisonResult(actual, consensus) {
+  const tolerance = Math.max(1e-9, Math.abs(consensus) * 1e-9);
+  if (Math.abs(actual - consensus) <= tolerance) return "INLINE";
+  return actual > consensus ? "BEAT" : "MISS";
+}
+
 function assertAuditValue(path, supplied, calculated, errors) {
   const value = numberOrNull(supplied);
   if (!Number.isFinite(value)) {
@@ -1112,7 +1175,10 @@ function hasCanonicalPreviousRequirementSet(previousSet = {}) {
 }
 
 function isDateOnly(value) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || "").trim());
+  const text = String(value || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
+  const parsed = new Date(`${text}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === text;
 }
 
 function isoDatePart(value) {
@@ -1176,7 +1242,21 @@ function normalizeTicker(value) {
 
 function validDate(value) {
   if (!hasText(value)) return false;
-  return !Number.isNaN(new Date(value).getTime());
+  const text = value.trim();
+  if (isDateOnly(text)) return true;
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(text)) return false;
+  if (!isDateOnly(text.slice(0, 10))) return false;
+  return !Number.isNaN(new Date(text).getTime());
+}
+
+function validHttpUrl(value) {
+  if (!hasText(value)) return false;
+  try {
+    const parsed = new URL(value);
+    return ["http:", "https:"].includes(parsed.protocol) && Boolean(parsed.hostname);
+  } catch {
+    return false;
+  }
 }
 
 function dateTime(value) {

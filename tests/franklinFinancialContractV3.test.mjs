@@ -12,7 +12,7 @@ import {
 } from "../src/externalAnalysis/parser.js";
 import { normalizeExternalAnalysisReport } from "../src/externalAnalysis/schema.js";
 import { saveExternalAnalysis } from "../src/externalAnalysis/storage.js";
-import { QUARTERLY_EARNINGS_LITE_SCHEMA } from "../src/externalAnalysis/quarterlyEarningsLite.js";
+import { LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA } from "../src/externalAnalysis/quarterlyEarningsLite.js";
 import { buildFranklinV3ReportTemplate, FRANKLIN_V3_CANONICAL_ENUMS } from "../src/externalAnalysis/v3Contract.js";
 import { normalizeFranklinV3Input } from "../src/externalAnalysis/v3InputNormalizer.js";
 import {
@@ -384,6 +384,15 @@ for (const status of ["PASSED", "MIXED", "FAILED", "EXCEEDED"]) {
   }), context(), `Fully reported previous requirements may use ${status}.`);
 }
 expectInvalid(goldenA, (item) => { item.sources[0].type = "market data"; }, /sources.0.type/);
+expectInvalid(goldenA, (item) => { item.reportIdentity.analysisDate = "2026-02-30"; }, /analysisDate/);
+expectInvalid(goldenA, (item) => { item.sources[0].date = "2026-13-01"; }, /sources.0.date/);
+expectInvalid(goldenA, (item) => { item.sources[1].id = "S1"; }, /sources.id.*unique/);
+expectInvalid(goldenA, (item) => { item.sources[1].url = "javascript:alert(1)"; }, /sources.1.url/);
+expectInvalid(goldenA, (item) => { item.sources[1].usedFor = []; }, /usedFor.*non-empty/);
+expectInvalid(goldenA, (item) => { item.latestQuarter.coreMetrics.revenue.result = "MISS"; }, /result must be BEAT/);
+expectInvalid(goldenA, (item) => { item.latestQuarter.coreMetrics.revenue.yoyPct = 99; }, /yoyPct.*arithmetically inconsistent/);
+expectInvalid(goldenA, (item) => { item.latestQuarter.coreMetrics.revenue.actualValue = "120"; }, /finite JSON number/);
+expectInvalid(goldenA, (item) => { item.latestQuarter.coreMetrics.revenue.sourceId = null; }, /reported quarterly metric requires sourceId/);
 expectInvalid(goldenA, (item) => { item.reportIdentity.fiscalQuarter = "Quarter 1"; }, /fiscalQuarter/);
 expectInvalid(goldenA, (item) => { item.reportIdentity.fiscalYear = 1999; }, /fiscalYear/);
 expectInvalid(goldenA, (item) => { item.nextRequirements.requirements[1].id = item.nextRequirements.requirements[0].id; }, /unique/);
@@ -577,7 +586,7 @@ async function parseLite(currentReport) {
   setQuarterlyEarningsLiteReportResolver(() => currentReport);
   try {
     return await parseExternalAnalysisInput(JSON.stringify({
-      schemaVersion: QUARTERLY_EARNINGS_LITE_SCHEMA,
+      schemaVersion: LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA,
       ticker: currentReport.company.ticker,
       quarter: "Q2",
       year: 2026,

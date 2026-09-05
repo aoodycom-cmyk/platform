@@ -32,10 +32,11 @@ export function appendQuarterlySourceContract(prompt = "") {
     "- استخدم Investor Relations أو SEC أو التقرير الرسمي أولًا.",
     "- إذا اعتمدت فقط على مواد أرباح ألصقها المستخدم ولم يتوفر رابط، أدرج مصدرًا بعنوان المواد المرفقة، sourceType = User-provided earnings materials، وurl = null.",
     "- يجب وجود مصدر واحد على الأقل، وبحد أقصى 5 مصادر.",
+    "- اجعل id فريدًا، date بتاريخ YYYY-MM-DD، وusedFor قائمة غير فارغة بما يدعمه المصدر.",
     "- البنية المطلوبة:",
     JSON.stringify({
       sources: [
-        { title: "اسم المصدر", url: "https://... أو null", sourceType: "Investor Relations | SEC | User-provided earnings materials" }
+        { id: "S1", title: "اسم المصدر", url: "https://... أو null", sourceType: "Investor Relations | SEC | Earnings Call | Consensus Data | User-provided earnings materials", date: "YYYY-MM-DD", usedFor: ["revenue", "eps"] }
       ]
     }, null, 2)
   ].join("\n");
@@ -198,11 +199,23 @@ function mergeValidation(current = {}, extraErrors = []) {
 
 function normalizeSource(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const id = text(value.id, 60);
   const title = text(value.title, 180);
   const sourceType = text(value.sourceType || value.type, 100);
   const url = text(value.url, 500);
+  const date = text(value.date, 10);
+  const usedFor = (Array.isArray(value.usedFor) ? value.usedFor : [])
+    .map((item) => text(item, 100))
+    .filter(Boolean);
   if (!title && !sourceType) return null;
-  return { title: title || sourceType, url: url || null, sourceType: sourceType || "Quarterly earnings source" };
+  return {
+    ...(id ? { id } : {}),
+    title: title || sourceType,
+    url: url || null,
+    sourceType: sourceType || "Quarterly earnings source",
+    ...(date ? { date } : {}),
+    ...(usedFor.length ? { usedFor } : {})
+  };
 }
 
 function parseJsonObject(rawText) {

@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { createDemoExternalAnalysisScenario } from "../src/data/externalDemo.js";
 import { validateExternalAnalysisReport } from "../src/externalAnalysis/externalAnalysisSchemaValidator.js";
+import { parseExternalAnalysisInput } from "../src/externalAnalysis/parser.js";
 import {
   QUARTERLY_EARNINGS_LITE_SCHEMA,
   buildQuarterlyEarningsLitePrompt,
   inflateQuarterlyEarningsLitePayload,
-  isQuarterlyEarningsLitePayload
+  isQuarterlyEarningsLitePayload,
+  validateQuarterlyEarningsLitePayload
 } from "../src/externalAnalysis/quarterlyEarningsLite.js";
 import { QUARTERLY_FORWARD_OUTLOOK_KIND } from "../src/externalAnalysis/quarterlyForwardOutlook.js";
 
@@ -36,17 +38,17 @@ const payload = {
   requirementSetId: current.priceTargetRequirements.requirementSetId,
   summary: "الإيرادات وEPS كانا قويين، بينما الهامش بقي دون العتبة المطلوبة.",
   metrics: {
-    revenue: { value: 1100, display: "$1.1B", consensusDisplay: "$1.05B", result: "BEAT" },
-    revenueGrowthPct: { value: 34, display: "34%", consensusDisplay: "30%", result: "BEAT" },
-    eps: { value: 3.2, display: "$3.20", consensusDisplay: "$3.00", result: "BEAT" },
-    grossMarginPct: { value: 43, display: "43%", consensusDisplay: "45%", result: "MISS" },
-    operatingMarginPct: { value: null, display: null, consensusDisplay: null, result: "NA" },
-    freeCashFlow: { value: null, display: null, consensusDisplay: null, result: "NA" },
-    cash: { value: null, display: null, consensusDisplay: null, result: "NA" },
-    debt: { value: null, display: null, consensusDisplay: null, result: "NA" }
+    revenue: metric(1100, "$1.1B", 1050, "$1.05B", "USD millions", "REPORTED", "BEAT"),
+    revenueGrowthPct: metric(34, "34%", 30, "30%", "%", "REPORTED", "BEAT"),
+    eps: metric(3.2, "$3.20", 3, "$3.00", "USD per share", "NON_GAAP", "BEAT"),
+    grossMarginPct: metric(43, "43%", 45, "45%", "%", "NON_GAAP", "MISS"),
+    operatingMarginPct: metric(),
+    freeCashFlow: metric(),
+    cash: metric(),
+    debt: metric()
   },
   companyKpis: [],
-  guidance: [{ topic: "Revenue", currentGuidance: "$1.2B-$1.3B", direction: "raised", interpretation: "تم رفع التوجيهات." }],
+  guidance: [{ topic: "Revenue", currentGuidance: "$1.2B-$1.3B", direction: "raised", interpretation: "تم رفع التوجيهات.", sourceId: "S1" }],
   forwardOutlook: {
     growthOutlook: "accelerating",
     marginOutlook: "pressured",
@@ -56,10 +58,10 @@ const payload = {
     summary: "الإدارة ترى طلبًا أقوى رغم ضغط استثماري مؤقت على الهوامش."
   },
   requirements: [
-    { id: "revenue_growth", actualValue: 34, actualDisplay: "34%", status: "EXCEEDED", evaluationNote: "تجاوز المطلوب." },
-    { id: "gross_margin", actualValue: 43, actualDisplay: "43%", status: "FAILED", evaluationNote: "أقل من 45%." },
-    { id: "eps", actualValue: 3.2, actualDisplay: "$3.20", status: "PASSED", evaluationNote: "حقق المطلوب." },
-    { id: "guidance", actualValue: "Raised", actualDisplay: "Raised", status: "PASSED", evaluationNote: "تم رفع Guidance." }
+    requirement("revenue_growth", 34, "34%", "EXCEEDED", "تجاوز المطلوب."),
+    requirement("gross_margin", 43, "43%", "FAILED", "أقل من 45%."),
+    requirement("eps", 3.2, "$3.20", "PASSED", "حقق المطلوب."),
+    requirement("guidance", "Raised", "Raised", "PASSED", "تم رفع Guidance.")
   ],
   requirementsAssessment: {
     weightedAchievement: 70,
@@ -70,15 +72,40 @@ const payload = {
     exceeded: 1,
     partiallyPassed: 0,
     notReported: 0,
-    overallStatus: "bull_case_strengthened",
+    overallStatus: "MIXED",
     summary: "ثلاثة متطلبات نجحت وGross Margin بقي دون المطلوب."
   },
   highlights: ["نمو الإيرادات قوي", "EPS أعلى من المطلوب"],
-  concerns: ["Gross Margin دون العتبة"]
+  concerns: ["Gross Margin دون العتبة"],
+  sources: [
+    {
+      id: "S1",
+      title: "Company Q4 earnings release",
+      url: "https://example.com/investors/q4-2026",
+      sourceType: "Investor Relations",
+      date: "2026-11-08",
+      usedFor: ["metrics", "guidance", "requirements"]
+    },
+    {
+      id: "S2",
+      title: "Q4 consensus snapshot",
+      url: "https://example.com/consensus/q4-2026",
+      sourceType: "Consensus Data",
+      date: "2026-11-07",
+      usedFor: ["revenue", "revenueGrowthPct", "eps", "grossMarginPct"]
+    }
+  ]
 };
 
 assert.equal(isQuarterlyEarningsLitePayload(payload), true);
+assert.equal(validateQuarterlyEarningsLitePayload(payload, current).valid, true);
 const inflated = inflateQuarterlyEarningsLitePayload(current, payload, JSON.stringify(payload), new Date("2026-11-08T12:00:00Z"));
+const parsed = await parseExternalAnalysisInput(JSON.stringify(payload), {
+  currentReport: current,
+  now: new Date("2026-11-08T12:00:00Z")
+});
+assert.equal(parsed.schemaVersion, QUARTERLY_EARNINGS_LITE_SCHEMA);
+assert.equal(parsed.report.sources[0].id, "S1");
 assert.equal(inflated.id, null);
 assert.equal(inflated.reportPeriod, "Q4 2026");
 assert.equal(inflated.financialHighlights.revenue, 1100);
@@ -92,6 +119,9 @@ assert.equal(inflated.previousRequirementsEvaluation.requirementsAssessment.weig
 assert.equal(inflated.requirementsAssessment.passed, 2);
 assert.equal(inflated.previousRequirementsEvaluation.targetQuarter, current.priceTargetRequirements.targetQuarter || current.priceTargetRequirements.earningsPeriod);
 assert.equal(inflated.metadata.importMethod, "quarterly_earnings_lite");
+assert.equal(inflated.metadata.quarterlySourcesProvided, true);
+assert.equal(inflated.sources.length, 2);
+assert.equal(inflated.sources[0].id, "S1");
 
 // Quarterly updates must not overwrite the long-term investment analysis.
 assert.deepEqual(inflated.fairValueSummary, current.fairValueSummary);
@@ -107,4 +137,47 @@ assert.equal(outlook.marginOutlook, "pressured");
 assert.equal(outlook.thesisImpact, "supports");
 assert.equal(validateExternalAnalysisReport(inflated).valid, true);
 
+expectInvalid((item) => { item.sources = []; }, /requires 1 to 5 sources/);
+expectInvalid((item) => { item.metrics.revenue.result = "MISS"; }, /contradicts value/);
+expectInvalid((item) => { item.reportDate = "2026-02-30"; }, /Report date is invalid/);
+expectInvalid((item) => { item.sources[1].id = "S1"; }, /duplicate value S1/);
+expectInvalid((item) => { item.requirementSetId = "WRONG_SET"; }, /frozen requirement set/);
+expectInvalid((item) => {
+  item.requirements.push(requirement("invented_metric", 1, "1", "PASSED", "Invented."));
+}, /Unknown requirement id invented_metric/);
+expectInvalid((item) => { item.requirementsAssessment.weightedAchievement = 71; }, /does not match frozen weights and statuses/);
+expectInvalid((item) => { item.requirementsAssessment.overallStatus = "bull_case_strengthened"; }, /overallStatus is invalid/);
+expectInvalid((item) => { item.requirements[0].unit = "basis points"; }, /preserve its frozen unit/);
+expectInvalid((item) => { item.requirements[1].status = "PASSED"; }, /numeric threshold is not met/);
+expectInvalid((item) => { item.requirements[0].actualValue = 30; }, /marked EXCEEDED without exceeding/);
+expectInvalid((item) => { item.metrics.eps.consensusValue = null; }, /consensusDisplay cannot be populated|requires comparable/);
+expectInvalid((item) => { item.temporaryOverride = true; }, /Unknown property temporaryOverride/);
+
 console.log("Quarterly earnings lite tests passed.");
+
+function metric(value = null, display = null, consensusValue = null, consensusDisplay = null, unit = null, accountingBasis = null, result = "NA") {
+  return {
+    value,
+    display,
+    consensusValue,
+    consensusDisplay,
+    unit,
+    accountingBasis,
+    result,
+    sourceId: Number.isFinite(value) ? "S1" : null,
+    consensusSourceId: Number.isFinite(consensusValue) ? "S2" : null
+  };
+}
+
+function requirement(id, actualValue, actualDisplay, status, evaluationNote) {
+  const units = { revenue_growth: "%", gross_margin: "%", eps: "USD", guidance: "text", invented_metric: "count" };
+  return { id, actualValue, actualDisplay, unit: units[id] || null, status, partialCreditPct: null, evaluationNote, sourceId: actualValue === null ? null : "S1" };
+}
+
+function expectInvalid(mutator, pattern) {
+  const value = JSON.parse(JSON.stringify(payload));
+  mutator(value);
+  const validation = validateQuarterlyEarningsLitePayload(value, current);
+  assert.equal(validation.valid, false, `Expected invalid quarterly payload: ${validation.errors.map((item) => item.message).join(" | ")}`);
+  assert.match(validation.errors.map((item) => item.message).join("\n"), pattern);
+}
