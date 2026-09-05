@@ -1,7 +1,7 @@
 import { reportPeriodFromV3Identity } from "./v3Contract.js";
 import { normalizeFiscalQuarterPeriod } from "./fiscalQuarterPeriod.js";
 
-export function franklinV3ToExternalReport(input = {}, rawAnalysis = "") {
+export function franklinV3ToExternalReport(input = {}, rawAnalysis = "", options = {}) {
   const identity = input.reportIdentity || {};
   const company = input.company || {};
   const valuation = input.valuation || {};
@@ -76,7 +76,9 @@ export function franklinV3ToExternalReport(input = {}, rawAnalysis = "") {
     estimateRevisions: estimateRevisionsFromForecast(input.forecast),
     companySpecificKpis: companyKpisFromLatestQuarter(latestQuarter),
     priceTargetRequirements: nextRequirementsFromV3(nextRequirements, reportPeriod, identity),
-    previousRequirementsEvaluation: previousEvaluationFromV3(previousEvaluation, input, reportPeriod),
+    previousRequirementsEvaluation: previousEvaluationFromV3(previousEvaluation, input, reportPeriod, {
+      previousSet: options.currentReport?.priceTargetRequirements || null
+    }),
     requirementsAssessment: previousAssessment,
     scenarios: valuation.scenarios || {},
     primaryValuationMethod: valuation.methodology?.primaryMethod || null,
@@ -153,7 +155,7 @@ function nextRequirementsFromV3(value = {}, reportPeriod, identity = {}) {
   };
 }
 
-function previousEvaluationFromV3(value, input = {}, reportPeriod = null) {
+function previousEvaluationFromV3(value, input = {}, reportPeriod = null, options = {}) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const assessment = assessmentFromV3(value.assessment, value.requirements);
   return {
@@ -169,43 +171,73 @@ function previousEvaluationFromV3(value, input = {}, reportPeriod = null) {
     matchType: "franklin_v3_canonical",
     previousQuarter: normalizeFiscalQuarterPeriod(value.previousQuarter),
     targetQuarter: normalizeFiscalQuarterPeriod(value.targetQuarter || reportPeriod),
-    requirements: requirementsFromV3(value.requirements, { future: false }),
+    requirements: requirementsFromV3(value.requirements, { future: false, frozenDefinitions: options.previousSet?.requirements }),
     requirementsAssessment: assessment
   };
 }
 
-function requirementsFromV3(value, { future } = {}) {
+function requirementsFromV3(value, { future, frozenDefinitions } = {}) {
   if (!Array.isArray(value)) return [];
+  const frozenById = new Map(
+    (Array.isArray(frozenDefinitions) ? frozenDefinitions : [])
+      .filter((item) => item && typeof item === "object")
+      .map((item) => [String(item.id || ""), item])
+      .filter(([id]) => id)
+  );
   return value.map((item, index) => {
     if (!item || typeof item !== "object") return null;
+    const frozen = future ? null : frozenById.get(String(item.id || ""));
+    const definition = requirementDefinitionFields(frozen || item, index);
     return {
-      id: item.id || `requirement_${index + 1}`,
-      name: item.name || item.metric || `Requirement ${index + 1}`,
-      arabicName: item.arabicName || null,
-      metric: item.metric || item.name || null,
-      type: item.type || "minimum",
-      baselineValue: item.baselineValue ?? null,
-      baselineDisplay: item.baselineDisplay || null,
-      previousValue: item.baselineValue ?? null,
-      previousDisplay: item.baselineDisplay || null,
-      currentLevel: item.baselineValue ?? null,
-      requiredValue: item.requiredValue ?? null,
-      requiredDisplay: item.requiredDisplay || null,
-      unit: item.unit || null,
-      importance: item.importance || "medium",
-      weight: item.weight ?? null,
-      whyItMatters: item.whyItMatters || null,
+      ...definition,
+      id: item.id || definition.id || `requirement_${index + 1}`,
+      name: definition.name || item.name || item.metric || `Requirement ${index + 1}`,
+      arabicName: definition.arabicName || item.arabicName || null,
+      metric: definition.metric || item.metric || item.name || null,
       actualValue: future ? null : item.actualValue ?? null,
       actualDisplay: future ? null : item.actualDisplay || null,
-      actualRaw: null,
-      direction: "unknown",
-      impact: "unknown",
+      actualRaw: future ? null : item.actualRaw ?? null,
+      direction: future ? null : item.direction || null,
+      impact: future ? null : item.impact || null,
       status: future ? "NOT_REPORTED" : item.status || "NOT_REPORTED",
       partialCreditPct: item.partialCreditPct ?? null,
       evaluationNote: future ? null : item.evaluationNote || null,
       sourceId: item.sourceId || null
     };
   }).filter(Boolean);
+}
+
+function requirementDefinitionFields(item = {}, index = 0) {
+  const baselineValue = item.baselineValue ?? item.previousValue ?? item.currentLevel ?? null;
+  const baselineDisplay = item.baselineDisplay || item.previousDisplay || null;
+  const previousValue = item.previousValue ?? item.baselineValue ?? item.currentLevel ?? null;
+  const previousDisplay = item.previousDisplay || item.baselineDisplay || null;
+  return {
+    id: item.id || `requirement_${index + 1}`,
+    name: item.name || item.metric || `Requirement ${index + 1}`,
+    arabicName: item.arabicName || null,
+    metric: item.metric || item.name || null,
+    type: item.type || null,
+    baselineValue,
+    baselineDisplay,
+    previousValue,
+    previousDisplay,
+    currentLevel: item.currentLevel ?? item.baselineValue ?? item.previousValue ?? null,
+    requiredValue: item.requiredValue ?? null,
+    requiredDisplay: item.requiredDisplay || null,
+    unit: item.unit || null,
+    currency: item.currency || null,
+    accountingBasis: item.accountingBasis || null,
+    period: item.period || null,
+    importance: item.importance || null,
+    weight: item.weight ?? null,
+    whyItMatters: item.whyItMatters || null,
+    rangeLow: item.rangeLow ?? null,
+    rangeHigh: item.rangeHigh ?? null,
+    requiredMin: item.requiredMin ?? null,
+    requiredMax: item.requiredMax ?? null,
+    qualitativeTarget: item.qualitativeTarget || null
+  };
 }
 
 function assessmentFromV3(value = null, requirements = []) {

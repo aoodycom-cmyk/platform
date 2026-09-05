@@ -6,10 +6,14 @@ const css = read("../styles-design-director-v45.css");
 const index = read("../index.html");
 const worker = read("../service-worker.js");
 const sync = read("../scripts/sync-deploy.mjs");
+const bootVersion = index.match(/var version = "([^"]+)"/)?.[1];
+const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-assert.match(index, /styles-design-director-v45\.css\?v=v45-design-director/);
-assert.match(index, /main\.js\?v=v4[5-8]-(?:design-director|iphone-nav-date|social-export-page|arabic-glossary)/);
+assert.ok(bootVersion, "index.html must expose the Franklin boot asset version.");
+assert.match(index, new RegExp(`styles-design-director-v45\\.css\\?v=${escapeRegExp(bootVersion)}`));
+assert.match(index, new RegExp(`main\\.js\\?v=${escapeRegExp(bootVersion)}`));
 assert.ok(worker.includes('"./styles-design-director-v45.css"'));
+assert.ok(worker.includes(`franklin-research-${bootVersion}`));
 assert.ok(sync.includes('"styles-design-director-v45.css"'));
 assert.match(css, /calc\(118px \+ env\(safe-area-inset-bottom\)\)/);
 assert.match(css, /\.quarterly-scorecard-nav\s*\{/);

@@ -71,6 +71,7 @@ test("timestamps, zero, negative numbers, and decimal precision are preserved", 
   const value = mutate(canonical, (copy) => {
     copy.reportIdentity.analysisDate = timestamp;
     copy.marketPrice.asOf = timestamp;
+    copy.sources.find((source) => source.id === copy.marketPrice.sourceId).date = timestamp;
     copy.businessQuality.components.cashFlow = 0;
   });
   const parsed = await parseExternalAnalysisInput(JSON.stringify(value), { now });

@@ -69,13 +69,80 @@ const V3_TOP_LEVEL_FIELDS = new Set([
   "limitations",
   "audit"
 ]);
+const MARKET_PRICE_FIELDS = ["value", "currency", "asOf", "priceType", "sourceId"];
+const VALUATION_CURRENT_FIELDS = ["bear", "base", "bull", "probabilityWeighted", "currency", "securityUnit", "confidence"];
+const FORECAST_ROW_FIELDS = ["period", "revenue", "revenueGrowthPct", "eps", "ebitda", "ebitdaMarginPct", "freeCashFlow", "fcfMarginPct"];
+const FORECAST_METRIC_FIELDS = ["value", "basis", "sourceId"];
+const SOURCE_FIELDS = ["id", "title", "type", "date", "url", "usedFor"];
+const NEXT_REQUIREMENT_FIELDS = [
+  "id",
+  "name",
+  "arabicName",
+  "metric",
+  "type",
+  "baselineValue",
+  "baselineDisplay",
+  "requiredValue",
+  "requiredDisplay",
+  "unit",
+  "currency",
+  "accountingBasis",
+  "period",
+  "importance",
+  "weight",
+  "whyItMatters",
+  "rangeLow",
+  "rangeHigh",
+  "requiredMin",
+  "requiredMax",
+  "qualitativeTarget",
+  "status"
+];
+const PREVIOUS_REQUIREMENT_FIELDS = [
+  ...NEXT_REQUIREMENT_FIELDS,
+  "previousValue",
+  "previousDisplay",
+  "currentLevel",
+  "actualValue",
+  "actualDisplay",
+  "actualRaw",
+  "direction",
+  "impact",
+  "partialCreditPct",
+  "evaluationNote",
+  "sourceId"
+];
+const NUMERIC_FINANCIAL_NORMALIZATION_FIELDS = [
+  "revenue",
+  "gaapNetIncome",
+  "adjustedNetIncome",
+  "normalizedNetIncome",
+  "gaapDilutedEps",
+  "adjustedDilutedEps",
+  "normalizedDilutedEps",
+  "dilutedShares",
+  "stockBasedCompensation",
+  "operatingCashFlow",
+  "capitalExpenditure",
+  "workingCapitalChange",
+  "freeCashFlow",
+  "cash",
+  "debt",
+  "netDebt",
+  "taxRatePct"
+];
+const NORMALIZED_METRIC_FIELDS = ["value", "unit", "accountingBasis", "period", "sourceId"];
+const PE_TYPED_INPUT_FIELDS = ["normalizedForwardEps", "forwardEps", "eps", "impliedMultiple", "forwardMultiple", "peMultiple", "multiple"];
+const EV_EBITDA_TYPED_INPUT_FIELDS = ["normalizedEbitda", "ebitda", "evEbitdaMultiple", "impliedMultiple", "multiple", "netDebt", "dilutedShares"];
+const FORECAST_METRIC_NAMES = ["revenue", "revenueGrowthPct", "eps", "ebitda", "ebitdaMarginPct", "freeCashFlow", "fcfMarginPct"];
 
 export function validateFranklinV3Report(input = {}, context = {}) {
   const errors = [];
   const warnings = [];
+  const valuationMethodVerifications = [];
   if (!isFranklinV3Report(input)) {
     errors.push(fieldError("schemaVersion", `schemaVersion must be ${FRANKLIN_FAIR_VALUE_SCHEMA_VERSION}.`));
-    return { valid: false, errors, warnings };
+    return { valid: false, errors, warnings, valuationMethodVerifications };
   }
   if (input.methodologyVersion !== FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION) {
     errors.push(fieldError("methodologyVersion", `methodologyVersion must be ${FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION}.`));
@@ -86,6 +153,7 @@ export function validateFranklinV3Report(input = {}, context = {}) {
 
   validateUnknownTopLevelFields(input, errors);
   validateRequiredSections(input, errors);
+  validateStructuralContract(input, errors);
   validateFiscalIdentity(input, context, errors);
   validateDateChronology(input, errors);
   validateQualityAndClassification(input, errors);
@@ -93,7 +161,7 @@ export function validateFranklinV3Report(input = {}, context = {}) {
   validateFinancialNormalization(input, errors, warnings);
   validateForecast(input, errors);
   validateCompanyAndMarket(input, errors);
-  validateValuation(input, errors, warnings);
+  validateValuation(input, errors, warnings, valuationMethodVerifications);
   validateDecisionAndThesis(input, errors);
   validateNextRequirements(input, errors);
   validateAuditTotals(input, errors);
@@ -105,7 +173,7 @@ export function validateFranklinV3Report(input = {}, context = {}) {
   if (input.analysisType === "INITIAL") validateInitialRules(input, errors);
   if (input.analysisType === "EARNINGS_REVALUATION") validateEarningsRevaluationRules(input, context, errors, warnings);
 
-  return { valid: errors.length === 0, errors, warnings };
+  return { valid: errors.length === 0, errors, warnings, valuationMethodVerifications };
 }
 
 function validateUnknownTopLevelFields(input, errors) {
@@ -182,12 +250,106 @@ function validateRequiredSections(input, errors) {
   }
 }
 
+function validateStructuralContract(input, errors) {
+  validateArrayMembers("companyGlossary", input.companyGlossary, errors);
+  validateArrayMembers("companyProfile.activities", input.companyProfile?.activities, errors);
+  validateArrayMembers("strengths", input.strengths, errors);
+  validateArrayMembers("weaknesses", input.weaknesses, errors);
+  validateArrayMembers("risks", input.risks, errors);
+  validateArrayMembers("catalysts", input.catalysts, errors);
+  validateArrayMembers("monitoringChecklist", input.monitoringChecklist, errors);
+  validateArrayMembers("sources", input.sources, errors);
+  validateArrayMembers("latestQuarter.companySpecificKpis", input.latestQuarter?.companySpecificKpis, errors);
+  validateArrayMembers("latestQuarter.guidance", input.latestQuarter?.guidance, errors);
+  validateArrayMembers("forecast.yearlyForecast", input.forecast?.yearlyForecast, errors);
+  validateArrayMembers("forecast.estimateRevisions", input.forecast?.estimateRevisions, errors);
+  validateArrayMembers("forecast.changedAssumptions", input.forecast?.changedAssumptions, errors);
+  validateArrayMembers("valuation.methodology.modelWeights", input.valuation?.methodology?.modelWeights, errors);
+  validateArrayMembers("valuation.valuationResults", input.valuation?.valuationResults, errors);
+  validateArrayMembers("nextRequirements.requirements", input.nextRequirements?.requirements, errors);
+  validateArrayMembers("previousRequirementsEvaluation.requirements", input.previousRequirementsEvaluation?.requirements, errors);
+
+  validateAllowedObjectKeys("marketPrice", input.marketPrice, MARKET_PRICE_FIELDS, errors);
+  validateAllowedObjectKeys("valuation.current", input.valuation?.current, VALUATION_CURRENT_FIELDS, errors);
+  for (const [index, source] of (Array.isArray(input.sources) ? input.sources : []).entries()) {
+    validateAllowedObjectKeys(`sources.${index}`, source, SOURCE_FIELDS, errors);
+  }
+  for (const [index, row] of (Array.isArray(input.forecast?.yearlyForecast) ? input.forecast.yearlyForecast : []).entries()) {
+    validateAllowedObjectKeys(`forecast.yearlyForecast.${index}`, row, FORECAST_ROW_FIELDS, errors);
+    for (const metric of FORECAST_METRIC_NAMES) {
+      validateAllowedObjectKeys(`forecast.yearlyForecast.${index}.${metric}`, row?.[metric], FORECAST_METRIC_FIELDS, errors);
+    }
+  }
+  for (const [index, item] of (Array.isArray(input.nextRequirements?.requirements) ? input.nextRequirements.requirements : []).entries()) {
+    validateAllowedObjectKeys(`nextRequirements.requirements.${index}`, item, NEXT_REQUIREMENT_FIELDS, errors);
+  }
+  for (const [index, item] of (Array.isArray(input.previousRequirementsEvaluation?.requirements) ? input.previousRequirementsEvaluation.requirements : []).entries()) {
+    validateAllowedObjectKeys(`previousRequirementsEvaluation.requirements.${index}`, item, PREVIOUS_REQUIREMENT_FIELDS, errors);
+  }
+
+  validateStrictNumericField("marketPrice.value", input.marketPrice?.value, errors, { required: true, positive: true });
+  for (const field of ["bear", "base", "bull", "probabilityWeighted"]) {
+    validateStrictNumericField(`valuation.current.${field}`, input.valuation?.current?.[field], errors, {
+      required: true,
+      positive: field !== "bear"
+    });
+  }
+  validateStrictNumericField("valuation.upsideToBasePct", input.valuation?.upsideToBasePct, errors, { required: true });
+  validateStrictNumericField("valuation.marginOfSafetyPct", input.valuation?.marginOfSafetyPct, errors, { required: true });
+
+  for (const [index, row] of (Array.isArray(input.forecast?.yearlyForecast) ? input.forecast.yearlyForecast : []).entries()) {
+    for (const metric of FORECAST_METRIC_NAMES) {
+      validateStrictNumericField(`forecast.yearlyForecast.${index}.${metric}.value`, row?.[metric]?.value, errors, { nullable: true });
+    }
+  }
+  for (const field of ["value", "rangeLow", "rangeHigh"]) {
+    validateStrictNumericField(`forecast.wacc.${field}`, input.forecast?.wacc?.[field], errors, { nullable: true });
+  }
+  validateStrictNumericField("forecast.terminalGrowth.value", input.forecast?.terminalGrowth?.value, errors, { nullable: true });
+}
+
+function validateArrayMembers(path, value, errors) {
+  if (!Array.isArray(value)) return;
+  value.forEach((item, index) => {
+    if (!isPlainObject(item)) {
+      errors.push(validationError(`${path}.${index}`, "object member", item, `${path}[${index}] must be an object; received ${jsonType(item)}.`));
+    }
+  });
+}
+
+function validateAllowedObjectKeys(path, value, allowed, errors) {
+  if (!isPlainObject(value)) return;
+  const allowedSet = new Set(allowed);
+  for (const key of Object.keys(value)) {
+    if (!allowedSet.has(key)) {
+      errors.push(validationError(`${path}.${key}`, allowed.join(" | "), value[key], `Unknown nested property ${path}.${key} is not allowed by ${FRANKLIN_FAIR_VALUE_SCHEMA_VERSION}.`));
+    }
+  }
+}
+
+function validateStrictNumericField(path, value, errors, options = {}) {
+  const missing = value === undefined || value === null || value === "";
+  if (missing) {
+    if (options.required) errors.push(validationError(path, options.positive ? "positive JSON number" : "finite JSON number", value, `${path} is required and must be a finite JSON number.`));
+    return;
+  }
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    errors.push(validationError(path, options.positive ? "positive JSON number" : "finite JSON number or null", value, `${path} must be a finite JSON number; strings, arrays, and coerced values are not accepted.`));
+    return;
+  }
+  if (options.positive && value <= 0) {
+    errors.push(validationError(path, "positive JSON number", value, `${path} must be positive.`));
+  }
+}
+
 function validateFiscalIdentity(input, context, errors) {
   const identity = input.reportIdentity || {};
   if (!validTicker(identity.ticker)) errors.push(fieldError("reportIdentity.ticker", "Ticker is required."));
+  if (!hasText(identity.companyName)) errors.push(fieldError("reportIdentity.companyName", "companyName is required."));
   if (!["Q1", "Q2", "Q3", "Q4"].includes(identity.fiscalQuarter)) errors.push(fieldError("reportIdentity.fiscalQuarter", "fiscalQuarter must be exactly Q1, Q2, Q3, or Q4."));
   if (!Number.isInteger(identity.fiscalYear) || identity.fiscalYear < 2000 || identity.fiscalYear > 2100) errors.push(fieldError("reportIdentity.fiscalYear", "fiscalYear must be an integer between 2000 and 2100."));
   if (!validDate(identity.analysisDate)) errors.push(fieldError("reportIdentity.analysisDate", "analysisDate is required."));
+  if (!validDate(identity.periodEndDate)) errors.push(fieldError("reportIdentity.periodEndDate", "periodEndDate is required."));
   if (identity.periodEndDate && !validDate(identity.periodEndDate)) errors.push(fieldError("reportIdentity.periodEndDate", "periodEndDate must be valid when present."));
   if (identity.earningsReleaseDate && !validDate(identity.earningsReleaseDate)) errors.push(fieldError("reportIdentity.earningsReleaseDate", "earningsReleaseDate must be valid when present."));
 
@@ -289,6 +451,9 @@ function validateLatestQuarter(input, errors) {
 
 function validateForecast(input, errors) {
   const forecast = input.forecast || {};
+  if (!Array.isArray(forecast.yearlyForecast) || !forecast.yearlyForecast.length) {
+    errors.push(fieldError("forecast.yearlyForecast", "forecast.yearlyForecast must contain at least one forecast row."));
+  }
   validateEnum("forecast.materiality", forecast.materiality, FRANKLIN_V3_FORECAST_MATERIALITY, errors, { optional: true });
   for (const [index, row] of (Array.isArray(forecast.yearlyForecast) ? forecast.yearlyForecast : []).entries()) {
     for (const metric of ["revenue", "revenueGrowthPct", "eps", "ebitda", "ebitdaMarginPct", "freeCashFlow", "fcfMarginPct"]) {
@@ -297,6 +462,23 @@ function validateForecast(input, errors) {
   }
   for (const [index, item] of (Array.isArray(forecast.changedAssumptions) ? forecast.changedAssumptions : []).entries()) {
     validateEnum(`forecast.changedAssumptions.${index}.direction`, item?.direction, FRANKLIN_V3_CHANGED_ASSUMPTION_DIRECTIONS, errors, { optional: true });
+  }
+  validateOptionalPercentageRange("forecast.wacc.value", forecast.wacc?.value, 0, 50, errors);
+  validateOptionalPercentageRange("forecast.wacc.rangeLow", forecast.wacc?.rangeLow, 0, 50, errors);
+  validateOptionalPercentageRange("forecast.wacc.rangeHigh", forecast.wacc?.rangeHigh, 0, 50, errors);
+  const waccLow = numberOrNull(forecast.wacc?.rangeLow);
+  const waccHigh = numberOrNull(forecast.wacc?.rangeHigh);
+  const waccValue = numberOrNull(forecast.wacc?.value);
+  if ([waccLow, waccHigh].every(Number.isFinite) && waccLow > waccHigh) {
+    errors.push(fieldError("forecast.wacc.rangeLow", "WACC rangeLow must be <= rangeHigh."));
+  }
+  if ([waccLow, waccValue, waccHigh].every(Number.isFinite) && (waccValue < waccLow || waccValue > waccHigh)) {
+    errors.push(fieldError("forecast.wacc.value", "WACC value must sit inside rangeLow/rangeHigh when all three are supplied."));
+  }
+  validateOptionalPercentageRange("forecast.terminalGrowth.value", forecast.terminalGrowth?.value, -10, 10, errors);
+  const terminalGrowth = numberOrNull(forecast.terminalGrowth?.value);
+  if ([waccValue, terminalGrowth].every(Number.isFinite) && terminalGrowth >= waccValue) {
+    errors.push(fieldError("forecast.terminalGrowth.value", "Terminal growth must be below WACC."));
   }
   for (const [index, item] of (Array.isArray(forecast.estimateRevisions) ? forecast.estimateRevisions : []).entries()) {
     if (item?.previousSnapshotDate && !validDate(item.previousSnapshotDate)) errors.push(fieldError(`forecast.estimateRevisions.${index}.previousSnapshotDate`, "previousSnapshotDate must be a valid date."));
@@ -313,19 +495,43 @@ function validateForecast(input, errors) {
 
 function validateFinancialNormalization(input, errors, warnings) {
   const normalization = input.financialNormalization;
-  if (!normalization || typeof normalization !== "object" || Array.isArray(normalization)) {
+  if (normalization === null || normalization === undefined) {
     warnings.push(fieldError("financialNormalization", "Structured financial normalization is missing; valuation reproducibility is reduced."));
+    return;
+  }
+  if (!isPlainObject(normalization)) {
+    errors.push(validationError("financialNormalization", "object or null", normalization, `financialNormalization must be an object when present; received ${jsonType(normalization)}.`));
     return;
   }
   if (normalization.reportingCurrency && input.company?.reportingCurrency && normalization.reportingCurrency !== input.company.reportingCurrency) {
     errors.push(fieldError("financialNormalization.reportingCurrency", "Financial normalization currency must equal company.reportingCurrency."));
   }
-  for (const field of ["revenue", "gaapNetIncome", "adjustedNetIncome", "normalizedNetIncome", "gaapDilutedEps", "adjustedDilutedEps", "normalizedDilutedEps", "dilutedShares", "stockBasedCompensation", "operatingCashFlow", "capitalExpenditure", "workingCapitalChange", "freeCashFlow", "cash", "debt", "netDebt", "taxRatePct"]) {
+  let metricObjectCount = 0;
+  let finiteMetricCount = 0;
+  let malformedMetricCount = 0;
+  for (const field of NUMERIC_FINANCIAL_NORMALIZATION_FIELDS) {
+    if (!Object.hasOwn(normalization, field)) continue;
     const metric = normalization[field];
-    if (!metric || typeof metric !== "object" || Array.isArray(metric)) continue;
-    if (metric.value !== null && metric.value !== undefined && !Number.isFinite(numberOrNull(metric.value))) {
-      errors.push(fieldError(`financialNormalization.${field}.value`, `${field} value must be numeric or null.`));
+    const path = `financialNormalization.${field}`;
+    if (!isPlainObject(metric)) {
+      malformedMetricCount += 1;
+      errors.push(validationError(path, "normalized metric object", metric, `${path} must be an object with the documented normalized metric shape; received ${jsonType(metric)}.`));
+      continue;
     }
+    metricObjectCount += 1;
+    const shapeErrorCount = errors.length;
+    validateAllowedObjectKeys(path, metric, NORMALIZED_METRIC_FIELDS, errors);
+    if (errors.length > shapeErrorCount) malformedMetricCount += 1;
+    if (metric.value === null || metric.value === undefined) continue;
+    if (typeof metric.value === "number" && Number.isFinite(metric.value)) {
+      finiteMetricCount += 1;
+    } else {
+      malformedMetricCount += 1;
+      errors.push(validationError(`${path}.value`, "finite JSON number or null", metric.value, `${path}.value must be a finite JSON number or null; received ${jsonType(metric.value)}.`));
+    }
+  }
+  if ((!metricObjectCount || !finiteMetricCount) && !malformedMetricCount) {
+    warnings.push(fieldError("financialNormalization", "financialNormalization is present but contains no numeric metric values; valuation reproducibility is not verified."));
   }
   const cash = numberOrNull(normalization.cash?.value);
   const debt = numberOrNull(normalization.debt?.value);
@@ -366,7 +572,7 @@ function validateCompanyAndMarket(input, errors) {
   }
 }
 
-function validateValuation(input, errors, warnings) {
+function validateValuation(input, errors, warnings, valuationMethodVerifications) {
   const valuation = input.valuation || {};
   const current = valuation.current || {};
   const bear = numberOrNull(current.bear);
@@ -404,12 +610,12 @@ function validateValuation(input, errors, warnings) {
     errors.push(fieldError("valuation.current.probabilityWeighted", "probabilityWeighted Fair Value arithmetic is inconsistent."));
   }
 
-  validateValuationMethodology(valuation, errors, warnings);
+  validateValuationMethodology(valuation, errors, warnings, valuationMethodVerifications);
   validateValuationCalculationAudit(valuation, errors, warnings);
   validateUpsideAndMargin(input, errors);
 }
 
-function validateValuationMethodology(valuation = {}, errors, warnings) {
+function validateValuationMethodology(valuation = {}, errors, warnings, valuationMethodVerifications) {
   const methodology = valuation.methodology || {};
   const weights = Array.isArray(methodology.modelWeights) ? methodology.modelWeights : [];
   if (!weights.length) errors.push(fieldError("valuation.methodology.modelWeights", "Valuation method weights must be supplied."));
@@ -449,6 +655,7 @@ function validateValuationMethodology(valuation = {}, errors, warnings) {
     if (!hasText(result?.calculation?.formula)) {
       warnings.push(fieldError(`valuation.valuationResults.${index}.calculation.formula`, "A formula is recommended so the valuation method can be independently reproduced."));
     }
+    validateValuationResultReproducibility(result, `valuation.valuationResults.${index}`, errors, warnings, valuationMethodVerifications);
 
     const weighted = weightedMethods.get(method);
     if (weighted) {
@@ -489,6 +696,10 @@ function validateValuationCalculationAudit(valuation = {}, errors, warnings) {
   const audit = valuation.calculationAudit;
   if (!audit || typeof audit !== "object" || Array.isArray(audit)) {
     warnings.push(fieldError("valuation.calculationAudit", "Valuation calculation audit is missing."));
+    return;
+  }
+  if (!Object.keys(audit).length) {
+    warnings.push(fieldError("valuation.calculationAudit", "valuation.calculationAudit is empty; valuation reproducibility is not verified."));
     return;
   }
   const suppliedWeighted = numberOrNull(audit.weightedMethodFairValue);
@@ -738,10 +949,35 @@ function validatePreviousRequirements(input, previousSet = {}, errors) {
       errors.push(fieldError("previousRequirementsEvaluation.requirements", `Missing previous requirement id ${previous.id}.`));
       continue;
     }
-    if (!sameValue(current.requiredValue, previous.requiredValue)) errors.push(fieldError(`previousRequirementsEvaluation.requirements.${current.id}.requiredValue`, "Old requiredValue cannot change."));
-    if (!sameValue(current.requiredDisplay, previous.requiredDisplay)) errors.push(fieldError(`previousRequirementsEvaluation.requirements.${current.id}.requiredDisplay`, "Old requiredDisplay cannot change."));
-    if (!sameNumber(current.weight, previous.weight)) errors.push(fieldError(`previousRequirementsEvaluation.requirements.${current.id}.weight`, "Old weight cannot change."));
-    if (!sameText(current.metric, previous.metric || previous.name)) errors.push(fieldError(`previousRequirementsEvaluation.requirements.${current.id}.metric`, "Old metric cannot change."));
+    const pathBase = `previousRequirementsEvaluation.requirements.${current.id}`;
+    if (!sameValue(current.requiredValue, previous.requiredValue)) errors.push(fieldError(`${pathBase}.requiredValue`, "Old requiredValue cannot change."));
+    if (!sameValue(current.requiredDisplay, previous.requiredDisplay)) errors.push(fieldError(`${pathBase}.requiredDisplay`, "Old requiredDisplay cannot change."));
+    if (!sameNumber(current.weight, previous.weight)) errors.push(fieldError(`${pathBase}.weight`, "Old weight cannot change."));
+    if (!sameText(current.metric, previous.metric || previous.name)) errors.push(fieldError(`${pathBase}.metric`, "Old metric cannot change."));
+    for (const [field, label] of [
+      ["type", "type"],
+      ["unit", "unit"],
+      ["currency", "currency"],
+      ["accountingBasis", "accountingBasis"],
+      ["period", "period"],
+      ["baselineValue", "baselineValue"],
+      ["baselineDisplay", "baselineDisplay"],
+      ["previousValue", "previousValue"],
+      ["previousDisplay", "previousDisplay"],
+      ["currentLevel", "currentLevel"],
+      ["importance", "importance"],
+      ["whyItMatters", "whyItMatters"],
+      ["rangeLow", "rangeLow"],
+      ["rangeHigh", "rangeHigh"],
+      ["requiredMin", "requiredMin"],
+      ["requiredMax", "requiredMax"],
+      ["qualitativeTarget", "qualitativeTarget"]
+    ]) {
+      if (!Object.hasOwn(current, field)) continue;
+      if (!sameValue(current[field], previous[field])) {
+        errors.push(fieldError(`${pathBase}.${field}`, `Old ${label} cannot change.`));
+      }
+    }
   }
 
   for (const [index, item] of evaluated.entries()) {
@@ -947,8 +1183,26 @@ function validateSources(input, errors) {
     }
   }
   const marketSource = sources.find((source) => source?.id && source.id === input.marketPrice?.sourceId);
-  if (input.marketPrice?.sourceId && !sourceUsedFor(marketSource, "marketPrice")) {
-    errors.push(fieldError("marketPrice.sourceId", "Market-price source must include marketPrice in usedFor."));
+  if (input.marketPrice?.sourceId) {
+    if (marketSource) {
+      if (marketSource.type !== "Market Data") {
+        errors.push(fieldError("marketPrice.sourceId", "Market-price source must be type Market Data."));
+      }
+      if (!validHttpUrl(marketSource.url)) {
+        errors.push(fieldError("marketPrice.sourceId", "Market-price source must include a valid raw http(s) URL."));
+      }
+      if (!sourceUsedFor(marketSource, "marketPrice")) {
+        errors.push(fieldError("marketPrice.sourceId", "Market-price source must include marketPrice in usedFor."));
+      }
+      const sourceDate = isoDatePart(marketSource.date);
+      const marketDate = isoDatePart(input.marketPrice?.asOf);
+      if (sourceDate && marketDate && sourceDate !== marketDate) {
+        errors.push(fieldError("marketPrice.sourceId", "Market-price source date must match marketPrice.asOf."));
+      }
+      if (isAfterAnalysisDate(marketSource.date, input.reportIdentity?.analysisDate)) {
+        errors.push(fieldError("marketPrice.sourceId", "Market-price source date must not be later than analysisDate."));
+      }
+    }
   }
   validateAllSourceReferences(input, sourceIds, errors);
 }
@@ -1000,6 +1254,11 @@ function validateAllSourceReferences(input, sourceIds, errors) {
   }
   for (const [index, item] of (Array.isArray(input.forecast?.estimateRevisions) ? input.forecast.estimateRevisions : []).entries()) {
     collectSourceRef(refs, `forecast.estimateRevisions.${index}.sourceId`, item?.sourceId);
+  }
+  for (const [index, row] of (Array.isArray(input.forecast?.yearlyForecast) ? input.forecast.yearlyForecast : []).entries()) {
+    for (const metric of FORECAST_METRIC_NAMES) {
+      collectSourceRef(refs, `forecast.yearlyForecast.${index}.${metric}.sourceId`, row?.[metric]?.sourceId);
+    }
   }
   const normalization = input.financialNormalization || {};
   for (const [field, metric] of Object.entries(normalization)) {
@@ -1054,6 +1313,133 @@ function calculateProbabilityWeighted(scenarios = {}) {
   }));
   if (!pairs.every((item) => Number.isFinite(item.fairValue) && Number.isFinite(item.probability))) return null;
   return pairs.reduce((sum, item) => sum + (item.fairValue * item.probability / 100), 0);
+}
+
+function validateValuationResultReproducibility(result = {}, path, errors, warnings, verifications) {
+  if (!isPlainObject(result)) return;
+  const method = normalizeMethodName(result.method);
+  const fairValue = numberOrNull(result.fairValue);
+  if (!method) return;
+  const rawMethod = String(result.method).trim();
+  const isPe = method.includes("P/E") || /\bPE\b/.test(method);
+  const isEvEbitda = method.includes("EV/EBITDA");
+
+  if (isPe || isEvEbitda) {
+    const typedFields = isPe ? PE_TYPED_INPUT_FIELDS : EV_EBITDA_TYPED_INPUT_FIELDS;
+    const malformed = validateTypedValuationInputFields(result, path, typedFields, isEvEbitda, errors);
+    if (malformed) {
+      recordValuationMethodVerification(verifications, path, rawMethod, "ERROR", "Recognized typed inputs contain malformed non-numeric values.");
+      return;
+    }
+  }
+
+  const inputs = isPlainObject(result.inputs) ? result.inputs : {};
+  if (isPe) {
+    const eps = numberOrNull(inputs.normalizedForwardEps ?? inputs.forwardEps ?? inputs.eps);
+    const multiple = numberOrNull(inputs.impliedMultiple ?? inputs.forwardMultiple ?? inputs.peMultiple ?? inputs.multiple);
+    if ([eps, multiple, fairValue].every(Number.isFinite)) {
+      const expected = eps * multiple;
+      if (!within(expected, fairValue, materialAmountTolerance(expected))) {
+        errors.push(fieldError(`${path}.inputs`, "P/E fairValue must equal normalizedForwardEps multiplied by impliedMultiple."));
+        recordValuationMethodVerification(verifications, path, rawMethod, "ERROR", "Typed P/E inputs do not reconcile to fairValue.");
+      } else {
+        recordValuationMethodVerification(verifications, path, rawMethod, "VERIFIED", "Typed EPS and multiple inputs reconcile to fairValue.");
+      }
+      return;
+    }
+    markValuationMethodNotVerified(result, path, rawMethod, "normalizedForwardEps and impliedMultiple were not both supplied as finite JSON numbers", warnings, verifications);
+    return;
+  }
+  if (isEvEbitda) {
+    const ebitda = numberOrNull(inputs.normalizedEbitda ?? inputs.ebitda);
+    const multiple = numberOrNull(inputs.evEbitdaMultiple ?? inputs.impliedMultiple ?? inputs.multiple);
+    const netDebt = numberOrNull(inputs.netDebt ?? result.calculation?.netDebt);
+    const shares = numberOrNull(inputs.dilutedShares ?? result.calculation?.dilutedShares);
+    if (Number.isFinite(shares) && shares <= 0) {
+      const sharesPath = inputs.dilutedShares !== null && inputs.dilutedShares !== undefined
+        ? `${path}.inputs.dilutedShares`
+        : `${path}.calculation.dilutedShares`;
+      errors.push(validationError(sharesPath, "positive finite JSON number", shares, "dilutedShares must be positive for EV/EBITDA reproducibility."));
+      recordValuationMethodVerification(verifications, path, rawMethod, "ERROR", "dilutedShares is not positive.");
+      return;
+    }
+    if ([ebitda, multiple, netDebt, shares, fairValue].every(Number.isFinite)) {
+      const expected = ((ebitda * multiple) - netDebt) / shares;
+      if (!within(expected, fairValue, materialAmountTolerance(expected))) {
+        errors.push(fieldError(`${path}.inputs`, "EV/EBITDA fairValue must reconcile to EBITDA, multiple, net debt, and diluted shares."));
+        recordValuationMethodVerification(verifications, path, rawMethod, "ERROR", "Typed EV/EBITDA inputs do not reconcile to fairValue.");
+      } else {
+        recordValuationMethodVerification(verifications, path, rawMethod, "VERIFIED", "Typed EBITDA, multiple, net debt, and diluted shares reconcile to fairValue.");
+      }
+      return;
+    }
+    markValuationMethodNotVerified(result, path, rawMethod, "EBITDA, multiple, net debt, and diluted shares were not all supplied as finite JSON numbers", warnings, verifications);
+    return;
+  }
+
+  const reason = method.includes("DCF")
+    ? "the v3 contract does not define a complete deterministic cash-flow schedule, discount timing convention, terminal-value convention, and unit/period binding"
+    : "the v3 contract does not define a deterministic typed verifier for this method";
+  markValuationMethodNotVerified(result, path, rawMethod, reason, warnings, verifications);
+}
+
+function validateTypedValuationInputFields(result, path, inputFields, includeCalculationFields, errors) {
+  let malformed = false;
+  if (result.inputs !== undefined && !isPlainObject(result.inputs)) {
+    errors.push(validationError(`${path}.inputs`, "object", result.inputs, `${path}.inputs must be an object when supplied; received ${jsonType(result.inputs)}.`));
+    malformed = true;
+  }
+  const inputs = isPlainObject(result.inputs) ? result.inputs : {};
+  for (const field of inputFields) {
+    if (!Object.hasOwn(inputs, field) || inputs[field] === null || inputs[field] === undefined) continue;
+    if (typeof inputs[field] !== "number" || !Number.isFinite(inputs[field])) {
+      errors.push(validationError(`${path}.inputs.${field}`, "finite JSON number or null", inputs[field], `${path}.inputs.${field} must be a finite JSON number or null; received ${jsonType(inputs[field])}.`));
+      malformed = true;
+    }
+  }
+
+  if (!includeCalculationFields) return malformed;
+  if (result.calculation !== undefined && !isPlainObject(result.calculation)) {
+    errors.push(validationError(`${path}.calculation`, "object", result.calculation, `${path}.calculation must be an object when supplied; received ${jsonType(result.calculation)}.`));
+    return true;
+  }
+  const calculation = isPlainObject(result.calculation) ? result.calculation : {};
+  for (const field of ["netDebt", "dilutedShares"]) {
+    if (!Object.hasOwn(calculation, field) || calculation[field] === null || calculation[field] === undefined) continue;
+    if (typeof calculation[field] !== "number" || !Number.isFinite(calculation[field])) {
+      errors.push(validationError(`${path}.calculation.${field}`, "finite JSON number or null", calculation[field], `${path}.calculation.${field} must be a finite JSON number or null; received ${jsonType(calculation[field])}.`));
+      malformed = true;
+    }
+  }
+  return malformed;
+}
+
+function markValuationMethodNotVerified(result, path, method, reason, warnings, verifications) {
+  warnings.push({
+    ...validationError(`${path}.inputs`, "typed inputs sufficient for deterministic verification", result.inputs, `${method} reproducibility is NOT_VERIFIED because ${reason}.`),
+    code: "VALUATION_METHOD_NOT_VERIFIED",
+    verificationState: "NOT_VERIFIED",
+    method
+  });
+  recordValuationMethodVerification(verifications, path, method, "NOT_VERIFIED", reason);
+}
+
+function recordValuationMethodVerification(verifications, path, method, state, reason) {
+  verifications.push({
+    field: path,
+    jsonPath: `$.${path}`,
+    method,
+    state,
+    reason
+  });
+}
+
+function validateOptionalPercentageRange(path, value, min, max, errors) {
+  if (value === null || value === undefined || value === "") return;
+  const number = numberOrNull(value);
+  if (!Number.isFinite(number) || number < min || number > max) {
+    errors.push(fieldError(path, `${path} must be a JSON number between ${min} and ${max}.`));
+  }
 }
 
 function probabilityWeightedTolerance(value) {
@@ -1216,9 +1602,7 @@ function within(actual, expected, tolerance) {
 
 function numberOrNull(value) {
   if (value === null || value === undefined || value === "") return null;
-  if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  const parsed = Number(String(value).replace(/[%,$\s,]/g, ""));
-  return Number.isFinite(parsed) ? parsed : null;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 function positiveNumber(value) {
@@ -1269,6 +1653,21 @@ function hasText(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function validationError(field, expected, received, message) {
+  return { field, jsonPath: `$.${field}`, expected, received, receivedType: jsonType(received), message };
+}
+
+function jsonType(value) {
+  if (value === undefined) return "missing";
+  if (value === null) return "null";
+  if (Array.isArray(value)) return "array";
+  return typeof value;
+}
+
+function isPlainObject(value) {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
 function validateCanonicalQuarterField(path, value, errors, options = {}) {
   if (!hasText(value)) {
     if (options.required) errors.push(fieldError(path, `${path} is required.`));
@@ -1284,7 +1683,7 @@ function validateCanonicalQuarterField(path, value, errors, options = {}) {
 function sameValue(left, right) {
   if (left === null || left === undefined || left === "") return right === null || right === undefined || right === "";
   if (right === null || right === undefined || right === "") return false;
-  if (Number.isFinite(numberOrNull(left)) && Number.isFinite(numberOrNull(right))) return sameNumber(left, right);
+  if (Number.isFinite(numberOrNull(left)) || Number.isFinite(numberOrNull(right))) return sameNumber(left, right);
   return String(left) === String(right);
 }
 

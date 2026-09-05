@@ -123,7 +123,7 @@ export function dispatchJsonPayload(value, options = {}) {
   } else if ([QUARTERLY_EARNINGS_LITE_SCHEMA, LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA].includes(contractDefinition.schemaVersion)) {
     validation = validateQuarterlyEarningsLitePayload(value, options.existingReport || context.currentReport || null);
   } else if (contractDefinition.route === JSON_IMPORT_ROUTES.FULL_ANALYSIS) {
-    normalizedValue = normalizeExternalAnalysisReport(value, options.rawText || "", { now: options.now });
+    normalizedValue = normalizeExternalAnalysisReport(value, options.rawText || "", { now: options.now, currentReport: context.currentReport || options.existingReport || null });
     validation = validateExternalAnalysisReport(normalizedValue);
     const embeddedV3 = normalizedValue.metadata?.franklinV3Report;
     if (embeddedV3?.schemaVersion === FRANKLIN_FAIR_VALUE_SCHEMA_VERSION

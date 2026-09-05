@@ -6,11 +6,14 @@ const css = read("../styles-mobile-hotfix-v46.css");
 const index = read("../index.html");
 const worker = read("../service-worker.js");
 const sync = read("../scripts/sync-deploy.mjs");
+const bootVersion = index.match(/var version = "([^"]+)"/)?.[1];
+const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-assert.match(index, /styles-mobile-hotfix-v46\.css\?v=v4[6-8]-(?:iphone-nav-date|social-export-page|arabic-glossary)/);
-assert.match(index, /main\.js\?v=v4[6-8]-(?:iphone-nav-date|social-export-page|arabic-glossary)/);
+assert.ok(bootVersion, "index.html must expose the Franklin boot asset version.");
+assert.match(index, new RegExp(`styles-mobile-hotfix-v46\\.css\\?v=${escapeRegExp(bootVersion)}`));
+assert.match(index, new RegExp(`main\\.js\\?v=${escapeRegExp(bootVersion)}`));
 assert.ok(worker.includes('"./styles-mobile-hotfix-v46.css"'));
-assert.match(worker, /franklin-research-v11-franklin-mobile-v2-v4[6-8]/);
+assert.ok(worker.includes(`franklin-research-${bootVersion}`));
 assert.ok(sync.includes('"styles-mobile-hotfix-v46.css"'));
 
 assert.match(css, /\.mobile-nav:not\(\.quarterly-scorecard-nav\)[\s\S]*left: 0 !important;/);
