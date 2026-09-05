@@ -31,6 +31,23 @@ assert.equal(
   "company names must not be treated as unexplained technical glossary terms"
 );
 
+const businessLabelNarrative = validateArabicNarrativeQuality({
+  outputLanguage: "ar",
+  companyGlossary: glossary,
+  companyProfile: {
+    summary: "تعتمد الشركة على نشاط Retail Energy إلى جانب التوليد، ويؤثر تحسن هوامش هذا النشاط في جودة الأرباح والتدفق النقدي."
+  }
+});
+assert.deepEqual(
+  businessLabelNarrative.errors,
+  [],
+  "English business labels that are not proven glossary terms must not block an otherwise valid import"
+);
+assert.ok(
+  businessLabelNarrative.warnings.some((item) => item.field === "companyGlossary" && item.message.includes("Retail Energy")),
+  "unmatched English phrases should remain visible as non-blocking diagnostics"
+);
+
 const bad = validateArabicNarrativeQuality({
   outputLanguage: "ar",
   companyGlossary: [],
