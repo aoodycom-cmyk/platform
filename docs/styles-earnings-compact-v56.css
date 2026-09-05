@@ -32,7 +32,7 @@
     color: var(--fet-text);
   }
 
-  .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] > :not(.quarterly-scorecard-header):not(.franklin-earnings-hub):not(.quarterly-earnings-timeline) {
+  .quarterly-scorecard-shell[data-earnings-table-enhanced="true"] > :not(.quarterly-scorecard-header):not(.franklin-earnings-hub) {
     display: none !important;
   }
 
