@@ -49,5 +49,13 @@ assert.ok(components.includes('data-panel="strengths-risks"'), "The preview card
 assert.equal(components.includes("فرصة الاستثمار • Investment Opportunity"), false, "Arabic report headings must not contain mixed-language clutter.");
 assert.ok(components.includes("latest-earnings-summary-metrics"), "Summary must use the compact latest-earnings outcome instead of duplicating the full Earnings workflow.");
 assert.ok(css.includes(".latest-earnings-summary-actions"), "The compact Summary earnings action must belong to the editorial visual system.");
+for (const contract of ["summary-valuation-methods-section","summaryValuationMethodsDashboard","summary-investment-verdict-section","سبب الاستخدام"]) {
+  assert.ok(components.includes(contract), `Summary decision contract missing: ${contract}`);
+}
+assert.ok(components.includes("primaryMethod"), "Summary must preserve a legacy report's primary valuation method when detailed method rows are unavailable.");
+const summaryFlow = components.slice(components.indexOf('<section class="stock-decision-flow">'), components.indexOf('<section class="panel external-report-actions">'));
+assert.ok(summaryFlow.indexOf("summary-valuation-methods-section") < summaryFlow.indexOf("companyAssessmentPanel"), "Valuation methods must precede company indicators in Summary.");
+assert.ok(summaryFlow.indexOf("companyAssessmentPanel") < summaryFlow.indexOf("summary-investment-verdict-section"), "The investment verdict must follow the company indicators in Summary.");
+assert.ok(css.includes(".summary-valuation-method-row"), "Valuation methods and their rationale must use the compact Summary hierarchy.");
 
 console.log("Franklin Editorial Finance v53: PASS");

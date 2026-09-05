@@ -1,4 +1,5 @@
 import { buildQuarterlyScorecard } from "../externalAnalysis/quarterlyScorecard.js";
+import { getExternalAnalysis } from "../externalAnalysis/storage.js";
 
 export const EARNINGS_TABLE_EXPERIENCE_VERSION = "v57";
 
@@ -45,6 +46,12 @@ function enhanceQuarterlyEarningsExperience() {
   const ticker = String(shell.dataset.scorecardTicker || selection.ticker || "").trim().toUpperCase();
   const year = Number(shell.dataset.scorecardYear || selection.year) || null;
   if (!ticker) return;
+  const report = getExternalAnalysis(
+    state.externalAnalyses || {},
+    selection.originTicker || ticker,
+    selection.originReportId || "latest"
+  );
+  const nextEarningsDate = textOrNull(report?.presentation?.nextEarningsDate) || "";
 
   const scorecard = buildQuarterlyScorecard({
     historicalRequirementSets: state.historicalRequirementSets,
@@ -79,11 +86,12 @@ function enhanceQuarterlyEarningsExperience() {
     language: isArabicUi() ? "ar" : "en",
     activeTab,
     selectedQuarter,
+    nextEarningsDate,
     model
   });
   if (host.dataset.renderSignature === signature) return;
   host.dataset.renderSignature = signature;
-  host.innerHTML = renderExperience(model, selectedQuarter, activeTab);
+  host.innerHTML = renderExperience(model, selectedQuarter, activeTab, nextEarningsDate);
   bindExperience(host, viewKey);
   revealSelectedQuarter(host);
 }
@@ -200,7 +208,7 @@ function quarterTone(quarter = {}) {
   return "neutral";
 }
 
-function renderExperience(model, selectedQuarter, activeTab) {
+function renderExperience(model, selectedQuarter, activeTab, nextEarningsDate = "") {
   const quarter = model.quarters.find((item) => item.quarter === Number(selectedQuarter)) || model.quarters[0] || null;
   if (!quarter) return emptyExperience(model);
   const ar = isArabicUi();
@@ -213,7 +221,7 @@ function renderExperience(model, selectedQuarter, activeTab) {
       ${model.quarters.map((item) => quarterButton(item, model.year, item.quarter === quarter.quarter)).join("")}
     </div>
     <div class="fet-tab-panel" role="tabpanel">
-      ${activeTab === "summary" ? renderSummary(model, quarter) : renderEarningsPanel(model, quarter)}
+      ${activeTab === "summary" ? renderSummary(model, quarter) : renderEarningsPanel(model, quarter, nextEarningsDate)}
     </div>
   `;
 }
@@ -241,7 +249,7 @@ function quarterPillMeta(quarter = {}) {
   return achievement || (ar ? "تم الإعلان" : "Reported");
 }
 
-function renderEarningsPanel(model, quarter) {
+function renderEarningsPanel(model, quarter, nextEarningsDate = "") {
   const ar = isArabicUi();
   const reported = quarter.phase === "reported";
   const countText = requirementCountLabel(quarter.counts.total);
@@ -258,9 +266,20 @@ function renderEarningsPanel(model, quarter) {
         <b class="fet-state-badge">${escapeHtml(quarterStateLabel(quarter))}</b>
       </header>
       <p class="fet-quarter-context">${escapeHtml(context)}</p>
+      ${quarter.phase === "upcoming" ? nextEarningsDateControl(nextEarningsDate) : ""}
       ${quarter.rows.length ? earningsTable(quarter, reported) : emptyQuarterRows(quarter.phase)}
       ${quarterHighlights(quarter)}
     </article>
+  `;
+}
+
+function nextEarningsDateControl(value = "") {
+  const ar = isArabicUi();
+  return `
+    <label class="fet-next-earnings-date">
+      <span>${escapeHtml(ar ? "موعد الإعلان القادم" : "Next earnings date")}</span>
+      <input type="date" dir="ltr" data-owner-next-earnings-date value="${escapeHtml(value)}" aria-label="${escapeHtml(ar ? "موعد إعلان الأرباح القادم" : "Next earnings announcement date")}">
+    </label>
   `;
 }
 
