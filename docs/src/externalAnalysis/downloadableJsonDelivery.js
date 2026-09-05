@@ -1,11 +1,15 @@
-export function buildDownloadableJsonDeliveryInstructions({ fileName }) {
+export function buildDownloadableJsonDeliveryInstructions({ fileName, schemaVersion }) {
   const safeFileName = normalizeFileName(fileName);
+  const rootSchemaInstruction = schemaVersion
+    ? `The first property immediately after the opening brace must be exactly \"schemaVersion\": \"${schemaVersion}\". Do not nest the report inside result, report, data, response, or any other wrapper object.`
+    : "schemaVersion must be a top-level property of the JSON object, never inside a wrapper object.";
 
   return [
     "FILE DELIVERY — MANDATORY PRIMARY MODE",
     "Do not print the completed JSON in the chat and do not place it in a Markdown code fence when file attachments are available.",
     `Create one downloadable UTF-8 JSON file named \"${safeFileName}\" and attach it to the response.`,
     "The file contents must be the complete raw JSON object only: it begins with the opening object brace and ends with the closing object brace.",
+    rootSchemaInstruction,
     "The complete file contents must pass JSON.parse() without cleanup, comments, Markdown, or text outside the JSON object.",
     "Do not shorten, summarize, omit, split, or reduce any financial field to make the file smaller.",
     "Before attaching the file, read it back completely and verify that all objects, arrays, and strings are closed and that schemaVersion, reportIdentity, valuation, and sources are present.",

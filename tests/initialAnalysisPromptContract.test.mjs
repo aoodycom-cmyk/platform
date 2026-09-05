@@ -54,6 +54,8 @@ assert.equal(request.outputContract.format, "DOWNLOADABLE_UTF8_JSON_FILE");
 assert.equal(request.outputContract.quarterPeriodRules.exactFormat, "Q{1-4} YYYY");
 assert.deepEqual(request.outputContract.quarterPeriodRules.correctExamples, ["Q3 2026", "Q4 2026"]);
 assert.equal(request.jsonTemplate.schemaVersion, "franklin-fair-value/v3");
+assert.match(prompt, /first property immediately after the opening brace must be exactly "schemaVersion": "franklin-fair-value\/v3"/);
+assert.match(prompt, /Do not nest the report inside result, report, data, response/);
 assert.equal(request.jsonTemplate.analysisType, "INITIAL");
 assert.deepEqual(Object.keys(request.jsonTemplate.valuation.scenarios), ["Bear", "Base", "Bull"]);
 assert.ok(request.analysisScope.fullSceneReading.length >= 5, "Prompt must require a full industry/competitive/macro scene reading when material.");

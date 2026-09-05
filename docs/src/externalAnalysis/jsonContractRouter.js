@@ -73,11 +73,17 @@ export function detectJsonContract(value) {
     });
   }
   if (!Object.hasOwn(value, "schemaVersion") || typeof value.schemaVersion !== "string" || !value.schemaVersion.trim()) {
+    const payloadType = detectPayloadType(value);
+    const expectedSchema = expectedSchemaForPayloadType(payloadType);
     throw routingError("MISSING_SCHEMA", value, {
       field: "$.schemaVersion",
-      expected: supportedSchemaText(),
+      expected: expectedSchema || supportedSchemaText(),
       received: Object.hasOwn(value, "schemaVersion") ? value.schemaVersion : "غير موجود",
-      recommendedRoute: routeRecommendation(detectPayloadType(value))
+      payloadType,
+      recommendedRoute: missingSchemaRecommendation(payloadType, expectedSchema),
+      technicalMessage: expectedSchema
+        ? `MISSING_SCHEMA: $.schemaVersion; add root property \"schemaVersion\": \"${expectedSchema}\"`
+        : "MISSING_SCHEMA: $.schemaVersion"
     });
   }
   const schemaVersion = value.schemaVersion.trim();
@@ -226,6 +232,19 @@ function routeRecommendation(payloadType) {
   if (payloadType === "quarterly-earnings-update") return "استخدم مسار تحديث الأرباح للسهم المحفوظ.";
   if (payloadType === "investment-backup") return "استخدم أداة استعادة النسخة الاحتياطية في الإعدادات.";
   return "استخدم أحد العقود المدعومة وحدد schemaVersion الصحيح دون إعادة تسمية الحمولة.";
+}
+
+function expectedSchemaForPayloadType(payloadType) {
+  if (payloadType === "full-analysis") return FRANKLIN_FAIR_VALUE_SCHEMA_VERSION;
+  if (payloadType === "quarterly-earnings-update") return QUARTERLY_EARNINGS_LITE_SCHEMA;
+  if (payloadType === "missing-data-supplement") return EXTERNAL_ANALYSIS_SUPPLEMENT_SCHEMA_VERSION;
+  if (payloadType === "investment-backup") return "franklin-investment-backup/v1";
+  return null;
+}
+
+function missingSchemaRecommendation(payloadType, expectedSchema) {
+  if (!expectedSchema) return routeRecommendation(payloadType);
+  return `أضف الحقل \"schemaVersion\": \"${expectedSchema}\" مباشرة داخل جذر JSON، ثم ${routeRecommendation(payloadType)}`;
 }
 
 function routingError(code, value, details) {

@@ -105,6 +105,8 @@ const parsed = await parseExternalAnalysisInput(JSON.stringify(payload), {
   now: new Date("2026-11-08T12:00:00Z")
 });
 assert.equal(parsed.schemaVersion, QUARTERLY_EARNINGS_LITE_SCHEMA);
+assert.match(prompt, /ROOT SCHEMA GATE/);
+assert.match(prompt, /"schemaVersion": "quarterly-earnings-lite\/v2"/);
 assert.equal(parsed.report.sources[0].id, "S1");
 assert.equal(inflated.id, null);
 assert.equal(inflated.reportPeriod, "Q4 2026");

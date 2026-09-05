@@ -598,6 +598,7 @@ export function buildQuarterlyEarningsLitePrompt(report = {}, options = {}) {
     "- المصدر الرسمي أو مصدر Consensus يحتاج رابط https فعليًا. url = null مسموح فقط لمواد الأرباح التي ألصقها المستخدم.",
     "- اجعل source id فريدًا، وusedFor غير فارغ ويصف الأرقام أو الأقسام التي يدعمها المصدر.",
     "",
+    `ROOT SCHEMA GATE — يجب أن يكون أول حقل بعد القوس الافتتاحي حرفيًا \"schemaVersion\": \"${QUARTERLY_EARNINGS_LITE_SCHEMA}\"، ولا تضع JSON داخل result أو report أو data أو response أو أي غلاف آخر.`,
     "أخرج JSON واحدًا فقط بدون Markdown أو شرح خارجي، وبنفس البنية التالية. احذف العناصر الفارغة من arrays، لكن لا تضف حقولًا جديدة:",
     JSON.stringify(template, null, 2)
   ].join("\n");

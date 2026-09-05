@@ -231,7 +231,8 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
     "Franklin لا يرفع الهدف آليًا ولا يحسب targetValue. أنت وحدك تحدد ذلك داخل JSON.",
     "JSON OUTPUT SAFETY — MANDATORY",
     ...buildDownloadableJsonDeliveryInstructions({
-      fileName: `franklin-${ticker || "TICKER"}-${periodSlug}-earnings-update.json`
+      fileName: `franklin-${ticker || "TICKER"}-${periodSlug}-earnings-update.json`,
+      schemaVersion: FRANKLIN_FAIR_VALUE_SCHEMA_VERSION
     }),
     "NEVER escape underscores in JSON enum values or keys.",
     "Invalid example: \"LAST\\_CLOSE\". Correct value: \"LAST_CLOSE\".",

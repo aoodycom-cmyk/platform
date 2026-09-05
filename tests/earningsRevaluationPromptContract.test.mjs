@@ -97,6 +97,8 @@ assert.deepEqual(request.outputContract.quarterPeriodRules.correctExamples, ["Q3
 assert.equal(request.outputContract.lineage.previousAnalysisId, previousReport.id);
 assert.equal(request.outputContract.lineage.previousRequirementSetId, "FUTU_REQ_Q2_2026");
 assert.equal(request.jsonTemplate.schemaVersion, "franklin-fair-value/v3");
+assert.match(prompt, /first property immediately after the opening brace must be exactly "schemaVersion": "franklin-fair-value\/v3"/);
+assert.match(prompt, /Do not nest the report inside result, report, data, response/);
 assert.equal(request.jsonTemplate.analysisType, "EARNINGS_REVALUATION");
 assert.equal(request.jsonTemplate.reportIdentity.fiscalQuarter, "Q2");
 assert.equal(request.jsonTemplate.reportIdentity.fiscalYear, 2026);

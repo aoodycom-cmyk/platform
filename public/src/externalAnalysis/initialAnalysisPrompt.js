@@ -183,7 +183,8 @@ export function buildInitialAnalysisPrompt(options = {}) {
     "valuationRole: PRIMARY | SECONDARY | CROSS_CHECK",
     "JSON OUTPUT SAFETY — MANDATORY",
     ...buildDownloadableJsonDeliveryInstructions({
-      fileName: `franklin-${ticker || "TICKER"}-initial-analysis.json`
+      fileName: `franklin-${ticker || "TICKER"}-initial-analysis.json`,
+      schemaVersion: FRANKLIN_FAIR_VALUE_SCHEMA_VERSION
     }),
     "NEVER escape underscores in JSON enum values or keys.",
     "Invalid example: \"LAST\\_CLOSE\". Correct value: \"LAST_CLOSE\".",

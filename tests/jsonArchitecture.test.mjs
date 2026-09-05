@@ -208,8 +208,13 @@ test("supplement validation rejects empty arrays, unknown paths, missing referen
 });
 
 test("missing schema, unknown schema, unknown properties, missing requirements, enums, source refs, and syntax fail with Arabic diagnostics", async () => {
+  await assert.rejects(
+    () => parseExternalAnalysisInput(JSON.stringify({ ...canonical, schemaVersion: undefined }), { now }),
+    (error) => error.code === "MISSING_SCHEMA"
+      && error.userMessage.includes('"schemaVersion": "franklin-fair-value/v3"')
+      && error.technicalDetails.includes('add root property "schemaVersion": "franklin-fair-value/v3"')
+  );
   const cases = [
-    [{ ...canonical, schemaVersion: undefined }, /المخطط/u],
     [{ ...canonical, schemaVersion: "franklin-fair-value/v999" }, /المخطط/u],
     [{ ...canonical, unexpectedRoot: true }, /unexpectedRoot/u],
     [mutate(canonical, (value) => { delete value.reportIdentity.ticker; }), /reportIdentity\.ticker/u],
@@ -222,6 +227,21 @@ test("missing schema, unknown schema, unknown properties, missing requirements, 
   assert.throws(
     () => inspectJsonImportText('{"schemaVersion":"franklin-fair-value/v3"'),
     (error) => error.code === "INCOMPLETE_JSON" && /غير مكتمل/u.test(error.userMessage)
+  );
+});
+
+test("missing quarterly schema diagnostic recommends the exact v2 root discriminator", () => {
+  const quarterlyWithoutSchema = {
+    ticker: "INTC",
+    quarter: "Q2",
+    year: 2026,
+    metrics: {}
+  };
+  assert.throws(
+    () => dispatchJsonPayload(quarterlyWithoutSchema),
+    (error) => error.code === "MISSING_SCHEMA"
+      && error.userMessage.includes('"schemaVersion": "quarterly-earnings-lite/v2"')
+      && error.technicalDetails.includes('add root property "schemaVersion": "quarterly-earnings-lite/v2"')
   );
 });
 
