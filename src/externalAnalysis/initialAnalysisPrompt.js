@@ -10,6 +10,9 @@ export const FRANKLIN_INITIAL_PROMPT_VERSION = "franklin-initial-analysis-prompt
 export function buildInitialAnalysisPrompt(options = {}) {
   const ticker = normalizeTicker(options.tickerHint);
   const template = buildFranklinV3ReportTemplate({ tickerHint: ticker, analysisType: "INITIAL" });
+  if (Array.isArray(template.sources) && template.sources[0]) {
+    template.sources[0].date = "YYYY-MM-DD";
+  }
   const request = {
     promptVersion: FRANKLIN_INITIAL_PROMPT_VERSION,
     requestType: "FRANKLIN_INITIAL_ANALYSIS",
@@ -98,7 +101,8 @@ export function buildInitialAnalysisPrompt(options = {}) {
         "nextRequirements.previousQuarter وnextRequirements.targetQuarter يجب أن يستخدما الصيغة الحرفية Q{1-4} YYYY.",
         "nextRequirements.previousQuarter يجب أن يساوي فترة reportIdentity، وtargetQuarter يجب أن يكون الربع المالي التالي مباشرة.",
         "nextRequirements.currentJustifiedValue يجب أن يساوي valuation.current.base",
-        "marketPrice.currency وvaluation.current.currency يجب أن يساويا company.tradingCurrency"
+        "marketPrice.currency وvaluation.current.currency يجب أن يساويا company.tradingCurrency",
+        "sources[].date يجب أن يكون تاريخًا حقيقيًا بصيغة YYYY-MM-DD ولا يجوز أن يكون null"
       ],
       initialRules: {
         previousAnalysisId: null,
