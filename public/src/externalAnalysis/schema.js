@@ -234,7 +234,7 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
     : (originalInput.metadata?.franklinV3Report?.schemaVersion === "franklin-fair-value/v3" ? originalInput.metadata.franklinV3Report : null);
   const nativeV3 = normalizeFiscalQuarterFields(rawNativeV3);
   if (isFranklinV3Report(originalInput)) {
-    input = franklinV3ToExternalReport(nativeV3, rawAnalysis);
+    input = franklinV3ToExternalReport(nativeV3, rawAnalysis, { currentReport: options.currentReport || null });
   }
   if (isFairValueAnalysisReport(originalInput)) {
     input = fairValueAnalysisToExternalReport(originalInput);

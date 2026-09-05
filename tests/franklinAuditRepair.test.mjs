@@ -1,0 +1,184 @@
+import assert from "node:assert/strict";
+import { buildFranklinV3ReportTemplate } from "../src/externalAnalysis/v3Contract.js";
+import { validateFranklinV3Report } from "../src/externalAnalysis/v3Validator.js";
+import { parseExternalAnalysisInput } from "../src/externalAnalysis/parser.js";
+import {
+  assertDispatchedPayloadValid,
+  dispatchJsonPayload,
+  JSON_IMPORT_ROUTES
+} from "../src/externalAnalysis/jsonContractRouter.js";
+
+const { goldenB, previousReport } = await quietImport("./franklinFinancialContractV3.test.mjs");
+const { canonical } = await quietImport("./intcOwnerAcceptance.test.mjs");
+const now = new Date("2026-07-25T10:00:00.000Z");
+const originalOwnerFixture = JSON.stringify(canonical);
+
+const frozenPrevious = structuredClone(previousReport);
+Object.assign(frozenPrevious.priceTargetRequirements.requirements[0], {
+  type: "maximum",
+  baselineValue: 200,
+  baselineDisplay: "$200m baseline cap",
+  previousValue: 190,
+  previousDisplay: "$190m previous cap",
+  currentLevel: 190,
+  requiredValue: previousReport.priceTargetRequirements.requirements[0].requiredValue,
+  requiredDisplay: previousReport.priceTargetRequirements.requirements[0].requiredDisplay,
+  unit: "USD",
+  currency: "USD",
+  accountingBasis: "non-GAAP",
+  period: "Q2 2026",
+  importance: "critical",
+  whyItMatters: "This saved cap is part of the old investment contract."
+});
+
+const template = buildFranklinV3ReportTemplate({
+  analysisType: "EARNINGS_REVALUATION",
+  previousReport: frozenPrevious,
+  selectedPeriod: "Q2 2026"
+});
+const templateRequirement = template.previousRequirementsEvaluation.requirements[0];
+assert.equal(templateRequirement.type, "maximum");
+assert.equal(templateRequirement.unit, "USD");
+assert.equal(templateRequirement.baselineValue, 200);
+assert.equal(templateRequirement.previousValue, 190);
+assert.equal(templateRequirement.importance, "critical");
+assert.equal(templateRequirement.whyItMatters, "This saved cap is part of the old investment contract.");
+
+const sparseRevaluation = mutate(goldenB, (report) => {
+  const req = report.previousRequirementsEvaluation.requirements[0];
+  for (const field of [
+    "type",
+    "unit",
+    "currency",
+    "accountingBasis",
+    "period",
+    "baselineValue",
+    "baselineDisplay",
+    "previousValue",
+    "previousDisplay",
+    "currentLevel",
+    "importance",
+    "whyItMatters"
+  ]) {
+    delete req[field];
+  }
+});
+assertValid(sparseRevaluation, frozenContext(), "Sparse previous requirement evaluations must validate against the saved frozen set.");
+const parsedSparse = await parseExternalAnalysisInput(JSON.stringify(sparseRevaluation), {
+  now,
+  strictJson: true,
+  currentReport: frozenPrevious,
+  expectedTicker: "VTH",
+  expectedReportPeriod: "Q2 2026"
+});
+const adaptedRequirement = parsedSparse.report.previousRequirementsEvaluation.requirements[0];
+assert.equal(adaptedRequirement.type, "maximum");
+assert.equal(adaptedRequirement.unit, "USD");
+assert.equal(adaptedRequirement.baselineValue, 200);
+assert.equal(adaptedRequirement.previousValue, 190);
+assert.equal(adaptedRequirement.importance, "critical");
+assert.equal(adaptedRequirement.whyItMatters, "This saved cap is part of the old investment contract.");
+assert.equal(adaptedRequirement.actualValue, sparseRevaluation.previousRequirementsEvaluation.requirements[0].actualValue);
+assert.equal(adaptedRequirement.status, sparseRevaluation.previousRequirementsEvaluation.requirements[0].status);
+
+expectInvalidRevaluation((report) => {
+  report.previousRequirementsEvaluation.requirements[0].type = "minimum";
+}, /Old type cannot change/);
+expectInvalidRevaluation((report) => {
+  report.previousRequirementsEvaluation.requirements[0].unit = "EUR";
+}, /Old unit cannot change/);
+expectInvalidRevaluation((report) => {
+  report.previousRequirementsEvaluation.requirements[0].baselineValue = 999;
+}, /Old baselineValue cannot change/);
+
+expectRejectedOwner((report) => { report.sources.push(null); }, /sources\.5.*object/);
+expectRejectedOwner((report) => { report.strengths.push(null); }, /strengths\.\d+.*object/);
+expectRejectedOwner((report) => { report.nextRequirements.requirements[0] = null; }, /nextRequirements\.requirements\.0.*object/);
+expectRejectedOwner((report) => { report.valuation.current.base = [85]; }, /valuation\.current\.base.*finite JSON number/);
+expectRejectedOwner((report) => { report.marketPrice.value = [90.07]; }, /marketPrice\.value.*JSON number/);
+expectRejectedOwner((report) => { report.forecast.yearlyForecast[0].revenue.value = "not-a-number"; }, /forecast\.yearlyForecast\.0\.revenue\.value.*finite JSON number/);
+expectRejectedOwner((report) => { report.businessQuality.score = [72]; }, /businessQuality\.score/);
+expectRejectedOwner((report) => { report.valuation.current.unsupportedExtraField = 1; }, /Unknown nested property valuation\.current\.unsupportedExtraField/);
+expectRejectedOwner((report) => { report.forecast.yearlyForecast[0].revenue.sourceId = "NOPE"; }, /forecast\.yearlyForecast\.0\.revenue\.sourceId.*sourceId NOPE/);
+expectRejectedOwner((report) => { report.forecast = {}; }, /forecast\.yearlyForecast.*at least one forecast row/);
+expectRejectedOwner((report) => { marketSource(report).date = "2099-01-01"; }, /Market-price source date/);
+expectRejectedOwner((report) => { marketSource(report).date = "2001-01-01"; }, /Market-price source date/);
+expectRejectedOwner((report) => { marketSource(report).url = null; }, /Market-price source must include a valid raw http\(s\) URL/);
+expectRejectedOwner((report) => { marketSource(report).type = "SEC"; }, /Market-price source must be type Market Data/);
+expectRejectedOwner((report) => { marketSource(report).usedFor = []; }, /marketPrice in usedFor|usedFor must be a non-empty/);
+expectRejectedOwner((report) => { report.valuation.valuationResults[0].inputs.normalizedForwardEps = 2000; }, /P\/E fairValue/);
+expectRejectedOwner((report) => { report.reportIdentity.companyName = ""; }, /companyName is required/);
+expectRejectedOwner((report) => { report.reportIdentity.periodEndDate = null; }, /periodEndDate is required/);
+
+const emptyFinancialNormalization = mutate(canonical, (report) => {
+  report.financialNormalization = {};
+});
+const emptyFinancialValidation = validateFranklinV3Report(emptyFinancialNormalization);
+assert.equal(emptyFinancialValidation.valid, true, JSON.stringify(emptyFinancialValidation.errors, null, 2));
+assert.match(emptyFinancialValidation.warnings.map((warning) => `${warning.field}: ${warning.message}`).join("\n"), /financialNormalization/);
+
+const emptyCalculationAudit = mutate(canonical, (report) => {
+  report.valuation.calculationAudit = {};
+});
+const emptyAuditValidation = validateFranklinV3Report(emptyCalculationAudit);
+assert.equal(emptyAuditValidation.valid, true, JSON.stringify(emptyAuditValidation.errors, null, 2));
+assert.match(emptyAuditValidation.warnings.map((warning) => `${warning.field}: ${warning.message}`).join("\n"), /valuation\.calculationAudit/);
+
+const parsedOwner = await parseExternalAnalysisInput(JSON.stringify(canonical), {
+  now: new Date("2026-08-24T15:30:00.000Z"),
+  expectedTicker: "INTC",
+  expectedReportPeriod: "Q2 2026"
+});
+assert.equal(parsedOwner.report.company.ticker, "INTC");
+assert.equal(parsedOwner.report.metadata.franklinV3Report.marketPrice.value, 90.07);
+assert.equal(JSON.stringify(canonical), originalOwnerFixture, "Invalid probes must not mutate the canonical owner fixture.");
+
+console.log("Franklin audit repair regression checks passed.");
+
+function assertValid(report, context, message) {
+  const validation = validateFranklinV3Report(report, context);
+  assert.equal(validation.valid, true, `${message}\n${JSON.stringify(validation.errors, null, 2)}`);
+}
+
+function expectInvalidRevaluation(mutator, pattern) {
+  const candidate = mutate(goldenB, mutator);
+  const validation = validateFranklinV3Report(candidate, frozenContext());
+  assert.equal(validation.valid, false, `Expected invalid revaluation for ${pattern}`);
+  assert.match(validation.errors.map((error) => `${error.field}: ${error.message}`).join("\n"), pattern);
+}
+
+function expectRejectedOwner(mutator, pattern) {
+  const candidate = mutate(canonical, mutator);
+  const dispatched = dispatchJsonPayload(candidate, {
+    intendedRoute: JSON_IMPORT_ROUTES.FULL_ANALYSIS,
+    context: { expectedTicker: "INTC", expectedReportPeriod: "Q2 2026" }
+  });
+  assert.equal(dispatched.validation.valid, false, `Expected owner payload rejection for ${pattern}`);
+  const joined = dispatched.validation.errors.map((error) => `${error.field}: ${error.message}`).join("\n");
+  assert.match(joined, pattern);
+  assert.throws(() => assertDispatchedPayloadValid(dispatched, candidate), /فشل التحقق من JSON/);
+}
+
+function frozenContext() {
+  return { currentReport: frozenPrevious, expectedTicker: "VTH", expectedReportPeriod: "Q2 2026" };
+}
+
+function marketSource(report) {
+  return report.sources.find((source) => source.id === report.marketPrice.sourceId);
+}
+
+function mutate(value, mutator) {
+  const copy = structuredClone(value);
+  mutator(copy);
+  return copy;
+}
+
+async function quietImport(path) {
+  const originalLog = console.log;
+  console.log = () => {};
+  try {
+    return await import(path);
+  } finally {
+    console.log = originalLog;
+  }
+}

@@ -49,24 +49,33 @@ export function normalizeFranklinV3Input(input = {}) {
   normalizeMarketPriceShape(value);
 
   for (const item of list(value.strengths)) {
+    if (!isPlainObject(item)) continue;
     normalizeOptionalConfidence(item);
     item.importance = optionalEnum(item.importance, FRANKLIN_V3_IMPORTANCE_LEVELS);
   }
   for (const item of list(value.weaknesses)) {
+    if (!isPlainObject(item)) continue;
     normalizeOptionalConfidence(item);
     item.severity = optionalEnum(item.severity, FRANKLIN_V3_IMPORTANCE_LEVELS);
   }
-  for (const item of list(value.risks)) item.severity = optionalEnum(item.severity, FRANKLIN_V3_IMPORTANCE_LEVELS);
+  for (const item of list(value.risks)) {
+    if (!isPlainObject(item)) continue;
+    item.severity = optionalEnum(item.severity, FRANKLIN_V3_IMPORTANCE_LEVELS);
+  }
 
   const latestQuarter = value.latestQuarter || {};
   for (const metric of Object.values(latestQuarter.coreMetrics || {})) {
     if (metric && Object.hasOwn(metric, "result")) metric.result = canonicalEnum(metric.result, FRANKLIN_V3_METRIC_RESULTS);
   }
   for (const item of list(latestQuarter.companySpecificKpis)) {
+    if (!isPlainObject(item)) continue;
     item.result = optionalEnum(item.result, FRANKLIN_V3_METRIC_RESULTS);
     item.importance = optionalEnum(item.importance, FRANKLIN_V3_IMPORTANCE_LEVELS);
   }
-  for (const item of list(latestQuarter.guidance)) item.direction = optionalEnum(item.direction, FRANKLIN_V3_GUIDANCE_DIRECTIONS);
+  for (const item of list(latestQuarter.guidance)) {
+    if (!isPlainObject(item)) continue;
+    item.direction = optionalEnum(item.direction, FRANKLIN_V3_GUIDANCE_DIRECTIONS);
+  }
   for (const [field, allowed] of Object.entries(FRANKLIN_V3_FORWARD_OUTLOOK_ENUMS)) {
     if (latestQuarter.forwardOutlook) latestQuarter.forwardOutlook[field] = optionalEnum(latestQuarter.forwardOutlook[field], allowed);
   }
@@ -74,13 +83,18 @@ export function normalizeFranklinV3Input(input = {}) {
   const forecast = value.forecast || {};
   forecast.materiality = optionalEnum(forecast.materiality, FRANKLIN_V3_FORECAST_MATERIALITY);
   for (const row of list(forecast.yearlyForecast)) {
+    if (!isPlainObject(row)) continue;
     for (const metric of ["revenue", "revenueGrowthPct", "eps", "ebitda", "ebitdaMarginPct", "freeCashFlow", "fcfMarginPct"]) {
       if (row?.[metric]) row[metric].basis = optionalEnum(row[metric].basis, FRANKLIN_V3_FORECAST_BASIS);
     }
   }
-  for (const item of list(forecast.changedAssumptions)) item.direction = optionalEnum(item.direction, FRANKLIN_V3_CHANGED_ASSUMPTION_DIRECTIONS);
+  for (const item of list(forecast.changedAssumptions)) {
+    if (!isPlainObject(item)) continue;
+    item.direction = optionalEnum(item.direction, FRANKLIN_V3_CHANGED_ASSUMPTION_DIRECTIONS);
+  }
 
   for (const item of list(value.valuation?.valuationResults)) {
+    if (!isPlainObject(item)) continue;
     item.role = canonicalEnum(item.role, FRANKLIN_V3_VALUATION_ROLES);
     normalizeOptionalConfidence(item);
   }
@@ -90,17 +104,23 @@ export function normalizeFranklinV3Input(input = {}) {
   next.mode = canonicalEnum(next.mode, FRANKLIN_V3_NEXT_REQUIREMENT_MODES);
   next.targetScenario = canonicalEnum(next.targetScenario, FRANKLIN_V3_TARGET_SCENARIOS);
   for (const item of list(next.requirements)) {
+    if (!isPlainObject(item)) continue;
     item.type = canonicalEnum(item.type, FRANKLIN_V3_REQUIREMENT_TYPES);
     item.importance = canonicalEnum(item.importance, FRANKLIN_V3_IMPORTANCE_LEVELS);
     item.status = canonicalEnum(item.status, FRANKLIN_V3_REQUIREMENT_STATUSES);
   }
 
   const previous = value.previousRequirementsEvaluation || {};
-  for (const item of list(previous.requirements)) item.status = canonicalEnum(item.status, FRANKLIN_V3_REQUIREMENT_STATUSES);
+  for (const item of list(previous.requirements)) {
+    if (!isPlainObject(item)) continue;
+    item.status = canonicalEnum(item.status, FRANKLIN_V3_REQUIREMENT_STATUSES);
+  }
   if (previous.assessment) previous.assessment.overallStatus = canonicalEnum(previous.assessment.overallStatus, FRANKLIN_V3_REQUIREMENT_OVERALL_STATUSES);
 
-  for (const source of list(value.sources)) source.type = canonicalEnum(source.type, FRANKLIN_V3_SOURCE_TYPES);
-  normalizeMarketPriceSourceUsage(value);
+  for (const source of list(value.sources)) {
+    if (!isPlainObject(source)) continue;
+    source.type = canonicalEnum(source.type, FRANKLIN_V3_SOURCE_TYPES);
+  }
   return value;
 }
 
@@ -129,19 +149,6 @@ function normalizeValuationMethodology(value) {
   });
 }
 
-function normalizeMarketPriceSourceUsage(value) {
-  const sourceId = String(value?.marketPrice?.sourceId || "").trim();
-  if (!sourceId) return;
-  const source = list(value.sources).find((item) => String(item?.id || "").trim() === sourceId);
-  if (!source) return;
-  const usedFor = Array.isArray(source.usedFor)
-    ? source.usedFor.filter((item) => typeof item === "string" && item.trim())
-    : [];
-  if (!usedFor.some((item) => normalizeToken(item) === "marketprice")) {
-    source.usedFor = [...usedFor, "marketPrice"];
-  }
-}
-
 function normalizeFiscalQuarterFields(value) {
   if (!value || typeof value !== "object") return;
   if (Array.isArray(value)) {
@@ -160,10 +167,10 @@ function normalizeFiscalQuarterFields(value) {
 
 function normalizeMarketPriceShape(value) {
   const rawMarketPrice = value.marketPrice;
-  const existing = rawMarketPrice && typeof rawMarketPrice === "object" ? rawMarketPrice : {};
-  const market = { ...existing };
+  const existing = isPlainObject(rawMarketPrice) ? rawMarketPrice : {};
+  const market = {};
+  if (Object.hasOwn(existing, "value")) market.value = existing.value;
   const aliasValue = firstPositiveNumber([
-    existing.value,
     existing.currentPrice,
     existing.price,
     typeof rawMarketPrice !== "object" ? rawMarketPrice : null,
@@ -179,20 +186,19 @@ function normalizeMarketPriceShape(value) {
     value.fairValueSummary?.currentPrice,
     value.market?.priceAtAnalysis
   ]);
-  if (!positiveNumber(existing.value) && aliasValue !== null) market.value = aliasValue;
-  if (!market.currency && value.company?.tradingCurrency) market.currency = value.company.tradingCurrency;
-  if (!market.asOf) {
-    market.asOf = existing.date
-      || existing.timestamp
-      || existing.priceDate
-      || value.marketPriceDate
-      || value.priceAsOf
-      || value.market?.asOf
-      || value.valuation?.current?.priceAsOf
-      || null;
-  }
-  if (!market.sourceId) market.sourceId = sourceIdAlias(existing, value.sources);
+  if (!Object.hasOwn(market, "value") && aliasValue !== null) market.value = aliasValue;
+  market.currency = existing.currency || value.company?.tradingCurrency || null;
+  market.asOf = existing.asOf
+    || existing.date
+    || existing.timestamp
+    || existing.priceDate
+    || value.marketPriceDate
+    || value.priceAsOf
+    || value.market?.asOf
+    || value.valuation?.current?.priceAsOf
+    || null;
   market.priceType = canonicalMarketPriceType(existing.priceType || existing.type || existing.quoteType);
+  market.sourceId = sourceIdAlias(existing);
   value.marketPrice = market;
 }
 
@@ -215,31 +221,30 @@ function canonicalMarketPriceType(value) {
   return aliases[normalizeToken(value)] || canonical;
 }
 
-function sourceIdAlias(market = {}, sources = []) {
+function sourceIdAlias(market = {}) {
+  if (typeof market.sourceId === "string" && market.sourceId.trim()) return market.sourceId.trim();
   if (typeof market.source === "string" && market.source.trim()) return market.source.trim();
-  if (market.source?.id) return String(market.source.id).trim();
-  const candidates = list(sources).filter((source) => {
-    const usedFor = list(source?.usedFor).map(normalizeToken);
-    return normalizeToken(source?.type) === "marketdata" || usedFor.includes("marketprice");
-  });
-  return candidates.length === 1 && candidates[0]?.id ? String(candidates[0].id).trim() : null;
+  if (market.source?.id) return String(market.source.id).trim() || null;
+  return null;
 }
 
 function firstPositiveNumber(values = []) {
   for (const value of values) {
-    const number = Number(value);
+    if (Array.isArray(value) || typeof value === "boolean") continue;
+    const number = typeof value === "number"
+      ? value
+      : (typeof value === "string" && /^\s*[+-]?(?:\d+\.?\d*|\.\d+)\s*$/.test(value) ? Number(value) : NaN);
     if (Number.isFinite(number) && number > 0) return number;
   }
   return null;
 }
 
 function positiveNumber(value) {
-  const number = Number(value);
-  return Number.isFinite(number) && number > 0;
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
 function normalizeOptionalConfidence(target) {
-  if (!target || typeof target !== "object") return;
+  if (!isPlainObject(target)) return;
   target.confidence = optionalEnum(target.confidence, FRANKLIN_V3_CONFIDENCE_LEVELS);
 }
 
@@ -288,6 +293,10 @@ function normalizeToken(value) {
 
 function list(value) {
   return Array.isArray(value) ? value : [];
+}
+
+function isPlainObject(value) {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
 function clone(value) {

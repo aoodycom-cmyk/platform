@@ -7,7 +7,9 @@ const components = readFileSync(new URL("../src/ui/components.js", import.meta.u
 const foundation = readFileSync(new URL("../src/ui/foundation.js", import.meta.url), "utf8");
 const syncScript = readFileSync(new URL("../scripts/sync-deploy.mjs", import.meta.url), "utf8");
 const serviceWorker = readFileSync(new URL("../service-worker.js", import.meta.url), "utf8");
+const bootVersion = html.match(/var version = "([^"]+)"/)?.[1];
 
+assert.ok(bootVersion, "index.html must expose the Franklin boot asset version.");
 assert.ok(html.indexOf("styles-franklin-v2.css") > html.indexOf("styles-visual-system.css"));
 assert.match(css, /--v2-accent:\s*#2dd1bc/);
 assert.match(css, /min-height:\s*96px !important/);
@@ -19,7 +21,7 @@ assert.match(components, /Morningstar/);
 assert.match(foundation, /<svg viewBox=/);
 assert.doesNotMatch(foundation, /home:\s*"⌂"/);
 assert.match(syncScript, /"styles-franklin-v2\.css"/);
-assert.match(serviceWorker, /franklin-mobile-v2-v52/);
+assert.ok(serviceWorker.includes(`franklin-research-${bootVersion}`));
 assert.match(serviceWorker, /"\.\/styles-franklin-v2\.css"/);
 
 console.log("Franklin Mobile Redesign V2: PASS");

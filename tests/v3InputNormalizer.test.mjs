@@ -139,7 +139,8 @@ const marketAliases = normalizeFranklinV3Input({
   marketPrice: {
     currentPrice: "225.50",
     date: "2026-08-26",
-    type: "closing"
+    type: "closing",
+    sourceId: "MKT-1"
   },
   sources: [{ id: "MKT-1", type: "Market Data", usedFor: [] }]
 });
@@ -162,7 +163,7 @@ assert.equal(noGuessing.marketPrice.sourceId, null, "ambiguous market sources mu
 
 const nestedMarketAliases = normalizeFranklinV3Input({
   company: { tradingCurrency: "USD" },
-  marketPrice: null,
+  marketPrice: { source: { id: "PRICE-1" } },
   marketPriceDate: "2026-08-27",
   valuation: { current: { currentPrice: "181.25" } },
   sources: [{ id: "PRICE-1", type: "Market Data", usedFor: ["valuation"] }]
@@ -171,7 +172,7 @@ assert.equal(nestedMarketAliases.marketPrice.value, 181.25);
 assert.equal(nestedMarketAliases.marketPrice.currency, "USD");
 assert.equal(nestedMarketAliases.marketPrice.asOf, "2026-08-27");
 assert.equal(nestedMarketAliases.marketPrice.sourceId, "PRICE-1");
-assert.ok(nestedMarketAliases.sources[0].usedFor.includes("marketPrice"));
+assert.equal(nestedMarketAliases.sources[0].usedFor.includes("marketPrice"), false, "normalization must not invent market-price provenance");
 
 const crossCheckMethod = normalizeFranklinV3Input({
   valuation: {

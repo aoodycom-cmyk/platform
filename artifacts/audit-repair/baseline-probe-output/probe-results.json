@@ -1,0 +1,792 @@
+[
+  {
+    "name": "sources_null_entry",
+    "throws": {
+      "name": "TypeError",
+      "message": "Cannot read properties of null (reading 'type')"
+    }
+  },
+  {
+    "name": "strengths_null_entry",
+    "throws": {
+      "name": "TypeError",
+      "message": "Cannot read properties of null (reading 'importance')"
+    }
+  },
+  {
+    "name": "requirements_null_entry",
+    "throws": {
+      "name": "TypeError",
+      "message": "Cannot read properties of null (reading 'type')"
+    }
+  },
+  {
+    "name": "forecast_row_null",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": 85,
+    "parsedMarket": 90.07,
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "forecast_string_revenue",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": 85,
+    "parsedMarket": 90.07,
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "forecast_orphan_source",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": 85,
+    "parsedMarket": 90.07,
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "base_single_element_array",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": [
+      85
+    ],
+    "parsedMarket": 90.07,
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "base_numeric_string",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": "85",
+    "parsedMarket": 90.07,
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "business_quality_array",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": 85,
+    "parsedMarket": 90.07,
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "market_value_array",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": 85,
+    "parsedMarket": [
+      90.07
+    ],
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "empty_calculation_audit",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": 85,
+    "parsedMarket": 90.07,
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "empty_financial_normalization",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": 85,
+    "parsedMarket": 90.07,
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "empty_forecast",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": 85,
+    "parsedMarket": 90.07,
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "missing_company_name",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": 85,
+    "parsedMarket": 90.07,
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "missing_period_end",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": 85,
+    "parsedMarket": 90.07,
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "unknown_nested_field",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": 85,
+    "parsedMarket": 90.07,
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "market_source_null_url",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": 85,
+    "parsedMarket": 90.07,
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "market_source_wrong_type",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": 85,
+    "parsedMarket": 90.07,
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "market_source_stale_date",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": 85,
+    "parsedMarket": 90.07,
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "market_source_future_date",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": 85,
+    "parsedMarket": 90.07,
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "market_source_missing_usedFor",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": 85,
+    "parsedMarket": 90.07,
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "incorrect_quarter_revenue_type",
+    "validationValid": false,
+    "errors": [
+      {
+        "field": "latestQuarter.coreMetrics.revenue.actualValue",
+        "message": "latestQuarter.coreMetrics.revenue.actualValue must be a finite JSON number or null."
+      },
+      {
+        "field": "latestQuarter.coreMetrics.revenue.actualValue",
+        "message": "consensusValue cannot be supplied without actualValue."
+      },
+      {
+        "field": "latestQuarter.coreMetrics.revenue.result",
+        "message": "BEAT, MISS, or INLINE requires both actualValue and consensusValue; otherwise result must be NA."
+      },
+      {
+        "field": "latestQuarter.coreMetrics.revenue.yoyPct",
+        "message": "yoyPct requires numeric actualValue and non-zero priorYearValue."
+      }
+    ],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ]
+  },
+  {
+    "name": "incorrect_upside",
+    "validationValid": false,
+    "errors": [
+      {
+        "field": "valuation.upsideToBasePct",
+        "message": "upsideToBasePct arithmetic is inconsistent."
+      }
+    ],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ]
+  },
+  {
+    "name": "wrong_future_quarter",
+    "validationValid": false,
+    "errors": [
+      {
+        "field": "nextRequirements.targetQuarter",
+        "message": "nextRequirements.targetQuarter must be the immediately following fiscal quarter. Expected \"Q3 2026\"."
+      }
+    ],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ]
+  },
+  {
+    "name": "duplicate_source",
+    "validationValid": false,
+    "errors": [
+      {
+        "field": "sources.id",
+        "message": "sources.id must be unique."
+      }
+    ],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ]
+  },
+  {
+    "name": "calculation_inputs_corrupt",
+    "validationValid": true,
+    "errors": [],
+    "warnings": [
+      {
+        "field": "financialNormalization",
+        "message": "Structured financial normalization is missing; valuation reproducibility is reduced."
+      },
+      {
+        "field": "valuation.valuationResults.0.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.1.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.valuationResults.2.calculation.formula",
+        "message": "A formula is recommended so the valuation method can be independently reproduced."
+      },
+      {
+        "field": "valuation.calculationAudit",
+        "message": "Valuation calculation audit is missing."
+      }
+    ],
+    "parseAccepted": true,
+    "parsedBase": 85,
+    "parsedMarket": 90.07,
+    "completionStatus": "incomplete",
+    "decision": "WATCH"
+  },
+  {
+    "name": "previous_unit_changed",
+    "validationValid": true,
+    "errors": []
+  },
+  {
+    "name": "previous_type_changed",
+    "validationValid": true,
+    "errors": []
+  },
+  {
+    "name": "previous_baseline_changed",
+    "validationValid": true,
+    "errors": []
+  },
+  {
+    "name": "previous_threshold_changed_control",
+    "validationValid": false,
+    "errors": [
+      {
+        "field": "previousRequirementsEvaluation.requirements.q2_1.requiredValue",
+        "message": "Old requiredValue cannot change."
+      }
+    ]
+  }
+]
