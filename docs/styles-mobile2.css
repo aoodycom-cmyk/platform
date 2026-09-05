@@ -1331,7 +1331,7 @@ html[data-theme="dark"] .investment-summary-workspace > p {
   line-height: 1.45;
 }
 
-.data-health-terminal-guard.complete {
+.data-health-terminal-guard.complete:not(.has-completion-work) {
   display: none;
 }
 

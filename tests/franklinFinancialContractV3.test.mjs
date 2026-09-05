@@ -12,8 +12,9 @@ import {
 } from "../src/externalAnalysis/parser.js";
 import { normalizeExternalAnalysisReport } from "../src/externalAnalysis/schema.js";
 import { saveExternalAnalysis } from "../src/externalAnalysis/storage.js";
-import { QUARTERLY_EARNINGS_LITE_SCHEMA } from "../src/externalAnalysis/quarterlyEarningsLite.js";
+import { LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA } from "../src/externalAnalysis/quarterlyEarningsLite.js";
 import { buildFranklinV3ReportTemplate, FRANKLIN_V3_CANONICAL_ENUMS } from "../src/externalAnalysis/v3Contract.js";
+import { normalizeFranklinV3Input } from "../src/externalAnalysis/v3InputNormalizer.js";
 import {
   calculateV3RequirementAssessment,
   validateFranklinV3Report
@@ -21,15 +22,15 @@ import {
 
 const now = new Date("2026-07-25T10:00:00.000Z");
 
-const goldenA = initialV3();
+export const goldenA = initialV3();
 const parsedInitial = await parseExternalAnalysisInput(JSON.stringify(goldenA), { now });
 const savedInitial = saveExternalAnalysis({}, parsedInitial.report, { now });
-const previousReport = attachRequirementSetIdentityToReport(savedInitial.report, now);
+export const previousReport = attachRequirementSetIdentityToReport(savedInitial.report, now);
 const previousSnapshot = JSON.stringify(previousReport);
 let historicalRequirementSets = applyHistoricalRequirementLifecycle({}, previousReport, {}, now);
 const previousSet = historicalRequirementSets.VTH[0];
 
-const goldenB = earningsV3(previousReport, { bear: 80, base: 115, bull: 155, reviewStatus: "UPDATED", mode: "ADVANCE_TARGET", targetScenario: "BULL", targetValue: 155 });
+export const goldenB = earningsV3(previousReport, { bear: 80, base: 115, bull: 155, reviewStatus: "UPDATED", mode: "ADVANCE_TARGET", targetScenario: "BULL", targetValue: 155 });
 const goldenC = earningsV3(previousReport, { bear: 70, base: 100, bull: 140, reviewStatus: "UNCHANGED", mode: "DEFEND_BASE", targetScenario: "BASE_DEFENSE", targetValue: 100 });
 const goldenD = earningsV3(previousReport, { bear: 50, base: 75, bull: 105, reviewStatus: "UPDATED", thesisStatus: "WEAKENED", mode: "RECOVERY", targetScenario: "RECOVERY", targetValue: 95 });
 
@@ -59,6 +60,52 @@ assertValidation(goldenB, { currentReport: previousReport, expectedTicker: "VTH"
 assertValidation(goldenC, { currentReport: previousReport, expectedTicker: "VTH", expectedReportPeriod: "Q2 2026" }, "Golden C UNCHANGED must validate.");
 assertValidation(goldenD, { currentReport: previousReport, expectedTicker: "VTH", expectedReportPeriod: "Q2 2026" }, "Golden D RECOVERY must validate.");
 assertValidation(goldenE, { currentReport: partialBase.previousReport, expectedTicker: "VTH", expectedReportPeriod: "Q2 2026" }, "Golden E partial reporting must validate.");
+
+const q3Initial = mutated(goldenA, (item) => {
+  item.reportIdentity.fiscalQuarter = "Q3";
+  item.reportIdentity.fiscalYear = 2026;
+  item.nextRequirements.previousQuarter = "Q3 2026";
+  item.nextRequirements.targetQuarter = "Q4 2026";
+});
+assertValidation(q3Initial, {}, "Q3 INITIAL must accept canonical Q3/Q4 lifecycle periods.");
+expectInvalid(q3Initial, (item) => {
+  item.nextRequirements.previousQuarter = "Q2 2026";
+}, /Expected "Q3 2026"/);
+expectInvalid(q3Initial, (item) => {
+  item.nextRequirements.targetQuarter = "FY2026 Q4";
+}, /must use Franklin quarter format "Q\{1-4\} YYYY"/);
+expectInvalid(q3Initial, (item) => {
+  item.nextRequirements.targetQuarter = "Q5 2026";
+}, /must use Franklin quarter format "Q\{1-4\} YYYY"/);
+expectInvalid(q3Initial, (item) => {
+  item.nextRequirements.previousQuarter = "Q3 26";
+}, /must use Franklin quarter format "Q\{1-4\} YYYY"/);
+
+const variantInitial = mutated(q3Initial, (item) => {
+  item.nextRequirements.previousQuarter = "FY2026 Q3";
+  item.nextRequirements.targetQuarter = "FY2026 Q4";
+});
+const normalizedVariantInitial = normalizeFranklinV3Input(variantInitial);
+assert.equal(normalizedVariantInitial.nextRequirements.previousQuarter, "Q3 2026");
+assert.equal(normalizedVariantInitial.nextRequirements.targetQuarter, "Q4 2026");
+assertValidation(normalizedVariantInitial, {}, "Normalized quarter variants must pass full V3 validation.");
+const importedVariantInitial = await parseExternalAnalysisInput(JSON.stringify(variantInitial), { now });
+assert.equal(importedVariantInitial.report.priceTargetRequirements.previousQuarter, "Q3 2026");
+assert.equal(importedVariantInitial.report.priceTargetRequirements.targetQuarter, "Q4 2026");
+assert.equal(importedVariantInitial.report.metadata.franklinV3Report.nextRequirements.previousQuarter, "Q3 2026");
+assert.equal(importedVariantInitial.report.metadata.franklinV3Report.nextRequirements.targetQuarter, "Q4 2026");
+
+const variantRevaluation = normalizeFranklinV3Input(mutated(goldenB, (item) => {
+  item.nextRequirements.previousQuarter = "FY 2026 Q2";
+  item.nextRequirements.targetQuarter = "Q3 FY2026";
+  item.previousRequirementsEvaluation.previousQuarter = "2026 Q1";
+  item.previousRequirementsEvaluation.targetQuarter = "FY2026 Q2";
+  item.previousRequirementsEvaluation.earningsPeriod = "Q2 FY 2026";
+}));
+assert.equal(variantRevaluation.previousRequirementsEvaluation.previousQuarter, "Q1 2026");
+assert.equal(variantRevaluation.previousRequirementsEvaluation.targetQuarter, "Q2 2026");
+assert.equal(variantRevaluation.previousRequirementsEvaluation.earningsPeriod, "Q2 2026");
+assertValidation(variantRevaluation, context(), "Earnings revaluation quarter fields must share the canonical contract.");
 
 assert.equal(goldenA.valuation.reviewStatus, "INITIAL");
 assert.equal(goldenA.thesis.status, "INITIAL");
@@ -337,6 +384,15 @@ for (const status of ["PASSED", "MIXED", "FAILED", "EXCEEDED"]) {
   }), context(), `Fully reported previous requirements may use ${status}.`);
 }
 expectInvalid(goldenA, (item) => { item.sources[0].type = "market data"; }, /sources.0.type/);
+expectInvalid(goldenA, (item) => { item.reportIdentity.analysisDate = "2026-02-30"; }, /analysisDate/);
+expectInvalid(goldenA, (item) => { item.sources[0].date = "2026-13-01"; }, /sources.0.date/);
+expectInvalid(goldenA, (item) => { item.sources[1].id = "S1"; }, /sources.id.*unique/);
+expectInvalid(goldenA, (item) => { item.sources[1].url = "javascript:alert(1)"; }, /sources.1.url/);
+expectInvalid(goldenA, (item) => { item.sources[1].usedFor = []; }, /usedFor.*non-empty/);
+expectInvalid(goldenA, (item) => { item.latestQuarter.coreMetrics.revenue.result = "MISS"; }, /result must be BEAT/);
+expectInvalid(goldenA, (item) => { item.latestQuarter.coreMetrics.revenue.yoyPct = 99; }, /yoyPct.*arithmetically inconsistent/);
+expectInvalid(goldenA, (item) => { item.latestQuarter.coreMetrics.revenue.actualValue = "120"; }, /finite JSON number/);
+expectInvalid(goldenA, (item) => { item.latestQuarter.coreMetrics.revenue.sourceId = null; }, /reported quarterly metric requires sourceId/);
 expectInvalid(goldenA, (item) => { item.reportIdentity.fiscalQuarter = "Quarter 1"; }, /fiscalQuarter/);
 expectInvalid(goldenA, (item) => { item.reportIdentity.fiscalYear = 1999; }, /fiscalYear/);
 expectInvalid(goldenA, (item) => { item.nextRequirements.requirements[1].id = item.nextRequirements.requirements[0].id; }, /unique/);
@@ -530,7 +586,7 @@ async function parseLite(currentReport) {
   setQuarterlyEarningsLiteReportResolver(() => currentReport);
   try {
     return await parseExternalAnalysisInput(JSON.stringify({
-      schemaVersion: QUARTERLY_EARNINGS_LITE_SCHEMA,
+      schemaVersion: LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA,
       ticker: currentReport.company.ticker,
       quarter: "Q2",
       year: 2026,

@@ -4,7 +4,7 @@ import {
 } from "../src/externalAnalysis/historicalRequirements.js";
 import {
   inflateQuarterlyEarningsLitePayload,
-  QUARTERLY_EARNINGS_LITE_SCHEMA,
+  LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA,
   validateQuarterlyAssessmentIntegrity
 } from "../src/externalAnalysis/quarterlyEarningsLite.js";
 import {
@@ -76,7 +76,7 @@ const validAssessment = {
 };
 
 const validPayload = {
-  schemaVersion: QUARTERLY_EARNINGS_LITE_SCHEMA,
+  schemaVersion: LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA,
   ticker: "SAFE",
   quarter: "Q2",
   year: 2026,

@@ -1,3 +1,5 @@
+import { normalizeFiscalQuarterPeriodOrOriginal } from "./fiscalQuarterPeriod.js";
+
 export const REQUIREMENT_STATUSES = ["NOT_REPORTED", "PASSED", "PARTIALLY_PASSED", "FAILED", "EXCEEDED"];
 export const RECOMMENDATION_ACTIONS = ["BUY", "ADD", "HOLD", "WATCH", "REDUCE", "SELL"];
 export const REQUIREMENT_DIRECTIONS = ["up", "down", "flat", "unknown"];
@@ -54,7 +56,7 @@ export function normalizePriceTargetRequirements(value = {}) {
       requirements: []
     };
   }
-  const targetQuarter = normalizeText(value.targetQuarter ?? value.earningsPeriod);
+  const targetQuarter = normalizeFiscalQuarterPeriodOrOriginal(value.targetQuarter ?? value.earningsPeriod);
   return {
     requirementSetId: normalizeText(value.requirementSetId),
     status: normalizeRequirementSetStatus(value.status),
@@ -68,7 +70,7 @@ export function normalizePriceTargetRequirements(value = {}) {
     targetDescription: normalizeText(value.targetDescription),
     summary: normalizeText(value.summary),
     createdAt: normalizeText(value.createdAt),
-    previousQuarter: normalizeText(value.previousQuarter ?? value.currentQuarter),
+    previousQuarter: normalizeFiscalQuarterPeriodOrOriginal(value.previousQuarter ?? value.currentQuarter),
     targetQuarter,
     earningsPeriod: targetQuarter,
     mode: normalizeText(value.mode),
@@ -99,8 +101,8 @@ export function normalizePreviousRequirementsEvaluation(value = {}) {
     };
   }
   const requirements = normalizeRequirementList(value.requirements);
-  const earningsPeriod = normalizeText(value.earningsPeriod);
-  const targetQuarter = normalizeText(value.targetQuarter ?? earningsPeriod);
+  const earningsPeriod = normalizeFiscalQuarterPeriodOrOriginal(value.earningsPeriod);
+  const targetQuarter = normalizeFiscalQuarterPeriodOrOriginal(value.targetQuarter ?? earningsPeriod);
   return {
     requirementSetId: normalizeText(value.requirementSetId),
     ticker: normalizeText(value.ticker)?.toUpperCase() || null,
@@ -111,7 +113,7 @@ export function normalizePreviousRequirementsEvaluation(value = {}) {
     targetDescription: normalizeText(value.targetDescription),
     summary: normalizeText(value.summary),
     matchType: normalizeText(value.matchType),
-    previousQuarter: normalizeText(value.previousQuarter ?? value.currentQuarter),
+    previousQuarter: normalizeFiscalQuarterPeriodOrOriginal(value.previousQuarter ?? value.currentQuarter),
     targetQuarter,
     earningsPeriod: earningsPeriod || targetQuarter,
     requirements,
@@ -166,7 +168,7 @@ export function normalizeNextQuarterGuidance(value = null) {
     };
   }
   return {
-    quarter: normalizeText(value.quarter),
+    quarter: normalizeFiscalQuarterPeriodOrOriginal(value.quarter),
     items: Array.isArray(value.items)
       ? value.items.map(normalizeNextQuarterGuidanceItem).filter(Boolean)
       : []
@@ -215,7 +217,7 @@ export function normalizeGuidance(value) {
     }
     if (!item || typeof item !== "object") return null;
     return {
-      period: normalizeText(item.period ?? item.quarter),
+      period: normalizeFiscalQuarterPeriodOrOriginal(item.period ?? item.quarter),
       topic: normalizeText(item.topic),
       arabicTopic: normalizeText(item.arabicTopic),
       currentGuidance: valueOrNull(item.currentGuidance),

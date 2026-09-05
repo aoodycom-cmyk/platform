@@ -1,5 +1,6 @@
 import "./earningsOnePageFlow.js";
 import { buildQuarterlyEarningsLitePrompt } from "../externalAnalysis/quarterlyEarningsLite.js";
+import { parseFiscalQuarterPeriod } from "../externalAnalysis/fiscalQuarterPeriod.js";
 
 const CONTEXT_KEY = "quarterlyEarningsEntryContext";
 const BUTTON_ATTR = "data-copy-quarterly-json-prompt";
@@ -44,9 +45,8 @@ function selectedReport(store) {
 }
 
 function periodKey(value) {
-  const match = String(value || "").trim().toUpperCase().match(/Q\s*([1-4]).*?(20\d{2})/);
-  if (!match) return null;
-  return Number(match[2]) * 4 + Number(match[1]);
+  const period = parseFiscalQuarterPeriod(value);
+  return period ? period.year * 4 + period.quarter : null;
 }
 
 function selectedPeriod(context) {

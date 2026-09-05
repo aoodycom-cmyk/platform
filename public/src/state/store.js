@@ -12,6 +12,7 @@ import { buildInstitutionalResearch } from "../research/institutionalResearch.js
 import { parseExternalAnalysisBlock, parseExternalAnalysisSupplementBlock, parseInvestmentAnalystBlock } from "../providers/apiClient.js";
 import { parseExternalAnalysisInput, parseJsonCandidate } from "../externalAnalysis/parser.js";
 import { describeImportValidationErrors, inspectJsonImportText, readLocalJsonFile } from "../externalAnalysis/jsonFileImport.js";
+import { dispatchJsonPayload, JSON_IMPORT_ROUTES } from "../externalAnalysis/jsonContractRouter.js";
 import { normalizeExternalAnalysisReport, updateExternalAnalysisField } from "../externalAnalysis/schema.js";
 import { validateExternalAnalysisReport } from "../externalAnalysis/externalAnalysisSchemaValidator.js";
 import { analyzeExternalAnalysisCompletion, attachCompletionStatus, buildMissingRequirementsPrompt } from "../externalAnalysis/missingFields.js";
@@ -26,7 +27,9 @@ import {
 import {
   createLocalStateBackup,
   findLocalFranklinBackups,
+  FRANKLIN_STATE_SCHEMA_VERSION,
   migrateFranklinState,
+  migrateStoredFranklinState,
   readLocalFranklinBackup,
   validateRestoredCandidate
 } from "./migration.js";
@@ -37,6 +40,10 @@ import {
   prepareHistoricalRequirementEvaluation
 } from "../externalAnalysis/historicalRequirements.js";
 import { availableQuarterlyScorecardYears } from "../externalAnalysis/quarterlyScorecard.js";
+import {
+  applyQuarterlyEarningsLifecycle,
+  normalizeQuarterlyEarningsHistory
+} from "../externalAnalysis/quarterlyHistory.js";
 import { mergeExternalAnalysisSupplement } from "../externalAnalysis/supplementMerge.js";
 import { parseExternalAnalysisSupplement } from "../externalAnalysis/supplementParser.js";
 import { validateExternalAnalysisSupplement } from "../externalAnalysis/supplementValidator.js";
@@ -48,6 +55,7 @@ import {
   getExternalAnalysis,
   normalizeExternalAnalysesCollection,
   saveExternalAnalysis,
+  saveOrCorrectQuarterlyAnalysis,
   updateSavedExternalAnalysis
 } from "../externalAnalysis/storage.js";
 import {
@@ -78,6 +86,10 @@ export function createStore() {
   const initialEvaluatedSort = normalizeEvaluatedSort(saved.evaluatedSort);
   const initialExternalAnalyses = normalizeExternalAnalysesCollection(saved.externalAnalyses || {});
   const initialHistoricalRequirementSets = normalizeHistoricalRequirementSets(saved.historicalRequirementSets || {}, initialExternalAnalyses);
+  const initialQuarterlyEarningsHistory = normalizeQuarterlyEarningsHistory(
+    saved.quarterlyEarningsHistory || {},
+    initialExternalAnalyses
+  ).history;
   const initialCompany = buildUnifiedDataCompany(saved.company || createCompanyShell("NVDA"), {
     manualInputs: initialManualInputs,
     previousCompany: saved.company || null,
@@ -106,7 +118,8 @@ export function createStore() {
     evaluatedCompanies: initialEvaluatedCompanies,
     externalAnalyses: initialExternalAnalyses,
     historicalRequirementSets: initialHistoricalRequirementSets,
-    stateSchemaVersion: saved.stateSchemaVersion || 1,
+    quarterlyEarningsHistory: initialQuarterlyEarningsHistory,
+    stateSchemaVersion: FRANKLIN_STATE_SCHEMA_VERSION,
     bootDiagnostics: saved.__franklinMigration || null,
     localBackupRegistry: findLocalFranklinBackups(localStorage),
     externalImport: createExternalImportState(),
@@ -126,8 +139,10 @@ export function createStore() {
   const listeners = new Set();
 
   function set(patch) {
-    Object.assign(state, typeof patch === "function" ? patch(state) : patch);
-    persist(state);
+    const resolvedPatch = typeof patch === "function" ? patch(state) : patch;
+    const nextState = { ...state, ...resolvedPatch };
+    persist(nextState);
+    Object.assign(state, resolvedPatch);
     listeners.forEach((listener) => listener(state));
   }
 
@@ -224,6 +239,7 @@ export function createStore() {
     const reports = createDemoExternalAnalysisScenario();
     let externalAnalyses = state.externalAnalyses;
     let historicalRequirementSets = state.historicalRequirementSets;
+    let quarterlyEarningsHistory = state.quarterlyEarningsHistory;
     let latestReport = null;
     for (const report of reports) {
       const validation = validateExternalAnalysisReport(report);
@@ -240,12 +256,18 @@ export function createStore() {
         prepared.requirementMatch,
         new Date(reportForSave.metadata?.importedAt || Date.now())
       );
+      quarterlyEarningsHistory = applyQuarterlyEarningsLifecycle(
+        quarterlyEarningsHistory,
+        result.report,
+        { now: new Date(reportForSave.metadata?.importedAt || Date.now()) }
+      ).history;
       latestReport = result.report;
     }
     const selectedReport = latestReport || createDemoExternalAnalysisReport();
     set({
       externalAnalyses,
       historicalRequirementSets,
+      quarterlyEarningsHistory,
       externalImport: createExternalImportState(),
       externalReportSelection: { ticker: selectedReport.company.ticker, reportId: selectedReport.id },
       company: externalReportCompanyShell(selectedReport),
@@ -272,10 +294,15 @@ export function createStore() {
 
   function resolvePreviousReportForImport(value = {}) {
     const identity = resolveImportIdentity(value);
-    if (identity.previousAnalysisId) {
+    const targetId = identity.targetAnalysisId || identity.previousAnalysisId;
+    if (targetId) {
       return Object.values(state.externalAnalyses || {})
         .flatMap((reports) => Array.isArray(reports) ? reports : [])
-        .find((report) => report?.id === identity.previousAnalysisId) || null;
+        .find((report) => report?.id === targetId) || null;
+    }
+    if (identity.schemaVersion === "external-analysis-supplement/v1" && identity.ticker) {
+      const reports = state.externalAnalyses?.[identity.ticker] || [];
+      return reports.length === 1 ? reports[0] : null;
     }
     if (identity.analysisType === "EARNINGS_REVALUATION" && identity.ticker) {
       return getExternalAnalysis(state.externalAnalyses, identity.ticker, "latest");
@@ -394,6 +421,50 @@ export function createStore() {
         strictJson: inputMethod === "file",
         parseUnstructured: (inputText) => parseExternalAnalysisBlock({ text: inputText, language: state.language })
       });
+      if (parsed.route === JSON_IMPORT_ROUTES.SUPPLEMENT) {
+        const targetReport = currentReport || resolvePreviousReportForImport(parsed.supplement);
+        if (!targetReport) {
+          const error = new Error("تعذر تحديد التحليل المستهدف بأمان. أضف targetAnalysisId صحيحًا أو افتح التحليل ثم استخدم استكمال البيانات.");
+          error.userMessage = error.message;
+          throw error;
+        }
+        const supplementValidation = validateExternalAnalysisSupplement(parsed.supplement, targetReport);
+        const mergePreview = supplementValidation.valid
+          ? mergeExternalAnalysisSupplement(targetReport, parsed.supplement)
+          : null;
+        set({
+          loading: false,
+          processingStage: "idle",
+          externalImport: {
+            ...createExternalImportState(),
+            rawText: targetReport.rawAnalysisOriginal || targetReport.rawAnalysis || "",
+            tickerHint: targetReport.company?.ticker || tickerHint,
+            draftReport: targetReport,
+            draftJson: JSON.stringify(targetReport, null, 2),
+            validation: validateExternalAnalysisReport(targetReport),
+            parserSource: parsed.parserSource,
+            usedAi: parsed.usedAi,
+            inputMode: inputMethod,
+            stage: "preview",
+            editing: true,
+            supplement: {
+              ...createSupplementState(),
+              open: true,
+              rawText,
+              parsedSupplement: parsed.supplement,
+              validation: supplementValidation,
+              mergePreview,
+              parserSource: parsed.parserSource,
+              usedAi: parsed.usedAi,
+              stage: "preview"
+            }
+          },
+          notice: supplementValidation.valid
+            ? (state.language === "ar" ? "تم توجيه الرد إلى استكمال البيانات. راجع الحقول قبل الحفظ." : "The payload was routed to data completion. Review the fields before saving.")
+            : (state.language === "ar" ? "تم اكتشاف Supplement لكنه لم يجتز التحقق." : "A supplement was detected, but it failed validation.")
+        });
+        return;
+      }
       if (!parsed.report) throw new Error("External parser did not return a report.");
       const parsedReport = applyImportContextHints(parsed.report, { tickerHint });
       const validation = validateExternalAnalysisReport(parsedReport);
@@ -480,7 +551,14 @@ export function createStore() {
   function updateExternalDraftJson(value) {
     try {
       const rawOriginal = state.externalImport?.draftReport?.rawAnalysisOriginal || state.externalImport?.rawText || "";
-      const normalizedReport = normalizeExternalAnalysisReport(JSON.parse(value || "{}"), rawOriginal, {
+      const parsedValue = JSON.parse(value || "{}");
+      const dispatched = dispatchJsonPayload(parsedValue, {
+        intendedRoute: JSON_IMPORT_ROUTES.FULL_ANALYSIS,
+        existingReport: state.externalImport?.draftReport,
+        rawText: rawOriginal
+      });
+      if (dispatched.action !== "accept" || dispatched.route !== JSON_IMPORT_ROUTES.FULL_ANALYSIS) throw new Error(dispatched.recommendedRoute);
+      const normalizedReport = normalizeExternalAnalysisReport(dispatched.value, rawOriginal, {
         importMethod: state.externalImport?.draftReport?.metadata?.importMethod || "manual_json_edit"
       });
       const validation = validateExternalAnalysisReport(normalizedReport);
@@ -535,9 +613,14 @@ export function createStore() {
         result.report,
         state.externalImport?.requirementMatch
       );
+      const quarterlyEarningsHistory = applyQuarterlyEarningsLifecycle(
+        state.quarterlyEarningsHistory,
+        result.report
+      ).history;
       set({
         externalAnalyses: result.collection,
         historicalRequirementSets,
+        quarterlyEarningsHistory,
         externalImport: createExternalImportState(),
         externalReportSelection: { ticker: result.report.company.ticker, reportId: result.report.id },
         company: externalReportCompanyShell(result.report),
@@ -562,9 +645,14 @@ export function createStore() {
       result.report,
       state.externalImport?.requirementMatch
     );
+    const quarterlyEarningsHistory = applyQuarterlyEarningsLifecycle(
+      state.quarterlyEarningsHistory,
+      result.report
+    ).history;
     set({
       externalAnalyses: result.collection,
       historicalRequirementSets,
+      quarterlyEarningsHistory,
       externalImport: createExternalImportState(),
       externalReportSelection: { ticker: result.report.company.ticker, reportId: result.report.id },
       company: externalReportCompanyShell(result.report),
@@ -599,9 +687,14 @@ export function createStore() {
       result.report,
       state.externalImport?.requirementMatch
     );
+    const quarterlyEarningsHistory = applyQuarterlyEarningsLifecycle(
+      state.quarterlyEarningsHistory,
+      result.report
+    ).history;
     set({
       externalAnalyses: result.collection,
       historicalRequirementSets,
+      quarterlyEarningsHistory,
       externalImport: createExternalImportState(),
       externalReportSelection: { ticker: result.report.company.ticker, reportId: result.report.id },
       company: externalReportCompanyShell(result.report),
@@ -724,6 +817,9 @@ export function createStore() {
         currentReport,
         expectedReportPeriod: state.earningsUpdate?.selectedPeriod
       });
+      if (parsed.route !== JSON_IMPORT_ROUTES.FULL_ANALYSIS && parsed.route !== JSON_IMPORT_ROUTES.QUARTERLY_EARNINGS) {
+        throw new Error("هذا JSON ليس تحديث أرباح. استخدم مسار استكمال البيانات للـSupplement.");
+      }
       const report = parsed.report;
       const currentTicker = normalizeTickerHint(currentReport.company?.ticker);
       const incomingTicker = normalizeTickerHint(report.company?.ticker);
@@ -790,16 +886,21 @@ export function createStore() {
     }
     const prepared = prepareExternalDraftReport(parsedReport, validation, state.historicalRequirementSets);
     const reportForSave = prepareExternalReportForSave(prepared.report);
-    const result = saveExternalAnalysis(state.externalAnalyses, reportForSave, { allowDuplicate: true });
+    const result = saveOrCorrectQuarterlyAnalysis(state.externalAnalyses, reportForSave);
     const historicalRequirementSets = applyHistoricalRequirementLifecycle(
       state.historicalRequirementSets,
       result.report,
       prepared.requirementMatch
     );
+    const quarterlyEarningsHistory = applyQuarterlyEarningsLifecycle(
+      state.quarterlyEarningsHistory,
+      result.report
+    ).history;
     const preview = state.earningsUpdate?.preview || createEarningsUpdatePreview(selectedExternalReportFromState(), result.report, validation);
     set({
       externalAnalyses: result.collection,
       historicalRequirementSets,
+      quarterlyEarningsHistory,
       earningsUpdate: {
         ...state.earningsUpdate,
         open: true,
@@ -955,6 +1056,10 @@ export function createStore() {
   function applyExternalSupplement() {
     const supplementState = state.externalImport?.supplement;
     if (!supplementState?.mergePreview) return;
+    if (supplementState.mergePreview.conflicts?.length) {
+      set({ notice: state.language === "ar" ? "حل جميع تعارضات الحقول قبل الحفظ. لم يتغير السجل." : "Resolve every field conflict before saving. The record was not changed." });
+      return;
+    }
     const mergedReport = supplementState.mergePreview.report;
     const validation = validateExternalAnalysisReport(mergedReport);
     const draftReportWithCompletion = attachCompletionStatus(mergedReport, validation, {
@@ -964,25 +1069,48 @@ export function createStore() {
       selectedRequirementSetId: state.externalImport?.requirementMatch?.selectedRequirementSetId
     });
     const before = state.externalImport?.draftReport?.completionStatus || {};
-    const after = prepared.report.completionStatus || {};
-    set({
-      externalImport: {
+    let persistedReport = prepared.report;
+    let externalAnalyses = state.externalAnalyses;
+    if (state.externalImport?.editing && prepared.report.id) {
+      const saved = updateSavedExternalAnalysis(state.externalAnalyses, prepared.report);
+      if (!saved.report) return;
+      persistedReport = saved.report;
+      externalAnalyses = saved.collection;
+    }
+    const after = persistedReport.completionStatus || {};
+    try {
+      set({
+        externalAnalyses,
+        externalImport: {
+          ...state.externalImport,
+          draftReport: persistedReport,
+          draftJson: JSON.stringify(persistedReport, null, 2),
+          validation: prepared.validation,
+          requirementMatch: prepared.requirementMatch,
+          duplicate: findDuplicateExternalAnalysis(externalAnalyses, persistedReport),
+          supplement: {
+            ...supplementState,
+            stage: state.externalImport?.editing ? "saved" : "applied-to-draft",
+            open: false
+          }
+        },
+        notice: state.externalImport?.editing
+          ? (state.language === "ar"
+            ? `تم حفظ البيانات المكملة والتحقق من التخزين. قبل الإكمال: ${before.requiredComplete || 0}/${before.requiredTotal || 0}. بعد الإكمال: ${after.requiredComplete || 0}/${after.requiredTotal || 0}.`
+            : `Supplement saved and storage verified. Before: ${before.requiredComplete || 0}/${before.requiredTotal || 0}. After: ${after.requiredComplete || 0}/${after.requiredTotal || 0}.`)
+          : (state.language === "ar" ? "أضيفت البيانات إلى المسودة؛ احفظ التحليل لتثبيتها." : "The supplement was applied to the draft; save the analysis to persist it.")
+      });
+    } catch (error) {
+      state.notice = state.language === "ar"
+        ? "فشل التخزين الدائم، لذلك لم يُطبّق أي تغيير على التحليل."
+        : "Persistent storage failed, so no analysis changes were applied.";
+      state.externalImport = {
         ...state.externalImport,
-        draftReport: prepared.report,
-        draftJson: JSON.stringify(prepared.report, null, 2),
-        validation: prepared.validation,
-        requirementMatch: prepared.requirementMatch,
-        duplicate: findDuplicateExternalAnalysis(state.externalAnalyses, prepared.report),
-        supplement: {
-          ...supplementState,
-          stage: "applied",
-          open: false
-        }
-      },
-      notice: state.language === "ar"
-        ? `تم دمج البيانات المكملة. قبل الإكمال: ${before.requiredComplete || 0}/${before.requiredTotal || 0}. بعد الإكمال: ${after.requiredComplete || 0}/${after.requiredTotal || 0}.`
-        : `Supplement merged. Before: ${before.requiredComplete || 0}/${before.requiredTotal || 0}. After: ${after.requiredComplete || 0}/${after.requiredTotal || 0}.`
-    });
+        supplement: { ...supplementState, stage: "persistence-error", open: true },
+        technicalDetails: String(error?.message || error)
+      };
+      listeners.forEach((listener) => listener(state));
+    }
   }
 
   function selectHistoricalRequirementSet(requirementSetId) {
@@ -1042,12 +1170,17 @@ export function createStore() {
     const normalizedTicker = normalizeTickerHint(report?.company?.ticker || ticker);
     if (!report || !normalizedTicker) return;
     const years = availableQuarterlyScorecardYears(state.historicalRequirementSets, normalizedTicker);
+    const historyYears = (state.quarterlyEarningsHistory?.[normalizedTicker] || [])
+      .map((record) => Number(record?.fiscalYear))
+      .filter(Number.isFinite)
+      .sort((left, right) => right - left);
     set({
       quarterlyScorecard: {
         ticker: normalizedTicker,
-        year: years[0] || Number(String(report.reportPeriod || report.analysisDate || "").match(/20\d{2}/)?.[0]) || null,
+        year: historyYears[0] || years[0] || Number(String(report.reportPeriod || report.analysisDate || "").match(/20\d{2}/)?.[0]) || null,
         selectedMetricKey: null,
         selectedQuarter: null,
+        selectedEarningsQuarter: null,
         originTicker: report.company?.ticker || normalizedTicker,
         originReportId: report.id || reportId
       },
@@ -1068,7 +1201,8 @@ export function createStore() {
         ...state.quarterlyScorecard,
         year: Number(year) || null,
         selectedMetricKey: null,
-        selectedQuarter: null
+        selectedQuarter: null,
+        selectedEarningsQuarter: null
       }
     });
   }
@@ -1079,6 +1213,15 @@ export function createStore() {
         ...state.quarterlyScorecard,
         selectedMetricKey: metricKey || null,
         selectedQuarter: Number(quarter) || null
+      }
+    });
+  }
+
+  function selectQuarterlyEarningsQuarter(quarterKey) {
+    set({
+      quarterlyScorecard: {
+        ...state.quarterlyScorecard,
+        selectedEarningsQuarter: quarterKey || null
       }
     });
   }
@@ -1596,6 +1739,7 @@ export function createStore() {
     closeQuarterlyScorecard,
     setQuarterlyScorecardYear,
     selectQuarterlyScorecardCell,
+    selectQuarterlyEarningsQuarter,
     editExternalReport,
     startExternalReportCompletion,
     removeExternalReport,
@@ -1653,8 +1797,7 @@ function normalizeEvaluatedSort(sort) {
 
 function load() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY) || "{}";
-    return migrateFranklinState(JSON.parse(raw)).state;
+    return migrateStoredFranklinState(localStorage, STORAGE_KEY).state;
   } catch (error) {
     return migrateFranklinState({
       __franklinMigrationError: String(error?.message || error)
@@ -1663,8 +1806,8 @@ function load() {
 }
 
 function persist(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    stateSchemaVersion: state.stateSchemaVersion || 1,
+  const serialized = JSON.stringify({
+    stateSchemaVersion: FRANKLIN_STATE_SCHEMA_VERSION,
     company: state.company,
     manualInputs: state.manualInputs,
     language: state.language,
@@ -1681,9 +1824,23 @@ function persist(state) {
     externalAnalyses: state.externalAnalyses,
     externalReportSelection: state.externalReportSelection,
     historicalRequirementSets: state.historicalRequirementSets,
+    quarterlyEarningsHistory: state.quarterlyEarningsHistory,
     history: state.history,
     watchList: state.watchList
-  }));
+  });
+  const previous = localStorage.getItem(STORAGE_KEY);
+  try {
+    localStorage.setItem(STORAGE_KEY, serialized);
+    if (localStorage.getItem(STORAGE_KEY) !== serialized) throw new Error("Persistent storage verification failed.");
+  } catch (error) {
+    try {
+      if (previous === null) localStorage.removeItem(STORAGE_KEY);
+      else localStorage.setItem(STORAGE_KEY, previous);
+    } catch {
+      // Preserve the original storage exception; rollback is best-effort.
+    }
+    throw error;
+  }
 }
 
 function wait(ms) {
@@ -1716,11 +1873,14 @@ function createExternalImportState() {
 }
 
 function resolveImportIdentity(value = {}) {
-  const identity = value?.reportIdentity || {};
+  const embedded = value?.metadata?.franklinV3Report || {};
+  const identity = value?.reportIdentity || embedded.reportIdentity || {};
   return {
+    schemaVersion: String(value?.schemaVersion || "").trim(),
     ticker: normalizeTickerHint(identity.ticker || value?.company?.ticker || value?.ticker),
+    targetAnalysisId: String(value?.targetAnalysisId || "").trim(),
     previousAnalysisId: String(identity.previousAnalysisId || "").trim(),
-    analysisType: String(value?.analysisType || value?.metadata?.analysisType || "").trim()
+    analysisType: String(value?.analysisType || value?.metadata?.analysisType || embedded.analysisType || "").trim()
   };
 }
 
@@ -1760,6 +1920,7 @@ function createEarningsUpdateState() {
     ticker: "",
     reportId: "",
     selectedQuarter: null,
+    selectedEarningsQuarter: null,
     selectedYear: null,
     selectedPeriod: "",
     earningsText: "",

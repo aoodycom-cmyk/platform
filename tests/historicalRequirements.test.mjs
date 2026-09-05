@@ -188,6 +188,18 @@ const migrated = normalizeHistoricalRequirementSets({}, { DEMO: [oldReport] });
 assert.equal(Boolean(migrated.DEMO[0].requirementSetId), true);
 assert.equal(migrated.DEMO[0].createdFromAnalysisId, "old-without-set-id");
 
+const migratedQuarterFormats = normalizeHistoricalRequirementSets({
+  DEMO: [{
+    ...q4Set,
+    earningsPeriod: "FY2026 Q4",
+    previousQuarter: "Q3 FY2026",
+    targetQuarter: "FY 2026 Q4"
+  }]
+});
+assert.equal(migratedQuarterFormats.DEMO[0].earningsPeriod, "Q4 2026");
+assert.equal(migratedQuarterFormats.DEMO[0].previousQuarter, "Q3 2026");
+assert.equal(migratedQuarterFormats.DEMO[0].targetQuarter, "Q4 2026");
+
 const backup = createInvestmentDataBackup({
   externalAnalyses: saved2.collection,
   historicalRequirementSets,

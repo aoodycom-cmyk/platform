@@ -341,7 +341,9 @@ function sourceProvenancePromptLines() {
     '- مصدر سعر السوق: sources[].usedFor يجب أن يحتوي "marketPrice".',
     '- مصدر أرباح الربع الحالي: sources[].usedFor يجب أن يحتوي واحدًا على الأقل من "latestQuarter" أو "previousRequirementsEvaluation" أو "currentQuarterEarnings".',
     "- إذا كان المصدر يدعم أكثر من جزء، يمكن أن يحتوي usedFor على عدة tokens.",
+    "- كل sources[].id يجب أن يكون فريدًا، وكل usedFor يجب أن يكون array غير فارغ.",
     "- كل sourceId أو sourceIds غير null في التقرير يجب أن يطابق sources[].id موجودًا.",
+    "- كل latestQuarter.coreMetrics.*.actualValue غير null يحتاج sourceId موثقًا.",
     "- source.type يجب أن يكون من sourceType في القيم المسموحة أعلاه.",
     "- User Provided يمكن أن يكون url = null.",
     "- المصادر الرسمية أو الويب يجب أن تحفظ URL الفعلي عند توفره."
@@ -495,6 +497,8 @@ function conciseOutputDisciplinePromptLines() {
 function materialEvidencePromptLines() {
   return [
     "- Conciseness must NOT remove reported Revenue, EPS, important margins, cash/debt where material, company-specific KPIs, Guidance, forecast estimates used in valuation, valuation multiple inputs, scenario probabilities, Fair Values, requirement thresholds, requirement weights, requirement actuals/statuses after earnings, or source provenance.",
+    "- For latestQuarter metrics, BEAT means actualValue > consensusValue, MISS means actualValue < consensusValue, and INLINE means equal; use NA when no comparable consensus exists.",
+    "- When yoyPct is supplied, it must reconcile to actualValue and priorYearValue within ordinary reported rounding.",
     "- The goal is less repeated prose, NOT less financial evidence."
   ];
 }
@@ -514,6 +518,8 @@ function promptSelfCheckLines() {
     "[ ] valuation method weights = 100%",
     "[ ] requirement weights = 100%",
     "[ ] currentJustifiedValue = Base",
+    "[ ] quarterly BEAT/MISS/INLINE agrees with actual and consensus values",
+    "[ ] source ids are unique and every reported quarterly metric has a sourceId",
     "[ ] concise narrative without deleting material financial evidence"
   ];
 }

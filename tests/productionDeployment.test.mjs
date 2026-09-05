@@ -185,6 +185,7 @@ try {
   assert.ok(serviceWorker.text.includes("v3Contract.js"));
   assert.ok(serviceWorker.text.includes("v3Adapter.js"));
   assert.ok(serviceWorker.text.includes("v3Validator.js"));
+  assert.ok(serviceWorker.text.includes("fiscalQuarterPeriod.js"));
   assert.ok(serviceWorker.text.includes("earningsPeriod.js"));
   assert.ok(serviceWorker.text.includes("offline.html"));
   assert.equal(serviceWorker.text.includes("/api/search"), false);

@@ -1,4 +1,8 @@
 import { buildQuarterlyForwardOutlookIndex } from "./quarterlyForwardOutlook.js";
+import {
+  normalizeFiscalQuarterPeriod,
+  parseFiscalQuarterPeriod
+} from "./fiscalQuarterPeriod.js";
 
 const QUARTERS = [1, 2, 3, 4];
 const REQUIREMENT_STATUSES = new Set(["EXCEEDED", "PASSED", "PARTIALLY_PASSED", "FAILED", "NOT_REPORTED"]);
@@ -16,14 +20,17 @@ export function availableQuarterlyScorecardYears(historicalRequirementSets = {},
 export function buildQuarterlyScorecard({
   historicalRequirementSets = {},
   externalAnalyses = {},
+  quarterlyEarningsHistory = {},
   ticker = "",
   year = null
 } = {}) {
   const normalizedTicker = normalizeTicker(ticker);
   const years = availableQuarterlyScorecardYears(historicalRequirementSets, normalizedTicker);
   const reports = Array.isArray(externalAnalyses?.[normalizedTicker]) ? externalAnalyses[normalizedTicker] : [];
+  const historyRecords = Array.isArray(quarterlyEarningsHistory?.[normalizedTicker]) ? quarterlyEarningsHistory[normalizedTicker] : [];
+  const historyYears = historyRecords.map((record) => Number(record?.fiscalYear)).filter(Number.isFinite);
   const reportYears = reports.map((report) => parseQuarterPeriod(report?.reportPeriod)?.year).filter(Number.isFinite);
-  const selectedYear = Number(year) || years[0] || reportYears.sort((a, b) => b - a)[0] || null;
+  const selectedYear = Number(year) || [...years, ...historyYears, ...reportYears].sort((a, b) => b - a)[0] || null;
   const sourceSets = (historicalRequirementSets?.[normalizedTicker] || [])
     .map((set) => sanitizePrematureEvaluation(set, reports))
     .map((set) => ({ set, period: parseQuarterPeriod(set?.targetQuarter || set?.earningsPeriod) }))
@@ -40,12 +47,17 @@ export function buildQuarterlyScorecard({
     .map((quarter) => sourceSets.find((candidate) => candidate.period?.quarter === quarter)?.set)
     .find(Boolean) || null;
   const latestReport = findLatestReport(reports, selectedYear);
+  const earningsTimeline = historyRecords
+    .filter((record) => Number(record?.fiscalYear) === selectedYear)
+    .sort(compareQuarterHistoryRecords)
+    .map((record) => ({ ...record }));
 
   return {
     ticker: normalizedTicker,
-    companyName: latestReport?.company?.name || normalizedTicker,
+    companyName: latestReport?.company?.name || earningsTimeline.at(-1)?.companyName || normalizedTicker,
     year: selectedYear,
-    years: [...new Set([...years, ...reportYears])].sort((left, right) => right - left),
+    years: [...new Set([...years, ...historyYears, ...reportYears])].sort((left, right) => right - left),
+    earningsTimeline,
     quarters,
     rows,
     latestReportedQuarter,
@@ -69,6 +81,14 @@ export function buildQuarterlyScorecard({
   };
 }
 
+function compareQuarterHistoryRecords(left = {}, right = {}) {
+  const quarter = Number(String(left.fiscalQuarter || "").replace(/[^1-4]/g, ""))
+    - Number(String(right.fiscalQuarter || "").replace(/[^1-4]/g, ""));
+  if (quarter) return quarter;
+  if (left.status === right.status) return String(left.periodEndDate || "").localeCompare(String(right.periodEndDate || ""));
+  return left.status === "REPORTED" ? -1 : 1;
+}
+
 export function createQuarterlyScorecardExportModel(scorecard = {}, exportedAt = new Date()) {
   return {
     brand: "Franklin Research",
@@ -79,6 +99,7 @@ export function createQuarterlyScorecardExportModel(scorecard = {}, exportedAt =
     target: scorecard.target ? { ...scorecard.target } : null,
     trajectory: scorecard.trajectory || null,
     overallStatus: scorecard.overallStatus || null,
+    earningsTimeline: (scorecard.earningsTimeline || []).map((record) => structuredCloneSafe(record)),
     quarters: (scorecard.quarters || []).map((quarter) => ({ ...quarter })),
     rows: (scorecard.rows || []).map((row) => ({
       key: row.key,
@@ -90,12 +111,17 @@ export function createQuarterlyScorecardExportModel(scorecard = {}, exportedAt =
   };
 }
 
+function structuredCloneSafe(value) {
+  try {
+    return structuredClone(value);
+  } catch {
+    return JSON.parse(JSON.stringify(value));
+  }
+}
+
 export function parseQuarterPeriod(value) {
-  const text = String(value || "").trim().toUpperCase();
-  const quarterMatch = text.match(/\bQ([1-4])\b/);
-  const yearMatch = text.match(/(20\d{2})/);
-  if (!quarterMatch || !yearMatch) return null;
-  return { quarter: Number(quarterMatch[1]), year: Number(yearMatch[1]) };
+  const period = parseFiscalQuarterPeriod(value);
+  return period ? { quarter: period.quarter, year: period.year } : null;
 }
 
 export function normalizeRequirementAlias(value) {
@@ -123,7 +149,8 @@ function buildQuarterObservationSets(reports = [], selectedYear) {
         ...evaluation,
         requirementSetId: evaluation.requirementSetId || `OBS-${report.id || `${period.quarter}-${period.year}`}`,
         status: "OBSERVED",
-        earningsPeriod: report.reportPeriod || evaluation.earningsPeriod || `Q${period.quarter} ${period.year}`,
+        earningsPeriod: normalizeFiscalQuarterPeriod(report.reportPeriod || evaluation.earningsPeriod)
+          || `Q${period.quarter} ${period.year}`,
         evaluatedAt: report.analysisDate || report.metadata?.updatedAt || report.metadata?.importedAt || null,
         requirementsAssessment: evaluation.requirementsAssessment || report.requirementsAssessment || null
       }

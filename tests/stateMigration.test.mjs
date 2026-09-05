@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   findLocalFranklinBackups,
+  FRANKLIN_STATE_SCHEMA_VERSION,
   migrateFranklinState,
+  migrateStoredFranklinState,
   readLocalFranklinBackup,
   shouldBlockCloudPush,
   summarizeFranklinState,
@@ -150,6 +152,51 @@ test("restore validation rejects candidates that drop reports or requirement set
   assert.ok(result.errors.includes("RESTORE_DROPPED_REQUIREMENT_SETS"));
 });
 
+test("state v2 migration supports dry-run, backup, verification, rollback, and exact idempotency", () => {
+  const quarterlyReport = {
+    ...baseReport,
+    fiscalIdentity: { fiscalQuarter: "Q2", fiscalYear: 2026, periodEndDate: "2026-06-30", earningsReleaseDate: "2026-07-20" },
+    latestQuarter: {
+      summary: "Reported quarter",
+      coreMetrics: { revenue: { actualValue: 100.125, consensusValue: 99.5, unit: "USDm", result: "BEAT", sourceId: "S1" } },
+      companySpecificKpis: [],
+      guidance: [],
+      forwardOutlook: { summary: "Documented outlook" }
+    },
+    nextRequirements: {
+      requirementSetId: "REQ-Q3",
+      targetQuarter: "Q3 2026",
+      requirements: [{ id: "revenue", requiredValue: 105, weight: 100, status: "NOT_REPORTED" }]
+    },
+    sources: [{ id: "S1", title: "Quarterly filing", url: "https://example.invalid/q2", usedFor: ["latestQuarter"] }]
+  };
+  const rawState = JSON.stringify({ stateSchemaVersion: 1, externalAnalyses: { DEMO: [quarterlyReport] } });
+  const storage = fakeStorage({ equityResearchV4State: rawState });
+  const dryRun = migrateStoredFranklinState(storage, "equityResearchV4State", { dryRun: true, now: new Date("2026-08-01T00:00:00.000Z") });
+  assert.equal(dryRun.persisted, false);
+  assert.equal(storage.getItem("equityResearchV4State"), rawState);
+  assert.equal(dryRun.diagnostics.migrationStats.quarters.added, 2);
+
+  const applied = migrateStoredFranklinState(storage, "equityResearchV4State", { now: new Date("2026-08-01T00:00:00.000Z") });
+  assert.equal(applied.persisted, true);
+  assert.equal(applied.verified, true);
+  assert.equal(storage.getItem(applied.backupKey), rawState);
+  const persistedOnce = storage.getItem("equityResearchV4State");
+  const parsed = JSON.parse(persistedOnce);
+  assert.equal(parsed.stateSchemaVersion, FRANKLIN_STATE_SCHEMA_VERSION);
+  assert.equal(parsed.quarterlyEarningsHistory.DEMO.length, 2);
+
+  const repeated = migrateStoredFranklinState(storage, "equityResearchV4State", { now: new Date("2026-08-02T00:00:00.000Z") });
+  assert.deepEqual(repeated.state, JSON.parse(persistedOnce));
+  assert.equal(repeated.changed, false);
+  assert.equal(repeated.backupKey, null);
+  assert.equal(storage.getItem("equityResearchV4State"), persistedOnce);
+
+  const failing = failingStorage({ equityResearchV4State: rawState }, "equityResearchV4State");
+  assert.throws(() => migrateStoredFranklinState(failing, "equityResearchV4State", { now: new Date("2026-08-01T00:00:00.000Z") }));
+  assert.equal(failing.getItem("equityResearchV4State"), rawState);
+});
+
 function fakeStorage(initial = {}) {
   const data = new Map(Object.entries(initial));
   return {
@@ -159,4 +206,18 @@ function fakeStorage(initial = {}) {
     setItem(key, value) { data.set(key, String(value)); },
     removeItem(key) { data.delete(key); }
   };
+}
+
+function failingStorage(initial = {}, failingKey) {
+  const storage = fakeStorage(initial);
+  const setItem = storage.setItem;
+  let failed = false;
+  storage.setItem = (key, value) => {
+    if (key === failingKey && !failed) {
+      failed = true;
+      throw new Error("quota exceeded");
+    }
+    setItem(key, value);
+  };
+  return storage;
 }

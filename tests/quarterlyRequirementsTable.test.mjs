@@ -48,7 +48,9 @@ const monitored = normalizePriceTargetRequirements({
   ]
 });
 
-assert.equal(monitored.earningsPeriod, "Q3 FY2026");
+assert.equal(monitored.previousQuarter, "Q2 2026");
+assert.equal(monitored.targetQuarter, "Q3 2026");
+assert.equal(monitored.earningsPeriod, "Q3 2026");
 assert.equal(monitored.targetValue, 50);
 assert.equal(monitored.requirements[0].direction, "up");
 assert.equal(monitored.requirements[0].impact, "positive");
@@ -81,6 +83,8 @@ assert.equal(evaluated.requirements[0].impact, "negative");
 assert.equal(evaluated.requirements[1].direction, "down");
 assert.equal(evaluated.requirements[1].impact, "positive");
 assert.equal(evaluated.requirements[2].status, "NOT_REPORTED");
+assert.equal(evaluated.previousQuarter, "Q2 2026");
+assert.equal(evaluated.targetQuarter, "Q3 2026");
 assert.equal(evaluated.requirementsAssessment.weightedAchievement, 61);
 
 const report = normalizeExternalAnalysisReport({
@@ -102,7 +106,8 @@ const report = normalizeExternalAnalysisReport({
   }
 }, "raw");
 
-assert.equal(report.priceTargetRequirements.targetQuarter, "Q3 FY2026");
+assert.equal(report.reportPeriod, "Q2 2026");
+assert.equal(report.priceTargetRequirements.targetQuarter, "Q3 2026");
 assert.equal(report.priceTargetRequirements.requirements[1].impact, "negative");
 assert.equal(normalizeNextQuarterGuidance(report.nextQuarterGuidance).items[0].guidance, "$62M-$66M");
 

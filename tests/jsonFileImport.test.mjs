@@ -102,7 +102,7 @@ assert.match(css, /@media \(max-width: 520px\)/);
 assert.match(css, /\.json-import-tabs \{ grid-template-columns: 1fr;/);
 assert.match(css, /\.json-file-picker \{ min-height: 148px;/);
 assert.match(html, /dir="rtl"/);
-assert.equal((storeSource.match(/inputMode: inputMethod/g) || []).length, 2, "Both success and error import states must preserve the selected input method.");
+assert.equal((storeSource.match(/inputMode: inputMethod/g) || []).length, 3, "Full, supplement, and error import states must preserve the selected input method.");
 
 console.log("Franklin local JSON file import: PASS");
 

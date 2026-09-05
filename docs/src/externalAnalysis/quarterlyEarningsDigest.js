@@ -1,5 +1,11 @@
+import { normalizeFiscalQuarterPeriod } from "./fiscalQuarterPeriod.js";
+import {
+  LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA,
+  QUARTERLY_EARNINGS_LITE_SCHEMA
+} from "./quarterlyEarningsLite.js";
+
 export const QUARTERLY_EARNINGS_DIGEST_KIND = "quarterly_earnings_digest/v1";
-const LITE_SCHEMA = "quarterly-earnings-lite/v1";
+const LITE_SCHEMAS = new Set([QUARTERLY_EARNINGS_LITE_SCHEMA, LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA]);
 const RESULT_VALUES = new Set(["BEAT", "MISS", "INLINE", "NA"]);
 const METRIC_KEYS = [
   "revenue",
@@ -14,7 +20,7 @@ const METRIC_KEYS = [
 
 export function normalizeQuarterlyEarningsDigest(value = {}, periodHint = "") {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const period = normalizeQuarterPeriod(periodHint || periodFromPayload(value) || value.period);
+  const period = normalizeFiscalQuarterPeriod(periodHint || periodFromPayload(value) || value.period);
   if (!period) return null;
   const metrics = {};
   for (const key of METRIC_KEYS) metrics[key] = normalizeMetric(value.metrics?.[key]);
@@ -34,10 +40,10 @@ export function normalizeQuarterlyEarningsDigest(value = {}, periodHint = "") {
 
 export function upsertQuarterlyEarningsDigestSupplement(supplements = [], period = "", payload = {}) {
   const digest = normalizeQuarterlyEarningsDigest(payload, period);
-  const normalizedPeriod = normalizeQuarterPeriod(period);
+  const normalizedPeriod = normalizeFiscalQuarterPeriod(period);
   const existing = (Array.isArray(supplements) ? supplements : []).filter((item) => {
     if (!item || typeof item !== "object") return false;
-    return !(item.kind === QUARTERLY_EARNINGS_DIGEST_KIND && normalizeQuarterPeriod(item.period) === normalizedPeriod);
+    return !(item.kind === QUARTERLY_EARNINGS_DIGEST_KIND && normalizeFiscalQuarterPeriod(item.period) === normalizedPeriod);
   });
   return digest ? [...existing, digest] : existing;
 }
@@ -63,7 +69,7 @@ export function buildQuarterlyEarningsDigestIndex(reports = [], year = null) {
 
 function storeDigest(index, digest, selectedYear) {
   if (!digest) return;
-  const period = normalizeQuarterPeriod(digest.period);
+  const period = normalizeFiscalQuarterPeriod(digest.period);
   if (!period) return;
   const parsedYear = Number(period.slice(-4));
   if (selectedYear && parsedYear !== selectedYear) return;
@@ -122,7 +128,7 @@ function parseLitePayload(raw) {
   if (!text) return null;
   try {
     const payload = JSON.parse(text);
-    return payload?.schemaVersion === LITE_SCHEMA ? payload : null;
+    return LITE_SCHEMAS.has(payload?.schemaVersion) ? payload : null;
   } catch {
     return null;
   }
@@ -132,13 +138,6 @@ function periodFromPayload(payload = {}) {
   const quarter = String(payload.quarter || "").trim().toUpperCase();
   const year = Number(payload.year);
   return /^Q[1-4]$/.test(quarter) && Number.isInteger(year) ? `${quarter} ${year}` : null;
-}
-
-function normalizeQuarterPeriod(value) {
-  const text = String(value || "").trim().toUpperCase();
-  const quarter = text.match(/\bQ([1-4])\b/);
-  const year = text.match(/(20\d{2})/);
-  return quarter && year ? `Q${quarter[1]} ${year[1]}` : null;
 }
 
 function normalizeStrings(items, max, maxLength) {

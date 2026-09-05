@@ -1,5 +1,6 @@
 import { earningsPeriodFromOptions } from "./earningsPeriod.js";
 import { buildDownloadableJsonDeliveryInstructions } from "./downloadableJsonDelivery.js";
+import { normalizeFiscalQuarterPeriod } from "./fiscalQuarterPeriod.js";
 import {
   buildFranklinV3ReportTemplate,
   FRANKLIN_FAIR_VALUE_SCHEMA_VERSION,
@@ -30,7 +31,7 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
     analysisId: previous.analysisId,
     requirementSetId: previous.requirementSetId,
     analysisDate: report.analysisDate || null,
-    reportPeriod: report.reportPeriod || null,
+    reportPeriod: normalizeFiscalQuarterPeriod(report.reportPeriod) || null,
     selectedEarningsPeriod: selectedPeriod,
     decision: report.decision?.action || null,
     valuation: {
@@ -40,7 +41,11 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
       probabilityWeighted: previous.valuation?.probabilityWeighted ?? report.fairValueSummary?.probabilityWeightedFairValue ?? null
     },
     thesis: report.thesis?.shortSummary || report.thesis?.fullSummary || previous.thesisSummary || null,
-    targetQuarter: previous.requirementTargetQuarter || report.priceTargetRequirements?.targetQuarter || report.priceTargetRequirements?.earningsPeriod || null,
+    targetQuarter: normalizeFiscalQuarterPeriod(
+      previous.requirementTargetQuarter
+        || report.priceTargetRequirements?.targetQuarter
+        || report.priceTargetRequirements?.earningsPeriod
+    ),
     frozenRequirements: previousRequirements
   };
 
@@ -149,6 +154,8 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
         "reportIdentity.previousAnalysisId يطابق previousInvestmentState.analysisId حرفيًا.",
         "reportIdentity.previousRequirementSetId يطابق previousInvestmentState.requirementSetId إذا كان موجودًا.",
         "previousRequirementsEvaluation يحافظ على تعريفات المتطلبات السابقة المجمدة إذا كانت موجودة.",
+        "كل previousQuarter وtargetQuarter وearningsPeriod يمثل ربعًا ماليًا يجب أن يستخدم الصيغة الحرفية Q{1-4} YYYY.",
+        "nextRequirements.previousQuarter يطابق reportIdentity، وnextRequirements.targetQuarter هو الربع المالي التالي مباشرة.",
         "nextRequirements.requirementSetId = null.",
         "Bear <= Base <= Bull والاحتمالات تجمع 100%.",
         "valuation.current.probabilityWeighted يطابق المتوسط الاحتمالي للسيناريوهات.",
@@ -159,6 +166,12 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
         "marketPrice.value موجب وasOf تاريخ حقيقي وpriceType يساوي LIVE أو DELAYED أو LAST_CLOSE وsourceId يطابق مصدر Market Data داخل sources.",
         "لا تترك عناصر قالب وهمية كلها null داخل arrays؛ استخدم عناصر حقيقية فقط أو [] عندما يسمح العقد."
       ],
+      quarterPeriodRules: {
+        exactFormat: "Q{1-4} YYYY",
+        correctExamples: ["Q3 2026", "Q4 2026"],
+        incorrectExamples: ["FY2026 Q3", "Q3 FY2026"],
+        mandatoryPreOutputValidation: "Validate canonical format, current-period equality, and the immediate next-quarter transition before output."
+      },
       missingValue: null,
       language: "العربية المبسطة أولًا في جميع النصوص الموجهة للمستثمر. اذكر المصطلح الإنجليزي بين قوسين عند أول ظهور فقط، ولا تكتب جملًا عربية ممزوجة بعبارات إنجليزية غير مشروحة.",
       languageQuality: [
@@ -183,6 +196,7 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
     "جسر تغير Base ومتوسط طرق التقييم متصالحان حسابيًا",
     "marketPrice مكتمل وموثق ومربوط بمصدر Market Data",
     "nextRequirements جديدة وقابلة للقياس وأوزانها 100%",
+    "كل فترة ربع سنوية بصيغة Q{1-4} YYYY، وpreviousQuarter يطابق ربع التقرير وtargetQuarter هو الربع التالي مباشرة",
     "JSON صالح ويطابق القالب دون عناصر وهمية"
   ];
 
@@ -208,6 +222,8 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
     "أعد تقييم Bear/Base/Bull إلزاميًا في كل ربع.",
     "valuation.reviewStatus يجب أن يكون UPDATED أو UNCHANGED فقط.",
     "أنشئ nextRequirements جديدة بالكامل للربع القادم.",
+    "QUARTER FORMAT GATE — استخدم فقط Q1-Q4 ثم مسافة ثم YYYY لكل previousQuarter وtargetQuarter وearningsPeriod ربعي. صحيح: \"Q3 2026\" و\"Q4 2026\". خطأ: \"FY2026 Q3\" و\"Q3 FY2026\".",
+    "قبل إخراج JSON تحقق إلزاميًا أن nextRequirements.previousQuarter يساوي فترة reportIdentity وأن targetQuarter هو الربع المالي التالي مباشرة، إلا إذا فرضت دورة Franklin هدفًا مختلفًا مقصودًا.",
     "nextRequirements.currentJustifiedValue يجب أن يساوي valuation.current.base.",
     "أضف مصادر جديدة خاصة بهذا الربع.",
     "LANGUAGE GATE — outputLanguage = ar. اكتب السرد بالعربية المبسطة، واجعل المصطلح العربي أولًا ثم الإنجليزي بين قوسين عند أول ظهور فقط.",

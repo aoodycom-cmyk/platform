@@ -12,6 +12,7 @@ import {
 const now = new Date("2026-07-31T10:00:00.000Z");
 
 const validReport = {
+  schemaVersion: "external-analysis-report/v2",
   source: "ChatGPT",
   sourceModel: "gpt-5",
   analysisDate: "2026-07-31",

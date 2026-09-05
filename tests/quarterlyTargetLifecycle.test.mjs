@@ -4,7 +4,7 @@ import {
   applyHistoricalRequirementLifecycle,
   prepareHistoricalRequirementEvaluation
 } from "../src/externalAnalysis/historicalRequirements.js";
-import { inflateQuarterlyEarningsLitePayload, QUARTERLY_EARNINGS_LITE_SCHEMA } from "../src/externalAnalysis/quarterlyEarningsLite.js";
+import { inflateQuarterlyEarningsLitePayload, LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA } from "../src/externalAnalysis/quarterlyEarningsLite.js";
 import { buildQuarterlyScorecard } from "../src/externalAnalysis/quarterlyScorecard.js";
 import { normalizeExternalAnalysisReport } from "../src/externalAnalysis/schema.js";
 
@@ -137,7 +137,7 @@ console.log("Quarterly target lifecycle tests passed.");
 
 function litePayload({ quarter, reportDate, metrics, requirements, requirementsAssessment }) {
   return {
-    schemaVersion: QUARTERLY_EARNINGS_LITE_SCHEMA,
+    schemaVersion: LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA,
     ticker: "TSLA",
     quarter,
     year: 2025,

@@ -9,7 +9,7 @@ import {
 } from "../src/externalAnalysis/historicalRequirements.js";
 import { saveExternalAnalysis } from "../src/externalAnalysis/storage.js";
 
-const canonical = {
+export const canonical = {
   schemaVersion: "franklin-fair-value/v3",
   methodologyVersion: "fair-value-methodology/v2",
   analysisType: "INITIAL",

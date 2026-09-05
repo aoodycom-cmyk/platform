@@ -1,4 +1,5 @@
 import { getExternalAnalysis } from "../externalAnalysis/storage.js";
+import { fiscalQuarterPeriodsEqual } from "../externalAnalysis/fiscalQuarterPeriod.js";
 
 export const SOCIAL_EXPORT_WIDTH = 1080;
 export const SOCIAL_EXPORT_HEIGHT = 1350;
@@ -428,7 +429,7 @@ function num(v){if(v===null||v===undefined||v==="")return null;const n=Number(v)
 function identityPeriod(i){return i?.fiscalQuarter&&i?.fiscalYear?`${i.fiscalQuarter} ${i.fiscalYear}`:null;}
 function metricKey(v){const s=text(v).toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g," ");if(/revenue|إيراد/.test(s))return "revenue";if(/eps|ربحية|سهم/.test(s))return "eps";if(/gross.*margin|هامش.*إجمالي/.test(s))return "grossmargin";if(/operating.*margin|هامش.*تشغيل/.test(s))return "operatingmargin";if(/free.*cash|fcf|تدفق.*حر/.test(s))return "fcf";return s.replace(/\s+/g,"");}
 function metricMatch(a,b){const x=metricKey(a),y=metricKey(b);return Boolean(x&&y&&(x===y||(x.length>4&&y.length>4&&(x.includes(y)||y.includes(x)))));}
-function samePeriod(a,b){const x=upper(a).replace(/[^A-Z0-9]/g,""),y=upper(b).replace(/[^A-Z0-9]/g,"");return Boolean(x&&y&&(x===y||x.includes(y)||y.includes(x)));}
+function samePeriod(a,b){return fiscalQuarterPeriodsEqual(a,b);}
 function hasArabic(v){return /[\u0600-\u06ff]/.test(String(v||""));}
 function actionColor(v){return v==="BUY"||v==="ADD"?C.green:v==="SELL"||v==="REDUCE"?C.red:v==="HOLD"?C.amber:v==="WATCH"?C.blue:C.muted;}
 function statusColor(v){return v==="EXCEEDED"||v==="PASSED"?C.green:v==="PARTIALLY_PASSED"?C.amber:v==="FAILED"?C.red:C.muted;}
