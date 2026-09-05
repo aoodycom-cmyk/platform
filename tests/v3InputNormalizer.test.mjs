@@ -172,3 +172,28 @@ assert.equal(nestedMarketAliases.marketPrice.currency, "USD");
 assert.equal(nestedMarketAliases.marketPrice.asOf, "2026-08-27");
 assert.equal(nestedMarketAliases.marketPrice.sourceId, "PRICE-1");
 assert.ok(nestedMarketAliases.sources[0].usedFor.includes("marketPrice"));
+
+const crossCheckMethod = normalizeFranklinV3Input({
+  valuation: {
+    methodology: {
+      primaryMethod: "DCF",
+      secondaryMethods: ["EV/EBITDA", "Historical Multiples"],
+      modelWeights: [
+        { method: "DCF", weight: 60 },
+        { method: "EV/EBITDA", weight: 40 }
+      ]
+    },
+    valuationResults: [
+      { method: "DCF", role: "PRIMARY", weight: 60 },
+      { method: "EV/EBITDA", role: "SECONDARY", weight: 40 },
+      { method: "Historical Multiples", role: "CROSS_CHECK", weight: null }
+    ]
+  }
+});
+assert.deepEqual(
+  crossCheckMethod.valuation.methodology.secondaryMethods,
+  ["EV/EBITDA"],
+  "unweighted CROSS_CHECK methods should not remain in weighted secondaryMethods"
+);
+assert.equal(crossCheckMethod.valuation.valuationResults[2].role, "CROSS_CHECK");
+assert.equal(crossCheckMethod.valuation.valuationResults[2].weight, null);

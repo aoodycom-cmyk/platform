@@ -84,6 +84,7 @@ export function normalizeFranklinV3Input(input = {}) {
     item.role = canonicalEnum(item.role, FRANKLIN_V3_VALUATION_ROLES);
     normalizeOptionalConfidence(item);
   }
+  normalizeValuationMethodology(value);
 
   const next = value.nextRequirements || {};
   next.mode = canonicalEnum(next.mode, FRANKLIN_V3_NEXT_REQUIREMENT_MODES);
@@ -101,6 +102,31 @@ export function normalizeFranklinV3Input(input = {}) {
   for (const source of list(value.sources)) source.type = canonicalEnum(source.type, FRANKLIN_V3_SOURCE_TYPES);
   normalizeMarketPriceSourceUsage(value);
   return value;
+}
+
+function normalizeValuationMethodology(value) {
+  const valuation = value?.valuation;
+  const methodology = valuation?.methodology;
+  if (!methodology || !Array.isArray(methodology.secondaryMethods)) return;
+
+  const weightedMethods = new Set(
+    list(methodology.modelWeights)
+      .filter((item) => Number(item?.weight) > 0)
+      .map((item) => normalizeMethodName(item?.method))
+      .filter(Boolean)
+  );
+  const unweightedCrossChecks = new Set(
+    list(valuation.valuationResults)
+      .filter((item) => canonicalEnum(item?.role, FRANKLIN_V3_VALUATION_ROLES) === "CROSS_CHECK")
+      .filter((item) => !(Number(item?.weight) > 0))
+      .map((item) => normalizeMethodName(item?.method))
+      .filter(Boolean)
+  );
+
+  methodology.secondaryMethods = methodology.secondaryMethods.filter((method) => {
+    const normalized = normalizeMethodName(method);
+    return !normalized || weightedMethods.has(normalized) || !unweightedCrossChecks.has(normalized);
+  });
 }
 
 function normalizeMarketPriceSourceUsage(value) {
@@ -250,6 +276,10 @@ function canonicalEnum(value, allowed = []) {
   const token = normalizeToken(value);
   const match = allowed.find((item) => normalizeToken(item) === token);
   return match ?? value;
+}
+
+function normalizeMethodName(value) {
+  return String(value || "").trim().toUpperCase().replace(/\s+/g, " ");
 }
 
 function normalizeToken(value) {

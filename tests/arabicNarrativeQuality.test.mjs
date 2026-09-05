@@ -17,6 +17,20 @@ const good = validateArabicNarrativeQuality({
 });
 assert.deepEqual(good.errors, []);
 
+const companyNameNarrative = validateArabicNarrativeQuality({
+  outputLanguage: "ar",
+  reportIdentity: { companyName: "Allegro MicroSystems, Inc.", ticker: "ALGM" },
+  companyGlossary: glossary,
+  companyProfile: {
+    summary: "تعمل Allegro MicroSystems في تصميم أشباه الموصلات وحلول الاستشعار لأسواق السيارات والصناعة، ويعتمد نموها على زيادة المحتوى الإلكتروني واتساع استخدام الحساسات."
+  }
+});
+assert.equal(
+  companyNameNarrative.errors.some((item) => item.field === "companyGlossary" && item.message.includes("Allegro MicroSystems")),
+  false,
+  "company names must not be treated as unexplained technical glossary terms"
+);
+
 const bad = validateArabicNarrativeQuality({
   outputLanguage: "ar",
   companyGlossary: [],

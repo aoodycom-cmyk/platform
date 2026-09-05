@@ -9,6 +9,7 @@ export function validateArabicNarrativeQuality(input = {}) {
   const errors = [];
   const warnings = [];
   const glossary = Array.isArray(input.companyGlossary) ? input.companyGlossary : [];
+  const dynamicIgnored = dynamicIgnoredTerms(input);
 
   if (glossary.length < 4) {
     errors.push(issue("companyGlossary", "يلزم إرفاق 4 مصطلحات فنية على الأقل وشرحها بالعربية المبسطة."));
@@ -41,7 +42,7 @@ export function validateArabicNarrativeQuality(input = {}) {
   for (const { text } of narratives) {
     for (const phrase of technicalPhrases(text)) {
       const normalized = normalizeEnglish(phrase);
-      if (!normalized || isIgnoredPhrase(normalized)) continue;
+      if (!normalized || isIgnoredPhrase(normalized) || isDynamicIgnoredPhrase(normalized, dynamicIgnored)) continue;
       if (!glossaryTerms.some((term) => term.includes(normalized) || normalized.includes(term))) unexplained.add(phrase);
     }
   }
@@ -87,6 +88,25 @@ function isIgnoredPhrase(value) {
   if (IGNORED_PHRASES.has(value)) return true;
   const words = value.split(" ");
   return words.every((word) => word.length <= 5 && word === word.toUpperCase());
+}
+
+function dynamicIgnoredTerms(input = {}) {
+  return [
+    input.reportIdentity?.companyName,
+    stripCompanySuffix(input.reportIdentity?.companyName),
+    input.reportIdentity?.ticker
+  ].map(normalizeEnglish).filter(Boolean);
+}
+
+function isDynamicIgnoredPhrase(value, ignored = []) {
+  return ignored.some((term) => term === value || term.includes(value) || value.includes(term));
+}
+
+function stripCompanySuffix(value) {
+  return String(value || "")
+    .replace(/[,\s]+(?:incorporated|inc|corp(?:oration)?|company|co|limited|ltd|plc|llc)\.?\s*$/i, "")
+    .replace(/[,\s]+$/g, "")
+    .trim();
 }
 
 function normalizeEnglish(value) {
