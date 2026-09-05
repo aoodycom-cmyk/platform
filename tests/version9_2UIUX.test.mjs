@@ -46,6 +46,11 @@ assert.ok(components.includes("Advanced Options"), "Blank JSON Template must be 
 assert.ok(components.includes("function externalChatGptPrepCard"), "Import page must show ChatGPT preparation guidance before paste.");
 assert.ok(components.includes("function missingDataCompletionCard"), "Missing data completion card must exist.");
 assert.ok(components.includes("copy-missing-requirements"), "Missing data card must expose Copy Missing Requirements.");
+const supplementInputStart = components.indexOf("function supplementaryInputPanel");
+const supplementInputEnd = components.indexOf("function supplementPreviewPanel", supplementInputStart);
+const supplementInputPanel = components.slice(supplementInputStart, supplementInputEnd);
+assert.ok(supplementInputPanel.includes('data-action="copy-missing-requirements"'), "Open supplement input must keep the missing-requirements copy action visible.");
+assert.ok(components.includes('querySelectorAll("[data-action=\'copy-missing-requirements\']")'), "Every visible missing-requirements copy action must be interactive.");
 assert.ok(components.includes("parse-external-supplement"), "Supplement paste flow must be wired.");
 assert.ok(components.includes("function supplementPreviewPanel"), "Supplement preview must exist before safe merge.");
 assert.ok(components.includes("function conflictRow"), "Conflict Review UI must exist.");
