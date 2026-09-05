@@ -131,14 +131,18 @@ const NUMERIC_FINANCIAL_NORMALIZATION_FIELDS = [
   "netDebt",
   "taxRatePct"
 ];
+const NORMALIZED_METRIC_FIELDS = ["value", "unit", "accountingBasis", "period", "sourceId"];
+const PE_TYPED_INPUT_FIELDS = ["normalizedForwardEps", "forwardEps", "eps", "impliedMultiple", "forwardMultiple", "peMultiple", "multiple"];
+const EV_EBITDA_TYPED_INPUT_FIELDS = ["normalizedEbitda", "ebitda", "evEbitdaMultiple", "impliedMultiple", "multiple", "netDebt", "dilutedShares"];
 const FORECAST_METRIC_NAMES = ["revenue", "revenueGrowthPct", "eps", "ebitda", "ebitdaMarginPct", "freeCashFlow", "fcfMarginPct"];
 
 export function validateFranklinV3Report(input = {}, context = {}) {
   const errors = [];
   const warnings = [];
+  const valuationMethodVerifications = [];
   if (!isFranklinV3Report(input)) {
     errors.push(fieldError("schemaVersion", `schemaVersion must be ${FRANKLIN_FAIR_VALUE_SCHEMA_VERSION}.`));
-    return { valid: false, errors, warnings };
+    return { valid: false, errors, warnings, valuationMethodVerifications };
   }
   if (input.methodologyVersion !== FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION) {
     errors.push(fieldError("methodologyVersion", `methodologyVersion must be ${FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION}.`));
@@ -157,7 +161,7 @@ export function validateFranklinV3Report(input = {}, context = {}) {
   validateFinancialNormalization(input, errors, warnings);
   validateForecast(input, errors);
   validateCompanyAndMarket(input, errors);
-  validateValuation(input, errors, warnings);
+  validateValuation(input, errors, warnings, valuationMethodVerifications);
   validateDecisionAndThesis(input, errors);
   validateNextRequirements(input, errors);
   validateAuditTotals(input, errors);
@@ -169,7 +173,7 @@ export function validateFranklinV3Report(input = {}, context = {}) {
   if (input.analysisType === "INITIAL") validateInitialRules(input, errors);
   if (input.analysisType === "EARNINGS_REVALUATION") validateEarningsRevaluationRules(input, context, errors, warnings);
 
-  return { valid: errors.length === 0, errors, warnings };
+  return { valid: errors.length === 0, errors, warnings, valuationMethodVerifications };
 }
 
 function validateUnknownTopLevelFields(input, errors) {
@@ -491,8 +495,12 @@ function validateForecast(input, errors) {
 
 function validateFinancialNormalization(input, errors, warnings) {
   const normalization = input.financialNormalization;
-  if (!normalization || typeof normalization !== "object" || Array.isArray(normalization)) {
+  if (normalization === null || normalization === undefined) {
     warnings.push(fieldError("financialNormalization", "Structured financial normalization is missing; valuation reproducibility is reduced."));
+    return;
+  }
+  if (!isPlainObject(normalization)) {
+    errors.push(validationError("financialNormalization", "object or null", normalization, `financialNormalization must be an object when present; received ${jsonType(normalization)}.`));
     return;
   }
   if (normalization.reportingCurrency && input.company?.reportingCurrency && normalization.reportingCurrency !== input.company.reportingCurrency) {
@@ -500,16 +508,29 @@ function validateFinancialNormalization(input, errors, warnings) {
   }
   let metricObjectCount = 0;
   let finiteMetricCount = 0;
+  let malformedMetricCount = 0;
   for (const field of NUMERIC_FINANCIAL_NORMALIZATION_FIELDS) {
+    if (!Object.hasOwn(normalization, field)) continue;
     const metric = normalization[field];
-    if (!metric || typeof metric !== "object" || Array.isArray(metric)) continue;
+    const path = `financialNormalization.${field}`;
+    if (!isPlainObject(metric)) {
+      malformedMetricCount += 1;
+      errors.push(validationError(path, "normalized metric object", metric, `${path} must be an object with the documented normalized metric shape; received ${jsonType(metric)}.`));
+      continue;
+    }
     metricObjectCount += 1;
-    if (Number.isFinite(numberOrNull(metric.value))) finiteMetricCount += 1;
-    if (metric.value !== null && metric.value !== undefined && !Number.isFinite(numberOrNull(metric.value))) {
-      errors.push(fieldError(`financialNormalization.${field}.value`, `${field} value must be numeric or null.`));
+    const shapeErrorCount = errors.length;
+    validateAllowedObjectKeys(path, metric, NORMALIZED_METRIC_FIELDS, errors);
+    if (errors.length > shapeErrorCount) malformedMetricCount += 1;
+    if (metric.value === null || metric.value === undefined) continue;
+    if (typeof metric.value === "number" && Number.isFinite(metric.value)) {
+      finiteMetricCount += 1;
+    } else {
+      malformedMetricCount += 1;
+      errors.push(validationError(`${path}.value`, "finite JSON number or null", metric.value, `${path}.value must be a finite JSON number or null; received ${jsonType(metric.value)}.`));
     }
   }
-  if (!metricObjectCount || !finiteMetricCount) {
+  if ((!metricObjectCount || !finiteMetricCount) && !malformedMetricCount) {
     warnings.push(fieldError("financialNormalization", "financialNormalization is present but contains no numeric metric values; valuation reproducibility is not verified."));
   }
   const cash = numberOrNull(normalization.cash?.value);
@@ -551,7 +572,7 @@ function validateCompanyAndMarket(input, errors) {
   }
 }
 
-function validateValuation(input, errors, warnings) {
+function validateValuation(input, errors, warnings, valuationMethodVerifications) {
   const valuation = input.valuation || {};
   const current = valuation.current || {};
   const bear = numberOrNull(current.bear);
@@ -589,12 +610,12 @@ function validateValuation(input, errors, warnings) {
     errors.push(fieldError("valuation.current.probabilityWeighted", "probabilityWeighted Fair Value arithmetic is inconsistent."));
   }
 
-  validateValuationMethodology(valuation, errors, warnings);
+  validateValuationMethodology(valuation, errors, warnings, valuationMethodVerifications);
   validateValuationCalculationAudit(valuation, errors, warnings);
   validateUpsideAndMargin(input, errors);
 }
 
-function validateValuationMethodology(valuation = {}, errors, warnings) {
+function validateValuationMethodology(valuation = {}, errors, warnings, valuationMethodVerifications) {
   const methodology = valuation.methodology || {};
   const weights = Array.isArray(methodology.modelWeights) ? methodology.modelWeights : [];
   if (!weights.length) errors.push(fieldError("valuation.methodology.modelWeights", "Valuation method weights must be supplied."));
@@ -634,7 +655,7 @@ function validateValuationMethodology(valuation = {}, errors, warnings) {
     if (!hasText(result?.calculation?.formula)) {
       warnings.push(fieldError(`valuation.valuationResults.${index}.calculation.formula`, "A formula is recommended so the valuation method can be independently reproduced."));
     }
-    validateValuationResultReproducibility(result, `valuation.valuationResults.${index}`, errors, warnings);
+    validateValuationResultReproducibility(result, `valuation.valuationResults.${index}`, errors, warnings, valuationMethodVerifications);
 
     const weighted = weightedMethods.get(method);
     if (weighted) {
@@ -1294,38 +1315,123 @@ function calculateProbabilityWeighted(scenarios = {}) {
   return pairs.reduce((sum, item) => sum + (item.fairValue * item.probability / 100), 0);
 }
 
-function validateValuationResultReproducibility(result = {}, path, errors, warnings) {
+function validateValuationResultReproducibility(result = {}, path, errors, warnings, verifications) {
   if (!isPlainObject(result)) return;
   const method = normalizeMethodName(result.method);
   const fairValue = numberOrNull(result.fairValue);
+  if (!method) return;
+  const rawMethod = String(result.method).trim();
+  const isPe = method.includes("P/E") || /\bPE\b/.test(method);
+  const isEvEbitda = method.includes("EV/EBITDA");
+
+  if (isPe || isEvEbitda) {
+    const typedFields = isPe ? PE_TYPED_INPUT_FIELDS : EV_EBITDA_TYPED_INPUT_FIELDS;
+    const malformed = validateTypedValuationInputFields(result, path, typedFields, isEvEbitda, errors);
+    if (malformed) {
+      recordValuationMethodVerification(verifications, path, rawMethod, "ERROR", "Recognized typed inputs contain malformed non-numeric values.");
+      return;
+    }
+  }
+
   const inputs = isPlainObject(result.inputs) ? result.inputs : {};
-  if (method.includes("P/E") || /\bPE\b/.test(method)) {
+  if (isPe) {
     const eps = numberOrNull(inputs.normalizedForwardEps ?? inputs.forwardEps ?? inputs.eps);
     const multiple = numberOrNull(inputs.impliedMultiple ?? inputs.forwardMultiple ?? inputs.peMultiple ?? inputs.multiple);
     if ([eps, multiple, fairValue].every(Number.isFinite)) {
       const expected = eps * multiple;
       if (!within(expected, fairValue, materialAmountTolerance(expected))) {
         errors.push(fieldError(`${path}.inputs`, "P/E fairValue must equal normalizedForwardEps multiplied by impliedMultiple."));
+        recordValuationMethodVerification(verifications, path, rawMethod, "ERROR", "Typed P/E inputs do not reconcile to fairValue.");
+      } else {
+        recordValuationMethodVerification(verifications, path, rawMethod, "VERIFIED", "Typed EPS and multiple inputs reconcile to fairValue.");
       }
       return;
     }
-    warnings.push(fieldError(`${path}.inputs`, "P/E reproducibility is not verified because normalizedForwardEps and impliedMultiple were not both supplied as JSON numbers."));
+    markValuationMethodNotVerified(result, path, rawMethod, "normalizedForwardEps and impliedMultiple were not both supplied as finite JSON numbers", warnings, verifications);
     return;
   }
-  if (method.includes("EV/EBITDA")) {
+  if (isEvEbitda) {
     const ebitda = numberOrNull(inputs.normalizedEbitda ?? inputs.ebitda);
     const multiple = numberOrNull(inputs.evEbitdaMultiple ?? inputs.impliedMultiple ?? inputs.multiple);
     const netDebt = numberOrNull(inputs.netDebt ?? result.calculation?.netDebt);
     const shares = numberOrNull(inputs.dilutedShares ?? result.calculation?.dilutedShares);
-    if ([ebitda, multiple, netDebt, shares, fairValue].every(Number.isFinite) && shares > 0) {
+    if (Number.isFinite(shares) && shares <= 0) {
+      const sharesPath = inputs.dilutedShares !== null && inputs.dilutedShares !== undefined
+        ? `${path}.inputs.dilutedShares`
+        : `${path}.calculation.dilutedShares`;
+      errors.push(validationError(sharesPath, "positive finite JSON number", shares, "dilutedShares must be positive for EV/EBITDA reproducibility."));
+      recordValuationMethodVerification(verifications, path, rawMethod, "ERROR", "dilutedShares is not positive.");
+      return;
+    }
+    if ([ebitda, multiple, netDebt, shares, fairValue].every(Number.isFinite)) {
       const expected = ((ebitda * multiple) - netDebt) / shares;
       if (!within(expected, fairValue, materialAmountTolerance(expected))) {
         errors.push(fieldError(`${path}.inputs`, "EV/EBITDA fairValue must reconcile to EBITDA, multiple, net debt, and diluted shares."));
+        recordValuationMethodVerification(verifications, path, rawMethod, "ERROR", "Typed EV/EBITDA inputs do not reconcile to fairValue.");
+      } else {
+        recordValuationMethodVerification(verifications, path, rawMethod, "VERIFIED", "Typed EBITDA, multiple, net debt, and diluted shares reconcile to fairValue.");
       }
       return;
     }
-    warnings.push(fieldError(`${path}.inputs`, "EV/EBITDA reproducibility is not verified because EBITDA, multiple, net debt, and diluted shares were not all supplied as JSON numbers."));
+    markValuationMethodNotVerified(result, path, rawMethod, "EBITDA, multiple, net debt, and diluted shares were not all supplied as finite JSON numbers", warnings, verifications);
+    return;
   }
+
+  const reason = method.includes("DCF")
+    ? "the v3 contract does not define a complete deterministic cash-flow schedule, discount timing convention, terminal-value convention, and unit/period binding"
+    : "the v3 contract does not define a deterministic typed verifier for this method";
+  markValuationMethodNotVerified(result, path, rawMethod, reason, warnings, verifications);
+}
+
+function validateTypedValuationInputFields(result, path, inputFields, includeCalculationFields, errors) {
+  let malformed = false;
+  if (result.inputs !== undefined && !isPlainObject(result.inputs)) {
+    errors.push(validationError(`${path}.inputs`, "object", result.inputs, `${path}.inputs must be an object when supplied; received ${jsonType(result.inputs)}.`));
+    malformed = true;
+  }
+  const inputs = isPlainObject(result.inputs) ? result.inputs : {};
+  for (const field of inputFields) {
+    if (!Object.hasOwn(inputs, field) || inputs[field] === null || inputs[field] === undefined) continue;
+    if (typeof inputs[field] !== "number" || !Number.isFinite(inputs[field])) {
+      errors.push(validationError(`${path}.inputs.${field}`, "finite JSON number or null", inputs[field], `${path}.inputs.${field} must be a finite JSON number or null; received ${jsonType(inputs[field])}.`));
+      malformed = true;
+    }
+  }
+
+  if (!includeCalculationFields) return malformed;
+  if (result.calculation !== undefined && !isPlainObject(result.calculation)) {
+    errors.push(validationError(`${path}.calculation`, "object", result.calculation, `${path}.calculation must be an object when supplied; received ${jsonType(result.calculation)}.`));
+    return true;
+  }
+  const calculation = isPlainObject(result.calculation) ? result.calculation : {};
+  for (const field of ["netDebt", "dilutedShares"]) {
+    if (!Object.hasOwn(calculation, field) || calculation[field] === null || calculation[field] === undefined) continue;
+    if (typeof calculation[field] !== "number" || !Number.isFinite(calculation[field])) {
+      errors.push(validationError(`${path}.calculation.${field}`, "finite JSON number or null", calculation[field], `${path}.calculation.${field} must be a finite JSON number or null; received ${jsonType(calculation[field])}.`));
+      malformed = true;
+    }
+  }
+  return malformed;
+}
+
+function markValuationMethodNotVerified(result, path, method, reason, warnings, verifications) {
+  warnings.push({
+    ...validationError(`${path}.inputs`, "typed inputs sufficient for deterministic verification", result.inputs, `${method} reproducibility is NOT_VERIFIED because ${reason}.`),
+    code: "VALUATION_METHOD_NOT_VERIFIED",
+    verificationState: "NOT_VERIFIED",
+    method
+  });
+  recordValuationMethodVerification(verifications, path, method, "NOT_VERIFIED", reason);
+}
+
+function recordValuationMethodVerification(verifications, path, method, state, reason) {
+  verifications.push({
+    field: path,
+    jsonPath: `$.${path}`,
+    method,
+    state,
+    reason
+  });
 }
 
 function validateOptionalPercentageRange(path, value, min, max, errors) {

@@ -12,8 +12,8 @@
 | منع التحويلات الرقمية غير الآمنة | PASS | أصبحت الحقول الرقمية القانونية تقبل JSON numbers finite فقط؛ السلاسل النصية والمصفوفات والـ booleans تُرفض بدلاً من تحويلها صامتاً. |
 | بوابة سعر السوق والمصدر | PASS | لم يعد النظام يخترع marketPrice provenance. المصدر يجب أن يكون Market Data، برابط http(s)، وusedFor يحتوي marketPrice، وتاريخ المصدر يطابق asOf ولا يكون بعد تاريخ التحليل. |
 | منع null/object-shape crashes | PASS | الـ normalizer لم يعد يرمي TypeError على عناصر null داخل المصفوفات؛ الـ validator يرفضها كأخطاء عقد واضحة. |
-| قابلية إعادة إنتاج حسابات التقييم | PASS | تمت إضافة تحقق P/E و EV/EBITDA من inputs منظمة، مع أخطاء عند التناقض وتحذيرات عند نقص المدخلات. لا يوجد تنفيذ صيغ حرة. |
-| مصدر الحقيقة بين src/public/docs | PASS | تم تشغيل build ومزامنة public/docs، وإضافة فحص CI يمنع drift صامتاً. |
+| قابلية إعادة إنتاج حسابات التقييم | PASS | يتم تصنيف كل طريقة صراحة. P/E وEV/EBITDA تصبحان VERIFIED فقط عند اكتمال المدخلات الرقمية وتطابق الحساب، والمدخلات المعروفة المشوهة تصبح ERROR، وبقية الطرق ومنها DCF تصبح NOT_VERIFIED بسبب عدم كفاية العقد لإعادة حساب حتمية. لا يوجد تنفيذ صيغ حرة. |
+| مصدر الحقيقة بين src/public/docs | PASS | تم تشغيل build ومزامنة public/docs والتحقق محلياً عبر `pnpm run check:source-sync`. ملف workflow بقي مطابقاً لـ`main` ولم يُعدّل في فرق PR النهائي. |
 | مصفوفة الحقول الكاملة | PASS | تم توليد matrix من 576 صفاً تغطي المسار من v3 input إلى validator/canonical/persistence/export/import/consumer/test. |
 | WebKit managed browser | BLOCKED | بيئة الاختبار لا تحتوي Playwright WebKit binary المطلوبة. هذا قصور بيئة وليس فشل تطبيق. |
 | اختبار Safari على iPhone فعلي | NOT_TESTED | لا يوجد جهاز iPhone/Safari فعلي متاح داخل هذه البيئة. |
@@ -26,6 +26,14 @@ Baseline commit:
 ```text
 e1ed5497cff317ada2725280f0fc63e62c669f20
 ```
+
+قاعدة PR الحالية بعد دمج تغييرات `main`:
+
+```text
+b6b41c85695ff66edc9b7bc39c1609f7c886eee7
+```
+
+أُعيد تأسيس فرع الإصلاح فوق هذه القاعدة مع الاحتفاظ بتعديل iOS الخاص بإرجاع موضع ترويسة صفحة الأرباح بعد delayed scroll anchoring.
 
 أوامر وأدلة التكاثر:
 
@@ -46,7 +54,9 @@ e1ed5497cff317ada2725280f0fc63e62c669f20
 
 2. `v3Validator`
 
-أضيفت طبقة structural contract للحقول المتداخلة، فحص source references في forecast rows، إلزام `companyName` و`periodEndDate` وforecast غير فارغ، فحوص WACC/terminal growth، بوابة مصدر السوق، وفحوص P/E و EV/EBITDA القابلة لإعادة الإنتاج. كما أصبحت `financialNormalization={}` و`calculationAudit={}` تولد warnings ولا تُسقط التحذيرات.
+أضيفت طبقة structural contract للحقول المتداخلة، فحص source references في forecast rows، إلزام `companyName` و`periodEndDate` وforecast غير فارغ، فحوص WACC/terminal growth، وبوابة مصدر السوق. حقول `financialNormalization` المعروفة تُفحص الآن ككائنات metric محددة الشكل، وقيمها غير الرقمية تُرفض بمسار JSON دقيق مع بقاء null المسموح به كما هو. كما تُرفض الأنواع المشوهة في مدخلات P/E وEV/EBITDA، ويصدر validator حالة منظمة لكل طريقة: VERIFIED أو NOT_VERIFIED أو ERROR. تبقى `financialNormalization={}` و`calculationAudit={}` حالتي warning حسب سياسة الاكتمال الحالية.
+
+عقد v3 الحالي لا يحدد جدول تدفقات نقدية كامل مرتبطاً بالعملة والوحدة لكل فترة، ولا convention لتوقيت الخصم أو القيمة النهائية. لذلك لم يُخترع نموذج DCF جديد؛ تُصنف DCF وReverse DCF وطرق FCF غير المدعومة صراحةً كـ`NOT_VERIFIED`.
 
 3. `v3Contract` و`v3Adapter`
 
@@ -56,9 +66,9 @@ e1ed5497cff317ada2725280f0fc63e62c669f20
 
 تم تمرير `currentReport` عبر `schema.js` و`parser.js` و`jsonContractRouter.js` حتى تعمل إعادة التقييم بالطريقة نفسها في strict parser، backend parser، وfull-analysis wrapper.
 
-5. الاختبارات والـ CI
+5. الاختبارات والتحقق من المزامنة
 
-تمت إضافة `tests/franklinAuditRepair.test.mjs` وتحديث اختبارات قديمة كانت مربوطة بأسماء إصدارات stale بدلاً من سلوك حقيقي. كما أضيف في `mobile2-ci.yml` فحص `npm run check:source-sync` وفحص `git diff --exit-code -- public docs` بعد build.
+تمت إضافة `tests/franklinAuditRepair.test.mjs` وتحديث اختبارات قديمة كانت مربوطة بأسماء إصدارات stale بدلاً من سلوك حقيقي. توسع اختبار الإصلاح ليغطي الأنواع النصية والمصفوفات والكائنات والـbooleans في مدخلات P/E وEV/EBITDA، وأشكال financial normalization المشوهة، وحالات VERIFIED وNOT_VERIFIED. تم تشغيل فحص source-sync محلياً؛ لا يحتوي فرق PR النهائي على أي تعديل لـ`.github/workflows/mobile2-ci.yml`.
 
 ## إعادة الاختبار بعد الإصلاح
 

@@ -110,6 +110,93 @@ expectRejectedOwner((report) => { report.valuation.valuationResults[0].inputs.no
 expectRejectedOwner((report) => { report.reportIdentity.companyName = ""; }, /companyName is required/);
 expectRejectedOwner((report) => { report.reportIdentity.periodEndDate = null; }, /periodEndDate is required/);
 
+const peValidation = validateFranklinV3Report(canonical);
+assert.equal(peValidation.valid, true, JSON.stringify(peValidation.errors, null, 2));
+assertMethodVerification(peValidation, "Forward P/E", "VERIFIED");
+
+const nullablePeInput = mutate(canonical, (report) => {
+  report.valuation.valuationResults[0].inputs.forwardEps = null;
+});
+const nullablePeValidation = validateFranklinV3Report(nullablePeInput);
+assert.equal(nullablePeValidation.valid, true, JSON.stringify(nullablePeValidation.errors, null, 2));
+assertMethodVerification(nullablePeValidation, "Forward P/E", "VERIFIED");
+
+for (const [field, value, receivedType] of [
+  ["normalizedForwardEps", "2", "string"],
+  ["forwardEps", [2], "array"],
+  ["eps", { value: 2 }, "object"],
+  ["impliedMultiple", true, "boolean"],
+  ["forwardMultiple", "41", "string"],
+  ["peMultiple", [41], "array"],
+  ["multiple", { value: 41 }, "object"]
+]) {
+  expectStructuredOwnerError(canonical, (report) => {
+    report.valuation.valuationResults[0].inputs[field] = value;
+  }, `valuation.valuationResults.0.inputs.${field}`, receivedType);
+}
+
+const evEbitdaOwner = mutate(canonical, configureEvEbitda);
+const evEbitdaValidation = validateFranklinV3Report(evEbitdaOwner);
+assert.equal(evEbitdaValidation.valid, true, JSON.stringify(evEbitdaValidation.errors, null, 2));
+assertMethodVerification(evEbitdaValidation, "EV/EBITDA", "VERIFIED");
+
+for (const [field, value, receivedType] of [
+  ["normalizedEbitda", "100", "string"],
+  ["ebitda", [100], "array"],
+  ["evEbitdaMultiple", { value: 10 }, "object"],
+  ["netDebt", true, "boolean"],
+  ["dilutedShares", "10", "string"]
+]) {
+  expectStructuredOwnerError(evEbitdaOwner, (report) => {
+    report.valuation.valuationResults[0].inputs[field] = value;
+  }, `valuation.valuationResults.0.inputs.${field}`, receivedType);
+}
+expectStructuredOwnerError(evEbitdaOwner, (report) => {
+  delete report.valuation.valuationResults[0].inputs.netDebt;
+  report.valuation.valuationResults[0].calculation = { netDebt: "200", dilutedShares: 10 };
+}, "valuation.valuationResults.0.calculation.netDebt", "string");
+
+const dcfValidation = validateFranklinV3Report(goldenB, frozenContext());
+assert.equal(dcfValidation.valid, true, JSON.stringify(dcfValidation.errors, null, 2));
+assertMethodVerification(dcfValidation, "DCF", "NOT_VERIFIED");
+assert.ok(dcfValidation.warnings.some((warning) => warning.method === "DCF" && warning.verificationState === "NOT_VERIFIED"));
+
+const unknownMethodOwner = mutate(canonical, (report) => {
+  report.valuation.methodology.secondaryMethods[1] = "Mystery Model";
+  report.valuation.methodology.modelWeights[2].method = "Mystery Model";
+  report.valuation.valuationResults[2].method = "Mystery Model";
+});
+const unknownMethodValidation = validateFranklinV3Report(unknownMethodOwner);
+assert.equal(unknownMethodValidation.valid, true, JSON.stringify(unknownMethodValidation.errors, null, 2));
+assertMethodVerification(unknownMethodValidation, "Mystery Model", "NOT_VERIFIED");
+assert.ok(unknownMethodValidation.warnings.some((warning) => warning.method === "Mystery Model" && warning.verificationState === "NOT_VERIFIED"));
+
+expectStructuredOwnerError(canonical, (report) => {
+  report.financialNormalization = { cash: [100] };
+}, "financialNormalization.cash", "array");
+expectStructuredOwnerError(canonical, (report) => {
+  report.financialNormalization = { cash: "100" };
+}, "financialNormalization.cash", "string");
+expectStructuredOwnerError(canonical, (report) => {
+  report.financialNormalization = { debt: true };
+}, "financialNormalization.debt", "boolean");
+expectStructuredOwnerError(canonical, (report) => {
+  report.financialNormalization = { freeCashFlow: { value: "500" } };
+}, "financialNormalization.freeCashFlow.value", "string");
+expectStructuredOwnerError(canonical, (report) => {
+  report.financialNormalization = { cash: { value: 100, unexpectedAmount: 100 } };
+}, "financialNormalization.cash.unexpectedAmount", "number");
+
+const nullableFinancialMetric = mutate(canonical, (report) => {
+  report.financialNormalization = {
+    reportingCurrency: "USD",
+    cash: { value: null, unit: "USD", accountingBasis: "GAAP", period: "Q2 2026", sourceId: null }
+  };
+});
+const nullableFinancialValidation = validateFranklinV3Report(nullableFinancialMetric);
+assert.equal(nullableFinancialValidation.valid, true, JSON.stringify(nullableFinancialValidation.errors, null, 2));
+assert.equal(nullableFinancialMetric.financialNormalization.cash.value, null, "Unknown financial data must remain null, not become zero.");
+
 const emptyFinancialNormalization = mutate(canonical, (report) => {
   report.financialNormalization = {};
 });
@@ -157,6 +244,41 @@ function expectRejectedOwner(mutator, pattern) {
   const joined = dispatched.validation.errors.map((error) => `${error.field}: ${error.message}`).join("\n");
   assert.match(joined, pattern);
   assert.throws(() => assertDispatchedPayloadValid(dispatched, candidate), /فشل التحقق من JSON/);
+}
+
+function expectStructuredOwnerError(base, mutator, field, receivedType) {
+  const candidate = mutate(base, mutator);
+  const dispatched = dispatchJsonPayload(candidate, {
+    intendedRoute: JSON_IMPORT_ROUTES.FULL_ANALYSIS,
+    context: { expectedTicker: "INTC", expectedReportPeriod: "Q2 2026" }
+  });
+  assert.equal(dispatched.validation.valid, false, `Expected structured validation error at ${field}`);
+  const error = dispatched.validation.errors.find((item) => item.field === field);
+  assert.ok(error, JSON.stringify(dispatched.validation.errors, null, 2));
+  assert.equal(error.jsonPath, `$.${field}`);
+  assert.equal(error.receivedType, receivedType);
+  assert.equal(dispatched.validation.warnings.some((warning) => warning.field === field), false, `${field} must not degrade to a warning.`);
+}
+
+function assertMethodVerification(validation, method, state) {
+  const verification = validation.valuationMethodVerifications.find((item) => item.method === method);
+  assert.ok(verification, `Missing valuation verification state for ${method}`);
+  assert.equal(verification.state, state, JSON.stringify(verification, null, 2));
+}
+
+function configureEvEbitda(report) {
+  report.valuation.methodology.primaryMethod = "EV/EBITDA";
+  report.valuation.methodology.modelWeights[0].method = "EV/EBITDA";
+  Object.assign(report.valuation.valuationResults[0], {
+    method: "EV/EBITDA",
+    fairValue: 80,
+    inputs: {
+      normalizedEbitda: 100,
+      evEbitdaMultiple: 10,
+      netDebt: 200,
+      dilutedShares: 10
+    }
+  });
 }
 
 function frozenContext() {
