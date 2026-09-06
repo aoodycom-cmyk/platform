@@ -1,0 +1,816 @@
+{
+  "schemaVersion": "franklin-fair-value/v3",
+  "methodologyVersion": "fair-value-methodology/v2",
+  "analysisType": "EARNINGS_REVALUATION",
+  "outputLanguage": "ar",
+  "companyGlossary": [
+    {
+      "termAr": "الإيرادات",
+      "termEn": "Revenue",
+      "plainExplanationAr": "قيمة المبيعات المثبتة في الإفصاح المالي الرسمي للفترة محل التحليل.",
+      "whyItMattersAr": "توضح حجم النشاط المبلغ عنه."
+    },
+    {
+      "termAr": "ربحية السهم",
+      "termEn": "Earnings per share",
+      "plainExplanationAr": "حصة السهم المخففة من صافي الربح وفق الأساس المحاسبي المعلن.",
+      "whyItMattersAr": "تربط الربح بعدد الأسهم."
+    },
+    {
+      "termAr": "التدفق النقدي الحر",
+      "termEn": "Free cash flow",
+      "plainExplanationAr": "التدفق التشغيلي بعد طرح القيمة المطلقة للإنفاق الرأسمالي عند توفرهما.",
+      "whyItMattersAr": "يقيس النقد المتبقي بصورة مبسطة."
+    },
+    {
+      "termAr": "مضاعف الربحية",
+      "termEn": "P/E",
+      "plainExplanationAr": "طريقة حسابية تضرب ربحية السهم المفترضة في مضاعف معلن لإنتاج قيمة السهم.",
+      "whyItMattersAr": "تجعل حساب القيمة قابلًا لإعادة الإنتاج."
+    }
+  ],
+  "reportIdentity": {
+    "ticker": "QCOM",
+    "companyName": "QUALCOMM INC/DE",
+    "fiscalQuarter": "Q3",
+    "fiscalYear": 2026,
+    "periodEndDate": "2026-06-28",
+    "earningsReleaseDate": "2026-07-29",
+    "analysisDate": "2026-07-29",
+    "previousAnalysisId": "QCOM-Q2-2026-phase5e-chain",
+    "previousRequirementSetId": "QCOM-Q2-2026-requirements"
+  },
+  "company": {
+    "sector": "غير مصنف ضمن حزمة الدليل",
+    "industry": "غير مصنف ضمن حزمة الدليل",
+    "reportingCurrency": "USD",
+    "tradingCurrency": "USD",
+    "securityUnit": "share"
+  },
+  "companyProfile": {
+    "summary": "تعرض هذه الحزمة تحليلًا ماليًا لشركة QUALCOMM INC/DE اعتمادًا على الإفصاح الرسمي المجمد حتى تاريخ القطع.",
+    "businessModel": "لم تتضمن حزمة القياس وصفًا تشغيليًا كاملًا؛ لذلك يقتصر هذا التقرير على الحقائق المالية الموثقة ولا يفترض نموذج أعمال غير مثبت.",
+    "activities": [],
+    "customers": [],
+    "mainGrowthDrivers": []
+  },
+  "dataQuality": {
+    "score": 90,
+    "confidence": "HIGH",
+    "reportedDataThrough": "2026-06-28",
+    "missingCriticalFields": [],
+    "notes": [
+      "الإجماع التاريخي غير متاح، لذلك لا توجد دعوى تفوق أو إخفاق."
+    ]
+  },
+  "classification": {
+    "companyType": "شركة عامة مدرجة",
+    "businessStage": "قائمة",
+    "cyclicality": "غير متحقق ضمن الحزمة",
+    "capitalIntensity": "غير متحقق ضمن الحزمة",
+    "evidence": [
+      "إفصاح SEC الرسمي للفترة Q3 2026."
+    ],
+    "confidence": "LOW"
+  },
+  "businessQuality": {
+    "score": 50,
+    "rating": "محايد",
+    "confidence": "LOW",
+    "components": {
+      "growth": 50,
+      "profitability": 50,
+      "cashFlow": 50,
+      "balanceSheet": 50,
+      "capitalAllocation": 50,
+      "competitiveAdvantage": 50,
+      "management": 50
+    },
+    "explanation": "الدرجة محايدة ومنخفضة الثقة لأنها ليست حقيقة صادرة عن الشركة، بل تفسير محدود لاختبار المسار الأصلي مع منع الادعاءات غير المدعومة."
+  },
+  "strengths": [],
+  "weaknesses": [],
+  "marketPrice": {
+    "value": 155.68,
+    "currency": "USD",
+    "asOf": "2026-07-29",
+    "priceType": "LAST_CLOSE",
+    "sourceId": "NASDAQ-QCOM-2026-07-29"
+  },
+  "latestQuarter": {
+    "summary": "يعرض هذا القسم فقط المقاييس المثبتة في الإفصاح الرسمي، وأي حقل غير متاح بقي فارغًا.",
+    "coreMetrics": {
+      "revenue": {
+        "actualValue": 9947000000,
+        "unit": "USD",
+        "consensusValue": null,
+        "priorYearValue": null,
+        "yoyPct": null,
+        "result": "NA",
+        "sourceId": "SEC-0000804328-0000804328-26-000086",
+        "qoqPct": null
+      },
+      "eps": {
+        "actualValue": 1.87,
+        "unit": "USD/share",
+        "consensusValue": null,
+        "priorYearValue": null,
+        "yoyPct": null,
+        "result": "NA",
+        "sourceId": "SEC-0000804328-0000804328-26-000086"
+      },
+      "grossMarginPct": {
+        "actualValue": null,
+        "consensusValue": null,
+        "priorYearValue": null,
+        "result": "NA",
+        "sourceId": null
+      },
+      "operatingMarginPct": {
+        "actualValue": 16.35,
+        "consensusValue": null,
+        "priorYearValue": null,
+        "result": "NA",
+        "sourceId": "SEC-0000804328-0000804328-26-000086"
+      },
+      "freeCashFlow": {
+        "actualValue": null,
+        "unit": null,
+        "priorYearValue": null,
+        "yoyPct": null,
+        "sourceId": null
+      },
+      "cash": {
+        "actualValue": 4533000000,
+        "unit": "USD",
+        "sourceId": "SEC-0000804328-0000804328-26-000086"
+      },
+      "debt": {
+        "actualValue": 1991000000,
+        "unit": "USD",
+        "sourceId": "SEC-0000804328-0000804328-26-000086"
+      }
+    },
+    "companySpecificKpis": [],
+    "guidance": [
+      {
+        "period": "Third Quarter Fiscal 2026",
+        "topic": "revenue",
+        "previousGuidance": null,
+        "currentGuidance": "X-99.1 2 qcom062826erex991.htm EX-99.1 Document Exhibit 99.1 FOR IMMEDIATE RELEASE Qualcomm Contact&#58; Brett Simpson Senior Vice President, Investor Relations Phone&#58; 1-858-658-4813 &#124; e-mail&#58; ir&#64;qualcomm.com Qualcomm Announces Third Quarter Fiscal 2026 Results Revenues&#58; $9.9 billion GAAP EPS&#58; $1.87, Non-GAAP EPS&#58; $2.21 &#8212;Combined QCT Automotive and IoT Revenues Grew 28% Year-Over-Year&#8212; &#8212;QCT Automotive Revenues&#58; 23 Consecutive Quarters of Double-Digit Year-Over-Year Growth&#8212; &#8212;Completed Acquisition of Modular Inc Creating an Open Software Foundation for ",
+        "previousLow": null,
+        "previousHigh": null,
+        "currentLow": null,
+        "currentHigh": null,
+        "midpoint": null,
+        "unit": "%",
+        "currency": "USD",
+        "accountingBasis": "NON_GAAP",
+        "direction": "new",
+        "interpretation": "التصنيف المستقل: VERIFIED_GUIDANCE_NOT_QUANTIFIED.",
+        "sourceId": "SEC-0000804328-0000804328-26-000085-EXHIBIT"
+      }
+    ],
+    "forwardOutlook": {
+      "growthOutlook": "unclear",
+      "marginOutlook": "unclear",
+      "fcfOutlook": "unclear",
+      "demandOutlook": "unclear",
+      "capacityOutlook": "unclear",
+      "executionOutlook": "unclear",
+      "guidanceTrend": "new",
+      "managementTone": "unclear",
+      "summary": "يتضمن الإفصاح الرسمي بيانًا إداريًا ماديًا عن الأداء والتوقعات؛ أُبقي الاتجاه غير واضح لأن الحزمة لا تثبت تفسيرًا كميًا مستقلًا."
+    }
+  },
+  "financialNormalization": {
+    "reportingPeriod": "Q3 2026",
+    "reportingCurrency": "USD",
+    "earningsBasisUsedForValuation": "GAAP facts; market-price scenario is interpretive",
+    "revenue": {
+      "value": 9947000000,
+      "unit": "USD",
+      "accountingBasis": "GAAP",
+      "period": "Q3 2026",
+      "sourceId": "SEC-0000804328-0000804328-26-000086"
+    },
+    "gaapNetIncome": {
+      "value": 2002000000,
+      "unit": "USD",
+      "accountingBasis": "GAAP",
+      "period": "Q3 2026",
+      "sourceId": "SEC-0000804328-0000804328-26-000086"
+    },
+    "adjustedNetIncome": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "normalizedNetIncome": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "gaapDilutedEps": {
+      "value": 1.87,
+      "unit": "USD/share",
+      "accountingBasis": "GAAP",
+      "period": "Q3 2026",
+      "sourceId": "SEC-0000804328-0000804328-26-000086"
+    },
+    "adjustedDilutedEps": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "normalizedDilutedEps": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "dilutedShares": {
+      "value": 1069000000,
+      "unit": "shares",
+      "accountingBasis": "GAAP",
+      "period": "Q3 2026",
+      "sourceId": "SEC-0000804328-0000804328-26-000086"
+    },
+    "stockBasedCompensation": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "operatingCashFlow": {
+      "value": 8405000000,
+      "unit": "USD",
+      "accountingBasis": "GAAP",
+      "period": "Q3 2026",
+      "sourceId": "SEC-0000804328-0000804328-26-000086"
+    },
+    "capitalExpenditure": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "workingCapitalChange": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "freeCashFlow": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "cash": {
+      "value": 4533000000,
+      "unit": "USD",
+      "accountingBasis": "GAAP",
+      "period": "Q3 2026",
+      "sourceId": "SEC-0000804328-0000804328-26-000086"
+    },
+    "debt": {
+      "value": 1991000000,
+      "unit": "USD",
+      "accountingBasis": "GAAP",
+      "period": "Q3 2026",
+      "sourceId": "SEC-0000804328-0000804328-26-000086"
+    },
+    "netDebt": {
+      "value": -2542000000,
+      "unit": "USD",
+      "accountingBasis": "GAAP",
+      "period": "Q3 2026",
+      "sourceId": "SEC-0000804328-0000804328-26-000086"
+    },
+    "taxRatePct": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "oneOffItems": [],
+    "reconciliationNotes": [],
+    "sourceIds": [
+      "SEC-0000804328-0000804328-26-000086"
+    ]
+  },
+  "forecast": {
+    "materiality": "NON_MATERIAL",
+    "yearlyForecast": [
+      {
+        "period": "FY2026",
+        "revenue": {
+          "value": null,
+          "basis": null
+        },
+        "revenueGrowthPct": {
+          "value": null,
+          "basis": null
+        },
+        "eps": {
+          "value": null,
+          "basis": null
+        },
+        "ebitda": {
+          "value": null,
+          "basis": null
+        },
+        "ebitdaMarginPct": {
+          "value": null,
+          "basis": null
+        },
+        "freeCashFlow": {
+          "value": null,
+          "basis": null
+        },
+        "fcfMarginPct": {
+          "value": null,
+          "basis": null
+        }
+      }
+    ],
+    "estimateRevisions": [],
+    "changedAssumptions": [],
+    "wacc": {
+      "value": null,
+      "rangeLow": null,
+      "rangeHigh": null,
+      "reason": "لا توجد فرضية توقع موثقة."
+    },
+    "terminalGrowth": {
+      "value": null,
+      "reason": "لا توجد فرضية نمو نهائي موثقة."
+    },
+    "sensitivity": [],
+    "summary": "لم يُنشأ توقع رقمي؛ البيانات المستقبلية غير المكتملة لم تُحوّل إلى حقائق أو تقديرات مصطنعة."
+  },
+  "previousRequirementsEvaluation": {
+    "requirementSetId": "QCOM-Q2-2026-requirements",
+    "targetQuarter": "Q3 2026",
+    "requirements": [
+      {
+        "id": "QCOM-R1",
+        "name": "revenue",
+        "arabicName": "الإيرادات",
+        "metric": "revenue",
+        "type": "qualitative",
+        "baselineValue": null,
+        "baselineDisplay": "غير مقيم",
+        "previousValue": null,
+        "previousDisplay": "غير مقيم",
+        "currentLevel": null,
+        "weight": 25,
+        "requiredValue": null,
+        "requiredDisplay": "نشر إيرادات الفترة التالية",
+        "unit": null,
+        "currency": null,
+        "accountingBasis": null,
+        "period": null,
+        "importance": "high",
+        "whyItMatters": "يوفر دليلًا جديدًا لتحديث التحليل من دون استخدام بيانات مستقبلية.",
+        "rangeLow": null,
+        "rangeHigh": null,
+        "requiredMin": null,
+        "requiredMax": null,
+        "qualitativeTarget": null,
+        "actualValue": null,
+        "actualDisplay": "لم يثبت ضمن حزمة الفترة الحالية",
+        "actualRaw": null,
+        "direction": null,
+        "impact": "لم يُقيّم لغياب تطابق دلالي مؤكد",
+        "status": "NOT_REPORTED",
+        "partialCreditPct": null,
+        "evaluationNote": "بقي المتطلب غير منشور ولم يُفترض نجاحه أو إخفاقه.",
+        "sourceId": null
+      },
+      {
+        "id": "QCOM-R2",
+        "name": "dilutedEps",
+        "arabicName": "ربحية السهم",
+        "metric": "dilutedEps",
+        "type": "qualitative",
+        "baselineValue": null,
+        "baselineDisplay": "غير مقيم",
+        "previousValue": null,
+        "previousDisplay": "غير مقيم",
+        "currentLevel": null,
+        "weight": 25,
+        "requiredValue": null,
+        "requiredDisplay": "نشر ربحية السهم المخففة",
+        "unit": null,
+        "currency": null,
+        "accountingBasis": null,
+        "period": null,
+        "importance": "high",
+        "whyItMatters": "يوفر دليلًا جديدًا لتحديث التحليل من دون استخدام بيانات مستقبلية.",
+        "rangeLow": null,
+        "rangeHigh": null,
+        "requiredMin": null,
+        "requiredMax": null,
+        "qualitativeTarget": null,
+        "actualValue": null,
+        "actualDisplay": "لم يثبت ضمن حزمة الفترة الحالية",
+        "actualRaw": null,
+        "direction": null,
+        "impact": "لم يُقيّم لغياب تطابق دلالي مؤكد",
+        "status": "NOT_REPORTED",
+        "partialCreditPct": null,
+        "evaluationNote": "بقي المتطلب غير منشور ولم يُفترض نجاحه أو إخفاقه.",
+        "sourceId": null
+      },
+      {
+        "id": "QCOM-R3",
+        "name": "operatingCashFlow",
+        "arabicName": "التدفق التشغيلي",
+        "metric": "operatingCashFlow",
+        "type": "qualitative",
+        "baselineValue": null,
+        "baselineDisplay": "غير مقيم",
+        "previousValue": null,
+        "previousDisplay": "غير مقيم",
+        "currentLevel": null,
+        "weight": 25,
+        "requiredValue": null,
+        "requiredDisplay": "نشر التدفق النقدي التشغيلي",
+        "unit": null,
+        "currency": null,
+        "accountingBasis": null,
+        "period": null,
+        "importance": "medium",
+        "whyItMatters": "يوفر دليلًا جديدًا لتحديث التحليل من دون استخدام بيانات مستقبلية.",
+        "rangeLow": null,
+        "rangeHigh": null,
+        "requiredMin": null,
+        "requiredMax": null,
+        "qualitativeTarget": null,
+        "actualValue": null,
+        "actualDisplay": "لم يثبت ضمن حزمة الفترة الحالية",
+        "actualRaw": null,
+        "direction": null,
+        "impact": "لم يُقيّم لغياب تطابق دلالي مؤكد",
+        "status": "NOT_REPORTED",
+        "partialCreditPct": null,
+        "evaluationNote": "بقي المتطلب غير منشور ولم يُفترض نجاحه أو إخفاقه.",
+        "sourceId": null
+      },
+      {
+        "id": "QCOM-R4",
+        "name": "guidance",
+        "arabicName": "التوجيهات",
+        "metric": "guidance",
+        "type": "qualitative",
+        "baselineValue": null,
+        "baselineDisplay": "غير مقيم",
+        "previousValue": null,
+        "previousDisplay": "غير مقيم",
+        "currentLevel": null,
+        "weight": 25,
+        "requiredValue": null,
+        "requiredDisplay": "توضيح التوجيه الرسمي أو عدم تقديمه",
+        "unit": null,
+        "currency": null,
+        "accountingBasis": null,
+        "period": null,
+        "importance": "medium",
+        "whyItMatters": "يوفر دليلًا جديدًا لتحديث التحليل من دون استخدام بيانات مستقبلية.",
+        "rangeLow": null,
+        "rangeHigh": null,
+        "requiredMin": null,
+        "requiredMax": null,
+        "qualitativeTarget": null,
+        "actualValue": null,
+        "actualDisplay": "لم يثبت ضمن حزمة الفترة الحالية",
+        "actualRaw": null,
+        "direction": null,
+        "impact": "لم يُقيّم لغياب تطابق دلالي مؤكد",
+        "status": "NOT_REPORTED",
+        "partialCreditPct": null,
+        "evaluationNote": "بقي المتطلب غير منشور ولم يُفترض نجاحه أو إخفاقه.",
+        "sourceId": null
+      }
+    ],
+    "assessment": {
+      "reportedRequirements": 0,
+      "totalRequirements": 4,
+      "coverageWeightPct": 0,
+      "achievementOfReportedWeightPct": null,
+      "achievementOfTotalWeightPct": 0,
+      "exceededWeightPct": 0,
+      "passedWeightPct": 0,
+      "partialWeightPct": 0,
+      "failedWeightPct": 0,
+      "notReportedWeightPct": 100,
+      "overallStatus": "INCOMPLETE",
+      "summary": "لم تتوفر أدلة كافية لتقييم متطلبات الفترة السابقة، فبقيت كلها غير منشورة."
+    }
+  },
+  "valuation": {
+    "reviewStatus": "UPDATED",
+    "previous": {
+      "bear": 124.8,
+      "base": 156,
+      "bull": 187.2,
+      "probabilityWeighted": 156,
+      "asOf": "2026-04-29"
+    },
+    "current": {
+      "bear": 124.54,
+      "base": 155.68,
+      "bull": 186.82,
+      "probabilityWeighted": 155.68,
+      "currency": "USD",
+      "securityUnit": "share",
+      "confidence": "LOW"
+    },
+    "change": {
+      "bearPct": -0.21,
+      "basePct": -0.21,
+      "bullPct": -0.2,
+      "summary": "تغيرت مرساة التقييم مع سعر الإغلاق التاريخي الجديد للفترة الحالية."
+    },
+    "methodology": {
+      "primaryMethod": "P/E",
+      "secondaryMethods": [],
+      "excludedMethods": [],
+      "methodologyChanged": false,
+      "selectionReason": "استخدم سعر الإغلاق عند القطع كمرساة محايدة لأن الحزمة لا تتضمن توقعًا مستقلاً كافيًا لتقييم جوهري.",
+      "modelWeights": [
+        {
+          "method": "P/E",
+          "weight": 100
+        }
+      ],
+      "weightReasoning": "طريقة واحدة بمدخلين مكتوبين وقابلين لإعادة الحساب.",
+      "limitations": [
+        "المدخلان افتراضان تحليليان متعادلان وليسا توقعًا صادرًا عن الشركة."
+      ]
+    },
+    "valuationResults": [
+      {
+        "method": "P/E",
+        "role": "PRIMARY",
+        "fairValue": 155.68,
+        "weight": 100,
+        "confidence": "LOW",
+        "inputs": {
+          "normalizedForwardEps": 155.68,
+          "impliedMultiple": 1
+        },
+        "assumptions": {
+          "interpretation": "neutral market-price anchor"
+        },
+        "calculation": {
+          "formula": "fair value = normalized forward EPS * implied multiple",
+          "steps": [
+            "ضرب المدخل 155.68 في المضاعف 1."
+          ],
+          "enterpriseValue": null,
+          "netDebt": null,
+          "nonOperatingAdjustments": null,
+          "equityValue": null,
+          "dilutedShares": null,
+          "computedFairValue": 155.68
+        },
+        "rationale": "مرساة تحليلية قابلة للتكرار تمنع اختلاق توقع مالي.",
+        "limitations": "المدخل ليس توقع ربحية صادرًا عن الشركة ولا قيمة جوهرية مستقلة."
+      }
+    ],
+    "scenarios": {
+      "Bear": {
+        "probability": 25,
+        "fairValue": 124.54,
+        "assumptions": [
+          "انخفاض تفسيري بنسبة 20%."
+        ],
+        "requiredOutcomes": [],
+        "keyRisks": []
+      },
+      "Base": {
+        "probability": 50,
+        "fairValue": 155.68,
+        "assumptions": [
+          "بقاء مرساة السعر التاريخي."
+        ],
+        "requiredOutcomes": [],
+        "keyRisks": []
+      },
+      "Bull": {
+        "probability": 25,
+        "fairValue": 186.82,
+        "assumptions": [
+          "ارتفاع تفسيري بنسبة 20%."
+        ],
+        "requiredOutcomes": [],
+        "keyRisks": []
+      }
+    },
+    "valuationBridge": {
+      "positiveDrivers": [],
+      "negativeDrivers": [],
+      "whyBaseChangedOrNot": "تغيرت القيمة الأساسية لأن مرساة سعر السوق التاريخي تغيرت بين تاريخي القطع.",
+      "baseChangeBridge": {
+        "previousBase": 156,
+        "operatingForecastImpact": 0,
+        "marginAndCashFlowImpact": 0,
+        "balanceSheetImpact": 0,
+        "dilutionImpact": 0,
+        "valuationParametersImpact": -0.32,
+        "otherImpact": 0,
+        "reconciledCurrentBase": 155.68,
+        "currentBase": 155.68,
+        "reconciliationGap": 0
+      }
+    },
+    "calculationAudit": {
+      "weightedMethodFairValue": 155.68,
+      "analystOverlayPct": 0,
+      "overlayReason": null,
+      "reconciledBaseFairValue": 155.68,
+      "gapToReportedBasePct": 0
+    },
+    "upsideToBasePct": 0,
+    "marginOfSafetyPct": 0
+  },
+  "thesis": {
+    "status": "UNCHANGED",
+    "previousSummary": "الأطروحة بقيت محايدة ومحدودة، مع تحديث الحقائق والسعر إلى الفترة التالية من دون اختلاق توقعات.",
+    "updatedSummary": "الأطروحة بقيت محايدة ومحدودة، مع تحديث الحقائق والسعر إلى الفترة التالية من دون اختلاق توقعات.",
+    "changeReason": "لم يظهر في الحزمة دليل كافٍ لتغيير الأطروحة المحدودة؛ جرى تحديث الفترة والمرساة فقط.",
+    "keySupports": [
+      "استمرت صلة الحقائق بالمصدر الرسمي لكل فترة."
+    ],
+    "keyThreats": [
+      "لا يزال التقييم المستقل الكامل غير متاح ضمن حزمة القياس."
+    ]
+  },
+  "decision": {
+    "scope": "STOCK_LEVEL",
+    "action": "WATCH",
+    "confidence": 25,
+    "investmentScore": 50,
+    "rationale": [
+      "السعر التاريخي مستخدم كمرساة سيناريو لا كتوصية استثمارية."
+    ],
+    "whyNot": [
+      "لا تتوفر توقعات مستقلة كافية لقرار شراء أو بيع."
+    ],
+    "biggestAssumption": "استمرار السعر كمرساة محايدة لحظة القطع.",
+    "mainRisk": "قد تختلف القيمة الجوهرية عن سعر السوق بصورة مادية.",
+    "upgradeTriggers": [],
+    "downgradeTriggers": []
+  },
+  "nextRequirements": {
+    "requirementSetId": "QCOM-Q3-2026-requirements",
+    "mode": "DEFEND_BASE",
+    "previousQuarter": "Q3 2026",
+    "targetQuarter": "Q4 2026",
+    "currentJustifiedValue": 155.68,
+    "targetValue": 155.68,
+    "targetScenario": "BASE_DEFENSE",
+    "targetDescription": "الحفاظ على المرساة الحالية حتى الإفصاح التالي.",
+    "summary": "متطلبات تحقق للفترة التالية ولا تُعد توقعات مؤكدة.",
+    "requirements": [
+      {
+        "id": "QCOM-R1",
+        "name": "revenue",
+        "arabicName": "الإيرادات",
+        "metric": "revenue",
+        "type": "qualitative",
+        "baselineValue": null,
+        "baselineDisplay": "غير مقيم",
+        "requiredValue": null,
+        "requiredDisplay": "نشر إيرادات الفترة التالية",
+        "unit": null,
+        "importance": "high",
+        "weight": 25,
+        "whyItMatters": "يوفر دليلًا جديدًا لتحديث التحليل من دون استخدام بيانات مستقبلية.",
+        "status": "NOT_REPORTED"
+      },
+      {
+        "id": "QCOM-R2",
+        "name": "dilutedEps",
+        "arabicName": "ربحية السهم",
+        "metric": "dilutedEps",
+        "type": "qualitative",
+        "baselineValue": null,
+        "baselineDisplay": "غير مقيم",
+        "requiredValue": null,
+        "requiredDisplay": "نشر ربحية السهم المخففة",
+        "unit": null,
+        "importance": "high",
+        "weight": 25,
+        "whyItMatters": "يوفر دليلًا جديدًا لتحديث التحليل من دون استخدام بيانات مستقبلية.",
+        "status": "NOT_REPORTED"
+      },
+      {
+        "id": "QCOM-R3",
+        "name": "operatingCashFlow",
+        "arabicName": "التدفق التشغيلي",
+        "metric": "operatingCashFlow",
+        "type": "qualitative",
+        "baselineValue": null,
+        "baselineDisplay": "غير مقيم",
+        "requiredValue": null,
+        "requiredDisplay": "نشر التدفق النقدي التشغيلي",
+        "unit": null,
+        "importance": "medium",
+        "weight": 25,
+        "whyItMatters": "يوفر دليلًا جديدًا لتحديث التحليل من دون استخدام بيانات مستقبلية.",
+        "status": "NOT_REPORTED"
+      },
+      {
+        "id": "QCOM-R4",
+        "name": "guidance",
+        "arabicName": "التوجيهات",
+        "metric": "guidance",
+        "type": "qualitative",
+        "baselineValue": null,
+        "baselineDisplay": "غير مقيم",
+        "requiredValue": null,
+        "requiredDisplay": "توضيح التوجيه الرسمي أو عدم تقديمه",
+        "unit": null,
+        "importance": "medium",
+        "weight": 25,
+        "whyItMatters": "يوفر دليلًا جديدًا لتحديث التحليل من دون استخدام بيانات مستقبلية.",
+        "status": "NOT_REPORTED"
+      }
+    ]
+  },
+  "risks": [
+    {
+      "title": "محدودية التقييم المستقل",
+      "severity": "high",
+      "explanation": "لا تتضمن الحزمة توقعًا ماليًا مستقلاً كاملًا، ولذلك قد تختلف القيمة الجوهرية ماديًا عن مرساة السعر التاريخي.",
+      "whatToMonitor": "الإفصاح المالي والتوجيه الرسمي في الفترة التالية.",
+      "thesisBreaker": "ظهور دليل رسمي يناقض الحقائق المستخدمة.",
+      "sourceIds": []
+    }
+  ],
+  "catalysts": [],
+  "monitoringChecklist": [],
+  "sources": [
+    {
+      "id": "SEC-0000804328-0000804328-26-000086",
+      "title": "SEC filing",
+      "type": "SEC",
+      "date": "2026-07-29",
+      "url": "https://www.sec.gov/Archives/edgar/data/804328/000080432826000086/qcom-20260628.htm",
+      "usedFor": [
+        "latestQuarter",
+        "financialNormalization"
+      ]
+    },
+    {
+      "id": "SEC-0000804328-0000804328-26-000085-EXHIBIT",
+      "title": "Official SEC-filed earnings exhibit",
+      "type": "SEC",
+      "date": "2026-07-29",
+      "url": "https://www.sec.gov/Archives/edgar/data/804328/000080432826000085/qcom062826erex991.htm",
+      "usedFor": [
+        "latestQuarter.guidance",
+        "latestQuarter.forwardOutlook"
+      ]
+    },
+    {
+      "id": "NASDAQ-QCOM-2026-07-29",
+      "title": "QCOM historical close",
+      "type": "Market Data",
+      "date": "2026-07-29",
+      "url": "https://api.nasdaq.com/api/quote/QCOM/historical?assetclass=stocks&fromdate=2025-02-04&todate=2026-07-29&limit=5000",
+      "usedFor": [
+        "marketPrice"
+      ]
+    }
+  ],
+  "limitations": [
+    "التقييم سيناريو سوقي تفسيري منخفض الثقة وليس حقيقة صادرة عن الشركة.",
+    "لا توجد دعوى تفوق أو إخفاق لغياب إجماع تاريخي موثوق في الحزمة."
+  ],
+  "audit": {
+    "scenarioProbabilityTotalPct": 100,
+    "valuationMethodWeightTotalPct": 100,
+    "previousRequirementWeightTotalPct": 100,
+    "nextRequirementWeightTotalPct": 100,
+    "consistencyNotes": [
+      "كل الحقائق الرقمية الحالية مرتبطة بإفصاح SEC للفترة نفسها."
+    ]
+  }
+}

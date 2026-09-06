@@ -196,10 +196,13 @@ test("supplement validation rejects empty arrays, unknown paths, missing referen
   assert.equal(validateExternalAnalysisSupplement(envelope({ risks: [] }), existing).valid, false);
   assert.equal(validateExternalAnalysisSupplement(envelope({ "valuation.current.base": 10 }), existing).valid, false);
   assert.equal(validateExternalAnalysisSupplement(envelope({ risks: [{ title: "Risk", sourceIds: ["MISSING"] }] }), existing).valid, false);
-  assert.equal(validateExternalAnalysisSupplement(envelope({ risks: [{ title: "Risk", sourceIds: ["S2"] }] }, [{ id: "S2" }]), existing).valid, false);
+  assert.equal(validateExternalAnalysisSupplement(envelope(
+    { risks: [{ title: "Risk", sourceIds: ["S2"] }] },
+    [{ id: "S2", title: "Filed source", sourceType: "SEC", date: "2026-09-01", url: "https://www.sec.gov/example" }]
+  ), existing).valid, true);
   assert.equal(validateExternalAnalysisSupplement(envelope({
     risks: [{ title: "Risk", sourceIds: ["S2"] }],
-    sources: [{ id: "S2", title: "Filed source" }]
+    sources: [{ id: "S2", title: "Filed source", sourceType: "SEC", date: "2026-09-01", url: "https://www.sec.gov/example" }]
   }), existing).valid, true);
 
   const polluted = JSON.parse('{"schemaVersion":"external-analysis-supplement/v1","ticker":"SAFE","targetAnalysisId":"SAFE","fields":{"__proto__.polluted":"yes"},"notes":[]}');

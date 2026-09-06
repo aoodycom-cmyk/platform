@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "franklin-phase6c-chain-fixture/v1",
+  "evidenceCorpus": "tests/corpus/real-world/source-packages.json",
+  "ticker": "QCOM",
+  "company": "QUALCOMM INC/DE",
+  "twoPeriodChain": [
+    {
+      "fixture": "period-1.json",
+      "reportPeriod": "Q1 2026",
+      "analysisType": "INITIAL",
+      "reportId": "QCOM-Q1-2026-phase5e-chain",
+      "requirementSetId": "QCOM-Q1-2026-requirements",
+      "previousAnalysisId": null,
+      "previousRequirementSetId": null,
+      "cutoffDate": "2026-02-04",
+      "marketPrice": {
+        "value": 148.89,
+        "currency": "USD",
+        "asOf": "2026-02-04",
+        "priceType": "LAST_CLOSE",
+        "sourceId": "NASDAQ-QCOM-2026-02-04"
+      }
+    },
+    {
+      "fixture": "period-2.json",
+      "reportPeriod": "Q2 2026",
+      "analysisType": "EARNINGS_REVALUATION",
+      "reportId": "QCOM-Q2-2026-phase5e-chain",
+      "requirementSetId": "QCOM-Q2-2026-requirements",
+      "previousAnalysisId": "QCOM-Q1-2026-phase5e-chain",
+      "previousRequirementSetId": "QCOM-Q1-2026-requirements",
+      "cutoffDate": "2026-04-29",
+      "marketPrice": {
+        "value": 156,
+        "currency": "USD",
+        "asOf": "2026-04-29",
+        "priceType": "LAST_CLOSE",
+        "sourceId": "NASDAQ-QCOM-2026-04-29"
+      }
+    }
+  ],
+  "threePeriodChain": [
+    {
+      "fixture": "period-1.json",
+      "reportPeriod": "Q1 2026",
+      "analysisType": "INITIAL",
+      "reportId": "QCOM-Q1-2026-phase5e-chain",
+      "requirementSetId": "QCOM-Q1-2026-requirements",
+      "previousAnalysisId": null,
+      "previousRequirementSetId": null,
+      "cutoffDate": "2026-02-04",
+      "marketPrice": {
+        "value": 148.89,
+        "currency": "USD",
+        "asOf": "2026-02-04",
+        "priceType": "LAST_CLOSE",
+        "sourceId": "NASDAQ-QCOM-2026-02-04"
+      }
+    },
+    {
+      "fixture": "period-2.json",
+      "reportPeriod": "Q2 2026",
+      "analysisType": "EARNINGS_REVALUATION",
+      "reportId": "QCOM-Q2-2026-phase5e-chain",
+      "requirementSetId": "QCOM-Q2-2026-requirements",
+      "previousAnalysisId": "QCOM-Q1-2026-phase5e-chain",
+      "previousRequirementSetId": "QCOM-Q1-2026-requirements",
+      "cutoffDate": "2026-04-29",
+      "marketPrice": {
+        "value": 156,
+        "currency": "USD",
+        "asOf": "2026-04-29",
+        "priceType": "LAST_CLOSE",
+        "sourceId": "NASDAQ-QCOM-2026-04-29"
+      }
+    },
+    {
+      "fixture": "period-3.json",
+      "reportPeriod": "Q3 2026",
+      "analysisType": "EARNINGS_REVALUATION",
+      "reportId": "QCOM-Q3-2026-phase5e-chain",
+      "requirementSetId": "QCOM-Q3-2026-requirements",
+      "previousAnalysisId": "QCOM-Q2-2026-phase5e-chain",
+      "previousRequirementSetId": "QCOM-Q2-2026-requirements",
+      "cutoffDate": "2026-07-29",
+      "marketPrice": {
+        "value": 155.68,
+        "currency": "USD",
+        "asOf": "2026-07-29",
+        "priceType": "LAST_CLOSE",
+        "sourceId": "NASDAQ-QCOM-2026-07-29"
+      }
+    }
+  ],
+  "verification": {
+    "nativeValidation": "PASS",
+    "import": "PASS",
+    "storage": "PASS",
+    "integrity": "PASS",
+    "roundTrip": "PASS"
+  }
+}

@@ -743,8 +743,8 @@ function valuation({ bear, base, bull, price, reviewStatus, previous, change }) 
     change,
     methodology: { primaryMethod: "DCF", secondaryMethods: ["P/E"], excludedMethods: [{ method: "Price to Book", reason: "Not economically relevant." }], methodologyChanged: false, selectionReason: "FCF is observable.", modelWeights: [{ method: "DCF", weight: 70 }, { method: "P/E", weight: 30 }], weightReasoning: "DCF primary.", limitations: [] },
     valuationResults: [
-      { method: "DCF", role: "PRIMARY", fairValue: base, weight: 70, confidence: "HIGH", inputs: {}, assumptions: {}, rationale: "Base method.", limitations: null },
-      { method: "P/E", role: "SECONDARY", fairValue: base, weight: 30, confidence: "MEDIUM", inputs: {}, assumptions: {}, rationale: "Secondary cross-check.", limitations: null }
+      { method: "DCF", role: "PRIMARY", fairValue: base, weight: 70, confidence: "HIGH", inputs: { forecastFreeCashFlows: Array(5).fill(base / 5), discountPeriods: [1, 2, 3, 4, 5], discountRatePct: 0, terminalValue: 0, terminalDiscountPeriod: 5, cash: 0, debt: 0, dilutedShares: 1 }, assumptions: {}, rationale: "Base method.", limitations: null },
+      { method: "P/E", role: "SECONDARY", fairValue: base, weight: 30, confidence: "MEDIUM", inputs: { normalizedForwardEps: 1, impliedMultiple: base }, assumptions: {}, rationale: "Secondary cross-check.", limitations: null }
     ],
     scenarios: {
       Bear: { probability: 20, fairValue: bear, assumptions: ["Bear"], requiredOutcomes: [], keyRisks: [] },

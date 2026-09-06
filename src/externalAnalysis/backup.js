@@ -144,7 +144,11 @@ function mergeQuarterlyEarningsHistory(current = {}, incoming = {}) {
     const byQuarter = new Map(currentRecords.map((record) => [record?.quarterKey || record?.id, record]));
     for (const record of records) {
       const key = record?.quarterKey || record?.id;
-      if (!key || byQuarter.has(key)) continue;
+      if (!key) continue;
+      if (byQuarter.has(key)) {
+        assertMergeIdentity(byQuarter.get(key), record, `quarterlyEarningsHistory.${ticker}.${key}`);
+        continue;
+      }
       byQuarter.set(key, record);
     }
     result[ticker] = [...byQuarter.values()];
@@ -194,10 +198,25 @@ function mergeByIdOrTicker(current = [], incoming = []) {
   const list = Array.isArray(current) ? [...current] : [];
   for (const item of Array.isArray(incoming) ? incoming : []) {
     const key = item?.id || item?.requirementSetId || item?.ticker || item?.company?.ticker || JSON.stringify(item);
-    const exists = list.some((entry) => (entry?.id || entry?.requirementSetId || entry?.ticker || entry?.company?.ticker || JSON.stringify(entry)) === key);
-    if (!exists) list.push(item);
+    const existing = list.find((entry) => (entry?.id || entry?.requirementSetId || entry?.ticker || entry?.company?.ticker || JSON.stringify(entry)) === key);
+    if (existing) assertMergeIdentity(existing, item, String(key));
+    else list.push(item);
   }
   return list;
+}
+
+function assertMergeIdentity(current, incoming, path) {
+  if (stableText(current) === stableText(incoming)) return;
+  const error = new Error(`Backup merge conflict at ${path}.`);
+  error.code = "BACKUP_CONFLICT";
+  error.conflicts = [{ path, current, incoming }];
+  throw error;
+}
+
+function stableText(value) {
+  if (Array.isArray(value)) return `[${value.map(stableText).join(",")}]`;
+  if (!value || typeof value !== "object") return JSON.stringify(value);
+  return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableText(value[key])}`).join(",")}}`;
 }
 
 function scrubSecrets(value) {

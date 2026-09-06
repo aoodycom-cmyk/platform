@@ -26,10 +26,28 @@ jobs:
         run: node --check orchestrator/src/run.mjs
 
       - name: Install
-        run: npm install --ignore-scripts
+        run: npm ci --ignore-scripts
+
+      - name: Install Chrome test runtime
+        run: npx playwright install --with-deps chromium
 
       - name: Build public bundle
         run: npm run build
+
+      - name: Run static quality gates
+        run: npm run quality
+
+      - name: Instrument critical-path coverage
+        run: npm run coverage
+
+      - name: Run deep financial truth campaign
+        run: npm run test:financial:deep
+
+      - name: Run deep AI integrity red team
+        run: npm run test:ai-integrity:deep
+
+      - name: Run frozen real-world benchmark
+        run: npm run test:real-world
 
       - name: Run tests
         run: npm test

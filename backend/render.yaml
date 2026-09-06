@@ -3,7 +3,7 @@ services:
     name: franklin-research-api
     runtime: node
     rootDir: backend
-    buildCommand: npm install --omit=dev
+    buildCommand: npm ci --omit=dev --ignore-scripts
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:

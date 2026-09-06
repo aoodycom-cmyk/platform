@@ -649,12 +649,15 @@ function mergeMonitoringForAdapter(checklist, whatChanges = {}) {
 function normalizeSources(items) {
   if (!Array.isArray(items)) return [];
   return items.map((item) => {
-    if (typeof item === "string") return { title: item, url: null, sourceType: null };
+    if (typeof item === "string") return { id: null, title: item, url: null, sourceType: null, date: null, usedFor: [] };
     if (!item || typeof item !== "object") return null;
     return {
+      id: firstText(item.id),
       title: firstText(item.name, item.title),
       url: firstText(item.url),
-      sourceType: firstText(item.type, item.sourceType)
+      sourceType: firstText(item.type, item.sourceType),
+      date: firstText(item.date),
+      usedFor: Array.isArray(item.usedFor) ? item.usedFor : []
     };
   }).filter(Boolean);
 }

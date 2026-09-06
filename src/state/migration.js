@@ -3,6 +3,7 @@ import { normalizeQuarterlyEarningsHistory } from "../externalAnalysis/quarterly
 export const FRANKLIN_STATE_SCHEMA_VERSION = 2;
 
 export const FRANKLIN_STATE_BACKUP_PREFIXES = [
+  "franklinCorruptStateBackupV1:",
   "franklinBootRecoveryBackup:",
   "franklinManualResetBackup:",
   "franklinPreCloudRestoreBackupV1",
@@ -13,9 +14,17 @@ export const FRANKLIN_STATE_BACKUP_PREFIXES = [
 ];
 
 export function migrateFranklinState(rawState = {}, options = {}) {
+  const inputVersion = normalizeInputSchemaVersion(rawState?.stateSchemaVersion);
+  if (inputVersion > FRANKLIN_STATE_SCHEMA_VERSION) {
+    const error = new Error(`Franklin state schema ${inputVersion} is newer than supported schema ${FRANKLIN_STATE_SCHEMA_VERSION}.`);
+    error.code = "FRANKLIN_STATE_VERSION_UNSUPPORTED";
+    error.receivedVersion = inputVersion;
+    error.supportedVersion = FRANKLIN_STATE_SCHEMA_VERSION;
+    throw error;
+  }
   const diagnostics = {
     schemaVersion: FRANKLIN_STATE_SCHEMA_VERSION,
-    previousSchemaVersion: normalizeInputSchemaVersion(rawState?.stateSchemaVersion),
+    previousSchemaVersion: inputVersion,
     warnings: [],
     quarantinedReports: [],
     dryRun: Boolean(options.dryRun),
@@ -36,6 +45,7 @@ export function migrateFranklinState(rawState = {}, options = {}) {
   const state = {
     ...input,
     stateSchemaVersion: FRANKLIN_STATE_SCHEMA_VERSION,
+    stateRevision: normalizeStateRevision(input.stateRevision),
     manualInputs: plainObject(input.manualInputs) ? input.manualInputs : { averageCost: "", morningstarFairValue: "", notes: "" },
     evaluatedCompanies: normalizeArray(input.evaluatedCompanies, "evaluatedCompanies", diagnostics),
     compareSelectedTickers: normalizeArray(input.compareSelectedTickers, "compareSelectedTickers", diagnostics),
@@ -56,6 +66,10 @@ export function migrateFranklinState(rawState = {}, options = {}) {
   state.__franklinMigration = input.__franklinMigration || diagnostics;
   if (options.includeRawBackupKey) state.__franklinRawBackupKey = options.includeRawBackupKey;
   return { state, diagnostics };
+}
+
+function normalizeStateRevision(value) {
+  return Number.isSafeInteger(value) && value >= 0 ? value : 0;
 }
 
 export function summarizeFranklinState(state = {}) {
@@ -96,7 +110,15 @@ export function migrateStoredFranklinState(storage = globalThis.localStorage, ke
   if (!storage) throw new Error("Franklin persistent storage is unavailable.");
   const raw = storage.getItem(key) || "{}";
   const parsed = parseStateText(raw);
-  if (!parsed.ok) throw new Error(`Franklin state JSON is invalid: ${parsed.error}`);
+  if (!parsed.ok) {
+    const now = options.now instanceof Date ? options.now : new Date();
+    const backupKey = `franklinCorruptStateBackupV1:${now.toISOString()}`;
+    storage.setItem(backupKey, raw);
+    const error = new Error(`Franklin state JSON is invalid: ${parsed.error}`);
+    error.code = "FRANKLIN_STATE_INVALID_JSON";
+    error.backupKey = backupKey;
+    throw error;
+  }
   const migrated = migrateFranklinState(parsed.value, { ...options, dryRun: Boolean(options.dryRun) });
   const serialized = JSON.stringify(migrated.state);
   const changed = stableStateText(migrated.state) !== stableStateText(parsed.value);
@@ -203,6 +225,24 @@ export function shouldBlockCloudPush(localState = {}, remoteState = {}, options 
     return {
       blocked: true,
       reason: "SUSPICIOUS_LOCAL_REDUCTION_REQUIRES_CONFIRMATION",
+      local,
+      remote
+    };
+  }
+  const protectedDatasets = [
+    "reportCount",
+    "historicalRequirementSetCount",
+    "quarterlyHistoryCount",
+    "quarterlySourceCount",
+    "supplementCount",
+    "evaluatedCompanyCount"
+  ];
+  const reducedDatasets = protectedDatasets.filter((key) => remote[key] > 0 && local[key] < remote[key]);
+  if (reducedDatasets.length) {
+    return {
+      blocked: true,
+      reason: "REMOTE_DATASET_REDUCTION_REQUIRES_CONFIRMATION",
+      reducedDatasets,
       local,
       remote
     };

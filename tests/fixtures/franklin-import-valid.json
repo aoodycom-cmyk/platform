@@ -32,7 +32,10 @@
   },
   "sources": [
     {
+      "id": "TEST-IR",
       "title": "Investor Relations",
+      "type": "Investor Relations",
+      "date": "2026-08-28",
       "url": "https://example.com"
     }
   ],

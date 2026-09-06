@@ -15,20 +15,16 @@ async function bootFranklin() {
   restorePreviousAuditState();
   try {
     await cloud.bootstrapAuditSnapshot?.();
-    if (window.__FRANKLIN_AUDIT_MODE?.readOnly && window.__FRANKLIN_BOOTSTRAP_STATE) {
-      if (sessionStorage.getItem(AUDIT_PREVIOUS_STATE_KEY) === null) {
-        const previous = localStorage.getItem(APP_STATE_KEY);
-        sessionStorage.setItem(AUDIT_PREVIOUS_STATE_KEY, previous === null ? "__FRANKLIN_NONE__" : previous);
-      }
-      localStorage.setItem(APP_STATE_KEY, JSON.stringify(window.__FRANKLIN_BOOTSTRAP_STATE));
-    }
   } catch (error) {
     auditBootstrapError = error;
     recordBootIssue("audit-bootstrap", error);
   }
 
   try {
-    const store = createStore();
+    const auditMode = Boolean(window.__FRANKLIN_AUDIT_MODE?.readOnly && window.__FRANKLIN_BOOTSTRAP_STATE);
+    const store = createStore(auditMode
+      ? { initialState: window.__FRANKLIN_BOOTSTRAP_STATE, readOnly: true }
+      : {});
     window.__equityResearchStore = store;
     mountApp(root, store);
     signalBootReady(root);
