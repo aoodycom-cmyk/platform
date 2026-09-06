@@ -3,7 +3,7 @@ import { buildFullAnalysisPrompt, FRANKLIN_INITIAL_PROMPT_VERSION } from "../src
 
 const prompt = buildFullAnalysisPrompt({ tickerHint: "NVDA" });
 
-assert.equal(FRANKLIN_INITIAL_PROMPT_VERSION, "franklin-initial-analysis-prompt/v3");
+assert.equal(FRANKLIN_INITIAL_PROMPT_VERSION, "franklin-initial-analysis-prompt/v4");
 assert.ok(prompt.includes("FRANKLIN_INITIAL_ANALYSIS"));
 assert.ok(prompt.includes("franklin-fair-value/v3"));
 assert.ok(prompt.includes("fair-value-methodology/v2"));
@@ -28,6 +28,11 @@ assert.ok(prompt.includes("Enterprise Value إلى Equity Value"));
 assert.ok(prompt.includes("عدد الأسهم المخفف"));
 assert.ok(prompt.includes("financialNormalization"));
 assert.ok(prompt.includes("computedFairValue"));
+assert.ok(prompt.includes("valuationInputContracts"));
+assert.ok(prompt.includes("normalizedForwardEps"));
+assert.ok(prompt.includes("normalizedFreeCashFlow"));
+assert.ok(prompt.includes("nonOperatingAdjustments"));
+assert.ok(prompt.includes("لا تضف الفترة أو العملة أو الوحدة إلى اسم المفتاح"));
 assert.ok(prompt.includes("weightedMethodFairValue"));
 assert.ok(prompt.includes("analystOverlayPct"));
 assert.ok(prompt.includes("لا تصدر القرار من نسبة upside وحدها"));
@@ -43,7 +48,7 @@ const firstBrace = prompt.indexOf("{");
 assert.ok(firstBrace > 0, "Prompt must contain one machine-readable request envelope.");
 const request = JSON.parse(prompt.slice(firstBrace));
 
-assert.equal(request.promptVersion, "franklin-initial-analysis-prompt/v3");
+assert.equal(request.promptVersion, "franklin-initial-analysis-prompt/v4");
 assert.equal(request.requestType, "FRANKLIN_INITIAL_ANALYSIS");
 assert.equal(request.ticker, "NVDA");
 assert.equal(request.authority.analyst, "ChatGPT / Fair Value");
@@ -51,6 +56,7 @@ assert.equal(request.outputContract.schemaVersion, "franklin-fair-value/v3");
 assert.equal(request.outputContract.methodologyVersion, "fair-value-methodology/v2");
 assert.equal(request.outputContract.analysisType, "INITIAL");
 assert.equal(request.outputContract.format, "DOWNLOADABLE_UTF8_JSON_FILE");
+assert.deepEqual(request.outputContract.valuationInputContracts.supportedWeightedMethods, ["DCF", "P/E", "EV/EBITDA", "EV/EBIT", "P/FCF", "SOTP"]);
 assert.equal(request.outputContract.quarterPeriodRules.exactFormat, "Q{1-4} YYYY");
 assert.deepEqual(request.outputContract.quarterPeriodRules.correctExamples, ["Q3 2026", "Q4 2026"]);
 assert.equal(request.jsonTemplate.schemaVersion, "franklin-fair-value/v3");

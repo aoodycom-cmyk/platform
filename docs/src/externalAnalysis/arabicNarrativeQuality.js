@@ -97,7 +97,8 @@ function dynamicIgnoredTerms(input = {}) {
   return [
     input.reportIdentity?.companyName,
     stripCompanySuffix(input.reportIdentity?.companyName),
-    input.reportIdentity?.ticker
+    input.reportIdentity?.ticker,
+    ...(input.companyProfile?.activities || []).flatMap((activity) => [activity?.name, activity?.arabicName])
   ].map(normalizeEnglish).filter(Boolean);
 }
 

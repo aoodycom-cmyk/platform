@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { parseExternalAnalysisInput } from "../src/externalAnalysis/parser.js";
 import { normalizeExternalAnalysisReport } from "../src/externalAnalysis/schema.js";
 import { validateExternalAnalysisReport } from "../src/externalAnalysis/externalAnalysisSchemaValidator.js";
+import { localizedValidationMessage } from "../src/ui/components.js";
 import {
   findDuplicateExternalAnalysis,
   getExternalAnalysis,
@@ -107,6 +108,18 @@ const contaminatedAsts = validateExternalAnalysisReport(normalizeExternalAnalysi
 }, rawJson, { now }));
 assert.equal(contaminatedAsts.valid, true, "Cross-company contamination must warn without blocking import.");
 assert.ok(contaminatedAsts.warnings.some((warning) => warning.message.includes("قد تخص شركة أخرى") && warning.message.includes("Micron")));
+
+const duplicatedGuidanceWarning = validateExternalAnalysisReport(normalizeExternalAnalysisReport({
+  ...validReport,
+  company: { ...validReport.company, ticker: "ASTS", name: "AST SpaceMobile" },
+  guidance: [{ topic: "Demand", interpretation: "Micron DRAM demand is improving." }]
+}, rawJson, { now })).warnings.filter((warning) => warning.field === "guidance.0.interpretation");
+assert.equal(duplicatedGuidanceWarning.length, 1, "Each contaminated guidance field must produce one warning.");
+assert.match(
+  localizedValidationMessage(duplicatedGuidanceWarning[0]),
+  /قد تخص شركة أخرى \(Micron \/ MU\)/,
+  "Arabic contamination warnings must retain their actionable detail."
+);
 
 const fairValueJson = JSON.stringify({
   schemaVersion: "fair-value-analysis/v1",
@@ -217,7 +230,7 @@ const fairValueJson = JSON.stringify({
   whatChangesMyMind: { items: [], biggestAssumption: "استمرار نمو Azure", upgradeTrigger: "هبوط السعر", downgradeTrigger: "ضغط الهوامش", thesisBreak: "تباطؤ جوهري", revaluationRequired: [] },
   finalDecision: { decision: "BUY", why: ["جودة عالية ونمو قوي."], whyNot: ["التقييم مرتفع."], biggestAssumption: "Azure", mainRisk: "التقييم", whatChangesTheDecision: [], policyGates: [] },
   monitoringChecklist: [{ metric: "Azure Growth", currentValue: "High", expectedRange: "Healthy", upgradeTrigger: "Acceleration", downgradeTrigger: "Slowdown", thesisBreak: "Sharp slowdown", revaluationEvent: "Earnings" }],
-  sources: [{ name: "Microsoft Investor Relations", type: "official", date: "2026-08-01", url: "https://www.microsoft.com/en-us/investor/", usedFor: ["earnings"] }],
+  sources: [{ id: "MSFT-IR", name: "Microsoft Investor Relations", type: "Investor Relations", date: "2026-08-01", url: "https://www.microsoft.com/en-us/investor/", usedFor: ["earnings"] }],
   dashboardExport: { approvedOnly: false, exported: false, ticker: "MSFT", recommendation: "BUY", currentPrice: 451, fairValue: 435, fairValueLow: 380, fairValueHigh: 500, upsideDownsidePercent: -4, investmentScore: 95, confidence: 91, primaryValuationMethod: "DCF", strengthsCount: 1, weaknessesCount: 1 }
 });
 const parsedFairValue = await parseExternalAnalysisInput(fairValueJson, { now });

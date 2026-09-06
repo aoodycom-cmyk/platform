@@ -5,7 +5,7 @@ import {
 } from "./v3Contract.js";
 import { buildDownloadableJsonDeliveryInstructions } from "./downloadableJsonDelivery.js";
 
-export const FRANKLIN_INITIAL_PROMPT_VERSION = "franklin-initial-analysis-prompt/v3";
+export const FRANKLIN_INITIAL_PROMPT_VERSION = "franklin-initial-analysis-prompt/v4";
 
 export function buildInitialAnalysisPrompt(options = {}) {
   const ticker = normalizeTicker(options.tickerHint);
@@ -88,7 +88,7 @@ export function buildInitialAnalysisPrompt(options = {}) {
         "لكل مصطلح اكتب termAr وtermEn وplainExplanationAr وwhyItMattersAr.",
         "plainExplanationAr يشرح المعنى بلغة مستثمر ذكي غير متخصص، وwhyItMattersAr يشرح أثره على النمو أو الهوامش أو المخاطر أو التقييم.",
         "لا تستخدم مصطلحًا فنيًا إنجليزيًا داخل السرد قبل شرحه بالعربية وإضافته إلى companyGlossary.",
-        "أسماء الشركات والمنتجات والرموز والأسهم يمكن أن تبقى بالإنجليزية، أما المعنى والاستنتاج فيجب أن يكونا بالعربية."
+        "أسماء الشركات والمنتجات والرموز والأسهم يمكن أن تبقى بالإنجليزية، لكن أي اسم منتج أو مشروع أو منصة إنجليزي مكون من كلمتين أو أكثر يجب إضافته إلى companyGlossary مع شرحه؛ أما المعنى والاستنتاج فيجب أن يكونا بالعربية."
       ],
       missingValue: null,
       forbidden: ["نص قبل JSON", "نص بعد JSON", "تعليقات برمجية", "undefined", "NaN", "Infinity", "trailing commas", "حقول مخترعة خارج العقد"],
@@ -104,6 +104,16 @@ export function buildInitialAnalysisPrompt(options = {}) {
         "marketPrice.currency وvaluation.current.currency يجب أن يساويا company.tradingCurrency",
         "sources[].date يجب أن يكون تاريخًا حقيقيًا بصيغة YYYY-MM-DD ولا يجوز أن يكون null"
       ],
+      valuationInputContracts: {
+        rule: "لا تضع وزنًا موجبًا لطريقة تقييم إلا إذا كانت من الطرق أدناه وكانت كل مدخلاتها أرقام JSON محدودة. استخدم أسماء المفاتيح حرفيًا ولا تضف الفترة أو العملة أو الوحدة إلى اسم المفتاح.",
+        supportedWeightedMethods: ["DCF", "P/E", "EV/EBITDA", "EV/EBIT", "P/FCF", "SOTP"],
+        "P/E": { inputs: ["normalizedForwardEps", "impliedMultiple"], formula: "fairValue = normalizedForwardEps * impliedMultiple" },
+        "EV/EBITDA": { inputs: ["normalizedEbitda", "evEbitdaMultiple", "netDebt", "dilutedShares", "nonOperatingAdjustments"], formula: "fairValue = ((normalizedEbitda * evEbitdaMultiple) - netDebt + nonOperatingAdjustments) / dilutedShares; use 0 for nonOperatingAdjustments when none" },
+        "P/FCF": { inputs: ["normalizedFreeCashFlow", "dilutedShares", "impliedMultiple"], formula: "fairValue = (normalizedFreeCashFlow / dilutedShares) * impliedMultiple" },
+        "EV/EBIT": { inputs: ["normalizedEbit", "evEbitMultiple", "netDebt", "dilutedShares"], formula: "fairValue = ((normalizedEbit * evEbitMultiple) - netDebt) / dilutedShares" },
+        SOTP: { inputs: ["componentEquityValues", "corporateAdjustments", "dilutedShares"], formula: "fairValue = (sum(componentEquityValues) + corporateAdjustments) / dilutedShares" },
+        DCF: { inputs: ["forecastFreeCashFlows", "discountPeriods", "discountRatePct", "terminalValue", "terminalDiscountPeriod", "cash", "debt", "dilutedShares"], formula: "fairValue = (sum(discounted forecastFreeCashFlows) + discounted terminalValue + cash - debt) / dilutedShares" }
+      },
       initialRules: {
         previousAnalysisId: null,
         previousRequirementSetId: null,

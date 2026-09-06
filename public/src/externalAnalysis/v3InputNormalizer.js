@@ -97,6 +97,7 @@ export function normalizeFranklinV3Input(input = {}) {
     if (!isPlainObject(item)) continue;
     item.role = canonicalEnum(item.role, FRANKLIN_V3_VALUATION_ROLES);
     normalizeOptionalConfidence(item);
+    normalizeValuationResultInputs(item);
   }
   normalizeValuationMethodology(value);
 
@@ -122,6 +123,37 @@ export function normalizeFranklinV3Input(input = {}) {
     source.type = canonicalEnum(source.type, FRANKLIN_V3_SOURCE_TYPES);
   }
   return value;
+}
+
+function normalizeValuationResultInputs(result) {
+  if (!isPlainObject(result?.inputs)) return;
+  const inputs = result.inputs;
+  const method = normalizeMethodName(result.method);
+  if (method.includes("EV/EBITDA")) {
+    assignNumericAlias(inputs, "normalizedEbitda", [/(?:^|_)EBITDA(?:_|$)/i]);
+    assignNumericAlias(inputs, "evEbitdaMultiple", [/targetMultiple/i]);
+    assignNumericAlias(inputs, "netDebt", [/netDebt/i]);
+    assignNumericAlias(inputs, "dilutedShares", [/dilutedShares/i, /^shares(?:_|$)/i]);
+  } else if (method.includes("P/FCF") || method.includes("PRICE/FCF")) {
+    assignNumericAlias(inputs, "normalizedFreeCashFlow", [/(?:^|_)FCF(?:_|$)/i], ["fcfPerShare"]);
+    assignNumericAlias(inputs, "dilutedShares", [/dilutedShares/i, /^shares(?:_|$)/i]);
+    assignNumericAlias(inputs, "impliedMultiple", [/targetMultiple/i]);
+  } else if (method.includes("P/E") || /\bPE\b/.test(method)) {
+    assignNumericAlias(inputs, "normalizedForwardEps", [/(?:^|_)EPS(?:_|$)/i]);
+    assignNumericAlias(inputs, "impliedMultiple", [/targetMultiple/i]);
+  }
+}
+
+function assignNumericAlias(inputs, canonicalKey, patterns, excludedKeys = []) {
+  if (typeof inputs[canonicalKey] === "number" && Number.isFinite(inputs[canonicalKey])) return;
+  const excluded = new Set(excludedKeys);
+  const alias = Object.entries(inputs).find(([key, value]) => (
+    !excluded.has(key)
+    && typeof value === "number"
+    && Number.isFinite(value)
+    && patterns.some((pattern) => pattern.test(key))
+  ));
+  if (alias) inputs[canonicalKey] = alias[1];
 }
 
 function normalizeValuationMethodology(value) {

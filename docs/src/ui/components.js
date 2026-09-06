@@ -1625,7 +1625,7 @@ function validationList(title, items, tone) {
   `;
 }
 
-function localizedValidationMessage(item = {}) {
+export function localizedValidationMessage(item = {}) {
   const field = item.field || "";
   const message = item.message || "";
   const messages = {
@@ -1665,6 +1665,7 @@ function localizedValidationMessage(item = {}) {
   if (message.includes("must be an array")) return "القيمة يجب أن تكون قائمة عناصر.";
   if (message.includes("NaN or Infinity")) return "الأرقام غير الصالحة مثل NaN أو Infinity غير مقبولة.";
   if (message.includes("positive number")) return "القيمة يجب أن تكون رقمًا موجبًا.";
+  if (/[؀-ۿ]/.test(message)) return message;
   return /[A-Za-z]{4}/.test(message) ? "تعذر قبول قيمة هذا الحقل وفق عقد Franklin v3." : message;
 }
 
@@ -7813,8 +7814,10 @@ function exportSelectedExternalReport(store) {
   const link = document.createElement("a");
   link.href = url;
   link.download = `${report.company?.ticker || "external-analysis"}-${report.analysisDate || "report"}.json`;
+  document.body.appendChild(link);
   link.click();
-  URL.revokeObjectURL(url);
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   store.set({ notice: store.state.language === "ar" ? "تم تصدير JSON." : "JSON exported." });
 }
 
@@ -7827,8 +7830,10 @@ function exportAllInvestmentData(store) {
   const link = document.createElement("a");
   link.href = url;
   link.download = `franklin-investment-data-${date}.json`;
+  document.body.appendChild(link);
   link.click();
-  URL.revokeObjectURL(url);
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   store.set({ notice: store.state.language === "ar" ? "تم تصدير كل بيانات الاستثمار بدون مفاتيح API." : "All investment data exported without API keys." });
 }
 
