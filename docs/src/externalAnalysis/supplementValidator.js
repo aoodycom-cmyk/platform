@@ -56,6 +56,7 @@ export function validateExternalAnalysisSupplement(supplement = {}, existingRepo
   }
 
   validateCombinedFairValueOrdering(existingReport, fields, errors);
+  validateIncomingSources([...(supplement.sources || []), ...(Array.isArray(fields.sources) ? fields.sources : [])], errors);
   validateSupplementSourceReferences(supplement, existingReport, fields, errors);
 
   return {
@@ -63,6 +64,25 @@ export function validateExternalAnalysisSupplement(supplement = {}, existingRepo
     errors,
     warnings
   };
+}
+
+function validateIncomingSources(sources, errors) {
+  const ids = new Set();
+  sources.forEach((source, index) => {
+    const path = `sources.${index}`;
+    const id = String(source?.id || "").trim();
+    if (!id || ids.has(id)) errors.push(fieldError(`${path}.id`, "Incoming source IDs must be present and unique."));
+    ids.add(id);
+    if (!String(source?.title || "").trim()) errors.push(fieldError(`${path}.title`, "Incoming source title is required."));
+    if (!String(source?.sourceType || source?.type || "").trim()) errors.push(fieldError(`${path}.sourceType`, "Incoming source type is required."));
+    if (!isValidDate(source?.date)) errors.push(fieldError(`${path}.date`, "Incoming source date must be valid."));
+    try {
+      const url = new URL(String(source?.url || ""));
+      if (!['http:', 'https:'].includes(url.protocol)) throw new Error("unsafe");
+    } catch {
+      errors.push(fieldError(`${path}.url`, "Incoming source URL must use HTTP or HTTPS."));
+    }
+  });
 }
 
 export function effectiveSupplementFields(supplement = {}, existingReport = {}) {
@@ -119,7 +139,8 @@ function validateFieldValue(path, value, errors) {
 function validateSupplementSourceReferences(supplement, existingReport, fields, errors) {
   const available = new Set([
     ...(existingReport.sources || []),
-    ...(Array.isArray(fields.sources) ? fields.sources : [])
+    ...(Array.isArray(fields.sources) ? fields.sources : []),
+    ...(Array.isArray(supplement.sources) ? supplement.sources : [])
   ].map((source) => source?.id).filter(Boolean));
   const references = [];
   collectSourceReferences(fields, "fields", references);

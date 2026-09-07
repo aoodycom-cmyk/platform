@@ -47,11 +47,10 @@ export function average(values = []) {
 }
 
 export function CAGR(values = []) {
-  const clean = values.filter((value) => Number.isFinite(value) && value > 0);
-  if (clean.length < 2) return null;
-  const first = clean[clean.length - 1];
-  const last = clean[0];
-  const years = clean.length - 1;
+  if (!Array.isArray(values) || values.length < 2 || values.some((value) => !Number.isFinite(value) || value <= 0)) return null;
+  const first = values[values.length - 1];
+  const last = values[0];
+  const years = values.length - 1;
   return Math.pow(last / first, 1 / years) - 1;
 }
 
@@ -62,12 +61,12 @@ export function weightedAverage(items = []) {
   return usable.reduce((sum, item) => sum + item.value * item.weight, 0) / weight;
 }
 
-export function money(value, digits = 0) {
+export function money(value, digits = 0, currency = "USD") {
   value = toNumber(value);
   if (!Number.isFinite(value)) return "-";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: String(currency || "USD").toUpperCase(),
     maximumFractionDigits: digits
   }).format(value);
 }

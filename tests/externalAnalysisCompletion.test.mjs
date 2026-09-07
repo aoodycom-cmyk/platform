@@ -181,7 +181,7 @@ const smartQuoteSupplementText = JSON.stringify({
     "thesis.shortSummary": "AWS and advertising support long-term compounding.",
     "risks": ["Margin compression", "Cloud competition"],
     "decision.verdict": "HOLD",
-    "sources": [{ name: "Amazon Investor Relations", type: "official", url: "https://ir.aboutamazon.com" }]
+    "sources": [{ id: "AMZN-IR", name: "Amazon Investor Relations", type: "Investor Relations", date: "2026-07-31", url: "https://ir.aboutamazon.com" }]
   },
   notes: []
 }).replace(/"/g, "\u201c");
@@ -190,12 +190,12 @@ assert.equal(parsedSmartQuote.usedAi, false, "Smart-quote JSON must parse locall
 assert.equal(parsedSmartQuote.supplement.fields["fairValueSummary.fairValueBase"], 290);
 assert.equal(parsedSmartQuote.supplement.fields.risks[0].title, "Margin compression");
 assert.equal(parsedSmartQuote.supplement.fields.sources[0].title, "Amazon Investor Relations");
-assert.equal(parsedSmartQuote.supplement.fields.sources[0].sourceType, "official");
+assert.equal(parsedSmartQuote.supplement.fields.sources[0].sourceType, "Investor Relations");
 const smartQuoteValidation = validateExternalAnalysisSupplement(parsedSmartQuote.supplement, incomplete);
 assert.equal(smartQuoteValidation.valid, true);
 const smartQuoteMerge = mergeExternalAnalysisSupplement(attachCompletionStatus(incomplete, validation), parsedSmartQuote.supplement, { now });
 assert.equal(smartQuoteMerge.report.risks[0].title, "Margin compression");
-assert.equal(smartQuoteMerge.report.sources[0].sourceType, "official");
+assert.equal(smartQuoteMerge.report.sources[0].sourceType, "Investor Relations");
 assert.equal(smartQuoteMerge.report.completionStatus.missingRequiredPaths.includes("risks"), false);
 
 const parsedNatural = await parseExternalAnalysisSupplement("نص طبيعي من ChatGPT", {

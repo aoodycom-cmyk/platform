@@ -15,6 +15,7 @@ assert.ok(index.includes("caches.keys"), "index should clear Franklin caches");
 
 assert.match(serviceWorker, /franklin-research-[A-Za-z0-9._-]+/, "service worker should use a versioned Franklin cache name");
 assert.ok(serviceWorker.includes("\"./rescue.html\""), "service worker should make the rescue page available");
+assert.ok(serviceWorker.includes("caches.match(OFFLINE_URL)"), "offline navigation should use an absolute cache key compatible with WebKit");
 for (const modulePath of [
   "./src/externalAnalysis/jsonContractRouter.js",
   "./src/externalAnalysis/quarterlyHistory.js",

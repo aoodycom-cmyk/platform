@@ -211,6 +211,19 @@ export async function saveCloudState(snapshot = localSnapshot(), options = {}) {
   }
 }
 
+export function cloudSyncFailureState(error) {
+  const code = String(error?.message || error || "CLOUD_SYNC_FAILED");
+  return {
+    status: code === "REVISION_CONFLICT" ? "conflict" : code === "AUTH_REQUIRED" ? "auth-required" : "error",
+    code,
+    message: code === "REVISION_CONFLICT"
+      ? "Cloud revision conflict. No data was overwritten."
+      : `Cloud sync failed: ${code}`,
+    retryable: code !== "AUTH_REQUIRED",
+    occurredAt: new Date().toISOString()
+  };
+}
+
 export async function initializeCloudFromLocal() {
   const remote = await loadCloudState();
   if (remote) return { mode: "remote-exists", remote };
@@ -506,6 +519,10 @@ export function mountCloudControls(store) {
       try {
         await saveCloudState(localSnapshot());
       } catch (error) {
+        const failure = cloudSyncFailureState(error);
+        saveMeta({ lastError: failure.code, errorAt: failure.occurredAt, syncStatus: failure.status });
+        store.set({ notice: failure.message });
+        document.dispatchEvent(new CustomEvent("franklin:cloud-sync-error", { detail: failure }));
         if (error?.message === "REVISION_CONFLICT") {
           document.dispatchEvent(new CustomEvent("franklin:cloud-conflict"));
         }
