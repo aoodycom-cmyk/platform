@@ -51,6 +51,16 @@ export function createBackendServer(options = {}) {
         return;
       }
 
+      if (!env.BACKEND_API_TOKEN) {
+        sendApiError(response, request, 503, "AUTH_NOT_CONFIGURED");
+        return;
+      }
+      const authorization = String(request.headers.authorization || "");
+      if (authorization !== `Bearer ${env.BACKEND_API_TOKEN}`) {
+        sendApiError(response, request, 401, "AUTH_REQUIRED");
+        return;
+      }
+
       await checkRateLimit(request, response, rateStore, env, `${request.method}:${url.pathname}`, rateLimitFor(url.pathname, env));
 
       if (request.method === "GET" && url.pathname === "/api/search") {

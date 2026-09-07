@@ -1,4 +1,5 @@
 import { getByPath } from "./fieldPaths.js";
+import { FRANKLIN_V3_SOURCE_TYPES } from "./v3Contract.js";
 
 export function validateExternalAnalysisReport(report = {}) {
   const errors = [];
@@ -35,6 +36,7 @@ export function validateExternalAnalysisReport(report = {}) {
   validatePriceTargetRequirements(report, errors);
   validateEstimateRevisions(report.estimateRevisions, errors);
   validateFiniteNumbers(report, errors);
+  validateSources(report, errors);
   warnings.push(...detectCrossCompanyContamination(report));
 
   if (report.analysisOrigin && report.analysisOrigin !== "external_chatgpt") {
@@ -51,6 +53,44 @@ export function validateExternalAnalysisReport(report = {}) {
   };
 }
 
+function validateSources(report, errors) {
+  if (!Array.isArray(report.sources)) return;
+  const ids = new Set();
+  report.sources.forEach((source, index) => {
+    const path = `sources.${index}`;
+    const id = String(source?.id || "").trim();
+    if (!id) errors.push(fieldError(`${path}.id`, "Source ID is required."));
+    else if (ids.has(id)) errors.push(fieldError(`${path}.id`, "Source IDs must be unique."));
+    else ids.add(id);
+    if (!hasText(source?.title)) errors.push(fieldError(`${path}.title`, "Source title is required."));
+    if (!FRANKLIN_V3_SOURCE_TYPES.includes(source?.type || source?.sourceType)) errors.push(fieldError(`${path}.type`, "Source type is not supported."));
+    if (!isValidDate(source?.date)) errors.push(fieldError(`${path}.date`, "Source date must be valid."));
+    try {
+      const url = new URL(String(source?.url || ""));
+      if (!['http:', 'https:'].includes(url.protocol)) throw new Error("unsafe protocol");
+    } catch {
+      errors.push(fieldError(`${path}.url`, "Source URL must use HTTP or HTTPS."));
+    }
+  });
+  walkSourceReferences(report, "", (path, id) => {
+    if (!ids.has(id)) errors.push(fieldError(path, `Source reference ${id} does not exist in sources.`));
+  });
+}
+
+function walkSourceReferences(value, path, visit) {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => walkSourceReferences(item, `${path}.${index}`, visit));
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+  for (const [key, item] of Object.entries(value)) {
+    const nextPath = path ? `${path}.${key}` : key;
+    if (key === "sourceId" && typeof item === "string" && item) visit(nextPath, item);
+    if (key === "sourceIds" && Array.isArray(item)) item.forEach((id, index) => { if (typeof id === "string" && id) visit(`${nextPath}.${index}`, id); });
+    if (key !== "sources" && key !== "franklinV3Report") walkSourceReferences(item, nextPath, visit);
+  }
+}
+
 function detectCrossCompanyContamination(report = {}) {
   const ticker = String(report.company?.ticker || "").trim().toUpperCase();
   const company = String(report.company?.name || "").trim().toLowerCase();
@@ -59,8 +99,7 @@ function detectCrossCompanyContamination(report = {}) {
     ...contaminationFields("companySpecificKpis", report.companySpecificKpis, ["name", "arabicName", "category", "interpretation", "source", "sourceName", "sourceUrl"]),
     ...contaminationFields("companyProfile.activities", report.companyProfile?.activities, ["name", "arabicName", "description", "importance"]),
     ...contaminationFields("priceTargetRequirements.requirements", report.priceTargetRequirements?.requirements, ["name", "arabicName", "metric", "whyItMatters", "evaluationNote"]),
-    ...contaminationFields("guidance", report.guidance, ["topic", "arabicTopic", "title", "name", "interpretation", "commentary", "explanation"]),
-    ...contaminationFields("guidance", report.guidance, ["topic", "arabicTopic", "interpretation"])
+    ...contaminationFields("guidance", report.guidance, ["topic", "arabicTopic", "title", "name", "interpretation", "commentary", "explanation"])
   ];
   const warnings = [];
   for (const field of fields) {

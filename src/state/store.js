@@ -77,8 +77,9 @@ import {
 
 const STORAGE_KEY = "equityResearchV4State";
 
-export function createStore() {
-  const saved = load();
+export function createStore(options = {}) {
+  const readOnly = Boolean(options.readOnly);
+  const saved = options.initialState === undefined ? load() : migrateFranklinState(options.initialState).state;
   const initialLanguage = normalizeLanguage(saved.language || localStorage.getItem("equityResearchLanguage") || "ar");
   setLanguageContext(initialLanguage);
   const initialManualInputs = saved.manualInputs || { averageCost: "", morningstarFairValue: "", notes: "" };
@@ -120,6 +121,8 @@ export function createStore() {
     historicalRequirementSets: initialHistoricalRequirementSets,
     quarterlyEarningsHistory: initialQuarterlyEarningsHistory,
     stateSchemaVersion: FRANKLIN_STATE_SCHEMA_VERSION,
+    stateRevision: Number.isSafeInteger(saved.stateRevision) ? saved.stateRevision : 0,
+    storageConflict: null,
     bootDiagnostics: saved.__franklinMigration || null,
     localBackupRegistry: findLocalFranklinBackups(localStorage),
     externalImport: createExternalImportState(),
@@ -139,10 +142,32 @@ export function createStore() {
   const listeners = new Set();
 
   function set(patch) {
+    if (readOnly) {
+      const error = new Error("Franklin audit mode is read-only.");
+      error.code = "FRANKLIN_READ_ONLY";
+      throw error;
+    }
     const resolvedPatch = typeof patch === "function" ? patch(state) : patch;
-    const nextState = { ...state, ...resolvedPatch };
-    persist(nextState);
-    Object.assign(state, resolvedPatch);
+    const expectedRevision = state.stateRevision;
+    const stateRevision = expectedRevision + 1;
+    const nextState = { ...state, ...resolvedPatch, stateRevision };
+    try {
+      persist(nextState, expectedRevision);
+    } catch (error) {
+      if (error?.code === "FRANKLIN_STORAGE_CONFLICT") {
+        state.storageConflict = {
+          expectedRevision: error.expectedRevision,
+          actualRevision: error.actualRevision,
+          detectedAt: new Date().toISOString()
+        };
+        listeners.forEach((listener) => listener(state));
+        if (typeof document !== "undefined") {
+          document.dispatchEvent(new CustomEvent("franklin:storage-conflict", { detail: state.storageConflict }));
+        }
+      }
+      throw error;
+    }
+    Object.assign(state, resolvedPatch, { stateRevision, storageConflict: null });
     listeners.forEach((listener) => listener(state));
   }
 
@@ -1273,8 +1298,10 @@ export function createStore() {
 
   function removeExternalReport(ticker, reportId) {
     const externalAnalyses = deleteExternalAnalysis(state.externalAnalyses, ticker, reportId);
+    const history = reconcileDeletedReportHistory(state, ticker, [reportId]);
     set({
       externalAnalyses,
+      ...history,
       externalReportSelection: null,
       activePanel: "home",
       notice: state.language === "ar" ? "تم حذف نسخة التحليل المستورد." : "Imported analysis version deleted."
@@ -1282,9 +1309,12 @@ export function createStore() {
   }
 
   function removeAllExternalReports(ticker) {
+    const reportIds = (state.externalAnalyses?.[String(ticker || "").toUpperCase()] || []).map((report) => report?.id).filter(Boolean);
     const externalAnalyses = deleteAllExternalAnalysesForTicker(state.externalAnalyses, ticker);
+    const history = reconcileDeletedReportHistory(state, ticker, reportIds);
     set({
       externalAnalyses,
+      ...history,
       externalReportSelection: null,
       activePanel: "home",
       notice: state.language === "ar" ? "تم حذف جميع التحليلات المستوردة لهذا السهم." : "All imported analyses for this ticker were deleted."
@@ -1440,8 +1470,8 @@ export function createStore() {
     const evaluatedCompany = previous
       ? {
         ...result.evaluatedCompany,
-        valuationVersions: [...(result.evaluatedCompany.valuationVersions || []), ...(previous.valuationVersions || [])].slice(0, 40),
-        history: [previous, ...(previous.history || [])].slice(0, 40)
+        valuationVersions: [...(result.evaluatedCompany.valuationVersions || []), ...(previous.valuationVersions || [])],
+        history: [previous, ...(previous.history || [])]
       }
       : result.evaluatedCompany;
     set({
@@ -1661,7 +1691,7 @@ export function createStore() {
       fairValue: state.research.valuation.compositeFairValue,
       marginOfSafety: state.research.valuation.marginOfSafety
     };
-    set({ history: [item, ...state.history].slice(0, 40), activePanel: "history" });
+    set({ history: [item, ...state.history], activePanel: "history" });
   }
 
   function setWatchDraft(field, value) {
@@ -1788,6 +1818,33 @@ export function createStore() {
   };
 }
 
+export function reconcileDeletedReportHistory(state = {}, ticker = "", reportIds = [], now = new Date()) {
+  const normalizedTicker = String(ticker || "").trim().toUpperCase();
+  const deleted = new Set(reportIds.filter(Boolean));
+  const deletedAt = now.toISOString();
+  const requirementBucket = (state.historicalRequirementSets?.[normalizedTicker] || []).map((item) => deleted.has(item?.createdFromAnalysisId)
+    ? { ...item, sourceAnalysisDeletedAt: deletedAt }
+    : item);
+  const quarterBucket = (state.quarterlyEarningsHistory?.[normalizedTicker] || []).map((item) => {
+    const removed = [...new Set([
+      ...(item?.analysisId && deleted.has(item.analysisId) ? [item.analysisId] : []),
+      ...(item?.sourceAnalysisIds || []).filter((id) => deleted.has(id))
+    ])];
+    if (!removed.length) return item;
+    return {
+      ...item,
+      analysisId: deleted.has(item.analysisId) ? null : item.analysisId,
+      sourceAnalysisIds: (item.sourceAnalysisIds || []).filter((id) => !deleted.has(id)),
+      deletedSourceAnalysisIds: [...new Set([...(item.deletedSourceAnalysisIds || []), ...removed])],
+      sourceAnalysisDeletedAt: deletedAt
+    };
+  });
+  return {
+    historicalRequirementSets: { ...(state.historicalRequirementSets || {}), [normalizedTicker]: requirementBucket },
+    quarterlyEarningsHistory: { ...(state.quarterlyEarningsHistory || {}), [normalizedTicker]: quarterBucket }
+  };
+}
+
 function normalizeEvaluatedSort(sort) {
   const defaultSort = { key: "rankingPosition", direction: "asc" };
   if (!sort?.key) return defaultSort;
@@ -1796,18 +1853,14 @@ function normalizeEvaluatedSort(sort) {
 }
 
 function load() {
-  try {
-    return migrateStoredFranklinState(localStorage, STORAGE_KEY).state;
-  } catch (error) {
-    return migrateFranklinState({
-      __franklinMigrationError: String(error?.message || error)
-    }).state;
-  }
+  return migrateStoredFranklinState(localStorage, STORAGE_KEY).state;
 }
 
-function persist(state) {
+function persist(state, expectedRevision) {
   const serialized = JSON.stringify({
     stateSchemaVersion: FRANKLIN_STATE_SCHEMA_VERSION,
+    stateRevision: state.stateRevision,
+    __franklinMigration: state.bootDiagnostics,
     company: state.company,
     manualInputs: state.manualInputs,
     language: state.language,
@@ -1826,9 +1879,18 @@ function persist(state) {
     historicalRequirementSets: state.historicalRequirementSets,
     quarterlyEarningsHistory: state.quarterlyEarningsHistory,
     history: state.history,
-    watchList: state.watchList
+    watchList: state.watchList,
+    watchDraft: state.watchDraft
   });
   const previous = localStorage.getItem(STORAGE_KEY);
+  const actualRevision = readPersistedRevision(previous);
+  if (actualRevision !== expectedRevision) {
+    const error = new Error(`Franklin state changed in another tab (expected revision ${expectedRevision}, found ${actualRevision}).`);
+    error.code = "FRANKLIN_STORAGE_CONFLICT";
+    error.expectedRevision = expectedRevision;
+    error.actualRevision = actualRevision;
+    throw error;
+  }
   try {
     localStorage.setItem(STORAGE_KEY, serialized);
     if (localStorage.getItem(STORAGE_KEY) !== serialized) throw new Error("Persistent storage verification failed.");
@@ -1839,6 +1901,18 @@ function persist(state) {
     } catch {
       // Preserve the original storage exception; rollback is best-effort.
     }
+    throw error;
+  }
+}
+
+function readPersistedRevision(raw) {
+  if (raw === null) return 0;
+  try {
+    const parsed = JSON.parse(raw);
+    return Number.isSafeInteger(parsed?.stateRevision) && parsed.stateRevision >= 0 ? parsed.stateRevision : 0;
+  } catch {
+    const error = new Error("Franklin cannot compare state revisions because persistent storage is malformed.");
+    error.code = "FRANKLIN_STORAGE_INVALID";
     throw error;
   }
 }

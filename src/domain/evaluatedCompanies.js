@@ -62,7 +62,7 @@ export function buildEvaluatedCompany({ company, research, manualInputs = {}, pr
     lastUpdated: now,
     companySnapshot: company,
     manualInputsSnapshot: { ...manualInputs },
-    history: previous ? [evaluationHistoryEntry(previous), ...(previous.history || [])].slice(0, 40) : []
+    history: previous ? [evaluationHistoryEntry(previous), ...(previous.history || [])] : []
   };
   return {
     ...base,

@@ -44,7 +44,7 @@ export function createAppServer(options = {}) {
   const fetchImpl = options.fetch || globalThis.fetch;
 
   return http.createServer(async (request, response) => {
-    applySecurityHeaders(response);
+    applySecurityHeaders(response, env);
 
     try {
       const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
@@ -771,7 +771,7 @@ function readJson(request, maxBytes) {
 }
 
 function isAuthenticated(request, env) {
-  if (!env.APP_ACCESS_PASSWORD) return true;
+  if (!env.APP_ACCESS_PASSWORD) return false;
   const token = parseCookies(request.headers.cookie || "")[SESSION_COOKIE];
   return verifySessionToken(token, env);
 }
@@ -842,7 +842,8 @@ function applyCorsHeaders(response, request, env) {
   response.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
-function applySecurityHeaders(response) {
+function applySecurityHeaders(response, env = {}) {
+  const cloudOrigin = safeOrigin(env.FRANKLIN_SUPABASE_URL);
   response.setHeader("X-Content-Type-Options", "nosniff");
   response.setHeader("Referrer-Policy", "no-referrer");
   response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
@@ -853,13 +854,22 @@ function applySecurityHeaders(response) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",
     "font-src 'self' data:",
-    "connect-src 'self'",
+    `connect-src 'self'${cloudOrigin ? ` ${cloudOrigin}` : ""}`,
     "manifest-src 'self'",
     "worker-src 'self'",
     "base-uri 'none'",
     "frame-ancestors 'none'",
     "form-action 'self'"
   ].join("; "));
+}
+
+function safeOrigin(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return url.protocol === "https:" ? url.origin : "";
+  } catch {
+    return "";
+  }
 }
 
 function sendApiError(response, request, status, code) {

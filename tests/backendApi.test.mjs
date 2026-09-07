@@ -87,6 +87,7 @@ const mockFetch = async (url, options = {}) => {
 
 const env = {
   FRONTEND_ORIGIN: ALLOWED_ORIGIN,
+  BACKEND_API_TOKEN: "backend-test-token",
   FMP_API_KEY: fakeSecrets.fmp,
   OPENAI_API_KEY: fakeSecrets.openai,
   OPENAI_MODEL: "gpt-test-parser",
@@ -155,6 +156,9 @@ try {
   assert.equal(options.status, 204);
   assert.equal(options.headers["access-control-allow-origin"], ALLOWED_ORIGIN);
 
+  const unauthenticated = await inject(server, { path: "/api/search?q=AAPL", headers: { origin: ALLOWED_ORIGIN, authorization: "" } });
+  assert.equal(unauthenticated.status, 401);
+
   const search = await inject(server, { path: "/api/search?q=AAPL", headers: { origin: ALLOWED_ORIGIN } });
   assert.equal(search.status, 200);
   assert.equal(search.json.results[0].ticker, "AAPL");
@@ -213,7 +217,7 @@ try {
   assert.equal(limited.status, 429);
   assert.equal(limited.text.includes(fakeSecrets.fmp), false);
 
-  const missingConfigServer = createBackendServer({ env: { FRONTEND_ORIGIN: ALLOWED_ORIGIN }, fetch: mockFetch, rateStore: new Map() });
+  const missingConfigServer = createBackendServer({ env: { FRONTEND_ORIGIN: ALLOWED_ORIGIN, BACKEND_API_TOKEN: env.BACKEND_API_TOKEN }, fetch: mockFetch, rateStore: new Map() });
   const missing = await inject(missingConfigServer, { path: "/api/search?q=AAPL", headers: { origin: ALLOWED_ORIGIN } });
   assert.equal(missing.status, 503);
   assert.equal(missing.text.includes("FMP_NOT_CONFIGURED"), true);
@@ -252,6 +256,7 @@ function inject(server, { method = "GET", path = "/", headers = {}, body = null 
     request.headers = {
       host: "127.0.0.1",
       accept: "application/json",
+      authorization: `Bearer ${env.BACKEND_API_TOKEN}`,
       ...(payload ? { "content-type": "application/json" } : {}),
       ...headers
     };

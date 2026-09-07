@@ -111,6 +111,36 @@ export function mergeExternalAnalysisSupplement(existingReport = {}, supplement 
   mergedReport.analysisOrigin = existingReport.analysisOrigin;
   mergedReport.id = existingReport.id;
   mergedReport.rawAnalysisOriginal = existingReport.rawAnalysisOriginal || existingReport.rawAnalysis || "";
+  const incomingSourceItems = [
+    ...(Array.isArray(supplement.sources) ? supplement.sources : []),
+    ...(Array.isArray(supplementFields.sources) ? supplementFields.sources : [])
+  ];
+  const incomingSources = incomingSourceItems.map((source) => ({
+    id: source.id,
+    title: source.title,
+    url: source.url,
+    type: source.type || source.sourceType,
+    date: source.date,
+    usedFor: Array.isArray(source.usedFor) ? source.usedFor : []
+  }));
+  const sourceById = new Map((existingReport.sources || []).map((source) => [source?.id, source]));
+  for (const source of incomingSources) {
+    if (!source.id || !sourceById.has(source.id)) sourceById.set(source.id, source);
+    else if (stableStringify(sourceById.get(source.id)) !== stableStringify(source)) {
+      return {
+        report: clone(existingReport),
+        validation: validateExternalAnalysisReport(existingReport),
+        supplementValidation,
+        appliedFields: [],
+        rejectedFields,
+        conflicts: [{ path: `sources.${source.id}`, currentValue: sourceById.get(source.id), newValue: source, reason: "source_id_conflict" }],
+        unchangedFields,
+        diagnostics,
+        summary: mergeSummary({ appliedFields: [], rejectedFields, conflicts: [{ path: `sources.${source.id}` }], unchangedFields, supplementFields })
+      };
+    }
+  }
+  mergedReport.sources = [...sourceById.values()];
   const auditId = createSupplementAuditId(existingReport, supplementFields);
   const previousSupplements = Array.isArray(existingReport.supplements) ? existingReport.supplements : [];
   mergedReport.supplements = previousSupplements.some((item) => item?.id === auditId)
@@ -126,6 +156,7 @@ export function mergeExternalAnalysisSupplement(existingReport = {}, supplement 
       unchangedFields,
       source: supplement.source || "ChatGPT",
       sourceModel: supplement.sourceModel || null,
+      sources: incomingSources,
       notes: Array.isArray(supplement.notes) ? supplement.notes : []
     }];
   mergedReport.metadata = {

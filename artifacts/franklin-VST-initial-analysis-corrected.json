@@ -1,0 +1,1347 @@
+{
+  "schemaVersion": "franklin-fair-value/v3",
+  "methodologyVersion": "fair-value-methodology/v2",
+  "analysisType": "INITIAL",
+  "outputLanguage": "ar",
+  "companyGlossary": [
+    {
+      "termAr": "الأرباح المعدلة قبل الفوائد والضرائب والإهلاك والاستهلاك",
+      "termEn": "Adjusted EBITDA",
+      "plainExplanationAr": "مقياس تشغيلي تستبعد منه Vistra أثر بعض البنود المحاسبية وغير المتكررة، ويُستخدم لقياس ربحية الأعمال المستمرة بصورة أقرب للاقتصاد التشغيلي.",
+      "whyItMattersAr": "هو المقياس الأساسي الذي توجه به الشركة المستثمرين، ويؤثر مباشرة في تقييم السهم بمضاعف قيمة المنشأة."
+    },
+    {
+      "termAr": "التدفق النقدي الحر المعدل قبل النمو",
+      "termEn": "Adjusted FCFbG",
+      "plainExplanationAr": "نقد متاح بعد احتياجات التشغيل والصيانة الأساسية وقبل الإنفاق المخصص لمشروعات النمو، مع تعديلات على رأس المال العامل وبعض البنود.",
+      "whyItMattersAr": "يبين قدرة الشركة على سداد الدين وإعادة شراء الأسهم ودفع التوزيعات وتمويل النمو دون خلطه بإنفاق توسعي اختياري."
+    },
+    {
+      "termAr": "التحوط",
+      "termEn": "Hedging",
+      "plainExplanationAr": "عقود تثبت أو تحد من تقلب أسعار الكهرباء والوقود لفترات مستقبلية.",
+      "whyItMattersAr": "ارتفاع نسبة التحوط يقلل تقلب الأرباح القريبة ويزيد وضوح التوقعات، لكنه قد يحد من الاستفادة الفورية من ارتفاع الأسعار."
+    },
+    {
+      "termAr": "اتفاقية شراء الطاقة",
+      "termEn": "Power Purchase Agreement",
+      "plainExplanationAr": "عقد طويل الأجل يلتزم فيه عميل بشراء كهرباء أو قدرة وفق شروط وأسعار متفق عليها.",
+      "whyItMattersAr": "العقود الطويلة مع عملاء كبار مثل مراكز البيانات قد ترفع وضوح الإيرادات وتدعم عوائد الاستثمارات الجديدة."
+    },
+    {
+      "termAr": "الإتاحة التجارية",
+      "termEn": "Commercial Availability",
+      "plainExplanationAr": "نسبة الوقت أو القدرة التي تكون فيها محطات التوليد جاهزة للعمل تجاريًا عند الحاجة.",
+      "whyItMattersAr": "الإتاحة المرتفعة تسمح للشركة بالاستفادة من فترات الأسعار والطلب المرتفعين وتقلل خسائر الأعطال."
+    },
+    {
+      "termAr": "إعادة التقييم بسعر السوق",
+      "termEn": "Mark-to-Market",
+      "plainExplanationAr": "إثبات مكاسب أو خسائر محاسبية على المشتقات وفق قيمتها السوقية الحالية قبل تسوية العقود نقديًا.",
+      "whyItMattersAr": "قد يجعل صافي الربح المحاسبي متقلبًا رغم أن التدفقات النقدية والاقتصاد التشغيلي لم يتغيرا بنفس الحجم."
+    },
+    {
+      "termAr": "مضاعف قيمة المنشأة إلى الأرباح التشغيلية المعدلة",
+      "termEn": "EV/EBITDA",
+      "plainExplanationAr": "يقارن قيمة المنشأة كاملة، بما فيها الدين، بالأرباح التشغيلية قبل الفوائد والضرائب والإهلاك والاستهلاك.",
+      "whyItMattersAr": "مناسب لشركة كثيفة الأصول والديون مثل Vistra لأنه يفصل هيكل التمويل عن الأداء التشغيلي."
+    },
+    {
+      "termAr": "مضاعف السعر إلى التدفق النقدي الحر",
+      "termEn": "P/FCF",
+      "plainExplanationAr": "يقارن القيمة السوقية للأسهم بالنقد الحر الذي تولده الشركة للمساهمين.",
+      "whyItMattersAr": "يختبر ما إذا كان تقييم السهم مدعومًا بالنقد الفعلي وليس بالأرباح المحاسبية فقط."
+    },
+    {
+      "termAr": "مضاعف السعر إلى الربحية",
+      "termEn": "P/E",
+      "plainExplanationAr": "يقارن سعر السهم بربحية السهم المتوقعة أو المحققة.",
+      "whyItMattersAr": "يعمل كاختبار معقولية إضافي، لكن يجب استخدامه بحذر لأن أرباح Vistra المحاسبية تتقلب مع المشتقات."
+    },
+    {
+      "termAr": "صافي الدين",
+      "termEn": "Net Debt",
+      "plainExplanationAr": "إجمالي الدين المالي ناقص النقد المتاح.",
+      "whyItMattersAr": "كلما ارتفع صافي الدين انخفضت القيمة المتبقية للمساهمين عند تحويل قيمة المنشأة إلى قيمة حقوق الملكية."
+    },
+    {
+      "termAr": "المبادئ المحاسبية المقبولة عمومًا",
+      "termEn": "GAAP",
+      "plainExplanationAr": "القواعد المحاسبية الرسمية المستخدمة في القوائم المالية الأمريكية.",
+      "whyItMattersAr": "تضمن أساسًا موحدًا للمقارنة، لكنها قد تتضمن تقلبات محاسبية غير نقدية لا تعكس الأداء التشغيلي وحده."
+    },
+    {
+      "termAr": "مقياس غير محاسبي رسمي",
+      "termEn": "Non-GAAP",
+      "plainExplanationAr": "مقياس تعدله الإدارة باستبعاد أو إضافة بنود لتوضيح الأداء التشغيلي كما تراه.",
+      "whyItMattersAr": "قد يكون أكثر فائدة تشغيليًا، لكنه يحتاج دائمًا إلى مصالحة مع الأرقام المحاسبية الرسمية ومراجعة جودة التعديلات."
+    },
+    {
+      "termAr": "هيلكس للبنية التحتية الرقمية",
+      "termEn": "Helix Digital Infrastructure",
+      "plainExplanationAr": "منصة ومشروع تابع لشركة Vistra يركز على تطوير بنية طاقة مخصصة لدعم مراكز البيانات والأحمال الرقمية الكبيرة.",
+      "whyItMattersAr": "قد يضيف طلبًا طويل الأجل على الكهرباء ويزيد وضوح الإيرادات، لكنه يتطلب تنفيذًا رأسماليًا وعقودًا منضبطة."
+    }
+  ],
+  "reportIdentity": {
+    "ticker": "VST",
+    "companyName": "Vistra Corp.",
+    "fiscalQuarter": "Q2",
+    "fiscalYear": 2026,
+    "periodEndDate": "2026-06-30",
+    "earningsReleaseDate": "2026-08-07",
+    "analysisDate": "2026-09-07",
+    "previousAnalysisId": null,
+    "previousRequirementSetId": null
+  },
+  "company": {
+    "sector": "Utilities",
+    "industry": "Integrated Retail Electricity and Power Generation",
+    "reportingCurrency": "USD",
+    "tradingCurrency": "USD",
+    "securityUnit": "share"
+  },
+  "companyProfile": {
+    "summary": "Vistra شركة كهرباء أمريكية متكاملة تجمع بين توليد الطاقة وبيع الكهرباء بالتجزئة. تمتلك أسطولًا متنوعًا من الغاز والطاقة النووية والفحم والطاقة الشمسية والبطاريات، وتبيع الكهرباء للأسر والشركات وتستفيد أيضًا من أسواق الطاقة والقدرة.",
+    "businessModel": "تكسب الشركة من هوامش بيع الكهرباء بالتجزئة، ومن إنتاج وبيع الطاقة والقدرة في أسواق الجملة، ومن إدارة محفظة الوقود والتحوطات. القيمة الاقتصادية ترتفع عندما تعمل المحطات بإتاحة مرتفعة، وتتحسن أسعار الطاقة والقدرة، وتنجح الشركة في تثبيت هوامش مستقبلية عبر التحوط والعقود طويلة الأجل، مع ضبط الإنفاق الرأسمالي والديون.",
+    "activities": [
+      {
+        "name": "Retail",
+        "arabicName": "بيع الكهرباء بالتجزئة",
+        "description": "بيع الكهرباء وخدمات الطاقة للعملاء السكنيين والتجاريين، مع إدارة مخاطر الأسعار عبر محفظة التوليد والتحوط.",
+        "importance": "مصدر مهم لاستقرار الهوامش وتنويع الإيرادات."
+      },
+      {
+        "name": "Texas",
+        "arabicName": "توليد الطاقة في تكساس",
+        "description": "تشغيل أصول توليد كبيرة في سوق تكساس، حيث تؤثر أسعار الطاقة والطقس والاعتمادية مباشرة في الأرباح.",
+        "importance": "أحد أهم محركات الربحية والحساسية لأسعار الكهرباء."
+      },
+      {
+        "name": "East",
+        "arabicName": "توليد الطاقة في الشرق",
+        "description": "أصول توليد في أسواق شرقية تشمل PJM وغيرها، وتستفيد من أسواق الطاقة والقدرة.",
+        "importance": "تمنح تعرضًا لأسعار القدرة ولطلب مراكز البيانات في مناطق ذات نمو أحمال مرتفع."
+      },
+      {
+        "name": "West",
+        "arabicName": "توليد الطاقة في الغرب",
+        "description": "أصول توليد وتخزين في الأسواق الغربية مع تعرض مختلف للأسعار والتنظيم.",
+        "importance": "تنويع جغرافي وتشغيلي."
+      }
+    ],
+    "customers": [
+      "عملاء سكنيون",
+      "شركات تجارية وصناعية",
+      "مرافق وأسواق كهرباء بالجملة",
+      "عملاء أحمال كبيرة ومراكز بيانات"
+    ],
+    "mainGrowthDrivers": [
+      "ارتفاع أسعار الطاقة والقدرة المحققة",
+      "نمو الطلب على الكهرباء من مراكز البيانات والذكاء الاصطناعي",
+      "مساهمات الأصول المستحوذ عليها",
+      "عقود شراء الطاقة طويلة الأجل",
+      "إعادة شراء الأسهم",
+      "تطوير أصول غاز وطاقة شمسية وتخزين جديدة"
+    ]
+  },
+  "dataQuality": {
+    "score": 92,
+    "confidence": "HIGH",
+    "reportedDataThrough": "2026-06-30",
+    "missingCriticalFields": [],
+    "notes": [
+      "البيانات المالية الأساسية مأخوذة من نتائج الربع الثاني وملف 10-Q الرسمي.",
+      "تقديرات السنوات المستقبلية تفصل بين إجماع السوق وافتراضات المحلل.",
+      "صافي الدين المستخدم في التقييم يشمل الدين طويل الأجل والتمويل بالذمم ويطرح النقد، ولا يعامل التزام إعادة شراء الأسهم كدين تشغيلي."
+    ]
+  },
+  "classification": {
+    "companyType": "Integrated Power and Retail Electricity",
+    "businessStage": "Mature Growth",
+    "cyclicality": "Moderate to High",
+    "capitalIntensity": "High",
+    "evidence": [
+      "أسطول توليد كثيف الأصول.",
+      "الأرباح حساسة لأسعار الطاقة والقدرة مع تخفيف واضح عبر التحوط.",
+      "الشركة في مرحلة نمو إضافي عبر الاستحواذات وعقود الأحمال الكبيرة."
+    ],
+    "confidence": "HIGH"
+  },
+  "businessQuality": {
+    "score": 82,
+    "rating": "جيدة جدًا",
+    "confidence": "HIGH",
+    "components": {
+      "growth": 82,
+      "profitability": 84,
+      "cashFlow": 83,
+      "balanceSheet": 70,
+      "capitalAllocation": 88,
+      "competitiveAdvantage": 80,
+      "management": 85
+    },
+    "explanation": "الجودة التشغيلية مرتفعة بفضل التكامل بين التوليد والتجزئة، تنوع الأسطول، الانضباط في التحوط، وإعادة شراء الأسهم. العامل الذي يمنع درجة أعلى هو الرفع المالي الكبير وحساسية القيمة لأسعار الطاقة والتنظيم وتنفيذ الاستحواذات."
+  },
+  "strengths": [
+    {
+      "title": "نمو تشغيلي قوي",
+      "explanation": "الأرباح التشغيلية المعدلة للأعمال المستمرة في الربع الثاني ارتفعت بأكثر من 30% على أساس سنوي، بدعم من أسعار طاقة وقدرة محققة أعلى ومساهمة أصول Lotus.",
+      "evidence": [
+        "Adjusted EBITDA للأعمال المستمرة بلغ 1.767 مليار دولار مقابل 1.349 مليار قبل عام."
+      ],
+      "importance": "high",
+      "durability": "متوسطة إلى مرتفعة طالما استمر الطلب والأسعار والعقود.",
+      "valuationImpact": "يدعم مضاعفًا أعلى إذا استمر نمو 2027 دون تدهور في الهوامش.",
+      "confidence": "HIGH",
+      "sourceIds": [
+        "S1"
+      ]
+    },
+    {
+      "title": "وضوح مرتفع للأرباح القريبة",
+      "explanation": "نسب التحوط المرتفعة تقلل عدم اليقين في 2026 و2027 وتدعم نطاقات التوجيه الحالية.",
+      "evidence": [
+        "نحو 100% من أحجام 2026 و94% من 2027 و72% من 2028 كانت محوطة في 3 أغسطس 2026."
+      ],
+      "importance": "high",
+      "durability": "مرتفعة على الأفق القريب.",
+      "valuationImpact": "تخفض خصم عدم اليقين على التدفقات القريبة.",
+      "confidence": "HIGH",
+      "sourceIds": [
+        "S1"
+      ]
+    },
+    {
+      "title": "تخصيص رأسمالي داعم للسهم",
+      "explanation": "إعادة شراء الأسهم خفضت عدد الأسهم بنحو 30% منذ نوفمبر 2021، ما يرفع نصيب السهم من القيمة إذا استمر التنفيذ بأسعار منضبطة.",
+      "evidence": [
+        "نحو 6.5 مليار دولار إعادة شراء منذ نوفمبر 2021 ونحو 1.2 مليار دولار تفويض متبقٍ حتى نهاية 2027."
+      ],
+      "importance": "high",
+      "durability": "متوسطة.",
+      "valuationImpact": "يدعم ربحية السهم والتدفق النقدي لكل سهم.",
+      "confidence": "HIGH",
+      "sourceIds": [
+        "S1"
+      ]
+    },
+    {
+      "title": "فرصة نمو من الأحمال الكبيرة",
+      "explanation": "شراكة Helix وعقود Meta وموقع Vistra كمزود طاقة مفضل تفتح مسارًا للاستفادة من نمو طلب مراكز البيانات.",
+      "evidence": [
+        "الشركة أعلنت Helix مع NVIDIA وKKR وKIA، وأشارت إلى مساهمة بعض عقود Meta ابتداءً من 2027."
+      ],
+      "importance": "high",
+      "durability": "مرتفعة إذا تحولت العقود إلى تدفقات طويلة الأجل.",
+      "valuationImpact": "يوفر خيار نمو غير مكتمل الانعكاس في توجيه 2027 الحالي.",
+      "confidence": "MEDIUM",
+      "sourceIds": [
+        "S1"
+      ]
+    }
+  ],
+  "weaknesses": [
+    {
+      "title": "رافعة مالية مرتفعة",
+      "explanation": "الدين المالي كبير مقارنة بالنقد، ما يجعل قيمة حقوق الملكية حساسة لتكلفة التمويل وتنفيذ الاستحواذات.",
+      "evidence": [
+        "الدين طويل الأجل شامل الجزء الجاري 19.595 مليار دولار، وتمويل الذمم 0.300 مليار، مقابل نقد 0.435 مليار في 30 يونيو 2026."
+      ],
+      "severity": "high",
+      "persistence": "متوسطة إلى مرتفعة.",
+      "valuationImpact": "يخفض قيمة السهم عند تحويل قيمة المنشأة إلى حقوق الملكية ويزيد حساسية المضاعف.",
+      "monitoringIndicator": "صافي الدين إلى الأرباح التشغيلية المعدلة.",
+      "confidence": "HIGH",
+      "sourceIds": [
+        "S2"
+      ]
+    },
+    {
+      "title": "تقلب الربح المحاسبي",
+      "explanation": "المشتقات والتحوطات قد تولد مكاسب أو خسائر غير محققة كبيرة، لذلك صافي الربح وحده قد يعطي صورة مضللة عن الاتجاه التشغيلي.",
+      "evidence": [
+        "الربع الثاني تضمن خسارة غير محققة من التحوطات بقيمة 472 مليون دولار."
+      ],
+      "severity": "medium",
+      "persistence": "مرتفعة بحكم نموذج إدارة المخاطر.",
+      "valuationImpact": "يجعل مضاعف الربحية أقل موثوقية كطريقة أساسية.",
+      "monitoringIndicator": "الفارق بين صافي الربح والتدفق النقدي والأرباح التشغيلية المعدلة.",
+      "confidence": "HIGH",
+      "sourceIds": [
+        "S1"
+      ]
+    },
+    {
+      "title": "كثافة رأسمالية وتنفيذ مشروعات",
+      "explanation": "التوليد النووي والغازي والمتجدد يحتاج إنفاقًا وصيانة كبيرة، ومع توسع الشركة قد ترتفع مخاطر تجاوز التكاليف أو التأخير.",
+      "evidence": [
+        "الإنفاق الرأسمالي شمل 1.572 مليار دولار خلال النصف الأول من 2026."
+      ],
+      "severity": "medium",
+      "persistence": "مرتفعة.",
+      "valuationImpact": "قد يضغط التدفق النقدي الحر إذا ارتفع إنفاق الصيانة أو النمو دون عائد مناسب.",
+      "monitoringIndicator": "الإنفاق الرأسمالي مقابل التوجيه وتحويل الأرباح التشغيلية إلى نقد.",
+      "confidence": "HIGH",
+      "sourceIds": [
+        "S2"
+      ]
+    }
+  ],
+  "marketPrice": {
+    "value": 149.3,
+    "currency": "USD",
+    "asOf": "2026-09-04",
+    "priceType": "LAST_CLOSE",
+    "sourceId": "MKT1"
+  },
+  "latestQuarter": {
+    "summary": "الربع الثاني 2026 أظهر تراجعًا في الإيرادات المحاسبية مقارنة بالعام السابق، لكن الربحية التشغيلية المعدلة تحسنت بقوة. الإدارة أبقت توجيه 2026 دون تغيير، بينما استمرت نسب التحوط المرتفعة في دعم وضوح الأرباح القريبة.",
+    "coreMetrics": {
+      "revenue": {
+        "actualValue": 4017,
+        "unit": "USD million",
+        "consensusValue": null,
+        "priorYearValue": 4250,
+        "yoyPct": -5.48235294117647,
+        "qoqPct": null,
+        "result": "NA",
+        "sourceId": "S1"
+      },
+      "eps": {
+        "actualValue": 0.76,
+        "unit": "USD/share",
+        "consensusValue": null,
+        "priorYearValue": 0.81,
+        "yoyPct": -6.172839506172845,
+        "result": "NA",
+        "sourceId": "S2"
+      },
+      "grossMarginPct": {
+        "actualValue": null,
+        "consensusValue": null,
+        "priorYearValue": null,
+        "result": "NA",
+        "sourceId": null
+      },
+      "operatingMarginPct": {
+        "actualValue": 13.766492407269107,
+        "consensusValue": null,
+        "priorYearValue": 12.117647058823529,
+        "result": "NA",
+        "sourceId": "S1"
+      },
+      "freeCashFlow": {
+        "actualValue": null,
+        "unit": "USD million",
+        "priorYearValue": null,
+        "yoyPct": null,
+        "sourceId": null
+      },
+      "cash": {
+        "actualValue": 435,
+        "unit": "USD million",
+        "sourceId": "S2"
+      },
+      "debt": {
+        "actualValue": 19895,
+        "unit": "USD million",
+        "sourceId": "S2"
+      }
+    },
+    "companySpecificKpis": [
+      {
+        "id": "KPI1",
+        "name": "Ongoing Operations Adjusted EBITDA",
+        "arabicName": "الأرباح التشغيلية المعدلة للأعمال المستمرة",
+        "actualValue": 1767,
+        "actualDisplay": "1.767 مليار دولار",
+        "priorValue": 1349,
+        "yoyPct": 30.98591549295775,
+        "qoqPct": null,
+        "result": "NA",
+        "importance": "critical",
+        "interpretation": "النمو القوي يدل على تحسن الاقتصاد التشغيلي الفعلي رغم تقلب صافي الربح المحاسبي.",
+        "sourceId": "S1"
+      },
+      {
+        "id": "KPI2",
+        "name": "Commercial Availability",
+        "arabicName": "الإتاحة التجارية للأسطول",
+        "actualValue": 97,
+        "actualDisplay": "97% أو أكثر خلال فترات الحر الشديد",
+        "priorValue": null,
+        "yoyPct": null,
+        "qoqPct": null,
+        "result": "NA",
+        "importance": "high",
+        "interpretation": "الاعتمادية المرتفعة تسمح للشركة بتحقيق إيرادات عندما تكون الأسعار والطلب مرتفعين.",
+        "sourceId": "S1"
+      },
+      {
+        "id": "KPI3",
+        "name": "2027 Hedged Generation",
+        "arabicName": "نسبة توليد 2027 المحوطة",
+        "actualValue": 94,
+        "actualDisplay": "نحو 94%",
+        "priorValue": null,
+        "yoyPct": null,
+        "qoqPct": null,
+        "result": "NA",
+        "importance": "high",
+        "interpretation": "تمنح وضوحًا قويًا لأرباح 2027 وتقلل خطر هبوط أسعار الطاقة القريب.",
+        "sourceId": "S1"
+      },
+      {
+        "id": "KPI4",
+        "name": "Shares Outstanding",
+        "arabicName": "عدد الأسهم القائمة",
+        "actualValue": 336,
+        "actualDisplay": "نحو 336 مليون سهم",
+        "priorValue": null,
+        "yoyPct": null,
+        "qoqPct": null,
+        "result": "NA",
+        "importance": "medium",
+        "interpretation": "انخفاض عدد الأسهم يرفع نصيب السهم من الأرباح والتدفق النقدي مع ثبات قيمة الأعمال.",
+        "sourceId": "S1"
+      }
+    ],
+    "guidance": [
+      {
+        "period": "FY 2026",
+        "topic": "Ongoing Operations Adjusted EBITDA",
+        "previousGuidance": "6.8-7.6",
+        "currentGuidance": "6.8-7.6",
+        "previousLow": 6800,
+        "previousHigh": 7600,
+        "currentLow": 6800,
+        "currentHigh": 7600,
+        "midpoint": 7200,
+        "unit": "USD million",
+        "currency": "USD",
+        "accountingBasis": "Non-GAAP",
+        "direction": "maintained",
+        "interpretation": "التوجيه الثابت بعد نصف أول قوي يشير إلى ثقة مع بقاء هامش لعدم اليقين في النصف الثاني.",
+        "sourceId": "S1"
+      },
+      {
+        "period": "FY 2026",
+        "topic": "Ongoing Operations Adjusted FCFbG",
+        "previousGuidance": "3.925-4.725",
+        "currentGuidance": "3.925-4.725",
+        "previousLow": 3925,
+        "previousHigh": 4725,
+        "currentLow": 3925,
+        "currentHigh": 4725,
+        "midpoint": 4325,
+        "unit": "USD million",
+        "currency": "USD",
+        "accountingBasis": "Non-GAAP",
+        "direction": "maintained",
+        "interpretation": "يوفر نطاقًا قويًا للنقد المتاح لخدمة الدين والعوائد للمساهمين وتمويل النمو.",
+        "sourceId": "S1"
+      },
+      {
+        "period": "FY 2027",
+        "topic": "Ongoing Operations Adjusted EBITDA Midpoint Opportunity",
+        "previousGuidance": "7.4-7.8",
+        "currentGuidance": "7.4-7.8",
+        "previousLow": 7400,
+        "previousHigh": 7800,
+        "currentLow": 7400,
+        "currentHigh": 7800,
+        "midpoint": 7600,
+        "unit": "USD million",
+        "currency": "USD",
+        "accountingBasis": "Non-GAAP",
+        "direction": "maintained",
+        "interpretation": "النطاق لا يشمل الفوائد المحتملة من Cogentrix أو عقود Meta، لذلك توجد إمكانية صعود إذا تم التنفيذ كما هو مخطط.",
+        "sourceId": "S1"
+      }
+    ],
+    "forwardOutlook": {
+      "growthOutlook": "stable",
+      "marginOutlook": "stable",
+      "fcfOutlook": "improving",
+      "demandOutlook": "improving",
+      "capacityOutlook": "expanding",
+      "executionOutlook": "stable",
+      "guidanceTrend": "maintained",
+      "managementTone": "positive",
+      "summary": "الصورة الأمامية إيجابية لكن ليست خالية من المخاطر: التحوط يعطي وضوحًا قويًا، والطلب من الأحمال الكبيرة يدعم النمو، بينما تنفيذ الاستحواذات والمشروعات وإدارة الدين سيحدد مقدار القيمة التي تصل للمساهمين."
+    }
+  },
+  "financialNormalization": {
+    "reportingPeriod": "6M 2026",
+    "reportingCurrency": "USD",
+    "earningsBasisUsedForValuation": "يرتكز التقييم أساسًا على الأرباح التشغيلية المعدلة والتدفق النقدي، مع استخدام الأرقام المحاسبية الرسمية للمصالحة والميزانية.",
+    "revenue": {
+      "value": 9657,
+      "unit": "USD million",
+      "accountingBasis": "GAAP",
+      "period": "6M ended 2026-06-30",
+      "sourceId": "S1"
+    },
+    "gaapNetIncome": {
+      "value": 1334,
+      "unit": "USD million",
+      "accountingBasis": "GAAP",
+      "period": "6M ended 2026-06-30",
+      "sourceId": "S1"
+    },
+    "adjustedNetIncome": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": "6M ended 2026-06-30",
+      "sourceId": null
+    },
+    "normalizedNetIncome": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": "6M ended 2026-06-30",
+      "sourceId": null
+    },
+    "gaapDilutedEps": {
+      "value": 3.64,
+      "unit": "USD/share",
+      "accountingBasis": "GAAP",
+      "period": "6M ended 2026-06-30",
+      "sourceId": "S2"
+    },
+    "adjustedDilutedEps": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": "6M ended 2026-06-30",
+      "sourceId": null
+    },
+    "normalizedDilutedEps": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": "6M ended 2026-06-30",
+      "sourceId": null
+    },
+    "dilutedShares": {
+      "value": 340.541176,
+      "unit": "million shares",
+      "accountingBasis": "GAAP weighted average diluted",
+      "period": "6M ended 2026-06-30",
+      "sourceId": "S2"
+    },
+    "stockBasedCompensation": {
+      "value": 67,
+      "unit": "USD million",
+      "accountingBasis": "GAAP",
+      "period": "6M ended 2026-06-30",
+      "sourceId": "S2"
+    },
+    "operatingCashFlow": {
+      "value": 2222,
+      "unit": "USD million",
+      "accountingBasis": "GAAP",
+      "period": "6M ended 2026-06-30",
+      "sourceId": "S1"
+    },
+    "capitalExpenditure": {
+      "value": 1572,
+      "unit": "USD million",
+      "accountingBasis": "GAAP cash flow presentation",
+      "period": "6M ended 2026-06-30",
+      "sourceId": "S1"
+    },
+    "workingCapitalChange": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": "6M ended 2026-06-30",
+      "sourceId": null
+    },
+    "freeCashFlow": {
+      "value": 650,
+      "unit": "USD million",
+      "accountingBasis": "Analyst derived: operating cash flow less capital expenditure",
+      "period": "6M ended 2026-06-30",
+      "sourceId": "S1"
+    },
+    "cash": {
+      "value": 435,
+      "unit": "USD million",
+      "accountingBasis": "GAAP balance sheet",
+      "period": "2026-06-30",
+      "sourceId": "S2"
+    },
+    "debt": {
+      "value": 19895,
+      "unit": "USD million",
+      "accountingBasis": "Long-term debt including current portion plus accounts receivable financing",
+      "period": "2026-06-30",
+      "sourceId": "S2"
+    },
+    "netDebt": {
+      "value": 19460,
+      "unit": "USD million",
+      "accountingBasis": "Analyst derived: debt less cash",
+      "period": "2026-06-30",
+      "sourceId": "S2"
+    },
+    "taxRatePct": {
+      "value": 18.6,
+      "unit": "percent",
+      "accountingBasis": "GAAP effective tax rate",
+      "period": "6M ended 2026-06-30",
+      "sourceId": "S2"
+    },
+    "oneOffItems": [],
+    "reconciliationNotes": [
+      "التدفق النقدي الحر البالغ 650 مليون دولار هنا هو اشتقاق بسيط من التدفق التشغيلي ناقص الإنفاق الرأسمالي، ولا يساوي مقياس الشركة المعدل قبل النمو بسبب تعديلات رأس المال العامل وهوامش الضمان وغيرها.",
+      "صافي الدين يساوي 19.895 مليار دولار من الدين المستخدم ناقص 0.435 مليار دولار نقدًا = 19.460 مليار دولار.",
+      "التقييم القائم على قيمة المنشأة يعالج الأسهم الممتازة البالغة 2.476 مليار دولار كتعديل غير تشغيلي منفصل عن صافي الدين."
+    ],
+    "sourceIds": [
+      "S1",
+      "S2"
+    ]
+  },
+  "forecast": {
+    "materiality": "MATERIAL",
+    "yearlyForecast": [
+      {
+        "period": "2026",
+        "revenue": {
+          "value": 22829,
+          "basis": "consensus"
+        },
+        "revenueGrowthPct": {
+          "value": 28.7,
+          "basis": "consensus"
+        },
+        "eps": {
+          "value": 9.59,
+          "basis": "consensus"
+        },
+        "ebitda": {
+          "value": 7231,
+          "basis": "consensus"
+        },
+        "ebitdaMarginPct": {
+          "value": 31.67462438126944,
+          "basis": "analyst_assumption"
+        },
+        "freeCashFlow": {
+          "value": 4325,
+          "basis": "reported"
+        },
+        "fcfMarginPct": {
+          "value": 18.94432520040387,
+          "basis": "analyst_assumption"
+        }
+      },
+      {
+        "period": "2027",
+        "revenue": {
+          "value": 23965,
+          "basis": "consensus"
+        },
+        "revenueGrowthPct": {
+          "value": 4.98,
+          "basis": "consensus"
+        },
+        "eps": {
+          "value": 10.3,
+          "basis": "consensus"
+        },
+        "ebitda": {
+          "value": 8049,
+          "basis": "consensus"
+        },
+        "ebitdaMarginPct": {
+          "value": 33.58648028374713,
+          "basis": "analyst_assumption"
+        },
+        "freeCashFlow": {
+          "value": 4550,
+          "basis": "analyst_assumption"
+        },
+        "fcfMarginPct": {
+          "value": 18.986021280826204,
+          "basis": "analyst_assumption"
+        }
+      },
+      {
+        "period": "2028",
+        "revenue": {
+          "value": 25640,
+          "basis": "consensus"
+        },
+        "revenueGrowthPct": {
+          "value": 6.99,
+          "basis": "consensus"
+        },
+        "eps": {
+          "value": 11.7,
+          "basis": "consensus"
+        },
+        "ebitda": {
+          "value": 8787,
+          "basis": "consensus"
+        },
+        "ebitdaMarginPct": {
+          "value": 34.270670826833076,
+          "basis": "analyst_assumption"
+        },
+        "freeCashFlow": {
+          "value": 5000,
+          "basis": "analyst_assumption"
+        },
+        "fcfMarginPct": {
+          "value": 19.50078003120125,
+          "basis": "analyst_assumption"
+        }
+      }
+    ],
+    "estimateRevisions": [],
+    "changedAssumptions": [],
+    "wacc": {
+      "value": null,
+      "rangeLow": null,
+      "rangeHigh": null,
+      "reason": "لم تُستخدم طريقة خصم تدفقات نقدية كطريقة تقييم رئيسية في هذا التحليل."
+    },
+    "terminalGrowth": {
+      "value": null,
+      "reason": "غير مستخدم لأن التقييم لا يعتمد على نموذج خصم تدفقات نقدية نهائي."
+    },
+    "sensitivity": [
+      {
+        "metric": "2027 EV/EBITDA multiple",
+        "low": 9,
+        "base": 10,
+        "high": 11,
+        "estimatedFairValueLow": 148.88,
+        "estimatedFairValueBase": 172.61,
+        "estimatedFairValueHigh": 196.33
+      },
+      {
+        "metric": "2027 P/FCF multiple",
+        "low": 11,
+        "base": 13,
+        "high": 15,
+        "estimatedFairValueLow": 148.96,
+        "estimatedFairValueBase": 176.04,
+        "estimatedFairValueHigh": 203.13
+      }
+    ],
+    "summary": "الإجماع يتوقع استمرار نمو الأرباح التشغيلية حتى 2028. افتراض التدفق النقدي لعام 2027 يبقى محافظًا نسبيًا مقارنة بتحسن الأرباح، لأن الشركة ما زالت في دورة استثمار واستحواذات وتتطلب مراقبة دقيقة لتحويل الأرباح إلى نقد."
+  },
+  "previousRequirementsEvaluation": null,
+  "valuation": {
+    "reviewStatus": "INITIAL",
+    "previous": null,
+    "current": {
+      "bear": 135,
+      "base": 173.63352095393552,
+      "bull": 225,
+      "probabilityWeighted": 172.31676047696777,
+      "currency": "USD",
+      "securityUnit": "share",
+      "confidence": "MEDIUM"
+    },
+    "change": null,
+    "methodology": {
+      "primaryMethod": "EV/EBITDA",
+      "secondaryMethods": [
+        "P/FCF",
+        "P/E"
+      ],
+      "excludedMethods": [
+        {
+          "method": "DCF",
+          "reason": "التوقيت بين التحوطات، رأس المال العامل، والإنفاق على الاستحواذات والنمو يجعل نموذج نقطة واحدة شديد الحساسية في هذه المرحلة؛ استخدمت التدفق النقدي كمضاعف مستقل بدلًا من دقة زائفة."
+        },
+        {
+          "method": "Dividend Discount Model",
+          "reason": "التوزيعات النقدية الحالية لا تمثل كامل قدرة الشركة على إعادة رأس المال لأن إعادة شراء الأسهم عنصر أكبر في سياسة رأس المال."
+        },
+        {
+          "method": "Price to Book",
+          "reason": "القيمة الدفترية للأصول التاريخية لا تعكس جيدًا اقتصاد أسطول التوليد وأسعار القدرة والعقود المستقبلية."
+        }
+      ],
+      "methodologyChanged": null,
+      "selectionReason": "الطريقة الأساسية تقيم شركة كثيفة الأصول والديون على أساس الأرباح التشغيلية المستقبلية ثم تخصم صافي الدين والأسهم الممتازة. مضاعف التدفق النقدي يختبر جودة التحويل إلى نقد، ومضاعف الربحية يستخدم فقط كاختبار إضافي.",
+      "modelWeights": [
+        {
+          "method": "EV/EBITDA",
+          "weight": 50
+        },
+        {
+          "method": "P/FCF",
+          "weight": 30
+        },
+        {
+          "method": "P/E",
+          "weight": 20
+        }
+      ],
+      "weightReasoning": "أعطيت أعلى وزن لقيمة المنشأة بسبب كثافة الأصول والديون، ثم للتدفق النقدي لأنه يعكس القدرة الفعلية على تخصيص رأس المال، وأقل وزن للربحية بسبب تقلبات المشتقات المحاسبية.",
+      "limitations": [
+        "التقييم حساس لمضاعفات القطاع وأسعار الطاقة والقدرة المستقبلية.",
+        "إتمام Cogentrix وشروط العقود مع الأحمال الكبيرة قد يغير صافي الدين والأرباح الفعلية عن الافتراضات المستخدمة.",
+        "تقدير التدفق النقدي لعامي 2027 و2028 هو افتراض محلل وليس توجيهًا رسميًا."
+      ]
+    },
+    "valuationResults": [
+      {
+        "method": "EV/EBITDA",
+        "role": "PRIMARY",
+        "fairValue": 172.608058056585,
+        "weight": 50,
+        "confidence": "MEDIUM",
+        "inputs": {
+          "normalizedEbitda": 8049,
+          "evEbitdaMultiple": 10,
+          "netDebt": 19460,
+          "dilutedShares": 339.230976,
+          "nonOperatingAdjustments": -2476
+        },
+        "assumptions": {
+          "multipleBasis": "10.0x يعكس جودة الأصول والنمو والوضوح من التحوط، مع خصم للرافعة المالية والدورية.",
+          "ebitdaBasis": "إجماع 2027."
+        },
+        "calculation": {
+          "formula": "((2027 EBITDA × target multiple) - net debt - preferred stock) / diluted shares",
+          "steps": [
+            "8,049 × 10.0 = 80,490 مليون دولار قيمة منشأة.",
+            "80,490 - 19,460 صافي دين - 2,476 أسهم ممتازة = 58,554 مليون دولار قيمة حقوق عادية.",
+            "58,554 / 339.230976 مليون سهم = 172.608058 دولار للسهم."
+          ],
+          "enterpriseValue": 80490,
+          "netDebt": 19460,
+          "nonOperatingAdjustments": -2476,
+          "equityValue": 58554,
+          "dilutedShares": 339.230976,
+          "computedFairValue": 172.608058056585
+        },
+        "rationale": "أفضل طريقة أساسية لأنها تربط الاقتصاد التشغيلي المستقبلي بهيكل رأس المال الفعلي.",
+        "limitations": "المضاعف المختار حساس لتغير أسعار الطاقة والقدرة ولشهية السوق تجاه منتجي الكهرباء."
+      },
+      {
+        "method": "P/FCF",
+        "role": "SECONDARY",
+        "fairValue": 174.36497308547672,
+        "weight": 30,
+        "confidence": "MEDIUM",
+        "inputs": {
+          "normalizedFreeCashFlow": 4550,
+          "dilutedShares": 339.230976,
+          "impliedMultiple": 13
+        },
+        "assumptions": {
+          "fcfBasis": "افتراض محلل مبني على توجيه 2026 وتحسن EBITDA في 2027.",
+          "multipleBasis": "13x يعكس نموًا جيدًا مع احتفاظ بخصم للرافعة المالية والإنفاق الرأسمالي."
+        },
+        "calculation": {
+          "formula": "(2027 FCF / shares) × target P/FCF multiple",
+          "steps": [
+            "4,550 / 339.230976 = 13.412690 دولار تدفق نقدي حر لكل سهم.",
+            "13.412690 × 13.0 = 174.364973 دولار للسهم."
+          ],
+          "enterpriseValue": null,
+          "netDebt": null,
+          "nonOperatingAdjustments": null,
+          "equityValue": null,
+          "dilutedShares": 339.230976,
+          "computedFairValue": 174.36497308547672
+        },
+        "rationale": "يختبر أن القيمة مدعومة بالنقد المتاح وليس بالأرباح المحاسبية المتقلبة.",
+        "limitations": "التدفق النقدي 2027 افتراض محلل وقد يتغير مع الإنفاق على النمو ورأس المال العامل."
+      },
+      {
+        "method": "P/E",
+        "role": "CROSS_CHECK",
+        "fairValue": 175.10000000000002,
+        "weight": 20,
+        "confidence": "MEDIUM",
+        "inputs": {
+          "normalizedForwardEps": 10.3,
+          "impliedMultiple": 17
+        },
+        "assumptions": {
+          "epsBasis": "إجماع 2027.",
+          "multipleBasis": "17x كمضاعف تحقق معقول لشركة ذات نمو جيد لكن أرباحها المحاسبية دورية ومتقلبة."
+        },
+        "calculation": {
+          "formula": "2027 EPS × target P/E multiple",
+          "steps": [
+            "10.30 × 17.0 = 175.10 دولار للسهم."
+          ],
+          "enterpriseValue": null,
+          "netDebt": null,
+          "nonOperatingAdjustments": null,
+          "equityValue": null,
+          "dilutedShares": null,
+          "computedFairValue": 175.10000000000002
+        },
+        "rationale": "اختبار معقولية خارجي للنتيجة الأساسية.",
+        "limitations": "أقل موثوقية من الطريقتين الأخريين بسبب تقلب صافي الربح مع إعادة تقييم المشتقات."
+      }
+    ],
+    "scenarios": {
+      "Bear": {
+        "probability": 30,
+        "fairValue": 135,
+        "assumptions": [
+          "تراجع مضاعف قيمة المنشأة نحو 9x أو أقل.",
+          "تباطؤ أسعار الطاقة والقدرة أو ضعف تحويل الأرباح إلى نقد.",
+          "ارتفاع صافي الدين بعد الاستحواذات أو الإنفاق على النمو."
+        ],
+        "requiredOutcomes": [
+          "بقاء الأرباح التشغيلية دون فرصة 2027 المعلنة أو قرب الحد الأدنى.",
+          "عدم تحقق قيمة كبيرة من عقود الأحمال الكبيرة."
+        ],
+        "keyRisks": [
+          "أسعار الطاقة",
+          "الرافعة المالية",
+          "التنفيذ"
+        ]
+      },
+      "Base": {
+        "probability": 50,
+        "fairValue": 173.63352095393552,
+        "assumptions": [
+          "إجماع 2027 قرب 8.05 مليار دولار EBITDA قابل للتحقق.",
+          "تحويل نقدي جيد مع بقاء صافي الدين تحت السيطرة.",
+          "استمرار التحوط والإتاحة التشغيلية المرتفعة."
+        ],
+        "requiredOutcomes": [
+          "تنفيذ 2026 ضمن التوجيه.",
+          "تقدم منضبط في Cogentrix وعقود الأحمال الكبيرة.",
+          "استمرار إعادة شراء الأسهم دون ضغط مفرط على الميزانية."
+        ],
+        "keyRisks": [
+          "تراجع المضاعفات",
+          "تقلب أسعار السلع",
+          "ارتفاع الإنفاق الرأسمالي"
+        ]
+      },
+      "Bull": {
+        "probability": 20,
+        "fairValue": 225,
+        "assumptions": [
+          "تحقق فوائد Cogentrix وعقود Meta فوق فرصة 2027 الحالية.",
+          "ارتفاع مستدام في قيمة القدرة والطلب من مراكز البيانات.",
+          "استمرار خفض عدد الأسهم وتحسن الرافعة المالية."
+        ],
+        "requiredOutcomes": [
+          "EBITDA 2027 يتجاوز بوضوح 8 مليارات دولار.",
+          "تدفق نقدي حر يتجاوز الافتراض الأساسي.",
+          "عدم حدوث صدمة تشغيلية أو تنظيمية كبيرة."
+        ],
+        "keyRisks": [
+          "المبالغة في تسعير نمو مراكز البيانات",
+          "ارتفاع تكاليف المشروعات"
+        ]
+      }
+    },
+    "valuationBridge": {
+      "positiveDrivers": [
+        "نمو الأرباح التشغيلية المعدلة.",
+        "وضوح التحوط حتى 2027.",
+        "عقود الأحمال الكبيرة وفرصة مراكز البيانات.",
+        "إعادة شراء الأسهم."
+      ],
+      "negativeDrivers": [
+        "صافي دين مرتفع.",
+        "حساسية لأسعار الطاقة والقدرة.",
+        "كثافة الإنفاق الرأسمالي.",
+        "تقلب الأرباح المحاسبية بالمشتقات."
+      ],
+      "whyBaseChangedOrNot": "Initial valuation.",
+      "baseChangeBridge": null
+    },
+    "calculationAudit": {
+      "weightedMethodFairValue": 173.63352095393552,
+      "analystOverlayPct": 0,
+      "overlayReason": null,
+      "reconciledBaseFairValue": 173.63352095393552,
+      "gapToReportedBasePct": 0
+    },
+    "upsideToBasePct": 16.29840653311152,
+    "marginOfSafetyPct": 14.014299094004503
+  },
+  "thesis": {
+    "status": "INITIAL",
+    "previousSummary": null,
+    "updatedSummary": "Vistra أصل كهرباء متكامل عالي الجودة يستفيد من ارتفاع قيمة القدرة ونمو الطلب على الكهرباء، مع وضوح قوي من التحوط وإعادة شراء الأسهم. عند 149.30 دولار يوجد خصم معقول إلى القيمة الأساسية البالغة نحو 173.63 دولار، لكنه ليس هامش أمان كبيرًا بما يكفي لتجاهل الرافعة المالية والتنفيذ.",
+    "changeReason": null,
+    "keySupports": [
+      "نمو EBITDA المعدل بأكثر من 30% في الربع الثاني.",
+      "تحوط 2026 شبه كامل و2027 مرتفع جدًا.",
+      "فرصة نمو من عقود Meta وHelix والاستحواذات.",
+      "إعادة شراء أسهم تاريخية كبيرة."
+    ],
+    "keyThreats": [
+      "صافي دين مرتفع.",
+      "تراجع أسعار الطاقة أو القدرة بعد انقضاء التحوطات.",
+      "تنفيذ استحواذات ومشروعات رأسمالية كبيرة.",
+      "تقلص مضاعفات تقييم قطاع الكهرباء."
+    ]
+  },
+  "decision": {
+    "scope": "STOCK_LEVEL",
+    "action": "WATCH",
+    "confidence": 76,
+    "investmentScore": 79,
+    "rationale": [
+      "القيمة الأساسية المحسوبة تقارب 173.63 دولار مقابل 149.30 دولار، أي صعود يقارب 16.3%.",
+      "القيمة المرجحة بالاحتمالات تقارب 172.32 دولار، ما يؤكد وجود قيمة لكن دون هامش أمان استثنائي.",
+      "جودة الأعمال مرتفعة، إلا أن صافي الدين والتنفيذ يجعلان انتظار نقطة دخول أفضل أو دليل إضافي على تحويل النمو إلى نقد أكثر جاذبية."
+    ],
+    "whyNot": [
+      "ليس BUY لأن هامش الأمان إلى القيمة الأساسية يقارب 14.0% فقط مع رافعة مالية مرتفعة.",
+      "ليس SELL أو REDUCE لأن التشغيل القوي والتحوط والطلب المستقبلي يدعمون قيمة أعلى من السعر الحالي."
+    ],
+    "biggestAssumption": "قدرة Vistra على تحقيق EBITDA 2027 قرب 8.05 مليار دولار وتحويل الجزء الأكبر من التحسن إلى تدفق نقدي دون ارتفاع غير منضبط في صافي الدين.",
+    "mainRisk": "أن يستهلك النمو والاستحواذات مزيدًا من الميزانية في وقت تتراجع فيه أسعار الطاقة أو مضاعفات القطاع.",
+    "upgradeTriggers": [
+      "سعر سوق يمنح هامش أمان يتجاوز 20% مع ثبات الفرضية.",
+      "رفع توجيه 2026 أو 2027 أو إثبات فوائد إضافية من Meta وCogentrix.",
+      "انخفاض واضح ومستدام في صافي الدين إلى الأرباح التشغيلية المعدلة."
+    ],
+    "downgradeTriggers": [
+      "خفض التوجيه التشغيلي أو النقدي.",
+      "تراجع الإتاحة التشغيلية أو التحوط بما يرفع تقلب الأرباح.",
+      "زيادة صافي الدين دون نمو مماثل في الأرباح أو التدفق النقدي."
+    ]
+  },
+  "nextRequirements": {
+    "requirementSetId": null,
+    "mode": "DEFEND_BASE",
+    "previousQuarter": "Q2 2026",
+    "targetQuarter": "Q3 2026",
+    "currentJustifiedValue": 173.63352095393552,
+    "targetValue": 173.63352095393552,
+    "targetScenario": "BASE_DEFENSE",
+    "targetDescription": "الدفاع عن القيمة الأساسية الحالية يتطلب استمرار القوة التشغيلية وتحويلها إلى نقد دون ارتفاع غير منضبط في الرافعة المالية.",
+    "summary": "الربع القادم يجب أن يثبت أن الأداء القوي ليس مجرد أثر موسمي أو محاسبي، وأن النمو والاستحواذات لا يضعفان الميزانية.",
+    "requirements": [
+      {
+        "id": "R1",
+        "name": "Ongoing Operations Adjusted EBITDA",
+        "arabicName": "الأرباح التشغيلية المعدلة للأعمال المستمرة",
+        "metric": "Quarterly Ongoing Operations Adjusted EBITDA",
+        "type": "minimum",
+        "baselineValue": 1767,
+        "baselineDisplay": "1.767 مليار دولار في Q2 2026",
+        "requiredValue": 1800,
+        "requiredDisplay": "1.8 مليار دولار أو أكثر",
+        "unit": "USD million",
+        "importance": "critical",
+        "weight": 20,
+        "whyItMatters": "يثبت استمرار قوة الأرباح التشغيلية التي يقوم عليها التقييم.",
+        "status": "NOT_REPORTED"
+      },
+      {
+        "id": "R2",
+        "name": "Adjusted FCFbG trajectory",
+        "arabicName": "مسار التدفق النقدي الحر المعدل قبل النمو",
+        "metric": "FY2026 Adjusted FCFbG guidance/trajectory",
+        "type": "qualitative",
+        "baselineValue": 4325,
+        "baselineDisplay": "منتصف التوجيه 4.325 مليار دولار",
+        "requiredValue": null,
+        "requiredDisplay": "البقاء داخل التوجيه مع ميل نحو المنتصف أو أعلى",
+        "unit": "USD million",
+        "importance": "high",
+        "weight": 15,
+        "whyItMatters": "التدفق النقدي هو المصدر الفعلي لخفض الدين وإعادة شراء الأسهم وتمويل النمو.",
+        "status": "NOT_REPORTED"
+      },
+      {
+        "id": "R3",
+        "name": "Commercial Availability",
+        "arabicName": "الإتاحة التجارية للأسطول",
+        "metric": "Fleet commercial availability",
+        "type": "minimum",
+        "baselineValue": 97,
+        "baselineDisplay": "97% أو أكثر في فترات الحر الشديد",
+        "requiredValue": 95,
+        "requiredDisplay": "95% أو أكثر",
+        "unit": "percent",
+        "importance": "high",
+        "weight": 15,
+        "whyItMatters": "الأعطال أثناء ذروة الطلب قد تمحو جزءًا كبيرًا من فائدة الأسعار المرتفعة.",
+        "status": "NOT_REPORTED"
+      },
+      {
+        "id": "R4",
+        "name": "2027 Hedged Generation",
+        "arabicName": "تغطية توليد 2027 بالتحوط",
+        "metric": "Percent of expected 2027 generation hedged",
+        "type": "minimum",
+        "baselineValue": 94,
+        "baselineDisplay": "نحو 94%",
+        "requiredValue": 90,
+        "requiredDisplay": "90% أو أكثر",
+        "unit": "percent",
+        "importance": "medium",
+        "weight": 10,
+        "whyItMatters": "يحافظ على وضوح الأرباح القريبة ويحد من خطر هبوط أسعار السوق.",
+        "status": "NOT_REPORTED"
+      },
+      {
+        "id": "R5",
+        "name": "Net debt leverage",
+        "arabicName": "رافعة صافي الدين",
+        "metric": "Net debt / forward EBITDA",
+        "type": "maximum",
+        "baselineValue": 2.69,
+        "baselineDisplay": "نحو 2.69x باستخدام صافي الدين الحالي وإجماع EBITDA 2026",
+        "requiredValue": 2.6,
+        "requiredDisplay": "2.6x أو أقل أو مسار واضح نحوها",
+        "unit": "x",
+        "importance": "critical",
+        "weight": 20,
+        "whyItMatters": "خفض الرافعة يرفع قيمة حقوق الملكية ويقلل حساسية السهم للفائدة والمضاعفات.",
+        "status": "NOT_REPORTED"
+      },
+      {
+        "id": "R6",
+        "name": "Strategic execution",
+        "arabicName": "تنفيذ Cogentrix وعقود الأحمال الكبيرة",
+        "metric": "Cogentrix / Meta / Helix milestones",
+        "type": "qualitative",
+        "baselineValue": null,
+        "baselineDisplay": "موافقات وتقدم معلن حتى Q2 2026",
+        "requiredValue": null,
+        "requiredDisplay": "تقدم دون تأخير مادي أو تدهور في اقتصاد الصفقة",
+        "unit": null,
+        "importance": "high",
+        "weight": 20,
+        "whyItMatters": "جزء مهم من سيناريو الصعود يعتمد على تحويل هذه المبادرات إلى أرباح وتدفقات تعاقدية.",
+        "status": "NOT_REPORTED"
+      }
+    ]
+  },
+  "risks": [
+    {
+      "title": "تراجع أسعار الطاقة والقدرة",
+      "severity": "high",
+      "explanation": "التحوط يحمي السنوات القريبة لكنه لا يلغي حساسية القيمة طويلة الأجل لأسعار الكهرباء والغاز والقدرة.",
+      "whatToMonitor": "منحنيات الأسعار المستقبلية ونسب التحوط 2028 وما بعدها.",
+      "thesisBreaker": "هبوط مستدام في الأسعار المستقبلية مع عدم وجود نمو تعاقدي يعوضه.",
+      "sourceIds": [
+        "S1"
+      ]
+    },
+    {
+      "title": "الرافعة المالية والاستحواذات",
+      "severity": "high",
+      "explanation": "صفقات النمو قد تزيد الدين أو تؤخر خفض الرافعة، ما يقلل القيمة المتاحة للمساهمين.",
+      "whatToMonitor": "صافي الدين والسيولة وشروط تمويل Cogentrix.",
+      "thesisBreaker": "ارتفاع صافي الدين دون نمو مقابل في EBITDA أو FCF.",
+      "sourceIds": [
+        "S2"
+      ]
+    },
+    {
+      "title": "مخاطر تشغيل الأسطول",
+      "severity": "medium",
+      "explanation": "الأعطال غير المخططة في محطات نووية أو غازية أثناء ذروة الأسعار يمكن أن تضرب الأرباح والنقد.",
+      "whatToMonitor": "الإتاحة التجارية والتوقفات غير المخططة.",
+      "thesisBreaker": "تراجع متكرر في الإتاحة أو تكاليف صيانة استثنائية.",
+      "sourceIds": [
+        "S1"
+      ]
+    },
+    {
+      "title": "تنظيم الأحمال الكبيرة والأسواق",
+      "severity": "medium",
+      "explanation": "القواعد الخاصة بربط مراكز البيانات وأسواق القدرة قد تؤثر في سرعة التعاقد والعائد الاقتصادي.",
+      "whatToMonitor": "قرارات FERC وPJM وERCOT المتعلقة بالأحمال الكبيرة والأسواق.",
+      "thesisBreaker": "قواعد تقلص بصورة جوهرية اقتصاد عقود الأحمال الكبيرة.",
+      "sourceIds": [
+        "S1"
+      ]
+    }
+  ],
+  "catalysts": [
+    {
+      "title": "إتمام Cogentrix",
+      "explanation": "إغلاق الصفقة ودمج الأصول دون تدهور في الميزانية قد يرفع الأرباح فوق فرصة 2027 الحالية.",
+      "timeframe": "خلال الأرباع القادمة",
+      "sourceIds": [
+        "S1"
+      ]
+    },
+    {
+      "title": "بدء مساهمة عقود Meta",
+      "explanation": "تحول العقود إلى أرباح فعلية في 2027 قد يدعم إعادة تقييم النمو طويل الأجل.",
+      "timeframe": "2027",
+      "sourceIds": [
+        "S1"
+      ]
+    },
+    {
+      "title": "تقدم Helix Digital Infrastructure",
+      "explanation": "توقيع مشروعات فعلية مع Vistra كمزود طاقة مفضل قد يفتح تدفقات طويلة الأجل مرتبطة بمراكز البيانات.",
+      "timeframe": "2026-2028",
+      "sourceIds": [
+        "S1"
+      ]
+    },
+    {
+      "title": "استمرار إعادة شراء الأسهم",
+      "explanation": "تنفيذ التفويض المتبقي بأسعار جذابة يرفع القيمة لكل سهم.",
+      "timeframe": "حتى نهاية 2027",
+      "sourceIds": [
+        "S1"
+      ]
+    }
+  ],
+  "monitoringChecklist": [
+    {
+      "metric": "Ongoing Operations Adjusted EBITDA",
+      "currentValue": "1.767 مليار دولار في Q2 2026",
+      "expectedRange": "ضمن مسار يحقق 6.8-7.6 مليار دولار في 2026",
+      "upgradeTrigger": "رفع التوجيه أو تقدم واضح نحو الحد الأعلى",
+      "downgradeTrigger": "خفض التوجيه",
+      "thesisBreak": "خروج مستدام دون الحد الأدنى للتوجيه"
+    },
+    {
+      "metric": "Adjusted FCFbG",
+      "currentValue": "توجيه 3.925-4.725 مليار دولار لعام 2026",
+      "expectedRange": "داخل النطاق",
+      "upgradeTrigger": "تحويل نقدي فوق المنتصف مع خفض الدين",
+      "downgradeTrigger": "تراجع نحو الحد الأدنى بسبب تكاليف مستمرة",
+      "thesisBreak": "خفض جوهري للتوجيه النقدي"
+    },
+    {
+      "metric": "Net debt",
+      "currentValue": "نحو 19.46 مليار دولار وفق تعريف التحليل",
+      "expectedRange": "مسار تنازلي نسبةً إلى EBITDA بعد استقرار تمويل الاستحواذات",
+      "upgradeTrigger": "أقل من 2.5x EBITDA",
+      "downgradeTrigger": "أعلى من 3.0x دون نمو مقابل",
+      "thesisBreak": "ارتفاع مستدام للرافعة مع ضعف FCF"
+    },
+    {
+      "metric": "2027 hedging",
+      "currentValue": "نحو 94%",
+      "expectedRange": "90% أو أكثر",
+      "upgradeTrigger": "وضوح إضافي بأسعار مجدية مع عقود أحمال كبيرة",
+      "downgradeTrigger": "تراجع واضح في التغطية أو الاقتصاد المحقق",
+      "thesisBreak": "فقدان وضوح الأرباح دون تعويض"
+    },
+    {
+      "metric": "Commercial Availability",
+      "currentValue": "97% أو أكثر خلال فترات الحر المشار إليها",
+      "expectedRange": "95% أو أكثر",
+      "upgradeTrigger": "استمرار الإتاحة العالية دون تضخم تكلفة الصيانة",
+      "downgradeTrigger": "تراجع متكرر دون 93%",
+      "thesisBreak": "مشكلات تشغيلية هيكلية في أصول رئيسية"
+    }
+  ],
+  "sources": [
+    {
+      "id": "S1",
+      "title": "Vistra Reports Second Quarter 2026 Results",
+      "type": "Investor Relations",
+      "date": "2026-08-07",
+      "url": "https://investor.vistracorp.com/2026-08-07-Vistra-Reports-Second-Quarter-2026-Results",
+      "usedFor": [
+        "companyProfile",
+        "latestQuarter",
+        "guidance",
+        "hedging",
+        "shareRepurchases",
+        "catalysts",
+        "risks"
+      ]
+    },
+    {
+      "id": "S2",
+      "title": "Vistra Corp. Form 10-Q for quarter ended June 30, 2026",
+      "type": "SEC",
+      "date": "2026-08-07",
+      "url": "https://www.sec.gov/Archives/edgar/data/1692819/000169281926000019/vistra-20260630.htm",
+      "usedFor": [
+        "financialNormalization",
+        "cash",
+        "debt",
+        "dilutedShares",
+        "eps",
+        "taxRate",
+        "stockBasedCompensation"
+      ]
+    },
+    {
+      "id": "MKT1",
+      "title": "Vistra Energy Corp Historical Data",
+      "type": "Market Data",
+      "date": "2026-09-04",
+      "url": "https://www.investing.com/equities/vistra-energy-corp-historical-data",
+      "usedFor": [
+        "marketPrice"
+      ]
+    },
+    {
+      "id": "C1",
+      "title": "Vistra Corp. Financial Data Forecasts Estimates and Expectations",
+      "type": "Consensus Data",
+      "date": "2026-09-05",
+      "url": "https://sa.marketscreener.com/quote/stock/VISTRA-CORP-34858180/finances/",
+      "usedFor": [
+        "forecast",
+        "valuation",
+        "consensusEstimates"
+      ]
+    },
+    {
+      "id": "C2",
+      "title": "Vistra Stock Forecast and Analyst Price Targets",
+      "type": "Consensus Data",
+      "date": "2026-09-01",
+      "url": "https://stockanalysis.com/stocks/vst/forecast/",
+      "usedFor": [
+        "forecastCrossCheck",
+        "analystConsensus"
+      ]
+    },
+    {
+      "id": "N1",
+      "title": "Vistra Corp. stock outperforms competitors on strong trading day",
+      "type": "Trusted Financial News",
+      "date": "2026-09-04",
+      "url": "https://www.marketwatch.com/data-news/vistra-corp-stock-outperforms-competitors-on-strong-trading-day-0920854a-808e5a74a480",
+      "usedFor": [
+        "marketPriceCrossCheck"
+      ]
+    }
+  ],
+  "limitations": [
+    "التقييم لا يفترض فوائد كاملة من Cogentrix أو Helix قبل ظهور أدلة تشغيلية ومالية أكثر وضوحًا.",
+    "تقديرات الإجماع قد تتغير بعد تحركات أسعار الطاقة أو تحديثات المحللين.",
+    "تعريف التدفق النقدي الحر المشتق في financialNormalization يختلف عن مقياس الشركة المعدل قبل النمو.",
+    "لا توجد محاولة لاستخدام سعر بعد الإغلاق؛ السعر المعتمد هو آخر إغلاق موثق لأن السوق مغلق في تاريخ التحليل."
+  ],
+  "audit": {
+    "scenarioProbabilityTotalPct": 100,
+    "valuationMethodWeightTotalPct": 100,
+    "previousRequirementWeightTotalPct": null,
+    "nextRequirementWeightTotalPct": 100,
+    "consistencyNotes": [
+      "Bear <= Base <= Bull متحقق.",
+      "مجموع احتمالات السيناريوهات 100%.",
+      "مجموع أوزان طرق التقييم 100%.",
+      "weightedMethodFairValue يساوي 173.633521 دولار.",
+      "analystOverlayPct يساوي 0 لذلك reconciledBaseFairValue يساوي weightedMethodFairValue.",
+      "nextRequirements.currentJustifiedValue يساوي valuation.current.base.",
+      "previousQuarter يساوي Q2 2026 ويطابق reportIdentity، وtargetQuarter يساوي Q3 2026 وهو الربع التالي مباشرة.",
+      "marketPrice يستخدم LAST_CLOSE بتاريخ 2026-09-04 ومصدر MKT1 من نوع Market Data."
+    ]
+  }
+}

@@ -4,6 +4,8 @@ import { Readable, Writable } from "node:stream";
 import { createAppServer, APP_VERSION } from "../server.mjs";
 
 const source = readFileSync(new URL("../server.mjs", import.meta.url), "utf8");
+const syncSource = readFileSync(new URL("../scripts/sync-deploy.mjs", import.meta.url), "utf8");
+assert.ok(syncSource.includes("/ \\d+\\.[^.]+$/"), "Deploy sync must exclude numbered conflict-copy artifacts.");
 assert.ok(source.includes('env.HOST || "0.0.0.0"'), "Production server must default to 0.0.0.0.");
 assert.equal(APP_VERSION, "10.0.0");
 

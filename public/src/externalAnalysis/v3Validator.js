@@ -134,6 +134,7 @@ const NUMERIC_FINANCIAL_NORMALIZATION_FIELDS = [
 const NORMALIZED_METRIC_FIELDS = ["value", "unit", "accountingBasis", "period", "sourceId"];
 const PE_TYPED_INPUT_FIELDS = ["normalizedForwardEps", "forwardEps", "eps", "impliedMultiple", "forwardMultiple", "peMultiple", "multiple"];
 const EV_EBITDA_TYPED_INPUT_FIELDS = ["normalizedEbitda", "ebitda", "evEbitdaMultiple", "impliedMultiple", "multiple", "netDebt", "dilutedShares"];
+const P_FCF_TYPED_INPUT_FIELDS = ["normalizedFreeCashFlow", "freeCashFlow", "fcf", "fcfPerShare", "dilutedShares", "impliedMultiple", "multiple"];
 const FORECAST_METRIC_NAMES = ["revenue", "revenueGrowthPct", "eps", "ebitda", "ebitdaMarginPct", "freeCashFlow", "fcfMarginPct"];
 
 export function validateFranklinV3Report(input = {}, context = {}) {
@@ -1323,9 +1324,13 @@ function validateValuationResultReproducibility(result = {}, path, errors, warni
   const rawMethod = String(result.method).trim();
   const isPe = method.includes("P/E") || /\bPE\b/.test(method);
   const isEvEbitda = method.includes("EV/EBITDA");
+  const isPriceFcf = method.includes("P/FCF") || method.includes("PRICE/FCF");
+  const isEvEbit = method.includes("EV/EBIT") && !isEvEbitda;
+  const isSotp = method.includes("SOTP") || method.includes("SUM OF THE PARTS");
+  const isDcf = method.includes("DCF");
 
-  if (isPe || isEvEbitda) {
-    const typedFields = isPe ? PE_TYPED_INPUT_FIELDS : EV_EBITDA_TYPED_INPUT_FIELDS;
+  if (isPe || isEvEbitda || isPriceFcf) {
+    const typedFields = isPe ? PE_TYPED_INPUT_FIELDS : (isEvEbitda ? EV_EBITDA_TYPED_INPUT_FIELDS : P_FCF_TYPED_INPUT_FIELDS);
     const malformed = validateTypedValuationInputFields(result, path, typedFields, isEvEbitda, errors);
     if (malformed) {
       recordValuationMethodVerification(verifications, path, rawMethod, "ERROR", "Recognized typed inputs contain malformed non-numeric values.");
@@ -1347,7 +1352,7 @@ function validateValuationResultReproducibility(result = {}, path, errors, warni
       }
       return;
     }
-    markValuationMethodNotVerified(result, path, rawMethod, "normalizedForwardEps and impliedMultiple were not both supplied as finite JSON numbers", warnings, verifications);
+    markValuationMethodNotVerified(result, path, rawMethod, "normalizedForwardEps and impliedMultiple were not both supplied as finite JSON numbers", errors, verifications);
     return;
   }
   if (isEvEbitda) {
@@ -1364,7 +1369,8 @@ function validateValuationResultReproducibility(result = {}, path, errors, warni
       return;
     }
     if ([ebitda, multiple, netDebt, shares, fairValue].every(Number.isFinite)) {
-      const expected = ((ebitda * multiple) - netDebt) / shares;
+      const nonOperatingAdjustments = numberOrNull(result.calculation?.nonOperatingAdjustments) ?? 0;
+      const expected = ((ebitda * multiple) - netDebt + nonOperatingAdjustments) / shares;
       if (!within(expected, fairValue, materialAmountTolerance(expected))) {
         errors.push(fieldError(`${path}.inputs`, "EV/EBITDA fairValue must reconcile to EBITDA, multiple, net debt, and diluted shares."));
         recordValuationMethodVerification(verifications, path, rawMethod, "ERROR", "Typed EV/EBITDA inputs do not reconcile to fairValue.");
@@ -1373,14 +1379,107 @@ function validateValuationResultReproducibility(result = {}, path, errors, warni
       }
       return;
     }
-    markValuationMethodNotVerified(result, path, rawMethod, "EBITDA, multiple, net debt, and diluted shares were not all supplied as finite JSON numbers", warnings, verifications);
+    markValuationMethodNotVerified(result, path, rawMethod, "EBITDA, multiple, net debt, and diluted shares were not all supplied as finite JSON numbers", errors, verifications);
+    return;
+  }
+  if (isPriceFcf) {
+    const freeCashFlow = numberOrNull(inputs.normalizedFreeCashFlow ?? inputs.freeCashFlow ?? inputs.fcf);
+    const shares = numberOrNull(inputs.dilutedShares);
+    const perShare = numberOrNull(inputs.fcfPerShare);
+    const multiple = numberOrNull(inputs.impliedMultiple ?? inputs.multiple);
+    if (Number.isFinite(shares) && shares <= 0) {
+      errors.push(validationError(`${path}.inputs.dilutedShares`, "positive finite JSON number", shares, "dilutedShares must be positive for P/FCF reproducibility."));
+      recordValuationMethodVerification(verifications, path, rawMethod, "ERROR", "dilutedShares is not positive.");
+      return;
+    }
+    if ([freeCashFlow, shares, perShare].every(Number.isFinite) && !within(freeCashFlow / shares, perShare, materialAmountTolerance(freeCashFlow / shares))) {
+      errors.push(fieldError(`${path}.inputs.fcfPerShare`, "fcfPerShare must equal normalizedFreeCashFlow divided by dilutedShares."));
+      recordValuationMethodVerification(verifications, path, rawMethod, "ERROR", "Total and per-share free cash flow inputs conflict.");
+      return;
+    }
+    const normalizedPerShare = Number.isFinite(perShare)
+      ? perShare
+      : (Number.isFinite(freeCashFlow) && Number.isFinite(shares) && shares > 0 ? freeCashFlow / shares : null);
+    if ([normalizedPerShare, multiple, fairValue].every(Number.isFinite)) {
+      const expected = normalizedPerShare * multiple;
+      if (!within(expected, fairValue, materialAmountTolerance(expected))) {
+        errors.push(fieldError(`${path}.inputs`, "P/FCF fairValue must reconcile to free cash flow per share multiplied by impliedMultiple."));
+        recordValuationMethodVerification(verifications, path, rawMethod, "ERROR", "Typed P/FCF inputs do not reconcile to fairValue.");
+      } else {
+        recordValuationMethodVerification(verifications, path, rawMethod, "VERIFIED", "Typed free cash flow per share and multiple reconcile to fairValue.");
+      }
+      return;
+    }
+    markValuationMethodNotVerified(result, path, rawMethod, "free cash flow per share and impliedMultiple could not be derived from finite JSON numbers", errors, verifications);
     return;
   }
 
-  const reason = method.includes("DCF")
-    ? "the v3 contract does not define a complete deterministic cash-flow schedule, discount timing convention, terminal-value convention, and unit/period binding"
-    : "the v3 contract does not define a deterministic typed verifier for this method";
-  markValuationMethodNotVerified(result, path, rawMethod, reason, warnings, verifications);
+  if (isDcf) {
+    const inputs = isPlainObject(result.inputs) ? result.inputs : {};
+    const cashFlows = inputs.forecastFreeCashFlows;
+    const periods = inputs.discountPeriods;
+    const rate = numberOrNull(inputs.discountRatePct);
+    const terminalValue = numberOrNull(inputs.terminalValue);
+    const terminalPeriod = numberOrNull(inputs.terminalDiscountPeriod);
+    const cash = numberOrNull(inputs.cash);
+    const debt = numberOrNull(inputs.debt);
+    const shares = numberOrNull(inputs.dilutedShares);
+    const validSchedule = Array.isArray(cashFlows) && cashFlows.length > 0
+      && Array.isArray(periods) && periods.length === cashFlows.length
+      && cashFlows.every((value) => typeof value === "number" && Number.isFinite(value))
+      && periods.every((value) => typeof value === "number" && Number.isFinite(value) && value > 0);
+    if (validSchedule && [rate, terminalValue, terminalPeriod, cash, debt, shares, fairValue].every(Number.isFinite) && rate > -100 && terminalValue >= 0 && terminalPeriod > 0 && cash >= 0 && debt >= 0 && shares > 0) {
+      const discount = 1 + rate / 100;
+      const pvFlows = cashFlows.reduce((sum, value, index) => sum + value / Math.pow(discount, periods[index]), 0);
+      const expected = (pvFlows + terminalValue / Math.pow(discount, terminalPeriod) + cash - debt) / shares;
+      if (!within(expected, fairValue, materialAmountTolerance(expected))) {
+        errors.push(fieldError(`${path}.inputs`, "DCF fairValue must reconcile to the typed cash-flow schedule, discount timing, terminal value, net debt, and diluted shares."));
+        recordValuationMethodVerification(verifications, path, rawMethod, "ERROR", "Typed DCF inputs do not reconcile to fairValue.");
+      } else {
+        recordValuationMethodVerification(verifications, path, rawMethod, "VERIFIED", "Typed DCF schedule and capital structure reconcile to fairValue.");
+      }
+      return;
+    }
+    markValuationMethodNotVerified(result, path, rawMethod, "complete typed DCF inputs were not supplied", errors, verifications);
+    return;
+  }
+  if (isEvEbit) {
+    const inputs = isPlainObject(result.inputs) ? result.inputs : {};
+    const ebit = numberOrNull(inputs.normalizedEbit ?? inputs.ebit);
+    const multiple = numberOrNull(inputs.evEbitMultiple ?? inputs.multiple);
+    const netDebt = numberOrNull(inputs.netDebt);
+    const shares = numberOrNull(inputs.dilutedShares);
+    if ([ebit, multiple, netDebt, shares, fairValue].every(Number.isFinite) && shares > 0) {
+      const expected = ((ebit * multiple) - netDebt) / shares;
+      if (within(expected, fairValue, materialAmountTolerance(expected))) recordValuationMethodVerification(verifications, path, rawMethod, "VERIFIED", "Typed EBIT, multiple, net debt, and diluted shares reconcile to fairValue.");
+      else {
+        errors.push(fieldError(`${path}.inputs`, "EV/EBIT fairValue must reconcile to EBIT, multiple, net debt, and diluted shares."));
+        recordValuationMethodVerification(verifications, path, rawMethod, "ERROR", "Typed EV/EBIT inputs do not reconcile to fairValue.");
+      }
+      return;
+    }
+    markValuationMethodNotVerified(result, path, rawMethod, "complete typed EV/EBIT inputs were not supplied", errors, verifications);
+    return;
+  }
+  if (isSotp) {
+    const inputs = isPlainObject(result.inputs) ? result.inputs : {};
+    const components = inputs.componentEquityValues;
+    const adjustments = numberOrNull(inputs.corporateAdjustments);
+    const shares = numberOrNull(inputs.dilutedShares);
+    if (Array.isArray(components) && components.length && components.every((value) => typeof value === "number" && Number.isFinite(value)) && [adjustments, shares, fairValue].every(Number.isFinite) && shares > 0) {
+      const expected = (components.reduce((sum, value) => sum + value, 0) + adjustments) / shares;
+      if (within(expected, fairValue, materialAmountTolerance(expected))) recordValuationMethodVerification(verifications, path, rawMethod, "VERIFIED", "Typed component equity values and diluted shares reconcile to fairValue.");
+      else {
+        errors.push(fieldError(`${path}.inputs`, "SOTP fairValue must reconcile to component equity values, corporate adjustments, and diluted shares."));
+        recordValuationMethodVerification(verifications, path, rawMethod, "ERROR", "Typed SOTP inputs do not reconcile to fairValue.");
+      }
+      return;
+    }
+    markValuationMethodNotVerified(result, path, rawMethod, "complete typed SOTP inputs were not supplied", errors, verifications);
+    return;
+  }
+
+  markValuationMethodNotVerified(result, path, rawMethod, "the v3 contract does not define a deterministic typed verifier for this method", errors, verifications);
 }
 
 function validateTypedValuationInputFields(result, path, inputFields, includeCalculationFields, errors) {
@@ -1404,7 +1503,7 @@ function validateTypedValuationInputFields(result, path, inputFields, includeCal
     return true;
   }
   const calculation = isPlainObject(result.calculation) ? result.calculation : {};
-  for (const field of ["netDebt", "dilutedShares"]) {
+  for (const field of ["netDebt", "nonOperatingAdjustments", "dilutedShares"]) {
     if (!Object.hasOwn(calculation, field) || calculation[field] === null || calculation[field] === undefined) continue;
     if (typeof calculation[field] !== "number" || !Number.isFinite(calculation[field])) {
       errors.push(validationError(`${path}.calculation.${field}`, "finite JSON number or null", calculation[field], `${path}.calculation.${field} must be a finite JSON number or null; received ${jsonType(calculation[field])}.`));
@@ -1414,8 +1513,8 @@ function validateTypedValuationInputFields(result, path, inputFields, includeCal
   return malformed;
 }
 
-function markValuationMethodNotVerified(result, path, method, reason, warnings, verifications) {
-  warnings.push({
+function markValuationMethodNotVerified(result, path, method, reason, errors, verifications) {
+  errors.push({
     ...validationError(`${path}.inputs`, "typed inputs sufficient for deterministic verification", result.inputs, `${method} reproducibility is NOT_VERIFIED because ${reason}.`),
     code: "VALUATION_METHOD_NOT_VERIFIED",
     verificationState: "NOT_VERIFIED",

@@ -44,7 +44,7 @@ jobs:
 
       - name: Install orchestrator dependencies
         working-directory: orchestrator
-        run: npm install --ignore-scripts
+        run: npm ci --ignore-scripts
 
       - name: Syntax check
         working-directory: orchestrator
@@ -88,11 +88,11 @@ jobs:
           fi
 
       - name: Install Franklin dependencies
-        run: npm install --ignore-scripts
+        run: npm ci --ignore-scripts
 
       - name: Install orchestrator dependencies
         working-directory: orchestrator
-        run: npm install --ignore-scripts
+        run: npm ci --ignore-scripts
 
       - name: Configure Git and create isolated work branch
         shell: bash

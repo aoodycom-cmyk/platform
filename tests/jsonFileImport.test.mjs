@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { basename } from "node:path";
 import {
   JSON_IMPORT_MAX_BYTES,
   inspectJsonImportText,
@@ -17,6 +18,28 @@ const now = new Date("2026-08-28T12:00:00.000Z");
 const initial = externalReport("INITIAL", "Q2 2026", "2026-08-28");
 const earnings = externalReport("EARNINGS_REVALUATION", "Q3 2026", "2026-10-28");
 const raw = JSON.stringify(initial);
+
+const phase6cInvalidFixtures = [
+  ["unsupported-schema.json", "UNSUPPORTED_SCHEMA", null],
+  ["missing-required-field.json", null, "company.ticker"],
+  ["invalid-field-type.json", null, "fairValueSummary.fairValueBase"],
+  ["bad-source-linkage.json", null, "risks.0.sourceIds.0"]
+];
+
+for (const [fileName, routingCode, validationField] of phase6cInvalidFixtures) {
+  const fixtureUrl = new URL(`./fixtures/phase6c/${fileName}`, import.meta.url);
+  const fixtureText = readFileSync(fixtureUrl, "utf8");
+  if (routingCode) {
+    await assertRejectCode(() => inspectJsonImportText(fixtureText), routingCode, /المخطط النشط\/المستلم/);
+    continue;
+  }
+  const inspection = inspectJsonImportText(fixtureText);
+  assert.equal(inspection.validation.valid, false, `${basename(fileName)} must not expose a save/import action`);
+  assert.ok(
+    inspection.validation.errors.some((item) => item.field === validationField),
+    `${basename(fileName)} must fail at ${validationField}`
+  );
+}
 
 // 1. Raw JSON file is read as UTF-8 and parsed locally.
 const selected = await readLocalJsonFile(mockFile("franklin-analysis.json", raw));
@@ -103,6 +126,16 @@ assert.match(css, /\.json-import-tabs \{ grid-template-columns: 1fr;/);
 assert.match(css, /\.json-file-picker \{ min-height: 148px;/);
 assert.match(html, /dir="rtl"/);
 assert.equal((storeSource.match(/inputMode: inputMethod/g) || []).length, 3, "Full, supplement, and error import states must preserve the selected input method.");
+assert.equal(
+  (components.match(/window\.setTimeout\(\(\) => URL\.revokeObjectURL\(url\), 1000\)/g) || []).length,
+  2,
+  "Safari downloads must retain blob URLs long enough for analysis and backup export."
+);
+assert.equal(
+  (components.match(/document\.body\.appendChild\(link\);[\s\S]{0,80}link\.click\(\);[\s\S]{0,80}link\.remove\(\);/g) || []).length,
+  2,
+  "Safari downloads must click an attached anchor and remove it afterward."
+);
 
 console.log("Franklin local JSON file import: PASS");
 
@@ -118,7 +151,7 @@ function externalReport(analysisType, reportPeriod, analysisDate) {
     thesis: { shortSummary: "فرضية استثمار مكتملة." },
     risks: [{ title: "مخاطرة", explanation: "شرح المخاطرة." }],
     decision: { action: "HOLD", rationale: "مبررات القرار." },
-    sources: [{ title: "Investor Relations", url: "https://example.com" }],
+    sources: [{ id: "TEST-IR", title: "Investor Relations", type: "Investor Relations", date: analysisDate, url: "https://example.com" }],
     metadata: { analysisType }
   };
 }

@@ -4,10 +4,12 @@ import { pathToFileURL } from "node:url";
 
 const BASE_URL = process.env.FRANKLIN_E2E_URL || "http://127.0.0.1:4321/";
 const playwright = await loadPlaywright();
+const browserName = String(process.env.FRANKLIN_E2E_BROWSER || "chromium").toLowerCase();
+if (!playwright[browserName]) throw new Error(`Unsupported Playwright browser: ${browserName}`);
 const canonical = await loadCanonicalFixture();
-const browser = await playwright.chromium.launch({
+const browser = await playwright[browserName].launch({
   headless: true,
-  ...(process.env.FRANKLIN_BROWSER_EXECUTABLE ? { executablePath: process.env.FRANKLIN_BROWSER_EXECUTABLE } : {})
+  ...(browserName === "chromium" && process.env.FRANKLIN_BROWSER_EXECUTABLE ? { executablePath: process.env.FRANKLIN_BROWSER_EXECUTABLE } : {})
 });
 const pageErrors = [];
 const resourceErrors = [];
@@ -223,7 +225,7 @@ try {
   assert.equal(await page.getAttribute("html", "dir"), "rtl");
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(resourceErrors, []);
-  console.log(`Franklin JSON architecture E2E: PASS (${canonical.reportIdentity.ticker}, ${exportText.length} bytes)`);
+  console.log(`Franklin JSON architecture E2E [${browserName}]: PASS (${canonical.reportIdentity.ticker}, ${exportText.length} bytes)`);
 } finally {
   await browser.close();
 }
@@ -231,7 +233,8 @@ try {
 async function loadPlaywright() {
   const modulePath = process.env.FRANKLIN_PLAYWRIGHT_MODULE;
   try {
-    return await import(modulePath ? pathToFileURL(modulePath).href : "playwright");
+    const loaded = await import(modulePath ? pathToFileURL(modulePath).href : "playwright");
+    return loaded.chromium ? loaded : loaded.default;
   } catch (error) {
     throw new Error(`Playwright is required for JSON E2E. Install it or set FRANKLIN_PLAYWRIGHT_MODULE. ${error.message}`);
   }

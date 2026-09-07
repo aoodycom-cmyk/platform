@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { buildFranklinV3ReportTemplate } from "../src/externalAnalysis/v3Contract.js";
 import { validateFranklinV3Report } from "../src/externalAnalysis/v3Validator.js";
+import { normalizeFranklinV3Input } from "../src/externalAnalysis/v3InputNormalizer.js";
 import { parseExternalAnalysisInput } from "../src/externalAnalysis/parser.js";
 import {
   assertDispatchedPayloadValid,
@@ -140,6 +141,75 @@ const evEbitdaValidation = validateFranklinV3Report(evEbitdaOwner);
 assert.equal(evEbitdaValidation.valid, true, JSON.stringify(evEbitdaValidation.errors, null, 2));
 assertMethodVerification(evEbitdaValidation, "EV/EBITDA", "VERIFIED");
 
+const evEbitdaWithAdjustment = mutate(evEbitdaOwner, (report) => {
+  report.valuation.valuationResults[0].fairValue = 75;
+  report.valuation.valuationResults[0].calculation = { nonOperatingAdjustments: -50 };
+});
+const adjustedEvValidation = validateFranklinV3Report(evEbitdaWithAdjustment);
+assert.equal(adjustedEvValidation.valid, true, JSON.stringify(adjustedEvValidation.errors, null, 2));
+assertMethodVerification(adjustedEvValidation, "EV/EBITDA", "VERIFIED");
+
+const priceFcfOwner = mutate(canonical, (report) => {
+  report.valuation.methodology.primaryMethod = "P/FCF";
+  report.valuation.methodology.modelWeights[0].method = "P/FCF";
+  Object.assign(report.valuation.valuationResults[0], {
+    method: "P/FCF",
+    fairValue: 100,
+    inputs: { normalizedFreeCashFlow: 50, dilutedShares: 10, impliedMultiple: 20 }
+  });
+});
+const priceFcfValidation = validateFranklinV3Report(priceFcfOwner);
+assert.equal(priceFcfValidation.valid, true, JSON.stringify(priceFcfValidation.errors, null, 2));
+assertMethodVerification(priceFcfValidation, "P/FCF", "VERIFIED");
+
+const chatGptAliasInputs = normalizeFranklinV3Input(mutate(priceFcfOwner, (report) => {
+  report.valuation.valuationResults[0].inputs = {
+    "2027E_FCF_USD_million": 50,
+    shares_million: 10,
+    targetMultiple: 20
+  };
+}));
+assert.deepEqual(
+  {
+    freeCashFlow: chatGptAliasInputs.valuation.valuationResults[0].inputs.normalizedFreeCashFlow,
+    shares: chatGptAliasInputs.valuation.valuationResults[0].inputs.dilutedShares,
+    multiple: chatGptAliasInputs.valuation.valuationResults[0].inputs.impliedMultiple
+  },
+  { freeCashFlow: 50, shares: 10, multiple: 20 }
+);
+assert.equal(validateFranklinV3Report(chatGptAliasInputs).valid, true);
+
+const chatGptEvAliases = normalizeFranklinV3Input(mutate(evEbitdaWithAdjustment, (report) => {
+  report.valuation.valuationResults[0].inputs = {
+    "2027E_EBITDA_USD_million": 100,
+    targetMultiple: 10,
+    netDebt_USD_million: 200,
+    dilutedShares_million: 10
+  };
+}));
+assert.deepEqual(
+  {
+    ebitda: chatGptEvAliases.valuation.valuationResults[0].inputs.normalizedEbitda,
+    multiple: chatGptEvAliases.valuation.valuationResults[0].inputs.evEbitdaMultiple,
+    netDebt: chatGptEvAliases.valuation.valuationResults[0].inputs.netDebt,
+    shares: chatGptEvAliases.valuation.valuationResults[0].inputs.dilutedShares
+  },
+  { ebitda: 100, multiple: 10, netDebt: 200, shares: 10 }
+);
+assert.equal(validateFranklinV3Report(chatGptEvAliases).valid, true);
+
+const chatGptPeAliases = normalizeFranklinV3Input(mutate(canonical, (report) => {
+  report.valuation.valuationResults[0].inputs = { "2027E_EPS": 2, targetMultiple: 41 };
+}));
+assert.equal(chatGptPeAliases.valuation.valuationResults[0].inputs.normalizedForwardEps, 2);
+assert.equal(chatGptPeAliases.valuation.valuationResults[0].inputs.impliedMultiple, 41);
+assert.equal(validateFranklinV3Report(chatGptPeAliases).valid, true);
+
+const conflictingPriceFcf = mutate(priceFcfOwner, (report) => {
+  report.valuation.valuationResults[0].inputs.fcfPerShare = 999;
+});
+assert.ok(validateFranklinV3Report(conflictingPriceFcf).errors.some((error) => error.field.endsWith("fcfPerShare")));
+
 for (const [field, value, receivedType] of [
   ["normalizedEbitda", "100", "string"],
   ["ebitda", [100], "array"],
@@ -158,8 +228,7 @@ expectStructuredOwnerError(evEbitdaOwner, (report) => {
 
 const dcfValidation = validateFranklinV3Report(goldenB, frozenContext());
 assert.equal(dcfValidation.valid, true, JSON.stringify(dcfValidation.errors, null, 2));
-assertMethodVerification(dcfValidation, "DCF", "NOT_VERIFIED");
-assert.ok(dcfValidation.warnings.some((warning) => warning.method === "DCF" && warning.verificationState === "NOT_VERIFIED"));
+assertMethodVerification(dcfValidation, "DCF", "VERIFIED");
 
 const unknownMethodOwner = mutate(canonical, (report) => {
   report.valuation.methodology.secondaryMethods[1] = "Mystery Model";
@@ -167,9 +236,9 @@ const unknownMethodOwner = mutate(canonical, (report) => {
   report.valuation.valuationResults[2].method = "Mystery Model";
 });
 const unknownMethodValidation = validateFranklinV3Report(unknownMethodOwner);
-assert.equal(unknownMethodValidation.valid, true, JSON.stringify(unknownMethodValidation.errors, null, 2));
+assert.equal(unknownMethodValidation.valid, false);
 assertMethodVerification(unknownMethodValidation, "Mystery Model", "NOT_VERIFIED");
-assert.ok(unknownMethodValidation.warnings.some((warning) => warning.method === "Mystery Model" && warning.verificationState === "NOT_VERIFIED"));
+assert.ok(unknownMethodValidation.errors.some((error) => error.method === "Mystery Model" && error.verificationState === "NOT_VERIFIED"));
 
 expectStructuredOwnerError(canonical, (report) => {
   report.financialNormalization = { cash: [100] };

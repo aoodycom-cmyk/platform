@@ -47,10 +47,7 @@ export function validateArabicNarrativeQuality(input = {}) {
     }
   }
   if (unexplained.size) {
-    warnings.push(issue(
-      "companyGlossary",
-      `تنبيه لغوي فقط — عبارات إنجليزية لم تُطابق قاموس الشركة ولن تمنع الاستيراد: ${[...unexplained].slice(0, 8).join("، ")}.`
-    ));
+    errors.push(issue("companyGlossary", `مصطلحات إنجليزية غير مشروحة للمستثمر: ${[...unexplained].slice(0, 8).join("، ")}.`));
   }
 
   return { errors, warnings };
@@ -97,7 +94,8 @@ function dynamicIgnoredTerms(input = {}) {
   return [
     input.reportIdentity?.companyName,
     stripCompanySuffix(input.reportIdentity?.companyName),
-    input.reportIdentity?.ticker
+    input.reportIdentity?.ticker,
+    ...(input.companyProfile?.activities || []).flatMap((activity) => [activity?.name, activity?.arabicName])
   ].map(normalizeEnglish).filter(Boolean);
 }
 

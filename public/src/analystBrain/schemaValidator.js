@@ -78,6 +78,7 @@ function validateNestedPayload(payload, errors) {
       if (["DCF", "Price/FCF"].includes(model.method) && !positive(model.assumptions?.currentFreeCashFlow ?? model.assumptions?.freeCashFlow)) {
         errors.push(`${model.method} requires positive current Free Cash Flow.`);
       }
+      if (model.method === "DCF") validateDcfAssumptions(model.assumptions, errors);
     }
     const weightedFairValue = weightedAverage(models.map((model) => ({
       value: model.fairValue ?? model.value,
@@ -129,6 +130,32 @@ function validateNestedPayload(payload, errors) {
   if (!Array.isArray(checklist) || checklist.length < 5 || checklist.length > 8) errors.push("monitoringChecklist must contain 5-8 company-specific items.");
 }
 
+function validateDcfAssumptions(assumptions, errors) {
+  const prefix = "DCF assumptions";
+  if (!assumptions || typeof assumptions !== "object" || Array.isArray(assumptions)) {
+    errors.push(`${prefix} must be an object.`);
+    return;
+  }
+  const forecast = assumptions.forecast;
+  if (!Array.isArray(forecast) || forecast.length !== 5) {
+    errors.push(`${prefix}.forecast must contain exactly five yearly rows.`);
+  } else {
+    forecast.forEach((row, index) => {
+      if (!Number.isFinite(row?.year) || row.year !== index + 1) errors.push(`${prefix}.forecast years must be consecutive from 1 to 5.`);
+      if (!Number.isFinite(row?.freeCashFlow) || row.freeCashFlow <= 0) errors.push(`${prefix}.forecast freeCashFlow must be positive and finite.`);
+    });
+  }
+  const wacc = assumptions.wacc;
+  const terminalGrowth = assumptions.terminalGrowth;
+  if (!Number.isFinite(wacc) || !Number.isFinite(terminalGrowth) || wacc <= terminalGrowth) {
+    errors.push(`${prefix} require finite wacc greater than terminalGrowth.`);
+  }
+  if (!Number.isFinite(assumptions.shares) || assumptions.shares <= 0) errors.push(`${prefix}.shares must be positive and finite.`);
+  for (const key of ["cash", "debt"]) {
+    if (!Number.isFinite(assumptions[key]) || assumptions[key] < 0) errors.push(`${prefix}.${key} must be nonnegative and finite.`);
+  }
+}
+
 function auditModelFairValue(model) {
   const a = model.assumptions || {};
   if (model.method === "DCF") return dcfFairValuePerShare({
@@ -150,13 +177,14 @@ function auditModelFairValue(model) {
 }
 
 function dcfFairValuePerShare({ forecast, terminalGrowth, wacc, cash, debt, shares }) {
-  if (!Array.isArray(forecast) || !forecast.length || !positive(shares)) return null;
+  if (!Array.isArray(forecast) || forecast.length !== 5 || !positive(shares) || !Number.isFinite(wacc) || !Number.isFinite(terminalGrowth) || wacc <= terminalGrowth) return null;
   let pv = 0;
   for (const row of forecast) {
+    if (!Number.isFinite(row?.year) || !positive(row?.freeCashFlow)) return null;
     pv += toNumber(row.freeCashFlow) / Math.pow(1 + wacc, toNumber(row.year));
   }
   const terminalFcf = toNumber(forecast[forecast.length - 1].freeCashFlow) * (1 + terminalGrowth);
-  const terminalValue = terminalFcf / Math.max(wacc - terminalGrowth, 0.01);
+  const terminalValue = terminalFcf / (wacc - terminalGrowth);
   const pvTerminal = terminalValue / Math.pow(1 + wacc, forecast.length);
   return (pv + pvTerminal + (cash || 0) - (debt || 0)) / shares;
 }

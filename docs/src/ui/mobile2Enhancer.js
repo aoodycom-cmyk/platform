@@ -31,10 +31,15 @@ function numeric(value) {
   return Number.isFinite(number) ? number : null;
 }
 
-function money(value, digits = 0) {
+export function money(value, digits = 0, currency = "USD") {
   const number = numeric(value);
   if (!Number.isFinite(number)) return "—";
-  return `$${number.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: String(currency || "USD").toUpperCase(),
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits
+  }).format(number);
 }
 
 function signedPercent(value) {

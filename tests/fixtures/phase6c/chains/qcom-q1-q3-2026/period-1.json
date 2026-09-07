@@ -1,0 +1,635 @@
+{
+  "schemaVersion": "franklin-fair-value/v3",
+  "methodologyVersion": "fair-value-methodology/v2",
+  "analysisType": "INITIAL",
+  "outputLanguage": "ar",
+  "companyGlossary": [
+    {
+      "termAr": "الإيرادات",
+      "termEn": "Revenue",
+      "plainExplanationAr": "قيمة المبيعات المثبتة في الإفصاح المالي الرسمي للفترة محل التحليل.",
+      "whyItMattersAr": "توضح حجم النشاط المبلغ عنه."
+    },
+    {
+      "termAr": "ربحية السهم",
+      "termEn": "Earnings per share",
+      "plainExplanationAr": "حصة السهم المخففة من صافي الربح وفق الأساس المحاسبي المعلن.",
+      "whyItMattersAr": "تربط الربح بعدد الأسهم."
+    },
+    {
+      "termAr": "التدفق النقدي الحر",
+      "termEn": "Free cash flow",
+      "plainExplanationAr": "التدفق التشغيلي بعد طرح القيمة المطلقة للإنفاق الرأسمالي عند توفرهما.",
+      "whyItMattersAr": "يقيس النقد المتبقي بصورة مبسطة."
+    },
+    {
+      "termAr": "مضاعف الربحية",
+      "termEn": "P/E",
+      "plainExplanationAr": "طريقة حسابية تضرب ربحية السهم المفترضة في مضاعف معلن لإنتاج قيمة السهم.",
+      "whyItMattersAr": "تجعل حساب القيمة قابلًا لإعادة الإنتاج."
+    }
+  ],
+  "reportIdentity": {
+    "ticker": "QCOM",
+    "companyName": "QUALCOMM INC/DE",
+    "fiscalQuarter": "Q1",
+    "fiscalYear": 2026,
+    "periodEndDate": "2025-12-28",
+    "earningsReleaseDate": "2026-02-04",
+    "analysisDate": "2026-02-04",
+    "previousAnalysisId": null,
+    "previousRequirementSetId": null
+  },
+  "company": {
+    "sector": "غير مصنف ضمن حزمة الدليل",
+    "industry": "غير مصنف ضمن حزمة الدليل",
+    "reportingCurrency": "USD",
+    "tradingCurrency": "USD",
+    "securityUnit": "share"
+  },
+  "companyProfile": {
+    "summary": "تعرض هذه الحزمة تحليلًا ماليًا لشركة QUALCOMM INC/DE اعتمادًا على الإفصاح الرسمي المجمد حتى تاريخ القطع.",
+    "businessModel": "لم تتضمن حزمة القياس وصفًا تشغيليًا كاملًا؛ لذلك يقتصر هذا التقرير على الحقائق المالية الموثقة ولا يفترض نموذج أعمال غير مثبت.",
+    "activities": [],
+    "customers": [],
+    "mainGrowthDrivers": []
+  },
+  "dataQuality": {
+    "score": 90,
+    "confidence": "HIGH",
+    "reportedDataThrough": "2025-12-28",
+    "missingCriticalFields": [],
+    "notes": [
+      "الإجماع التاريخي غير متاح، لذلك لا توجد دعوى تفوق أو إخفاق."
+    ]
+  },
+  "classification": {
+    "companyType": "شركة عامة مدرجة",
+    "businessStage": "قائمة",
+    "cyclicality": "غير متحقق ضمن الحزمة",
+    "capitalIntensity": "غير متحقق ضمن الحزمة",
+    "evidence": [
+      "إفصاح SEC الرسمي للفترة Q1 2026."
+    ],
+    "confidence": "LOW"
+  },
+  "businessQuality": {
+    "score": 50,
+    "rating": "محايد",
+    "confidence": "LOW",
+    "components": {
+      "growth": 50,
+      "profitability": 50,
+      "cashFlow": 50,
+      "balanceSheet": 50,
+      "capitalAllocation": 50,
+      "competitiveAdvantage": 50,
+      "management": 50
+    },
+    "explanation": "الدرجة محايدة ومنخفضة الثقة لأنها ليست حقيقة صادرة عن الشركة، بل تفسير محدود لاختبار المسار الأصلي مع منع الادعاءات غير المدعومة."
+  },
+  "strengths": [],
+  "weaknesses": [],
+  "marketPrice": {
+    "value": 148.89,
+    "currency": "USD",
+    "asOf": "2026-02-04",
+    "priceType": "LAST_CLOSE",
+    "sourceId": "NASDAQ-QCOM-2026-02-04"
+  },
+  "latestQuarter": {
+    "summary": "يعرض هذا القسم فقط المقاييس المثبتة في الإفصاح الرسمي، وأي حقل غير متاح بقي فارغًا.",
+    "coreMetrics": {
+      "revenue": {
+        "actualValue": 12252000000,
+        "unit": "USD",
+        "consensusValue": null,
+        "priorYearValue": null,
+        "yoyPct": null,
+        "result": "NA",
+        "sourceId": "SEC-0000804328-0000804328-26-000017",
+        "qoqPct": null
+      },
+      "eps": {
+        "actualValue": 2.78,
+        "unit": "USD/share",
+        "consensusValue": null,
+        "priorYearValue": null,
+        "yoyPct": null,
+        "result": "NA",
+        "sourceId": "SEC-0000804328-0000804328-26-000017"
+      },
+      "grossMarginPct": {
+        "actualValue": null,
+        "consensusValue": null,
+        "priorYearValue": null,
+        "result": "NA",
+        "sourceId": null
+      },
+      "operatingMarginPct": {
+        "actualValue": 27.47,
+        "consensusValue": null,
+        "priorYearValue": null,
+        "result": "NA",
+        "sourceId": "SEC-0000804328-0000804328-26-000017"
+      },
+      "freeCashFlow": {
+        "actualValue": null,
+        "unit": null,
+        "priorYearValue": null,
+        "yoyPct": null,
+        "sourceId": null
+      },
+      "cash": {
+        "actualValue": 7205000000,
+        "unit": "USD",
+        "sourceId": "SEC-0000804328-0000804328-26-000017"
+      },
+      "debt": {
+        "actualValue": null,
+        "unit": null,
+        "sourceId": null
+      }
+    },
+    "companySpecificKpis": [],
+    "guidance": [
+      {
+        "period": "fiscal 2029",
+        "topic": "revenue",
+        "previousGuidance": null,
+        "currentGuidance": "&#8220;We are pleased to deliver strong quarterly results, with record total company revenues,&#8221; said Cristiano Amon, President and CEO of Qualcomm Incorporated. &#8220;Our momentum across personal, industrial and physical AI is growing, as evidenced by recent product announcements at CES and customer traction. While our near-term handsets outlook is impacted by industry-wide memory supply constraints, we are encouraged by end-consumer demand for premium and high tier smartphones, and remain on track to achieve our fiscal 2029 revenue goals.&#8221; First Quarter Results 1 GAAP Non-GAAP (in millions, except p",
+        "previousLow": null,
+        "previousHigh": null,
+        "currentLow": null,
+        "currentHigh": null,
+        "midpoint": null,
+        "unit": null,
+        "currency": null,
+        "accountingBasis": "NON_GAAP",
+        "direction": "new",
+        "interpretation": "التصنيف المستقل: VERIFIED_GUIDANCE_NOT_QUANTIFIED.",
+        "sourceId": "SEC-0000804328-0000804328-26-000016-EXHIBIT"
+      }
+    ],
+    "forwardOutlook": {
+      "growthOutlook": "unclear",
+      "marginOutlook": "unclear",
+      "fcfOutlook": "unclear",
+      "demandOutlook": "unclear",
+      "capacityOutlook": "unclear",
+      "executionOutlook": "unclear",
+      "guidanceTrend": "new",
+      "managementTone": "unclear",
+      "summary": "يتضمن الإفصاح الرسمي بيانًا إداريًا ماديًا عن الأداء والتوقعات؛ أُبقي الاتجاه غير واضح لأن الحزمة لا تثبت تفسيرًا كميًا مستقلًا."
+    }
+  },
+  "financialNormalization": {
+    "reportingPeriod": "Q1 2026",
+    "reportingCurrency": "USD",
+    "earningsBasisUsedForValuation": "GAAP facts; market-price scenario is interpretive",
+    "revenue": {
+      "value": 12252000000,
+      "unit": "USD",
+      "accountingBasis": "GAAP",
+      "period": "Q1 2026",
+      "sourceId": "SEC-0000804328-0000804328-26-000017"
+    },
+    "gaapNetIncome": {
+      "value": 3004000000,
+      "unit": "USD",
+      "accountingBasis": "GAAP",
+      "period": "Q1 2026",
+      "sourceId": "SEC-0000804328-0000804328-26-000017"
+    },
+    "adjustedNetIncome": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "normalizedNetIncome": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "gaapDilutedEps": {
+      "value": 2.78,
+      "unit": "USD/share",
+      "accountingBasis": "GAAP",
+      "period": "Q1 2026",
+      "sourceId": "SEC-0000804328-0000804328-26-000017"
+    },
+    "adjustedDilutedEps": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "normalizedDilutedEps": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "dilutedShares": {
+      "value": 1079000000,
+      "unit": "shares",
+      "accountingBasis": "GAAP",
+      "period": "Q1 2026",
+      "sourceId": "SEC-0000804328-0000804328-26-000017"
+    },
+    "stockBasedCompensation": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "operatingCashFlow": {
+      "value": 4965000000,
+      "unit": "USD",
+      "accountingBasis": "GAAP",
+      "period": "Q1 2026",
+      "sourceId": "SEC-0000804328-0000804328-26-000017"
+    },
+    "capitalExpenditure": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "workingCapitalChange": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "freeCashFlow": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "cash": {
+      "value": 7205000000,
+      "unit": "USD",
+      "accountingBasis": "GAAP",
+      "period": "Q1 2026",
+      "sourceId": "SEC-0000804328-0000804328-26-000017"
+    },
+    "debt": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "netDebt": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "taxRatePct": {
+      "value": null,
+      "unit": null,
+      "accountingBasis": null,
+      "period": null,
+      "sourceId": null
+    },
+    "oneOffItems": [],
+    "reconciliationNotes": [],
+    "sourceIds": [
+      "SEC-0000804328-0000804328-26-000017"
+    ]
+  },
+  "forecast": {
+    "materiality": "NON_MATERIAL",
+    "yearlyForecast": [
+      {
+        "period": "FY2026",
+        "revenue": {
+          "value": null,
+          "basis": null
+        },
+        "revenueGrowthPct": {
+          "value": null,
+          "basis": null
+        },
+        "eps": {
+          "value": null,
+          "basis": null
+        },
+        "ebitda": {
+          "value": null,
+          "basis": null
+        },
+        "ebitdaMarginPct": {
+          "value": null,
+          "basis": null
+        },
+        "freeCashFlow": {
+          "value": null,
+          "basis": null
+        },
+        "fcfMarginPct": {
+          "value": null,
+          "basis": null
+        }
+      }
+    ],
+    "estimateRevisions": [],
+    "changedAssumptions": [],
+    "wacc": {
+      "value": null,
+      "rangeLow": null,
+      "rangeHigh": null,
+      "reason": "لا توجد فرضية توقع موثقة."
+    },
+    "terminalGrowth": {
+      "value": null,
+      "reason": "لا توجد فرضية نمو نهائي موثقة."
+    },
+    "sensitivity": [],
+    "summary": "لم يُنشأ توقع رقمي؛ البيانات المستقبلية غير المكتملة لم تُحوّل إلى حقائق أو تقديرات مصطنعة."
+  },
+  "previousRequirementsEvaluation": null,
+  "valuation": {
+    "reviewStatus": "INITIAL",
+    "previous": null,
+    "current": {
+      "bear": 119.11,
+      "base": 148.89,
+      "bull": 178.67,
+      "probabilityWeighted": 148.89,
+      "currency": "USD",
+      "securityUnit": "share",
+      "confidence": "LOW"
+    },
+    "change": null,
+    "methodology": {
+      "primaryMethod": "P/E",
+      "secondaryMethods": [],
+      "excludedMethods": [],
+      "methodologyChanged": false,
+      "selectionReason": "استخدم سعر الإغلاق عند القطع كمرساة محايدة لأن الحزمة لا تتضمن توقعًا مستقلاً كافيًا لتقييم جوهري.",
+      "modelWeights": [
+        {
+          "method": "P/E",
+          "weight": 100
+        }
+      ],
+      "weightReasoning": "طريقة واحدة بمدخلين مكتوبين وقابلين لإعادة الحساب.",
+      "limitations": [
+        "المدخلان افتراضان تحليليان متعادلان وليسا توقعًا صادرًا عن الشركة."
+      ]
+    },
+    "valuationResults": [
+      {
+        "method": "P/E",
+        "role": "PRIMARY",
+        "fairValue": 148.89,
+        "weight": 100,
+        "confidence": "LOW",
+        "inputs": {
+          "normalizedForwardEps": 148.89,
+          "impliedMultiple": 1
+        },
+        "assumptions": {
+          "interpretation": "neutral market-price anchor"
+        },
+        "calculation": {
+          "formula": "fair value = normalized forward EPS * implied multiple",
+          "steps": [
+            "ضرب المدخل 148.89 في المضاعف 1."
+          ],
+          "enterpriseValue": null,
+          "netDebt": null,
+          "nonOperatingAdjustments": null,
+          "equityValue": null,
+          "dilutedShares": null,
+          "computedFairValue": 148.89
+        },
+        "rationale": "مرساة تحليلية قابلة للتكرار تمنع اختلاق توقع مالي.",
+        "limitations": "المدخل ليس توقع ربحية صادرًا عن الشركة ولا قيمة جوهرية مستقلة."
+      }
+    ],
+    "scenarios": {
+      "Bear": {
+        "probability": 25,
+        "fairValue": 119.11,
+        "assumptions": [
+          "انخفاض تفسيري بنسبة 20%."
+        ],
+        "requiredOutcomes": [],
+        "keyRisks": []
+      },
+      "Base": {
+        "probability": 50,
+        "fairValue": 148.89,
+        "assumptions": [
+          "بقاء مرساة السعر التاريخي."
+        ],
+        "requiredOutcomes": [],
+        "keyRisks": []
+      },
+      "Bull": {
+        "probability": 25,
+        "fairValue": 178.67,
+        "assumptions": [
+          "ارتفاع تفسيري بنسبة 20%."
+        ],
+        "requiredOutcomes": [],
+        "keyRisks": []
+      }
+    },
+    "valuationBridge": {
+      "positiveDrivers": [],
+      "negativeDrivers": [],
+      "whyBaseChangedOrNot": "Initial valuation.",
+      "baseChangeBridge": null
+    },
+    "calculationAudit": {
+      "weightedMethodFairValue": 148.89,
+      "analystOverlayPct": 0,
+      "overlayReason": null,
+      "reconciledBaseFairValue": 148.89,
+      "gapToReportedBasePct": 0
+    },
+    "upsideToBasePct": 0,
+    "marginOfSafetyPct": 0
+  },
+  "thesis": {
+    "status": "INITIAL",
+    "previousSummary": null,
+    "updatedSummary": "الأطروحة محايدة ومحدودة: التقرير يثبت إمكانية تشغيل تحليل فرانكلين الأصلي على الأدلة التاريخية من دون اختلاق توقعات.",
+    "changeReason": null,
+    "keySupports": [
+      "البيانات المالية والسعر مرتبطان بمصادر مجمدة."
+    ],
+    "keyThreats": [
+      "غياب توقع مالي مستقل كامل يمنع استنتاج قيمة جوهرية عالية الثقة."
+    ]
+  },
+  "decision": {
+    "scope": "STOCK_LEVEL",
+    "action": "WATCH",
+    "confidence": 25,
+    "investmentScore": 50,
+    "rationale": [
+      "السعر التاريخي مستخدم كمرساة سيناريو لا كتوصية استثمارية."
+    ],
+    "whyNot": [
+      "لا تتوفر توقعات مستقلة كافية لقرار شراء أو بيع."
+    ],
+    "biggestAssumption": "استمرار السعر كمرساة محايدة لحظة القطع.",
+    "mainRisk": "قد تختلف القيمة الجوهرية عن سعر السوق بصورة مادية.",
+    "upgradeTriggers": [],
+    "downgradeTriggers": []
+  },
+  "nextRequirements": {
+    "requirementSetId": "QCOM-Q1-2026-requirements",
+    "mode": "DEFEND_BASE",
+    "previousQuarter": "Q1 2026",
+    "targetQuarter": "Q2 2026",
+    "currentJustifiedValue": 148.89,
+    "targetValue": 148.89,
+    "targetScenario": "BASE_DEFENSE",
+    "targetDescription": "الحفاظ على المرساة الحالية حتى الإفصاح التالي.",
+    "summary": "متطلبات تحقق للفترة التالية ولا تُعد توقعات مؤكدة.",
+    "requirements": [
+      {
+        "id": "QCOM-R1",
+        "name": "revenue",
+        "arabicName": "الإيرادات",
+        "metric": "revenue",
+        "type": "qualitative",
+        "baselineValue": null,
+        "baselineDisplay": "غير مقيم",
+        "requiredValue": null,
+        "requiredDisplay": "نشر إيرادات الفترة التالية",
+        "unit": null,
+        "importance": "high",
+        "weight": 25,
+        "whyItMatters": "يوفر دليلًا جديدًا لتحديث التحليل من دون استخدام بيانات مستقبلية.",
+        "status": "NOT_REPORTED"
+      },
+      {
+        "id": "QCOM-R2",
+        "name": "dilutedEps",
+        "arabicName": "ربحية السهم",
+        "metric": "dilutedEps",
+        "type": "qualitative",
+        "baselineValue": null,
+        "baselineDisplay": "غير مقيم",
+        "requiredValue": null,
+        "requiredDisplay": "نشر ربحية السهم المخففة",
+        "unit": null,
+        "importance": "high",
+        "weight": 25,
+        "whyItMatters": "يوفر دليلًا جديدًا لتحديث التحليل من دون استخدام بيانات مستقبلية.",
+        "status": "NOT_REPORTED"
+      },
+      {
+        "id": "QCOM-R3",
+        "name": "operatingCashFlow",
+        "arabicName": "التدفق التشغيلي",
+        "metric": "operatingCashFlow",
+        "type": "qualitative",
+        "baselineValue": null,
+        "baselineDisplay": "غير مقيم",
+        "requiredValue": null,
+        "requiredDisplay": "نشر التدفق النقدي التشغيلي",
+        "unit": null,
+        "importance": "medium",
+        "weight": 25,
+        "whyItMatters": "يوفر دليلًا جديدًا لتحديث التحليل من دون استخدام بيانات مستقبلية.",
+        "status": "NOT_REPORTED"
+      },
+      {
+        "id": "QCOM-R4",
+        "name": "guidance",
+        "arabicName": "التوجيهات",
+        "metric": "guidance",
+        "type": "qualitative",
+        "baselineValue": null,
+        "baselineDisplay": "غير مقيم",
+        "requiredValue": null,
+        "requiredDisplay": "توضيح التوجيه الرسمي أو عدم تقديمه",
+        "unit": null,
+        "importance": "medium",
+        "weight": 25,
+        "whyItMatters": "يوفر دليلًا جديدًا لتحديث التحليل من دون استخدام بيانات مستقبلية.",
+        "status": "NOT_REPORTED"
+      }
+    ]
+  },
+  "risks": [
+    {
+      "title": "محدودية التقييم المستقل",
+      "severity": "high",
+      "explanation": "لا تتضمن الحزمة توقعًا ماليًا مستقلاً كاملًا، ولذلك قد تختلف القيمة الجوهرية ماديًا عن مرساة السعر التاريخي.",
+      "whatToMonitor": "الإفصاح المالي والتوجيه الرسمي في الفترة التالية.",
+      "thesisBreaker": "ظهور دليل رسمي يناقض الحقائق المستخدمة.",
+      "sourceIds": []
+    }
+  ],
+  "catalysts": [],
+  "monitoringChecklist": [],
+  "sources": [
+    {
+      "id": "SEC-0000804328-0000804328-26-000017",
+      "title": "SEC filing",
+      "type": "SEC",
+      "date": "2026-02-04",
+      "url": "https://www.sec.gov/Archives/edgar/data/804328/000080432826000017/qcom-20251228.htm",
+      "usedFor": [
+        "latestQuarter",
+        "financialNormalization"
+      ]
+    },
+    {
+      "id": "SEC-0000804328-0000804328-26-000016-EXHIBIT",
+      "title": "Official SEC-filed earnings exhibit",
+      "type": "SEC",
+      "date": "2026-02-04",
+      "url": "https://www.sec.gov/Archives/edgar/data/804328/000080432826000016/qcom122825erex991.htm",
+      "usedFor": [
+        "latestQuarter.guidance",
+        "latestQuarter.forwardOutlook"
+      ]
+    },
+    {
+      "id": "NASDAQ-QCOM-2026-02-04",
+      "title": "QCOM historical close",
+      "type": "Market Data",
+      "date": "2026-02-04",
+      "url": "https://api.nasdaq.com/api/quote/QCOM/historical?assetclass=stocks&fromdate=2025-02-04&todate=2026-07-29&limit=5000",
+      "usedFor": [
+        "marketPrice"
+      ]
+    }
+  ],
+  "limitations": [
+    "التقييم سيناريو سوقي تفسيري منخفض الثقة وليس حقيقة صادرة عن الشركة.",
+    "لا توجد دعوى تفوق أو إخفاق لغياب إجماع تاريخي موثوق في الحزمة."
+  ],
+  "audit": {
+    "scenarioProbabilityTotalPct": 100,
+    "valuationMethodWeightTotalPct": 100,
+    "previousRequirementWeightTotalPct": null,
+    "nextRequirementWeightTotalPct": 100,
+    "consistencyNotes": [
+      "كل الحقائق الرقمية الحالية مرتبطة بإفصاح SEC للفترة نفسها."
+    ]
+  }
+}

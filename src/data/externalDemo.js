@@ -193,7 +193,7 @@ export const DEMO_PRE_EARNINGS_ANALYSIS = {
   primaryValuationMethod: "EV/EBITDA",
   valuationSelectionReason: "EV/EBITDA مناسب للتقرير التجريبي لأنه يربط Bull Case بتحسن الهوامش والنمو.",
   sources: [
-    { title: "Demo pre-earnings ChatGPT analysis", sourceType: "manual", url: null }
+    { id: "DEMO-PRE", title: "Demo pre-earnings ChatGPT analysis", sourceType: "User Provided", date: "2026-08-08", url: "https://example.com/franklin-demo/pre-earnings" }
   ]
 };
 
@@ -346,7 +346,7 @@ export const DEMO_EARNINGS_ANALYSIS = {
     fullSummary: "هذا التقرير التجريبي يمثل تحليل الأرباح التالي: يقيم المتطلبات السابقة ثم يخلق متطلبات الربع القادم بشكل منفصل."
   },
   sources: [
-    { title: "Demo Q4 earnings ChatGPT analysis", sourceType: "manual", url: null }
+    { id: "DEMO-Q4", title: "Demo Q4 earnings ChatGPT analysis", sourceType: "User Provided", date: "2026-11-08", url: "https://example.com/franklin-demo/q4" }
   ]
 };
 
@@ -703,6 +703,6 @@ export const DEMO_EXTERNAL_ANALYSIS = {
     freeCashFlow: 180000000
   },
   sources: [
-    { title: "Demo external ChatGPT analysis", sourceType: "manual", url: null }
+    { id: "DEMO-EXT", title: "Demo external ChatGPT analysis", sourceType: "User Provided", date: "2026-08-08", url: "https://example.com/franklin-demo/external" }
   ]
 };
