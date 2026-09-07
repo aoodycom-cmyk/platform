@@ -48,7 +48,11 @@ export function createFmpProvider() {
       [PROVIDER_TYPES.ANALYST]: 82
     },
     async search(query) {
-      const response = await fetch(apiUrl(`/api/search?q=${encodeURIComponent(query)}`), { method: "GET" });
+      const response = await fetch(apiUrl("/api/search"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ query })
+      });
       if (!response.ok) throw await safeApiError(response, "Search failed.");
       const data = await response.json();
       return data.results;
@@ -113,7 +117,11 @@ export function publicProviderMetadata(registry = []) {
 }
 
 async function loadFmpPayload(ticker) {
-  const response = await fetch(apiUrl(`/api/company/${encodeURIComponent(ticker)}`), { method: "GET" });
+  const response = await fetch(apiUrl("/api/research-data"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ ticker })
+  });
   if (!response.ok) throw await safeApiError(response, "Could not load research data.");
   return response.json();
 }

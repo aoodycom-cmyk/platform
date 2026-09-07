@@ -1,0 +1,9 @@
+{
+  "caseId": "RW-001",
+  "ticker": "NVDA",
+  "periodEnd": "2025-07-27",
+  "accession": "0001045810-26-000075",
+  "defect": "Claim audit output emitted undefined optional guidance fields that JSON export silently omitted.",
+  "expected": "Absent low, high, and midpoint fields normalize to explicit null and survive export/re-import.",
+  "severity": "P2"
+}

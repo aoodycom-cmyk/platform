@@ -1,5 +1,5 @@
 import { copyFileSync, cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
@@ -8,5 +8,5 @@ const GENERATED_FILES = ["index.html","styles.css","styles-mobile2.css","styles-
 for (const [source,target] of GENERATED_DIRS) syncDirectory(join(ROOT,source),join(ROOT,target));
 for (const file of GENERATED_FILES) { copyToDeploy(file,"public"); copyToDeploy(file,"docs"); }
 console.log("Deployment copies synced from canonical source.");
-function syncDirectory(source,target){if(!existsSync(source))return;rmSync(target,{recursive:true,force:true});mkdirSync(dirname(target),{recursive:true});cpSync(source,target,{recursive:true,filter:path=>!path.endsWith(".DS_Store")});}
+function syncDirectory(source,target){if(!existsSync(source))return;rmSync(target,{recursive:true,force:true});mkdirSync(dirname(target),{recursive:true});cpSync(source,target,{recursive:true,filter:path=>!path.endsWith(".DS_Store")&&!/ \d+\.[^.]+$/.test(basename(path))});}
 function copyToDeploy(file,deployDir){const source=join(ROOT,file),target=join(ROOT,deployDir,file);if(!existsSync(source))return;mkdirSync(dirname(target),{recursive:true});copyFileSync(source,target);}
