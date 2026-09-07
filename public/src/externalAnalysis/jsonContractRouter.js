@@ -270,8 +270,18 @@ function validationError(field, expected, received, message) {
 
 function combineValidations(...validations) {
   const errors = validations.flatMap((item) => item?.errors || []);
-  const warnings = validations.flatMap((item) => item?.warnings || []);
+  const warnings = deduplicateIssues(validations.flatMap((item) => item?.warnings || []));
   return { valid: errors.length === 0, errors, warnings };
+}
+
+function deduplicateIssues(items = []) {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = `${item?.field || item?.path || ""}\u0000${item?.message || ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function supportedSchemaText() {

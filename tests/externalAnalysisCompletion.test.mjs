@@ -150,8 +150,8 @@ const supplementJson = JSON.stringify({
   targetAnalysisId: "external-AMZN-2026-07-31-abc123",
   analysisDate: "2026-07-31",
   fields: {
-    "scores.growth": 9.5,
-    "scores.valuation": 7.5,
+    "scores.growth": 95,
+    "scores.valuation": 75,
     "fairValue.bear": 215,
     "fairValue.base": 290,
     "fairValue.bull": 350,
@@ -173,8 +173,8 @@ const smartQuoteSupplementText = JSON.stringify({
   targetAnalysisId: "external-AMZN-2026-07-31-abc123",
   analysisDate: "2026-07-31",
   fields: {
-    "scores.growth": 9.5,
-    "scores.valuation": 7.5,
+    "scores.growth": 95,
+    "scores.valuation": 75,
     "fairValue.bear": 215,
     "fairValue.base": 290,
     "fairValue.bull": 350,

@@ -1214,7 +1214,7 @@ function externalImportPanel(state) {
       ${draft && completion?.status !== "complete" ? missingDataCompletionCard(draft, validation, completion, state) : ""}
       ${visibleValidation.errors.length ? validationList(uiLabel("Validation Errors"), visibleValidation.errors, "negative") : ""}
       ${languageRepairNeeded(visibleValidation) ? languageRepairCard() : ""}
-      ${visibleValidation.warnings.length ? validationList(uiLabel("Validation Warnings"), visibleValidation.warnings, "warning") : ""}
+      ${visibleValidation.warnings.length ? validationList(uiLabel("Warnings"), visibleValidation.warnings, "warning") : ""}
       ${state.externalImport?.duplicate ? duplicateWarning(state.externalImport.duplicate) : ""}
       ${state.externalImport?.conflict ? conflictWarning(state.externalImport.conflict) : ""}
       ${state.externalImport?.technicalDetails ? technicalImportDetails(state.externalImport.technicalDetails) : ""}
@@ -1403,7 +1403,7 @@ function missingStat(label, value) {
   return `<div><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></div>`;
 }
 
-function visibleExternalValidation(validation = {}, completion = null) {
+export function visibleExternalValidation(validation = {}, completion = null) {
   const missingPaths = new Set([
     ...(completion?.missingRequiredPaths || []),
     ...(completion?.missingRecommendedPaths || []),
@@ -1416,8 +1416,19 @@ function visibleExternalValidation(validation = {}, completion = null) {
   ]);
   return {
     errors: (validation.errors || []).filter((item) => !missingErrors.has(item.field)),
-    warnings: (validation.warnings || []).filter(Boolean)
+    warnings: uniqueValidationItems(validation.warnings)
   };
+}
+
+function uniqueValidationItems(items = []) {
+  const seen = new Set();
+  return (items || []).filter((item) => {
+    if (!item) return false;
+    const key = `${item.field || item.path || ""}\u0000${item.message || ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function missingFieldRow(item) {
@@ -1633,10 +1644,10 @@ export function localizedValidationMessage(item = {}) {
     "reportIdentity.ticker": "رمز السهم غير موجود أو غير صحيح داخل هوية التقرير.",
     analysisDate: "تاريخ التحليل مطلوب ويجب أن يكون تاريخًا صحيحًا.",
     "market.priceAtAnalysis": "السعر وقت التحليل مطلوب ويجب أن يكون أكبر من صفر.",
-    "scores.quality": "Quality Score إذا كان موجودًا يجب أن يكون بين 0 و10.",
-    "scores.growth": "Growth Score إذا كان موجودًا يجب أن يكون بين 0 و10.",
-    "scores.valuation": "Valuation Score إذا كان موجودًا يجب أن يكون بين 0 و10.",
-    "scores.risk": "Risk Score إذا كان موجودًا يجب أن يكون بين 0 و10.",
+    "scores.quality": "Quality Score إذا كان موجودًا يجب أن يكون بين 0 و100.",
+    "scores.growth": "Growth Score إذا كان موجودًا يجب أن يكون بين 0 و100.",
+    "scores.valuation": "Valuation Score إذا كان موجودًا يجب أن يكون بين 0 و100.",
+    "scores.risk": "Risk Score إذا كان موجودًا يجب أن يكون بين 0 و100.",
     "fairValueSummary.fairValueLow": "Bear Fair Value مطلوب ويجب أن يكون أكبر من صفر.",
     "fairValueSummary.fairValueBase": "Base Fair Value مطلوب ويجب أن يكون أكبر من صفر.",
     "fairValueSummary.fairValueHigh": "Bull Fair Value مطلوب ويجب أن يكون أكبر من صفر.",
@@ -1661,7 +1672,7 @@ export function localizedValidationMessage(item = {}) {
   if (/arithmetic|inconsistent|must equal|sum to 100/i.test(message)) return "القيمة لا تتطابق مع التحقق الحسابي الحالي في Franklin.";
   if (/required|must include|missing/i.test(message)) return "هذا الحقل إلزامي ويجب إكماله قبل الاستيراد.";
   if (/not supported|must be exactly/i.test(message)) return "القيمة الحالية ليست من القيم المعتمدة في عقد Franklin v3.";
-  if (message.includes("must be between 0 and 10")) return "القيمة يجب أن تكون بين 0 و10.";
+  if (message.includes("must be between 0 and 100")) return "القيمة يجب أن تكون بين 0 و100.";
   if (message.includes("must be an array")) return "القيمة يجب أن تكون قائمة عناصر.";
   if (message.includes("NaN or Infinity")) return "الأرقام غير الصالحة مثل NaN أو Infinity غير مقبولة.";
   if (message.includes("positive number")) return "القيمة يجب أن تكون رقمًا موجبًا.";

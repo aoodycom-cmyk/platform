@@ -114,7 +114,7 @@ function validateFieldValue(path, value, errors) {
     return;
   }
   if (/^scores\./.test(path) && !isScore(value)) {
-    errors.push(fieldError(`fields.${path}`, "Scores must be between 0 and 10.", "number from 0 to 10", value));
+    errors.push(fieldError(`fields.${path}`, "Scores must be between 0 and 100.", "number from 0 to 100", value));
   }
   if (/^fairValueSummary\./.test(path) && ["fairValueSummary.fairValueLow", "fairValueSummary.fairValueBase", "fairValueSummary.fairValueHigh", "fairValueSummary.probabilityWeightedFairValue"].includes(path) && !isPositiveNumber(value)) {
     errors.push(fieldError(`fields.${path}`, "Fair Value fields must be positive numbers when present.", "positive number", value));
@@ -191,7 +191,7 @@ function valueFor(path, report, fields) {
 }
 
 function isScore(value) {
-  return Number.isFinite(value) && value >= 0 && value <= 10;
+  return Number.isFinite(value) && value >= 0 && value <= 100;
 }
 
 function isPositiveNumber(value) {

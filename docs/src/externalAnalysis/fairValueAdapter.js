@@ -682,9 +682,7 @@ function componentText(label, value) {
 function normalizedScore(value) {
   const number = toNumber(value);
   if (!Number.isFinite(number)) return null;
-  if (number >= 0 && number <= 10) return roundOne(number);
-  if (number > 10 && number <= 100) return roundOne(number / 10);
-  return null;
+  return number >= 0 && number <= 100 ? roundOne(number) : null;
 }
 
 function toNumber(value) {

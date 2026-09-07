@@ -11,7 +11,7 @@ export function validateExternalAnalysisReport(report = {}) {
 
   for (const key of ["quality", "growth", "valuation", "risk", "moat", "management"]) {
     if (report.scores?.[key] !== null && report.scores?.[key] !== undefined && !isScore(report.scores?.[key])) {
-      errors.push(fieldError(`scores.${key}`, `${key} score must be between 0 and 10 when present.`));
+      errors.push(fieldError(`scores.${key}`, `${key} score must be between 0 and 100 when present.`));
     }
   }
 
@@ -287,7 +287,7 @@ function isInvestmentScore(value) {
 }
 
 function isScore(value) {
-  return Number.isFinite(value) && value >= 0 && value <= 10;
+  return Number.isFinite(value) && value >= 0 && value <= 100;
 }
 
 function hasText(value) {
