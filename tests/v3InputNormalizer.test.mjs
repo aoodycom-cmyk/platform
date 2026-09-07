@@ -132,6 +132,26 @@ assert.equal(raw.latestQuarter.forwardOutlook.growthOutlook, "strong growth");
 assert.equal(raw.nextRequirements.previousQuarter, "FY2026 Q3");
 assert.equal(raw.forecast.yearlyForecast[0].revenue.basis, "management guidance");
 
+const missingMarketPriceUsage = {
+  marketPrice: { sourceId: "S1" },
+  sources: [{ id: "S1", type: "market data", usedFor: ["valuation"] }]
+};
+const repairedMarketPriceUsage = normalizeFranklinV3Input(missingMarketPriceUsage);
+assert.deepEqual(repairedMarketPriceUsage.sources[0].usedFor, ["valuation", "marketPrice"]);
+assert.deepEqual(missingMarketPriceUsage.sources[0].usedFor, ["valuation"], "provenance repair must not mutate pasted JSON");
+
+const absentUsedFor = normalizeFranklinV3Input({
+  marketPrice: { sourceId: "S1" },
+  sources: [{ id: "S1", type: "Market Data" }]
+});
+assert.deepEqual(absentUsedFor.sources[0].usedFor, ["marketPrice"]);
+
+const unresolvedMarketSource = normalizeFranklinV3Input({
+  marketPrice: { sourceId: "MISSING" },
+  sources: [{ id: "S1", type: "Market Data", usedFor: [] }]
+});
+assert.deepEqual(unresolvedMarketSource.sources[0].usedFor, [], "normalization must not invent or relink a missing source");
+
 console.log("Franklin V3 input normalization regression: PASS");
 
 const marketAliases = normalizeFranklinV3Input({
