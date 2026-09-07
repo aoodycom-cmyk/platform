@@ -32,12 +32,12 @@ export function franklinV3ToExternalReport(input = {}, rawAnalysis = "", options
       priceAtAnalysis: input.marketPrice?.value ?? null
     },
     scores: {
-      quality: scoreToTen(businessQuality.score),
-      growth: scoreToTen(businessQuality.components?.growth),
+      quality: externalScore(businessQuality.score),
+      growth: externalScore(businessQuality.components?.growth),
       valuation: null,
       risk: null,
-      moat: scoreToTen(businessQuality.components?.competitiveAdvantage),
-      management: scoreToTen(businessQuality.components?.management)
+      moat: externalScore(businessQuality.components?.competitiveAdvantage),
+      management: externalScore(businessQuality.components?.management)
     },
     fairValueSummary: {
       fairValueLow: current.bear ?? null,
@@ -393,10 +393,8 @@ function narrativeBullets(items = []) {
   }).filter(Boolean);
 }
 
-function scoreToTen(value) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return null;
-  return number > 10 ? Math.max(0, Math.min(10, number / 10)) : Math.max(0, Math.min(10, number));
+function externalScore(value) {
+  return Number.isFinite(value) && value >= 0 && value <= 100 ? value : null;
 }
 
 function normalizeDate(value) {

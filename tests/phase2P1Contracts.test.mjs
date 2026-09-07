@@ -76,7 +76,7 @@ test("P1 supplement sources merge atomically and remain in the audit record", ()
     schemaVersion: "external-analysis-supplement/v1",
     ticker: "TEST",
     targetAnalysisId: "report-1",
-    fields: { "scores.quality": 8 },
+    fields: { "scores.quality": 80 },
     sources: [{ id: "S2", title: "Earnings release", type: "Investor Relations", date: "2026-09-01", url: "https://example.com/release", usedFor: ["scores.quality"] }]
   }, "raw", { now: new Date("2026-09-06T00:00:00.000Z") });
   const result = mergeExternalAnalysisSupplement(existing, supplement, { now: new Date("2026-09-06T00:00:00.000Z") });

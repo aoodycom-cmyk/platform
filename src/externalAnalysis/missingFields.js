@@ -115,6 +115,7 @@ export function buildMissingRequirementsPrompt(report = {}, completionStatus = a
       `${index + 1}. ${item.path}`,
       `الاسم: ${item.labelAr}`,
       `النوع: ${item.expectedType}`,
+      ...(item.path.startsWith("scores.") ? ["النطاق: رقم من 0 إلى 100 (0–100)"] : []),
       `الحالة: ${priorityArabic(item.priority)}`,
       `السبب: ${item.reasonAr}`,
       ""
