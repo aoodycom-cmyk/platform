@@ -8,9 +8,14 @@ import {
 import { compactRequirementObservationText, mixedDirectionMarkup } from "../src/ui/components.js";
 
 assert.deepEqual(
-  valuationAssessmentMetric({ scores: { valuation: 8.4 } }),
-  { kind: "score", score: 8.4, progress: 84 }
+  valuationAssessmentMetric({ scores: { valuation: 84 } }),
+  { kind: "score", score: 84, progress: 84 }
 );
+
+for (const score of [0, 55, 72, 82, 100]) {
+  assert.equal(valuationAssessmentMetric({ scores: { valuation: score } }).progress, score);
+  assert.equal(riskAssessmentMetric({ scores: { risk: score } }).progress, score);
+}
 
 assert.deepEqual(
   valuationAssessmentMetric({ fairValueSummary: { upsideDownsidePercent: 47.25, fairValueBase: 170 } }),

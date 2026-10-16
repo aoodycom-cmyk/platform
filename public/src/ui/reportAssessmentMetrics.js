@@ -8,7 +8,7 @@ const RISK_SEVERITY_ORDER = {
 export function valuationAssessmentMetric(report = {}) {
   const explicitScore = finiteNumber(report.scores?.valuation);
   if (explicitScore !== null) {
-    return { kind: "score", score: explicitScore, progress: clamp(explicitScore * 10, 0, 100) };
+    return { kind: "score", score: explicitScore, progress: clamp(explicitScore, 0, 100) };
   }
 
   const upside = finiteNumber(report.fairValueSummary?.upsideDownsidePercent);
@@ -29,7 +29,7 @@ export function valuationAssessmentMetric(report = {}) {
 export function riskAssessmentMetric(report = {}) {
   const explicitScore = finiteNumber(report.scores?.risk);
   if (explicitScore !== null) {
-    return { kind: "score", score: explicitScore, progress: clamp(explicitScore * 10, 0, 100), tone: "risk" };
+    return { kind: "score", score: explicitScore, progress: clamp(explicitScore, 0, 100), tone: "risk" };
   }
 
   const severity = highestRiskSeverity(report.risks);

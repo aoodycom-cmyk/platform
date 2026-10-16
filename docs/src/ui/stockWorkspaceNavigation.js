@@ -10,6 +10,7 @@ const STOCK_PANELS = new Set(["external-report", "quarterly-scorecard", "company
 
 let scheduledFrame = 0;
 let viewportResetFrame = 0;
+let viewportResetTimer = 0;
 let styleReady = false;
 let mountedPanel = "";
 
@@ -98,6 +99,11 @@ function finishPanelMount(activePanel) {
   if (mountedPanel === activePanel) return;
   mountedPanel = activePanel;
   cancelAnimationFrame(viewportResetFrame);
+  clearTimeout(viewportResetTimer);
+  viewportResetTimer = window.setTimeout(() => {
+    window.scrollTo(0, 0);
+    viewportResetTimer = 0;
+  }, 80);
   viewportResetFrame = requestAnimationFrame(() => {
     viewportResetFrame = requestAnimationFrame(() => {
       viewportResetFrame = requestAnimationFrame(() => {

@@ -8,6 +8,7 @@ const ROOT = new URL("../", import.meta.url);
 test("npm test uses the authoritative discovery runner", async () => {
   const packageJson = JSON.parse(await readFile(new URL("package.json", ROOT), "utf8"));
   assert.equal(packageJson.scripts.test, "node scripts/run-tests.mjs");
+  assert.equal(packageJson.scripts["test:e2e"], "node scripts/run-tests.mjs --e2e-only");
 });
 
 test("the authoritative runner owns every Franklin test executable", async () => {

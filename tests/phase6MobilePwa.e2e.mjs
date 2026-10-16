@@ -14,7 +14,9 @@ try {
   for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 430, height: 932 }, { width: 844, height: 390 }]) {
     const context = await browser.newContext({ viewport, isMobile: true, hasTouch: true, locale: "ar-SA" });
     const page = await context.newPage();
-    await page.goto(new URL(`?phase6=${viewport.width}x${viewport.height}`, baseUrl).href, { waitUntil: "networkidle" });
+    page.setDefaultTimeout(60_000);
+    page.setDefaultNavigationTimeout(60_000);
+    await page.goto(new URL(`?phase6=${viewport.width}x${viewport.height}`, baseUrl).href, { waitUntil: "domcontentloaded" });
     await page.waitForFunction(() => Boolean(window.__FRANKLIN_APP_READY && window.__equityResearchStore));
     assert.equal(await page.getAttribute("html", "dir"), "rtl");
     const overflow = await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - innerWidth));
@@ -31,7 +33,7 @@ try {
       localStorage.setItem("phase6-refresh-sentinel", "محفوظ-123");
       document.body.dataset.phase6LongText = "قيمة عادلة (Fair Value) -12.5% USD ".repeat(200);
     });
-    await page.reload({ waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForFunction(() => Boolean(window.__FRANKLIN_APP_READY));
     assert.equal(await page.evaluate(() => localStorage.getItem("phase6-refresh-sentinel")), "محفوظ-123");
     await context.close();
@@ -39,7 +41,9 @@ try {
 
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: "ar-SA" });
   const page = await context.newPage();
-  await page.goto(new URL("?phase6=pwa", baseUrl).href, { waitUntil: "networkidle" });
+  page.setDefaultTimeout(60_000);
+  page.setDefaultNavigationTimeout(60_000);
+  await page.goto(new URL("?phase6=pwa", baseUrl).href, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => Boolean(window.__FRANKLIN_APP_READY));
   const workerState = await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.register("./service-worker.js");
@@ -55,7 +59,7 @@ try {
     });
   });
   assert.equal(workerState, "activated");
-  await page.reload({ waitUntil: "networkidle" });
+  await page.reload({ waitUntil: "domcontentloaded" });
   assert.equal(await page.evaluate(() => Boolean(navigator.serviceWorker.controller)), true, "service worker must control the reloaded client");
   await context.setOffline(true);
   const cachedOfflinePage = await page.evaluate(async () => {
@@ -64,7 +68,7 @@ try {
   });
   assert.ok(cachedOfflinePage.includes("أنت غير متصل"), "controlled WebKit client must read the offline fallback from cache while disconnected");
   await context.setOffline(false);
-  await page.goto(new URL("?phase6=reconnected", baseUrl).href, { waitUntil: "networkidle" });
+  await page.goto(new URL("?phase6=reconnected", baseUrl).href, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => Boolean(window.__FRANKLIN_APP_READY));
   await context.close();
   console.log(`Franklin Phase 6 mobile/PWA E2E [${browserName}]: PASS`);

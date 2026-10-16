@@ -11,6 +11,7 @@
     "test:visual": "node tests/visualSystem.test.mjs",
     "test:presentation": "node tests/reportPresentationEditor.test.mjs",
     "test:e2e:json": "node tests/jsonArchitecture.e2e.mjs",
+    "test:e2e": "node scripts/run-tests.mjs --e2e-only",
     "test:unit": "node scripts/run-tests.mjs --unit-only",
     "quality": "node scripts/quality.mjs",
     "coverage": "node --experimental-test-coverage --test tests/phase2P0Integrity.test.mjs tests/phase2P1Contracts.test.mjs tests/phase3FinancialTruth.test.mjs tests/phase4AiIntegrity.test.mjs tests/phase5RealWorld.test.mjs tests/phase5bOfficialEvidence.test.mjs tests/phase5cRealEvidence.test.mjs tests/jsonArchitecture.test.mjs",

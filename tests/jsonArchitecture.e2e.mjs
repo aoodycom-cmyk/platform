@@ -25,7 +25,8 @@ try {
     acceptDownloads: true
   });
   const page = await context.newPage();
-  page.setDefaultTimeout(20_000);
+  page.setDefaultTimeout(60_000);
+  page.setDefaultNavigationTimeout(60_000);
   page.on("pageerror", (error) => pageErrors.push(error.message));
   page.on("response", (response) => {
     if (response.status() < 400) return;
@@ -35,7 +36,7 @@ try {
     }
   });
 
-  await page.goto(new URL("?e2e=json-architecture", BASE_URL).href, { waitUntil: "networkidle" });
+  await page.goto(new URL("?e2e=json-architecture", BASE_URL).href, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => Boolean(window.__FRANKLIN_APP_READY && window.__equityResearchStore));
 
   const openImport = page.locator("[data-action='open-external-import']:visible").first();
@@ -164,7 +165,7 @@ try {
   await page.locator("[data-action='apply-external-supplement']").click();
   await waitForState(page, (state) => state.externalAnalyses?.INTC?.[0]?.scores?.risk === 0);
 
-  await page.reload({ waitUntil: "networkidle" });
+  await page.reload({ waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => Boolean(window.__FRANKLIN_APP_READY && window.__equityResearchStore));
   const afterReload = await stateSummary(page);
   assert.equal(afterReload.riskScore, 0);

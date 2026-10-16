@@ -329,5 +329,7 @@ const payload = {
   savedReport: saved.report,
   historicalRequirementSets: historical.INTC
 };
-console.log(`INTC_OWNER_ACCEPTANCE_B64:${Buffer.from(JSON.stringify(payload), "utf8").toString("base64")}`);
+if (process.env.FRANKLIN_EMIT_OWNER_ACCEPTANCE_B64 === "1") {
+  console.log(`INTC_OWNER_ACCEPTANCE_B64:${Buffer.from(JSON.stringify(payload), "utf8").toString("base64")}`);
+}
 console.log("INTC owner acceptance: PASS");

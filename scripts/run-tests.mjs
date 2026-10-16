@@ -24,8 +24,10 @@ export async function runAllTests(options = {}) {
   if (!inventory.unit.length) throw new Error("No Franklin unit/integration test files were discovered.");
   if (!inventory.e2e.length) throw new Error("No Franklin E2E test files were discovered.");
 
-  for (const file of inventory.unit) {
-    await runNode(["--experimental-vm-modules", join(TESTS, file)], process.env);
+  if (!options.e2eOnly) {
+    for (const file of inventory.unit) {
+      await runNode(["--experimental-vm-modules", join(TESTS, file)], process.env);
+    }
   }
 
   if (options.unitOnly) return inventory;
@@ -115,7 +117,9 @@ function mimeType(filePath) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const unitOnly = process.argv.includes("--unit-only");
-  runAllTests({ unitOnly }).catch((error) => {
+  const e2eOnly = process.argv.includes("--e2e-only");
+  if (unitOnly && e2eOnly) throw new Error("--unit-only and --e2e-only are mutually exclusive.");
+  runAllTests({ unitOnly, e2eOnly }).catch((error) => {
     console.error(error?.stack || error);
     process.exitCode = 1;
   });

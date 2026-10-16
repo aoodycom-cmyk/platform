@@ -21,6 +21,7 @@ import { copyTextForMobile } from "./clipboard.js";
 import { formatJsonFileSize } from "../externalAnalysis/jsonFileImport.js";
 import { riskAssessmentMetric, valuationAssessmentMetric } from "./reportAssessmentMetrics.js";
 import { decisionHeroModel } from "../financialSafety/decisionHeroUx.js";
+import { classifyDecisionReadiness } from "../financialSafety/decisionReadinessUi.js";
 import {
   appHeaderMarkup,
   bindCompanyLogoFallbacks,
@@ -1871,6 +1872,7 @@ function externalAnalysisReportView(state) {
   return `
     <section class="external-report-shell external-report-v2 stock-decision-workspace">
       ${stockDecisionHeader(reportWithCompletion, completion)}
+      ${financialVerificationBanner(reportWithCompletion)}
       ${dataHealthTerminalGuard(reportWithCompletion, completion)}
       <section class="stock-decision-flow">
         ${valuationRangeDashboard(report)}
@@ -2543,7 +2545,7 @@ function stockScoreBar(report = {}) {
 
 function scoreBarItem(label, value) {
   const score = numericValue(value);
-  const pct = Number.isFinite(score) ? Math.max(0, Math.min(100, score * 10)) : 0;
+  const pct = Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : 0;
   return `
     <article class="${scoreToneClass(score)}">
       <span>${escapeHtml(label)}</span>
@@ -2740,12 +2742,12 @@ function companyAssessmentPanel(report = {}, options = {}) {
   `;
 }
 
-function companyAssessmentRow(row = {}) {
+export function companyAssessmentRow(row = {}) {
   const score = numericValue(row.value);
   const pct = Number.isFinite(score)
-    ? Math.max(0, Math.min(100, score * 10))
+    ? Math.max(0, Math.min(100, score))
     : (Number.isFinite(row.progress) ? Math.max(0, Math.min(100, row.progress)) : 0);
-  const displayValue = Number.isFinite(score) ? `${score.toFixed(1)}/10` : (row.displayValue || "—");
+  const displayValue = Number.isFinite(score) ? `${score.toFixed(1)}/100` : (row.displayValue || "—");
   const content = `
     <div class="v31-assessment-label">
       <strong>${escapeHtml(isArabicUi() ? row.ar : row.en)}</strong>
@@ -2764,7 +2766,7 @@ function companyAssessmentRow(row = {}) {
 }
 
 function assessmentMetricText(metric = {}) {
-  if (metric.kind === "score" && Number.isFinite(metric.score)) return `${metric.score.toFixed(1)}/10`;
+  if (metric.kind === "score" && Number.isFinite(metric.score)) return `${metric.score.toFixed(1)}/100`;
   if (metric.kind === "upside" && Number.isFinite(metric.value)) {
     const rounded = Math.round(metric.value * 10) / 10;
     return `${rounded > 0 ? "+" : ""}${rounded}% ${isArabicUi() ? "إلى Base" : "to Base"}`;
@@ -2829,13 +2831,13 @@ function qualitativeScoreLabel(value, inverse = false) {
   const score = numericValue(value);
   if (!Number.isFinite(score)) return "—";
   if (inverse) {
-    if (score <= 3.5) return uiLabel("منخفضة");
-    if (score <= 6.5) return uiLabel("متوسطة");
+    if (score <= 35) return uiLabel("منخفضة");
+    if (score <= 65) return uiLabel("متوسطة");
     return uiLabel("مرتفعة");
   }
-  if (score >= 8.5) return uiLabel("ممتازة");
-  if (score >= 7) return uiLabel("قوية");
-  if (score >= 5) return uiLabel("متوسطة");
+  if (score >= 85) return uiLabel("ممتازة");
+  if (score >= 70) return uiLabel("قوية");
+  if (score >= 50) return uiLabel("متوسطة");
   return uiLabel("ضعيفة");
 }
 
@@ -2933,13 +2935,15 @@ function valuationMethodsDashboard(report = {}) {
   });
 }
 
-function summaryValuationMethodsDashboard(report = {}) {
+export function summaryValuationMethodsDashboard(report = {}) {
   const explicitRows = (report.valuationResults || [])
     .map((value, index) => normalizeValuationMethodForDisplay(value.method || `method-${index + 1}`, value))
     .filter(Boolean);
   const selectionReasonText = localizedExternalText(report.valuationSelectionReason || report.metadata?.valuationSelectionReason).trim();
   const selectionReason = selectionReasonText === "[object Object]" ? "" : selectionReasonText;
   const primaryMethod = localizedExternalText(report.primaryValuationMethod || report.metadata?.primaryValuationMethod).trim();
+  const weightReasoning = localizedExternalText(report.valuationMethodology?.weightReasoning).trim();
+  const excludedMethods = Array.isArray(report.valuationMethodology?.excludedMethods) ? report.valuationMethodology.excludedMethods : [];
   const rows = explicitRows.length || !primaryMethod
     ? explicitRows
     : [{ key: primaryMethod, method: primaryMethod, fairValue: null, explanation: selectionReason }];
@@ -2952,6 +2956,12 @@ function summaryValuationMethodsDashboard(report = {}) {
           <span class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(selectionReason)}</span>
         </p>
       ` : ""}
+      ${weightReasoning ? `
+        <p class="summary-valuation-selection-reason">
+          <strong>${isArabicUi() ? "سبب الأوزان" : "Weight rationale"}</strong>
+          <span class="mixed-direction-text" dir="auto">${mixedDirectionMarkup(weightReasoning)}</span>
+        </p>
+      ` : ""}
       <div class="summary-valuation-method-list">
         ${rows.map((row) => {
           const reason = localizedExternalText(row.explanation).trim();
@@ -2962,6 +2972,7 @@ function summaryValuationMethodsDashboard(report = {}) {
                 <strong>${escapeHtml(humanValuationMethodLabel(row.method || row.key))}</strong>
                 <span>
                   ${output !== "—" ? `<bdi dir="ltr">${escapeHtml(output)}</bdi>` : ""}
+                  ${Number.isFinite(numericValue(row.weight)) ? `<small dir="ltr">${escapeHtml(formatNullablePercent(row.weight))}</small>` : ""}
                 </span>
               </header>
               <p>
@@ -2972,6 +2983,12 @@ function summaryValuationMethodsDashboard(report = {}) {
           `;
         }).join("")}
       </div>
+      ${excludedMethods.length ? `
+        <div class="summary-valuation-exclusions">
+          <strong>${isArabicUi() ? "الطرق المستبعدة" : "Excluded methods"}</strong>
+          <ul>${excludedMethods.map((item) => `<li><b>${escapeHtml(humanValuationMethodLabel(item?.method || "—"))}</b>: <span dir="auto">${mixedDirectionMarkup(item?.reason || "—")}</span></li>`).join("")}</ul>
+        </div>
+      ` : ""}
     </div>
   `;
 }
@@ -3787,7 +3804,7 @@ function financialHighlightsView(highlights = {}) {
 
 function externalScoreCard(label, value) {
   const score = numericValue(value);
-  const pct = Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(score * 10))) : 0;
+  const pct = Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(score))) : 0;
   return `
     <article class="scenario-card score-visual-card ${scoreToneClass(score)}">
       <span>${escapeHtml(label)}</span>
@@ -3799,9 +3816,29 @@ function externalScoreCard(label, value) {
 
 function scoreToneClass(score) {
   if (!Number.isFinite(score)) return "score-missing";
-  if (score >= 8) return "score-high";
-  if (score >= 5.5) return "score-medium";
+  if (score >= 80) return "score-high";
+  if (score >= 55) return "score-medium";
   return "score-low";
+}
+
+export function financialVerificationBanner(report = {}) {
+  const readiness = classifyDecisionReadiness(report);
+  const labels = isArabicUi()
+    ? { verified: "مُتحقق منه", needs_review: "يحتاج مراجعة", insufficient_data: "بيانات غير كافية", blocked: "محظور" }
+    : { verified: "Verified", needs_review: "Needs Review", insufficient_data: "Insufficient Data", blocked: "Blocked" };
+  const verification = readiness.financialVerification || {};
+  const messages = (verification.findings || []).slice(0, 3).map((item) => item.message).filter(Boolean);
+  const sourceStatement = verification.sourceVerification?.externalVerification?.statement;
+  return `
+    <section class="panel financial-verification-banner" data-verification-status="${escapeHtml(readiness.status)}">
+      <header>
+        <strong>${escapeHtml(labels[readiness.status] || labels.needs_review)}</strong>
+        <span>${isArabicUi() ? "مصدر الحقيقة الحسابي: إعادة حساب Franklin" : "Calculation source of truth: Franklin recalculation"}</span>
+      </header>
+      ${messages.length ? `<ul>${messages.map((message) => `<li>${escapeHtml(message)}</li>`).join("")}</ul>` : ""}
+      ${sourceStatement ? `<small>${escapeHtml(sourceStatement)}</small>` : ""}
+    </section>
+  `;
 }
 
 function externalDetail(title, body, open = false) {
@@ -3873,7 +3910,7 @@ function normalizeValuationMethodForDisplay(key, value) {
     fairValue: value.fairValue ?? value.value ?? value.output ?? null,
     weight: value.weight ?? value.modelWeight ?? null,
     confidence: value.confidence ?? value.confidenceLevel ?? null,
-    explanation: value.explanation || value.whySuitable || value.selectionReason || value.reason || null,
+    explanation: value.rationale || value.explanation || value.whySuitable || value.selectionReason || value.reason || null,
     limitation: value.limitation || value.limitations || null,
     assumptions: visible,
     technical
