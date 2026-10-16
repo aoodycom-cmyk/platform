@@ -5,7 +5,7 @@ import {
 } from "./v3Contract.js";
 import { buildDownloadableJsonDeliveryInstructions } from "./downloadableJsonDelivery.js";
 
-export const FRANKLIN_INITIAL_PROMPT_VERSION = "franklin-initial-analysis-prompt/v5";
+export const FRANKLIN_INITIAL_PROMPT_VERSION = "franklin-initial-analysis-prompt/v6";
 
 export function buildInitialAnalysisPrompt(options = {}) {
   const ticker = normalizeTicker(options.tickerHint);
@@ -110,14 +110,14 @@ export function buildInitialAnalysisPrompt(options = {}) {
         rawResponse: "تُحفظ الاستجابة الخام للتدقيق، لكنها ليست مصدر الحقيقة الحسابي."
       },
       valuationInputContracts: {
-        rule: "لا تضع وزنًا موجبًا لطريقة تقييم إلا إذا كانت من الطرق أدناه وكانت كل مدخلاتها أرقام JSON محدودة. استخدم أسماء المفاتيح حرفيًا؛ لا تضف الفترة أو العملة أو الوحدة إلى اسم المفتاح، بل ضعها في حقول provenance المخصصة. أضف inputProvenance لكل مدخل مادي: sourceId أو type=ANALYST_ASSUMPTION، ومعه asOf وunit وperiod. يجب أن تحتوي كل نتيجة على rationale وassumptions غير فارغة.",
+        rule: "لا تضع وزنًا موجبًا لطريقة تقييم إلا إذا كانت من الطرق أدناه وكانت كل مدخلاتها أرقام JSON محدودة. استخدم أسماء المفاتيح حرفيًا؛ لا تضف الفترة أو العملة أو الوحدة إلى اسم المفتاح، بل ضعها في حقول provenance المخصصة. أضف inputProvenance لكل مدخل مادي: sourceId أو type=ANALYST_ASSUMPTION، ومعه asOf وunit وperiod. يجب أن يكون asOf تاريخًا صالحًا لا يتجاوز analysisDate. استخدم نفس العملة والمقياس لكل المبالغ والأسهم: USD million مع million shares مثلًا، وUSD/share لـEPS، وx للمضاعف و% للنسب وyears للفترات. يجب أن تحتوي كل نتيجة على rationale وassumptions غير فارغة. اربط EPS بفترة تطبيع أو توقع مطابقة، ولا تكتفِ بتطابق الرقم في فترة أخرى.",
         supportedWeightedMethods: ["DCF", "P/E", "EV/EBITDA", "EV/EBIT", "P/FCF", "SOTP"],
         "P/E": { inputs: ["normalizedForwardEps", "impliedMultiple"], formula: "fairValue = normalizedForwardEps * impliedMultiple" },
         "EV/EBITDA": { inputs: ["normalizedEbitda", "evEbitdaMultiple", "netDebt", "dilutedShares", "nonOperatingAdjustments"], formula: "fairValue = ((normalizedEbitda * evEbitdaMultiple) - netDebt + nonOperatingAdjustments) / dilutedShares; use 0 for nonOperatingAdjustments when none" },
         "P/FCF": { inputs: ["normalizedFreeCashFlow", "dilutedShares", "impliedMultiple"], formula: "fairValue = (normalizedFreeCashFlow / dilutedShares) * impliedMultiple" },
         "EV/EBIT": { inputs: ["normalizedEbit", "evEbitMultiple", "netDebt", "dilutedShares"], formula: "fairValue = ((normalizedEbit * evEbitMultiple) - netDebt) / dilutedShares" },
         SOTP: { inputs: ["componentEquityValues", "corporateAdjustments", "dilutedShares"], formula: "fairValue = (sum(componentEquityValues) + corporateAdjustments) / dilutedShares" },
-        DCF: { inputs: ["valuationDate", "cashFlowType", "discountRateType", "forecastFreeCashFlows", "discountPeriods", "discountRatePct", "terminalValueMethod", "terminalCashFlow أو terminalMetric", "terminalGrowthPct أو terminalExitMultiple", "terminalValue", "terminalDiscountPeriod", "cash", "debt", "dilutedShares"], rules: ["FCFF يستخدم WACC ويحوّل Enterprise Value إلى Equity بإضافة cash وطرح debt.", "FCFE يستخدم COST_OF_EQUITY ولا يكرر جسر cash/debt.", "أعد اشتقاق terminalValue من PERPETUITY_GROWTH أو EXIT_MULTIPLE، واستخدم NONE فقط عندما تساوي القيمة النهائية صفرًا."], formula: "Franklin derives terminalValue, discounts every cash flow using its explicit period, applies the correct FCFF/FCFE bridge, then divides by dilutedShares." }
+        DCF: { inputs: ["valuationDate", "cashFlowType", "discountRateType", "forecastFreeCashFlows", "forecastPeriods", "discountPeriods", "discountRatePct", "terminalValueMethod", "terminalCashFlow أو terminalMetric", "terminalGrowthPct أو terminalExitMultiple", "terminalMetricType عند EXIT_MULTIPLE", "terminalValue", "terminalDiscountPeriod", "cash", "debt", "dilutedShares"], rules: ["FCFF يستخدم WACC ويحوّل Enterprise Value إلى Equity بإضافة cash وطرح debt.", "FCFE يستخدم COST_OF_EQUITY ولا يكرر جسر cash/debt.", "أعد اشتقاق terminalValue من PERPETUITY_GROWTH أو EXIT_MULTIPLE، واستخدم NONE فقط عندما تساوي القيمة النهائية صفرًا.", "valuationDate يساوي analysisDate؛ discountPeriods مرتبة تصاعديًا دون تكرار وterminalDiscountPeriod يساوي آخر فترة. الصفر يحتاج timeZeroReason يشرح جسر يوم التقييم.", "forecastPeriods مصفوفة موازية للتدفقات تطابق فترات yearlyForecast. يجب أن تتطابق التدفقات مع freeCashFlow بعد تحويل الوحدات؛ لأي اختلاف أضف cashFlowReconciliation:[{period,adjustment,reason}]، بوحدة التدفق نفسه.", "عند EXIT_MULTIPLE صرّح terminalMetricType: EBITDA أو EBIT أو FCFF أو REVENUE مع FCFF، وNET_INCOME أو FCFE مع FCFE. لا تخلط قيمة المنشأة بحقوق الملكية."], formula: "Franklin derives terminalValue, discounts every cash flow using its explicit period, applies the correct FCFF/FCFE bridge, then divides by dilutedShares." }
       },
       initialRules: {
         previousAnalysisId: null,

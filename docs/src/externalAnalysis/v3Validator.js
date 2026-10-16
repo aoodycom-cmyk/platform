@@ -1304,12 +1304,10 @@ function assertWeightTotal(path, values = [], errors, message, options = {}) {
     return;
   }
   if (options.requirePositive !== false && numbers.some((value) => value <= 0)) {
-    errors.push(fieldError(path, `${message} A zero or negative weight is not allowed; keep zero-weight methods outside the weighted list as CROSS_CHECK results.`));
-    return;
+    errors.push(fieldError(path, "A zero or negative weight is not allowed; keep zero-weight methods outside the weighted list as CROSS_CHECK results."));
   }
   if (options.requirePositive === false && numbers.some((value) => value < 0)) {
-    errors.push(fieldError(path, `${message} Negative weights are not allowed.`));
-    return;
+    errors.push(fieldError(path, "Negative weights are not allowed."));
   }
   const total = numbers.reduce((sum, value) => sum + value, 0);
   if (!within(total, 100, WEIGHT_TOLERANCE)) errors.push(fieldError(path, `${message} The supplied total is ${total}%.`));

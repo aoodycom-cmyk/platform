@@ -25,7 +25,8 @@ const full = {
   valuationMethodology: { modelWeights: [{ weight: 100 }] }
 };
 const fullReadiness = classifyDecisionReadiness(full);
-assert.equal(fullReadiness.status, "verified");
+assert.equal(fullReadiness.status, "needs_review", "A cached VERIFIED badge without a canonical model is not proof of verification.");
+assert.ok(fullReadiness.reasons.includes("FRANKLIN_RECALCULATION_UNAVAILABLE"));
 assert.equal(fullReadiness.asOfDate, "2026-08-19");
 
 const quarterlyInherited = {

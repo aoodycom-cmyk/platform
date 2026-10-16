@@ -1,5 +1,6 @@
 import { auditFinancialReport } from "./financialSafety.js";
-import { FINANCIAL_VERIFICATION_STATUSES, verifyFinancialAnalysis } from "./financialVerification.js";
+import { FINANCIAL_VERIFICATION_STATUSES } from "./financialVerification.js";
+import { validateFranklinV3Report } from "../externalAnalysis/v3Validator.js";
 import { installCommercialUx } from "./commercialUx.js";
 import { installWorkflowCommercialUx } from "./workflowCommercialUx.js";
 
@@ -75,8 +76,9 @@ export function classifyDecisionReadiness(report = {}) {
 
 export function financialVerificationForReport(report = {}) {
   const native = report.metadata?.franklinV3Report;
-  if (native?.schemaVersion === "franklin-fair-value/v3") return verifyFinancialAnalysis(native);
-  if (report.metadata?.financialVerification?.status) return report.metadata.financialVerification;
+  // Stored verification is untrusted input, not a certificate. Re-run both the
+  // structural and financial gates after reload/export/import, using current code.
+  if (native?.schemaVersion === "franklin-fair-value/v3") return validateFranklinV3Report(native).financialVerification;
   return {
     status: FINANCIAL_VERIFICATION_STATUSES.NEEDS_REVIEW,
     complete: false,

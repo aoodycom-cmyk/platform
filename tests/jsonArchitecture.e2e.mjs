@@ -85,6 +85,7 @@ try {
   assert.match(reportText, /\$90/);
   assert.match(reportText, /WATCH|مراقبة/u);
   assert.ok(reportText.includes(canonical.thesis.updatedSummary.slice(0, 80)));
+  assert.equal(await page.locator(".financial-verification-banner").getAttribute("data-verification-status"), "insufficient_data", "Legacy files missing terminal derivation/provenance must not receive a verified badge.");
   await assertNoHorizontalOverflow(page, "summary");
 
   const beforeHistory = await stateSummary(page);

@@ -3827,15 +3827,20 @@ export function financialVerificationBanner(report = {}) {
     ? { verified: "مُتحقق منه", needs_review: "يحتاج مراجعة", insufficient_data: "بيانات غير كافية", blocked: "محظور" }
     : { verified: "Verified", needs_review: "Needs Review", insufficient_data: "Insufficient Data", blocked: "Blocked" };
   const verification = readiness.financialVerification || {};
-  const messages = (verification.findings || []).slice(0, 3).map((item) => item.message).filter(Boolean);
-  const sourceStatement = verification.sourceVerification?.externalVerification?.statement;
+  const messages = [...(verification.findings || []), ...(verification.warnings || [])].slice(0, 3).map((item) => item.message).filter(Boolean);
+  const sourceStatement = verification.sourceVerification?.externalVerification?.statement
+    ? (isArabicUi() ? "لم يتم التحقق خارجيًا من أن المصادر تحتوي الأرقام المعلنة؛ تحقق الحساب والربط لا يثبت صحة الافتراضات أو العائد المتوقع." : verification.sourceVerification.externalVerification.statement)
+    : null;
+  const sourceOfTruth = verification.sourceOfTruth === "FRANKLIN_RECALCULATION"
+    ? (isArabicUi() ? "مصدر الحقيقة الحسابي: إعادة حساب Franklin" : "Calculation source of truth: Franklin recalculation")
+    : (isArabicUi() ? "لا يتوفر نموذج أصلي لإعادة التحقق الحسابي" : "Canonical model unavailable for recalculation");
   return `
     <section class="panel financial-verification-banner" data-verification-status="${escapeHtml(readiness.status)}">
       <header>
         <strong>${escapeHtml(labels[readiness.status] || labels.needs_review)}</strong>
-        <span>${isArabicUi() ? "مصدر الحقيقة الحسابي: إعادة حساب Franklin" : "Calculation source of truth: Franklin recalculation"}</span>
+        <span>${escapeHtml(sourceOfTruth)}</span>
       </header>
-      ${messages.length ? `<ul>${messages.map((message) => `<li>${escapeHtml(message)}</li>`).join("")}</ul>` : ""}
+      ${messages.length ? `<ul>${messages.map((message) => `<li><bdi dir="auto">${escapeHtml(message)}</bdi></li>`).join("")}</ul>` : ""}
       ${sourceStatement ? `<small>${escapeHtml(sourceStatement)}</small>` : ""}
     </section>
   `;

@@ -3,7 +3,7 @@ import { buildFullAnalysisPrompt, FRANKLIN_INITIAL_PROMPT_VERSION } from "../src
 
 const prompt = buildFullAnalysisPrompt({ tickerHint: "NVDA" });
 
-assert.equal(FRANKLIN_INITIAL_PROMPT_VERSION, "franklin-initial-analysis-prompt/v5");
+assert.equal(FRANKLIN_INITIAL_PROMPT_VERSION, "franklin-initial-analysis-prompt/v6");
 assert.ok(prompt.includes("FRANKLIN_INITIAL_ANALYSIS"));
 assert.ok(prompt.includes("franklin-fair-value/v3"));
 assert.ok(prompt.includes("fair-value-methodology/v2"));
@@ -48,7 +48,8 @@ const firstBrace = prompt.indexOf("{");
 assert.ok(firstBrace > 0, "Prompt must contain one machine-readable request envelope.");
 const request = JSON.parse(prompt.slice(firstBrace));
 
-assert.equal(request.promptVersion, "franklin-initial-analysis-prompt/v5");
+assert.equal(request.promptVersion, "franklin-initial-analysis-prompt/v6");
+for (const key of ["forecastPeriods", "cashFlowReconciliation", "terminalMetricType", "timeZeroReason", "million shares"]) assert.ok(prompt.includes(key));
 assert.equal(request.requestType, "FRANKLIN_INITIAL_ANALYSIS");
 assert.equal(request.ticker, "NVDA");
 assert.equal(request.authority.analyst, "ChatGPT / Fair Value");
