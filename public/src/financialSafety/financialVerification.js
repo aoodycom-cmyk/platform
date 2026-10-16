@@ -43,6 +43,7 @@ export function verifyFinancialAnalysis(input = {}, options = {}) {
   const methodology = valuation.methodology || {};
   const weightedResults = (Array.isArray(valuation.valuationResults) ? valuation.valuationResults : [])
     .filter((item) => finite(item?.weight) && item.weight > 0);
+  validateWeights(valuation, add);
 
   for (const [index, result] of weightedResults.entries()) {
     const path = `valuation.valuationResults.${index}`;
@@ -79,6 +80,7 @@ export function verifyFinancialAnalysis(input = {}, options = {}) {
   validateForecastProvenance(input, add);
   validateFinancialNormalizationCoverage(input, weightedResults, add);
   validateInputProvenance(input, weightedResults, add);
+  validateInputUnits(input, weightedResults, add);
 
   const recalculatedWeighted = weightedResults.length && methodResults.length === weightedResults.length
     && methodResults.every((item) => finite(item.recalculatedFairValue))
@@ -194,6 +196,9 @@ function recalculateDcf(inputs) {
     return insufficient("DCF requires a finite cash-flow schedule, matching non-negative discount periods, discount rate, terminal period, cash, debt, and diluted shares.");
   }
   if (rate <= 0 || rate > 50 || shares <= 0 || terminalPeriod < 0) return blocked("INVALID_DCF_RATE_OR_TIMING", "DCF discount rate must be greater than 0% and no more than 50%, diluted shares must be positive, and discount periods cannot be negative.", "Correct the discount rate, timing, or share count.");
+  if (periods.some((period, index) => index > 0 && period <= periods[index - 1])) return blocked("DCF_SCHEDULE_NOT_ORDERED", "DCF discount periods must be strictly increasing; duplicate or reversed periods can double-count or mis-time cash flows.", "Aggregate cash flows at the same date and provide an ordered schedule.");
+  if (Math.abs(terminalPeriod - periods.at(-1)) > 1e-8) return blocked("DCF_TERMINAL_TIMING_MISMATCH", "Terminal value must be measured at the end of the explicit cash-flow schedule.", "Use the last explicit discount period for terminalDiscountPeriod; encode any intervening flows explicitly.");
+  if (cash < 0 || debt < 0) return blocked("INVALID_DCF_CAPITAL_BRIDGE", "DCF cash and debt must be non-negative gross balances.", "Correct the capital bridge; represent net debt through its components, not a negative gross debt or cash balance.");
   const flowType = String(inputs.cashFlowType || "").toUpperCase();
   const rateType = String(inputs.discountRateType || "").toUpperCase();
   if (flowType && !["FCFF", "FCFE"].includes(flowType)) return blocked("INVALID_DCF_FLOW_TYPE", "cashFlowType must be FCFF or FCFE.", "Declare the DCF cash-flow type explicitly.");
@@ -227,7 +232,7 @@ function deriveTerminalValue(inputs, ratePct) {
   if (["PERPETUITY_GROWTH", "GORDON_GROWTH"].includes(method)) {
     const terminalCashFlow = firstNumber(inputs.terminalCashFlow, Array.isArray(inputs.forecastFreeCashFlows) ? inputs.forecastFreeCashFlows.at(-1) : null);
     const growthPct = number(inputs.terminalGrowthPct);
-    if (![terminalCashFlow, growthPct].every(finite) || growthPct >= ratePct) return blocked("INVALID_TERMINAL_GROWTH", "Perpetuity-growth terminal value requires terminal cash flow and terminalGrowthPct below the discount rate.", "Supply a supportable terminal cash flow and growth rate below the discount rate.");
+    if (![terminalCashFlow, growthPct].every(finite) || terminalCashFlow <= 0 || growthPct <= -100 || growthPct >= ratePct) return blocked("INVALID_TERMINAL_GROWTH", "Perpetuity-growth terminal value requires positive sustainable cash flow and terminal growth greater than -100% and below the discount rate.", "Supply a supportable positive terminal cash flow and a valid growth rate, or use a finite-life model.");
     derived = terminalCashFlow * (1 + growthPct / 100) / ((ratePct - growthPct) / 100);
   } else if (method === "EXIT_MULTIPLE") {
     const metric = number(inputs.terminalMetric);
@@ -252,17 +257,36 @@ function validateMethodEconomics(input, result, path, add, warn) {
     if (!flowType || !rateType || !inputs.valuationDate || !inputs.terminalValueMethod) {
       add("NEEDS_REVIEW", "DCF_CONTRACT_METADATA_MISSING", `${path}.inputs`, "DCF must declare valuationDate, cashFlowType, discountRateType, and terminalValueMethod before it can be shown as complete.", "Add the explicit DCF contract fields; legacy DCF files remain importable for review.");
     }
+    if (inputs.valuationDate && (!validDate(inputs.valuationDate) || inputs.valuationDate !== input.reportIdentity?.analysisDate)) {
+      add("NEEDS_REVIEW", "DCF_VALUATION_DATE_MISMATCH", `${path}.inputs.valuationDate`, "DCF valuationDate must be a valid date matching the report analysis date.", "Rebase discount periods to the report date or prepare a separately dated analysis.");
+    }
+    if (inputs.discountPeriods?.includes(0) && !text(inputs.timeZeroReason)) {
+      add("NEEDS_REVIEW", "DCF_TIME_ZERO_UNEXPLAINED", `${path}.inputs.discountPeriods`, "A time-zero cash flow needs an explicit bridge explanation, not an undiscounted forecast year.", "Provide inputs.timeZeroReason and explain why this amount occurs at the valuation date.");
+    }
     const forecastWacc = number(input.forecast?.wacc?.value);
     const rate = number(inputs.discountRatePct);
     if (flowType === "FCFF" && rateType === "WACC" && finite(forecastWacc) && finite(rate) && Math.abs(rate - forecastWacc) > RATE_TOLERANCE_PCT) {
       add("BLOCKED", "DCF_WACC_MISMATCH", `${path}.inputs.discountRatePct`, `DCF discountRatePct ${rate}% does not match forecast WACC ${forecastWacc}%.`, "Use the same WACC or explain and encode a consistent rate.");
     }
+    validateDcfForecastLink(input, result, path, add);
+    if (inputs.terminalValueMethod === "EXIT_MULTIPLE") {
+      const metricType = String(inputs.terminalMetricType || "").toUpperCase();
+      const allowed = flowType === "FCFE" ? ["NET_INCOME", "FCFE"] : ["EBITDA", "EBIT", "FCFF", "REVENUE"];
+      if (!allowed.includes(metricType)) add("NEEDS_REVIEW", "DCF_TERMINAL_METRIC_BASIS_UNVERIFIED", `${path}.inputs.terminalMetricType`, "The exit multiple must declare an enterprise or equity metric consistent with FCFF/FCFE.", "Set terminalMetricType to a compatible metric; an enterprise multiple cannot directly produce an FCFE equity terminal value.");
+    }
   }
   if (isPe(method)) {
     const eps = firstNumber(inputs.normalizedForwardEps, inputs.forwardEps, inputs.eps);
-    const forecastEps = forecastValues(input, "eps");
-    const normalizedEps = number(input.financialNormalization?.normalizedDilutedEps?.value);
-    if (finite(eps) && !forecastEps.some((value) => withinFairValue(value, eps)) && !(finite(normalizedEps) && withinFairValue(normalizedEps, eps))) {
+    const provenance = result.inputProvenance?.normalizedForwardEps || result.inputProvenance?.forwardEps || result.inputProvenance?.eps;
+    const records = (Array.isArray(input.forecast?.yearlyForecast) ? input.forecast.yearlyForecast : []).map((row) => ({ ...row.eps, period: row.period }));
+    records.push(input.financialNormalization?.normalizedDilutedEps || {});
+    const linked = records.some((record) => {
+      const unit = parseUnit(record.unit);
+      return finite(number(record.value)) && withinFairValue(record.value, eps)
+        && unit?.kind === "perShare" && unit.currency === input.valuation?.current?.currency && unit.scale === 1
+        && record.period === provenance?.period;
+    });
+    if (finite(eps) && !linked) {
       add("NEEDS_REVIEW", "PE_EPS_NOT_LINKED_TO_FORECAST", `${path}.inputs.normalizedForwardEps`, "P/E EPS does not reconcile to a forecast EPS or normalized EPS record.", "Link the EPS input to the forecast/normalization period or explain the exception.");
     }
   }
@@ -274,6 +298,29 @@ function validateMethodEconomics(input, result, path, add, warn) {
   }
 }
 
+function validateDcfForecastLink(input, result, path, add) {
+  const inputs = result.inputs || {};
+  const flows = inputs.forecastFreeCashFlows || [];
+  const periods = inputs.forecastPeriods;
+  const unit = parseUnit(result.inputProvenance?.forecastFreeCashFlows?.unit);
+  const rows = Array.isArray(input.forecast?.yearlyForecast) ? input.forecast.yearlyForecast : [];
+  const reconciliations = Array.isArray(inputs.cashFlowReconciliation) ? inputs.cashFlowReconciliation : [];
+  const linked = Array.isArray(periods) && periods.length === flows.length && unit?.kind === "money"
+    && periods.every((period, index) => {
+      // A documented time-zero bridge is not a forecast year.
+      if (inputs.discountPeriods?.[index] === 0) return text(inputs.timeZeroReason);
+      const row = rows.find((item) => item.period === period);
+      const rowUnit = parseUnit(row?.freeCashFlow?.unit);
+      if (!rowUnit || rowUnit.kind !== "money" || rowUnit.currency !== unit.currency || !finite(number(row?.freeCashFlow?.value))) return false;
+      const forecastFlow = row.freeCashFlow.value * rowUnit.scale / unit.scale;
+      if (withinFairValue(forecastFlow, flows[index])) return true;
+      const bridge = reconciliations.find((item) => item?.period === period);
+      return text(bridge?.reason) && finite(bridge?.adjustment)
+        && withinFairValue(forecastFlow + bridge.adjustment, flows[index]);
+    });
+  if (!linked) add("NEEDS_REVIEW", "DCF_FORECAST_LINK_UNVERIFIED", `${path}.inputs.forecastPeriods`, "DCF cash flows must reconcile to the forecast periods and units, or disclose a numeric adjustment bridge.", "Provide forecastPeriods matching yearlyForecast and cashFlowReconciliation entries {period, adjustment, reason} for any differences; adjustments use the DCF cash-flow unit.");
+}
+
 function validateMethodSelection(methodology, results, add) {
   if (!text(methodology.selectionReason)) add("NEEDS_REVIEW", "SELECTION_REASON_MISSING", "valuation.methodology.selectionReason", "A complete analysis requires a method-selection reason.", "Explain why the selected methods fit the company and sector.");
   if (!text(methodology.weightReasoning)) add("NEEDS_REVIEW", "WEIGHT_REASONING_MISSING", "valuation.methodology.weightReasoning", "A complete analysis requires weight reasoning.", "Explain the economic basis for every method weight.");
@@ -283,6 +330,19 @@ function validateMethodSelection(methodology, results, add) {
     if (!text(result?.rationale)) add("NEEDS_REVIEW", "METHOD_RATIONALE_MISSING", `valuation.valuationResults.${index}.rationale`, "Every weighted valuation method requires a rationale.", "Explain why the method is suitable for this company.");
     if (!result?.assumptions || typeof result.assumptions !== "object" || !Object.keys(result.assumptions).length) add("NEEDS_REVIEW", "METHOD_ASSUMPTIONS_MISSING", `valuation.valuationResults.${index}.assumptions`, "Every weighted valuation method requires explicit assumptions.", "List the material assumptions rather than leaving an empty object.");
   }
+}
+
+function validateWeights(valuation, add) {
+  const results = Array.isArray(valuation.valuationResults) ? valuation.valuationResults : [];
+  const weights = Array.isArray(valuation.methodology?.modelWeights) ? valuation.methodology.modelWeights : [];
+  const active = results.filter((r) => r?.role !== "CROSS_CHECK");
+  const valid = (items) => items.length > 0 && items.every((r) => text(r?.method) && finite(r?.weight) && r.weight > 0)
+    && Math.abs(items.reduce((sum, r) => sum + r.weight, 0) - 100) <= 0.01
+    && new Set(items.map((r) => normalizeMethod(r.method))).size === items.length;
+  const matches = valid(active) && valid(weights) && active.length === weights.length
+    && active.every((r) => weights.some((w) => normalizeMethod(w.method) === normalizeMethod(r.method) && Math.abs(w.weight - r.weight) <= 0.01))
+    && results.filter((r) => r?.role === "CROSS_CHECK").every((r) => r.weight === 0 || r.weight === null || r.weight === undefined);
+  if (!matches) add("BLOCKED", "METHOD_WEIGHTS_INVALID", "valuation.methodology.modelWeights", "Weighted results and modelWeights must agree, use unique methods with positive weights totaling 100%, and exclude zero-weight cross-checks from the weighted list.", "Correct both weight arrays; keep zero-weight methods as CROSS_CHECK results only.");
 }
 
 function validateSectorMethodFit(input, methodology, results, add) {
@@ -329,10 +389,13 @@ function validateForecastProvenance(input, add) {
       if (metric === "period" || !finite(number(record?.value))) continue;
       const basis = String(record?.basis || "").toLowerCase();
       const analystAssumption = basis === "analyst_assumption";
-      if (!text(row?.period) || !text(record?.unit) || !text(record?.asOf) || !text(record?.basis) || (!analystAssumption && !text(record?.sourceId))) {
+      if (!text(row?.period) || !text(record?.unit) || !validDate(record?.asOf) || !text(record?.basis) || (!analystAssumption && !text(record?.sourceId))) {
         incomplete.push(`forecast.yearlyForecast.${rowIndex}.${metric}`);
       }
       if (text(record?.sourceId) && !sourceIds.has(record.sourceId)) missingSources.push(`forecast.yearlyForecast.${rowIndex}.${metric}.sourceId`);
+      if (validDate(record?.asOf) && validDate(input.reportIdentity?.analysisDate) && record.asOf.slice(0, 10) > input.reportIdentity.analysisDate.slice(0, 10)) {
+        add("BLOCKED", "PROVENANCE_LOOKAHEAD", `forecast.yearlyForecast.${rowIndex}.${metric}.asOf`, "Forecast provenance is dated after the report analysis date.", "Use the information available on the analysis date or re-date the report.");
+      }
     }
   }
   if (incomplete.length) {
@@ -348,7 +411,17 @@ function validateMargin(row, index, metric, marginMetric, add) {
   const amount = number(row?.[metric]?.value);
   const margin = number(row?.[marginMetric]?.value);
   if (![revenue, amount, margin].every(finite) || revenue === 0) return;
-  const expected = amount / revenue * 100;
+  const revenueUnit = parseUnit(row?.revenue?.unit);
+  const amountUnit = parseUnit(row?.[metric]?.unit);
+  if (revenueUnit && amountUnit && (revenueUnit.kind !== "money" || amountUnit.kind !== "money" || revenueUnit.currency !== amountUnit.currency)) {
+    add("BLOCKED", "FORECAST_UNIT_MISMATCH", `forecast.yearlyForecast.${index}.${metric}.unit`, "Revenue and forecast amount must be comparable monetary units in the same currency.", "Convert the forecast amounts to one currency before calculating margins.");
+    return;
+  }
+  if (!revenueUnit || !amountUnit) {
+    add("NEEDS_REVIEW", "FORECAST_UNITS_UNVERIFIED", `forecast.yearlyForecast.${index}.${metric}.unit`, "Franklin cannot reconcile forecast margins without recognized currency and scale metadata.", "Use explicit units such as USD, USD million, or USD billion.");
+    return;
+  }
+  const expected = (amount * amountUnit.scale) / (revenue * revenueUnit.scale) * 100;
   if (Math.abs(expected - margin) > MARGIN_TOLERANCE_PCT) {
     add("BLOCKED", "FORECAST_MARGIN_MISMATCH", `forecast.yearlyForecast.${index}.${marginMetric}.value`, `${marginMetric} is ${margin}% but revenue and ${metric} imply ${expected.toFixed(2)}%.`, "Correct the forecast amount or margin.");
   }
@@ -360,6 +433,9 @@ function validateFinancialNormalizationCoverage(input, results, add) {
   const methodsNeedNormalization = results.some((result) => /P\/E|EV\/EBIT|P\/FCF|DCF/.test(normalizeMethod(result?.method)));
   if (methodsNeedNormalization && finiteCount === 0) {
     add("INSUFFICIENT_DATA", "FINANCIAL_NORMALIZATION_MISSING", "financialNormalization", "The selected valuation methods require normalized financial data, but no normalized numeric metrics are available.", "Provide the applicable normalized earnings, cash flow, balance-sheet, and share-count data with provenance.");
+  }
+  if (finiteCount > 0 && results.some((r) => isPe(normalizeMethod(r.method))) && !finite(number(normalization.normalizedDilutedEps?.value))) {
+    add("INSUFFICIENT_DATA", "NORMALIZATION_METHOD_COVERAGE_MISSING", "financialNormalization.normalizedDilutedEps", "P/E requires an explicit normalized EPS record; an unrelated numeric normalization field does not satisfy earnings normalization.", "Provide normalizedDilutedEps with its accounting basis and provenance, even when it matches reported EPS.");
   }
 }
 
@@ -377,6 +453,9 @@ function validateInputProvenance(input, results, add) {
   if (unresolved.length) {
     add("INSUFFICIENT_DATA", "VALUATION_INPUT_SOURCE_NOT_FOUND", "valuation.valuationResults.inputProvenance", `${unresolved.length} material valuation inputs reference sourceId values that do not exist in sources[].`, "Add the referenced source records or correct the input provenance identifiers.", { missingInputs: unresolved.map((item) => `${item.method}.${item.key}`) });
   }
+  const analysisDate = input.reportIdentity?.analysisDate;
+  const lookahead = materialInputs.filter((item) => validDate(item.provenance?.asOf) && validDate(analysisDate) && item.provenance.asOf.slice(0, 10) > analysisDate.slice(0, 10));
+  if (lookahead.length) add("BLOCKED", "PROVENANCE_LOOKAHEAD", "valuation.valuationResults.inputProvenance", "Material inputs use information dated after the report analysis date.", "Re-date the report or use only information available at its analysis date.");
 }
 
 function validateCalculationAudit(valuation, recalculatedWeighted, base, add) {
@@ -411,6 +490,7 @@ function validateDecisionConsistency(input, add) {
   const exceptional = text(input.decision?.exceptionalReason);
   if (["BUY", "ADD"].includes(action) && upsidePct <= 0 && !exceptional) add("BLOCKED", "BUY_WITHOUT_UPSIDE", "decision.action", `${action} conflicts with ${upsidePct.toFixed(1)}% upside to Base and no documented exception.`, "Use a conservative action or document an explicit, reviewable exception.");
   if (["SELL", "REDUCE"].includes(action) && upsidePct >= 0 && !exceptional) add("BLOCKED", "SELL_WITH_POSITIVE_UPSIDE", "decision.action", `${action} conflicts with ${upsidePct.toFixed(1)}% upside to Base and no documented exception.`, "Reconcile the action with fair value or document an explicit exception.");
+  if (exceptional && ((["BUY", "ADD"].includes(action) && upsidePct <= 0) || (["SELL", "REDUCE"].includes(action) && upsidePct >= 0))) add("NEEDS_REVIEW", "DECISION_EXCEPTION_REQUIRES_REVIEW", "decision.exceptionalReason", "A documented decision exception requires human review; its presence cannot automatically verify an action that conflicts with Base upside.", "Review the exception and its evidence before acting on the recommendation.");
   const saysBelow = /price.{0,40}(below|under).{0,40}(fair|base)|market.{0,40}(below|under).{0,40}(fair|base)|السعر.{0,35}(أقل|ادنى|أدنى).{0,35}(القيمة|base)|سعر السوق.{0,35}(أقل|دون).{0,35}(القيمة|base)/iu.test(rationale);
   const saysAbove = /price.{0,40}(above|over).{0,40}(fair|base)|market.{0,40}(above|over).{0,40}(fair|base)|السعر.{0,35}(أعلى|فوق).{0,35}(القيمة|base)|سعر السوق.{0,35}(أعلى|فوق).{0,35}(القيمة|base)/iu.test(rationale);
   if (saysBelow && price >= base) add("BLOCKED", "DECISION_TEXT_NUMERIC_CONTRADICTION", "decision.rationale", "Decision rationale says market price is below fair value while the numbers show otherwise.", "Correct the narrative or the underlying numbers.");
@@ -463,7 +543,7 @@ function provenanceComplete(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const type = String(value.type || "").toUpperCase();
   const sourceOrAssumption = text(value.sourceId) || type === "ANALYST_ASSUMPTION";
-  return Boolean(sourceOrAssumption && text(value.asOf) && text(value.unit) && text(value.period));
+  return Boolean(sourceOrAssumption && validDate(value.asOf) && text(value.unit) && text(value.period));
 }
 
 function forecastValues(input, metric) {
@@ -508,11 +588,68 @@ function flattenText(value) {
 
 function withinFairValue(expected, actual) {
   if (![expected, actual].every(finite)) return false;
-  return Math.abs(expected - actual) <= Math.max(FAIR_VALUE_ABSOLUTE_TOLERANCE, Math.abs(expected) * FAIR_VALUE_RELATIVE_TOLERANCE);
+  return Math.abs(expected - actual) <= Math.max(FAIR_VALUE_ABSOLUTE_TOLERANCE, Math.max(Math.abs(expected), Math.abs(actual)) * FAIR_VALUE_RELATIVE_TOLERANCE);
 }
 
 function calculated(value) {
+  if (!finite(value)) return blocked("NON_FINITE_VALUATION_RESULT", "Valuation arithmetic overflowed or produced a non-finite result.", "Correct the scale and inputs; non-finite values cannot be verified.");
   return { state: "CALCULATED", value, reason: null };
+}
+
+function validDate(value) {
+  if (!text(value) || !/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(value)) return false;
+  const day = value.slice(0, 10);
+  const parsedDay = new Date(`${day}T00:00:00.000Z`);
+  return Number.isFinite(parsedDay.getTime()) && parsedDay.toISOString().slice(0, 10) === day && Number.isFinite(Date.parse(value));
+}
+
+function parseUnit(value) {
+  const unit = String(value || "").trim().toUpperCase().replace(/_/g, " ");
+  if (/^(%|PERCENT|PCT)$/.test(unit)) return { kind: "percent", scale: 1 };
+  if (/^(X|MULTIPLE|TIMES|YEARS|YEAR)$/.test(unit)) return { kind: "ratio", scale: 1 };
+  const currency = unit.match(/\b(USD|SAR|EUR|GBP|JPY|CNY|HKD|CAD|AUD|CHF|KRW)\b/)?.[1]
+    || unit.match(/^(USD|SAR|EUR|GBP|JPY|CNY|HKD|CAD|AUD|CHF|KRW)[MBK]$/)?.[1];
+  const scale = /BILLION|مليار|BN\b|^[A-Z]{3}B$/.test(unit) ? 1e9
+    : /MILLION|مليون|MN\b|^[A-Z]{3}M$/.test(unit) ? 1e6
+      : /THOUSAND|ألف|^[A-Z]{3}K$/.test(unit) ? 1e3 : 1;
+  const shares = /SHARES?|سهم|أسهم/.test(unit);
+  if (currency) return { kind: shares ? "perShare" : "money", currency, scale };
+  if (shares) return { kind: "shares", scale };
+  return null;
+}
+
+function validateInputUnits(input, results, add) {
+  for (const [index, result] of results.entries()) {
+    const method = normalizeMethod(result.method);
+    const money = [];
+    let shareScale = null;
+    for (const [key, value] of Object.entries(object(result.inputs))) {
+      if (!finite(value) && !(Array.isArray(value) && value.some(finite))) continue;
+      const unit = parseUnit(result.inputProvenance?.[key]?.unit);
+      if (!unit) {
+        add("NEEDS_REVIEW", "VALUATION_INPUT_UNIT_UNVERIFIED", `valuation.valuationResults.${index}.inputProvenance.${key}.unit`, "A material input has missing or unrecognized dimensional units.", "Provide explicit currency, scale, per-share, share-count, percentage, or multiple units.");
+        continue;
+      }
+      const expected = key === "dilutedShares" ? "shares"
+        : /eps|pershare/i.test(key) ? "perShare"
+          : /pct$/i.test(key) ? "percent"
+            : /multiple|discountPeriods|terminalDiscountPeriod/i.test(key) ? "ratio" : "money";
+      if (unit.kind !== expected || (unit.currency && unit.currency !== input.valuation?.current?.currency)) {
+        add("BLOCKED", "VALUATION_INPUT_UNIT_MISMATCH", `valuation.valuationResults.${index}.inputProvenance.${key}.unit`, `${key} has incompatible units or currency for the valuation.`, "Convert inputs explicitly to the valuation currency and correct dimensional units.");
+      }
+      if (expected === "money" && unit.kind === "money") money.push(unit.scale);
+      if (key === "dilutedShares" && unit.kind === "shares") shareScale = unit.scale;
+    }
+    if (money.length && (money.some((scale) => scale !== money[0]) || (shareScale !== null && money[0] !== shareScale))) {
+      add("BLOCKED", "VALUATION_SCALE_MISMATCH", `valuation.valuationResults.${index}.inputs`, "Raw valuation formulas require all total amounts and diluted shares to use the same scale (for example, USD million and million shares).", "Normalize currency amounts and share counts to compatible scales before valuation.");
+    }
+    // Legacy net debt/share inputs in calculation must not bypass provenance checks.
+    for (const key of ["netDebt", "dilutedShares"]) {
+      if (method.includes("EV/EBITDA") && !finite(result.inputs?.[key]) && finite(result.calculation?.[key])) {
+        add("NEEDS_REVIEW", "LEGACY_CALCULATION_INPUT_UNVERIFIED", `valuation.valuationResults.${index}.calculation.${key}`, "A material input exists only in the legacy calculation object and lacks canonical input provenance.", "Move the value into inputs and provide inputProvenance.");
+      }
+    }
+  }
 }
 
 function insufficient(reason) {

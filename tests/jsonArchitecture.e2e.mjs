@@ -85,6 +85,10 @@ try {
   assert.match(reportText, /\$90/);
   assert.match(reportText, /WATCH|مراقبة/u);
   assert.ok(reportText.includes(canonical.thesis.updatedSummary.slice(0, 80)));
+  // This frozen fixture reports Base=85, whereas its weighted models give 86.
+  // Missing provenance must not downgrade that actual arithmetic conflict to a
+  // merely incomplete report, and the fixture must never receive Verified.
+  assert.equal(await page.locator(".financial-verification-banner").getAttribute("data-verification-status"), "blocked", "The detached Base in the frozen INTC fixture must remain blocked.");
   await assertNoHorizontalOverflow(page, "summary");
 
   const beforeHistory = await stateSummary(page);

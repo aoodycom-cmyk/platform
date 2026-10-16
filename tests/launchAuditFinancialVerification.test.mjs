@@ -112,7 +112,7 @@ const bankEnterpriseValuation = mutate(clean, (report) => {
     fairValue: 82,
     weight: 100,
     inputs: { normalizedEbitda: 82, evEbitdaMultiple: 1, netDebt: 0, dilutedShares: 1, nonOperatingAdjustments: 0 },
-    inputProvenance: Object.fromEntries(["normalizedEbitda", "evEbitdaMultiple", "netDebt", "dilutedShares", "nonOperatingAdjustments"].map((key) => [key, { type: "ANALYST_ASSUMPTION", asOf: "2026-07-25", unit: key.includes("Multiple") ? "x" : "USD", period: "FY2027E" }])),
+    inputProvenance: Object.fromEntries(["normalizedEbitda", "evEbitdaMultiple", "netDebt", "dilutedShares", "nonOperatingAdjustments"].map((key) => [key, { type: "ANALYST_ASSUMPTION", asOf: "2026-07-25", unit: key === "dilutedShares" ? "shares" : key.includes("Multiple") ? "x" : "USD", period: "FY2027E" }])),
     assumptions: { simplifiedTest: true },
     rationale: "Uses an enterprise multiple.",
     limitations: "Simplified test."
@@ -235,7 +235,7 @@ assert.doesNotMatch(componentsSource, /score \* 10/);
 
 console.log("Launch-audit financial verification regressions passed.");
 
-function verifiedFixture() {
+export function verifiedFixture() {
   return mutate(canonical, (report) => {
     for (const row of report.forecast.yearlyForecast) {
       for (const [metric, record] of Object.entries(row)) {

@@ -145,3 +145,14 @@ Files added for handoff:
 - External source-content verification remains explicitly `NOT_PERFORMED`; only source presence and declared numeric linkage are checked locally.
 
 Because the first two items are part of the audit's launch acceptance evidence, this work does not use the word READY.
+
+# متابعة إعادة الفحص المستقل — 2026-10-16
+
+- خط الأساس: cabb4b728bf896170421939946be1b5ae1815527.
+- الفرع: fix/post-remediation-audit.
+- تمت معالجة الثقة بالشارة المخزنة، وإعادة الفحص البنيوي، والأوزان، والوحدات، وتوقيت DCF وربطه بالتوقع، وتواريخ المصادر، والاستثناءات، وتشخيص FRMI.
+- Prompt الأولي v6 وإعادة التقييم v4 متوافقان مع الحواجز الجديدة.
+- نجح 81 ملف Unit/Integration. فحص الجودة ناجح. E2E لهذه التعديلات غير مؤكد بسبب تعذر تنزيل Chromium في هذه البيئة؛ يظل شرطًا قبل الدمج.
+- أُعيد تشغيل TEM/CRWV/MU/FRMI الأصلية دون تغيير hash. الحسابات التشخيصية متطابقة ضمن الهامش؛ لا تُرقّى الملفات القديمة إلى Verified دون توثيقها المفقود.
+- التقرير التفصيلي: FRANKLIN_POST_REMEDIATION_REVIEW.md.
+- المتبقي: CI/E2E، ثم تأكيد المستخدم مساحة Render قبل أي إعداد للخادم. لا نشر إنتاجي ولا تكلفة جديدة.

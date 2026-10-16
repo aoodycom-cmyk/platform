@@ -8,7 +8,7 @@ import {
   previousCanonicalState
 } from "./v3Contract.js";
 
-export const FRANKLIN_EARNINGS_PROMPT_VERSION = "franklin-earnings-revaluation-prompt/v3";
+export const FRANKLIN_EARNINGS_PROMPT_VERSION = "franklin-earnings-revaluation-prompt/v4";
 
 export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
   const ticker = normalizeTicker(report.company?.ticker);
@@ -164,6 +164,8 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
         "selectionReason وweightReasoning وvaluationResults[].rationale وvaluationResults[].assumptions وexcludedMethods[].reason إلزامية.",
         "لكل مدخل تقييم مادي أضف inputProvenance وفيه sourceId أو type=ANALYST_ASSUMPTION، مع asOf وunit وperiod. ولكل رقم في yearlyForecast أضف basis وasOf وunit وsourceId، ويجوز حذف sourceId فقط عند basis=analyst_assumption.",
         "DCF يصرح valuationDate وcashFlowType وdiscountRateType وterminalValueMethod ويعيد اشتقاق terminalValue؛ FCFF يستخدم WACC وFCFE يستخدم COST_OF_EQUITY.",
+        "valuationDate يساوي analysisDate. discountPeriods تصاعدية دون تكرار وterminalDiscountPeriod يساوي آخر فترة. الصفر يحتاج timeZeroReason. forecastPeriods تطابق yearlyForecast؛ اختلاف التدفقات يحتاج cashFlowReconciliation:[{period,adjustment,reason}]. عند EXIT_MULTIPLE أضف terminalMetricType متوافقًا مع FCFF/FCFE.",
+        "الوحدات صريحة ومتوافقة: USD million مع million shares وUSD/share لـEPS وx للمضاعف و% للنسب وyears للفترات. asOf تاريخ صالح لا يتجاوز analysisDate؛ EPS مرتبط بفترة التوقع أو التطبيع نفسها.",
         "baseChangeBridge يجمع عدديًا من previous Base إلى current Base.",
         "marketPrice.currency وvaluation.current.currency يساويان company.tradingCurrency.",
         "marketPrice.value موجب وasOf تاريخ حقيقي وpriceType يساوي LIVE أو DELAYED أو LAST_CLOSE وsourceId يطابق مصدر Market Data داخل sources.",
