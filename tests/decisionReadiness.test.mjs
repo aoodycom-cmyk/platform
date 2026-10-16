@@ -6,7 +6,10 @@ import {
 
 const full = {
   analysisDate: "2026-08-19",
-  metadata: { importMethod: "structured_json" },
+  metadata: {
+    importMethod: "structured_json",
+    financialVerification: { status: "VERIFIED", complete: true, findings: [], warnings: [] }
+  },
   fairValueSummary: {
     currentPrice: 100,
     fairValueBase: 125,
@@ -22,7 +25,7 @@ const full = {
   valuationMethodology: { modelWeights: [{ weight: 100 }] }
 };
 const fullReadiness = classifyDecisionReadiness(full);
-assert.equal(fullReadiness.status, "full_analysis_as_of");
+assert.equal(fullReadiness.status, "verified");
 assert.equal(fullReadiness.asOfDate, "2026-08-19");
 
 const quarterlyInherited = {
@@ -31,7 +34,8 @@ const quarterlyInherited = {
   metadata: {
     importMethod: "quarterly_earnings_lite",
     quarterlySourcesProvided: true,
-    baseAnalysisDate: "2026-08-19"
+    baseAnalysisDate: "2026-08-19",
+    financialVerification: { status: "VERIFIED", complete: true, findings: [], warnings: [] }
   },
   previousRequirementsEvaluation: {
     targetQuarter: "Q3 2026",
@@ -40,7 +44,7 @@ const quarterlyInherited = {
   }
 };
 const inheritedReadiness = classifyDecisionReadiness(quarterlyInherited);
-assert.equal(inheritedReadiness.status, "quarterly_inherited");
+assert.equal(inheritedReadiness.status, "needs_review");
 assert.equal(inheritedReadiness.asOfDate, "2026-08-19");
 
 const missingSources = {

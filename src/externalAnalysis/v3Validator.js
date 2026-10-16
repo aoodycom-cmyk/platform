@@ -28,6 +28,7 @@ import {
   reportPeriodFromV3Identity
 } from "./v3Contract.js";
 import { validateArabicNarrativeQuality } from "./arabicNarrativeQuality.js";
+import { verifyFinancialAnalysis } from "../financialSafety/financialVerification.js";
 import {
   FRANKLIN_FISCAL_QUARTER_FORMAT,
   fiscalQuarterPeriodsEqual,
@@ -72,7 +73,7 @@ const V3_TOP_LEVEL_FIELDS = new Set([
 const MARKET_PRICE_FIELDS = ["value", "currency", "asOf", "priceType", "sourceId"];
 const VALUATION_CURRENT_FIELDS = ["bear", "base", "bull", "probabilityWeighted", "currency", "securityUnit", "confidence"];
 const FORECAST_ROW_FIELDS = ["period", "revenue", "revenueGrowthPct", "eps", "ebitda", "ebitdaMarginPct", "freeCashFlow", "fcfMarginPct"];
-const FORECAST_METRIC_FIELDS = ["value", "basis", "sourceId"];
+const FORECAST_METRIC_FIELDS = ["value", "basis", "unit", "asOf", "sourceId"];
 const SOURCE_FIELDS = ["id", "title", "type", "date", "url", "usedFor"];
 const NEXT_REQUIREMENT_FIELDS = [
   "id",
@@ -133,7 +134,7 @@ const NUMERIC_FINANCIAL_NORMALIZATION_FIELDS = [
 ];
 const NORMALIZED_METRIC_FIELDS = ["value", "unit", "accountingBasis", "period", "sourceId"];
 const PE_TYPED_INPUT_FIELDS = ["normalizedForwardEps", "forwardEps", "eps", "impliedMultiple", "forwardMultiple", "peMultiple", "multiple"];
-const EV_EBITDA_TYPED_INPUT_FIELDS = ["normalizedEbitda", "ebitda", "evEbitdaMultiple", "impliedMultiple", "multiple", "netDebt", "dilutedShares"];
+const EV_EBITDA_TYPED_INPUT_FIELDS = ["normalizedEbitda", "ebitda", "evEbitdaMultiple", "impliedMultiple", "multiple", "netDebt", "dilutedShares", "nonOperatingAdjustments"];
 const P_FCF_TYPED_INPUT_FIELDS = ["normalizedFreeCashFlow", "freeCashFlow", "fcf", "fcfPerShare", "dilutedShares", "impliedMultiple", "multiple"];
 const FORECAST_METRIC_NAMES = ["revenue", "revenueGrowthPct", "eps", "ebitda", "ebitdaMarginPct", "freeCashFlow", "fcfMarginPct"];
 
@@ -143,7 +144,13 @@ export function validateFranklinV3Report(input = {}, context = {}) {
   const valuationMethodVerifications = [];
   if (!isFranklinV3Report(input)) {
     errors.push(fieldError("schemaVersion", `schemaVersion must be ${FRANKLIN_FAIR_VALUE_SCHEMA_VERSION}.`));
-    return { valid: false, errors, warnings, valuationMethodVerifications };
+    return {
+      valid: false,
+      errors,
+      warnings,
+      valuationMethodVerifications,
+      financialVerification: verifyFinancialAnalysis(input, { schemaErrors: errors })
+    };
   }
   if (input.methodologyVersion !== FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION) {
     errors.push(fieldError("methodologyVersion", `methodologyVersion must be ${FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION}.`));
@@ -174,7 +181,8 @@ export function validateFranklinV3Report(input = {}, context = {}) {
   if (input.analysisType === "INITIAL") validateInitialRules(input, errors);
   if (input.analysisType === "EARNINGS_REVALUATION") validateEarningsRevaluationRules(input, context, errors, warnings);
 
-  return { valid: errors.length === 0, errors, warnings, valuationMethodVerifications };
+  const financialVerification = verifyFinancialAnalysis(input, { schemaErrors: errors, valuationMethodVerifications });
+  return { valid: errors.length === 0, errors, warnings, valuationMethodVerifications, financialVerification };
 }
 
 function validateUnknownTopLevelFields(input, errors) {
@@ -1292,19 +1300,19 @@ function sourceUsedFor(source, expected) {
 function assertWeightTotal(path, values = [], errors, message, options = {}) {
   const numbers = values.map(numberOrNull);
   if (!numbers.length || numbers.some((value) => !Number.isFinite(value))) {
-    errors.push(fieldError(path, message));
+    errors.push(fieldError(path, `${message} Every listed weight must be a finite JSON number.`));
     return;
   }
   if (options.requirePositive !== false && numbers.some((value) => value <= 0)) {
-    errors.push(fieldError(path, message));
+    errors.push(fieldError(path, `${message} A zero or negative weight is not allowed; keep zero-weight methods outside the weighted list as CROSS_CHECK results.`));
     return;
   }
   if (options.requirePositive === false && numbers.some((value) => value < 0)) {
-    errors.push(fieldError(path, message));
+    errors.push(fieldError(path, `${message} Negative weights are not allowed.`));
     return;
   }
   const total = numbers.reduce((sum, value) => sum + value, 0);
-  if (!within(total, 100, WEIGHT_TOLERANCE)) errors.push(fieldError(path, message));
+  if (!within(total, 100, WEIGHT_TOLERANCE)) errors.push(fieldError(path, `${message} The supplied total is ${total}%.`));
 }
 
 function calculateProbabilityWeighted(scenarios = {}) {
@@ -1369,7 +1377,14 @@ function validateValuationResultReproducibility(result = {}, path, errors, warni
       return;
     }
     if ([ebitda, multiple, netDebt, shares, fairValue].every(Number.isFinite)) {
-      const nonOperatingAdjustments = numberOrNull(result.calculation?.nonOperatingAdjustments) ?? 0;
+      const inputAdjustment = numberOrNull(inputs.nonOperatingAdjustments);
+      const legacyAdjustment = numberOrNull(result.calculation?.nonOperatingAdjustments);
+      if (Number.isFinite(inputAdjustment) && Number.isFinite(legacyAdjustment) && !within(inputAdjustment, legacyAdjustment, materialAmountTolerance(inputAdjustment))) {
+        errors.push(fieldError(`${path}.inputs.nonOperatingAdjustments`, "nonOperatingAdjustments conflicts with the legacy calculation value."));
+        recordValuationMethodVerification(verifications, path, rawMethod, "ERROR", "Canonical and legacy non-operating adjustments conflict.");
+        return;
+      }
+      const nonOperatingAdjustments = inputAdjustment ?? legacyAdjustment ?? 0;
       const expected = ((ebitda * multiple) - netDebt + nonOperatingAdjustments) / shares;
       if (!within(expected, fairValue, materialAmountTolerance(expected))) {
         errors.push(fieldError(`${path}.inputs`, "EV/EBITDA fairValue must reconcile to EBITDA, multiple, net debt, and diluted shares."));
@@ -1427,8 +1442,8 @@ function validateValuationResultReproducibility(result = {}, path, errors, warni
     const validSchedule = Array.isArray(cashFlows) && cashFlows.length > 0
       && Array.isArray(periods) && periods.length === cashFlows.length
       && cashFlows.every((value) => typeof value === "number" && Number.isFinite(value))
-      && periods.every((value) => typeof value === "number" && Number.isFinite(value) && value > 0);
-    if (validSchedule && [rate, terminalValue, terminalPeriod, cash, debt, shares, fairValue].every(Number.isFinite) && rate > -100 && terminalValue >= 0 && terminalPeriod > 0 && cash >= 0 && debt >= 0 && shares > 0) {
+      && periods.every((value) => typeof value === "number" && Number.isFinite(value) && value >= 0);
+    if (validSchedule && [rate, terminalValue, terminalPeriod, cash, debt, shares, fairValue].every(Number.isFinite) && rate > -100 && terminalValue >= 0 && terminalPeriod >= 0 && cash >= 0 && debt >= 0 && shares > 0) {
       const discount = 1 + rate / 100;
       const pvFlows = cashFlows.reduce((sum, value, index) => sum + value / Math.pow(discount, periods[index]), 0);
       const expected = (pvFlows + terminalValue / Math.pow(discount, terminalPeriod) + cash - debt) / shares;

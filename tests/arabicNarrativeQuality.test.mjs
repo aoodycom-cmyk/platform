@@ -31,6 +31,18 @@ assert.equal(
   "company names must not be treated as unexplained technical glossary terms"
 );
 
+const peerCompanyNarrative = validateArabicNarrativeQuality({
+  outputLanguage: "ar",
+  reportIdentity: { companyName: "Micron Technology, Inc.", ticker: "MU" },
+  companyGlossary: glossary,
+  thesis: { updatedSummary: "تواجه الشركة منافسة من SK Hynix في الذاكرة المتقدمة، بينما تبقى دورة التسعير العامل الأهم في الهوامش." }
+});
+assert.equal(
+  peerCompanyNarrative.errors.some((item) => item.field === "companyGlossary" && item.message.includes("SK Hynix")),
+  false,
+  "peer company names must not be rejected as unexplained technical terms"
+);
+
 const bad = validateArabicNarrativeQuality({
   outputLanguage: "ar",
   companyGlossary: [],

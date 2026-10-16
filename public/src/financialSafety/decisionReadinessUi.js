@@ -1,4 +1,5 @@
 import { auditFinancialReport } from "./financialSafety.js";
+import { FINANCIAL_VERIFICATION_STATUSES, verifyFinancialAnalysis } from "./financialVerification.js";
 import { installCommercialUx } from "./commercialUx.js";
 import { installWorkflowCommercialUx } from "./workflowCommercialUx.js";
 
@@ -25,29 +26,68 @@ export function installDecisionReadinessUi(store, root = document.getElementById
 
 export function classifyDecisionReadiness(report = {}) {
   const audit = auditFinancialReport(report);
+  const financialVerification = financialVerificationForReport(report);
   const isQuarterly = report.metadata?.importMethod === QUARTERLY_IMPORT_METHOD;
   const missingQuarterSources = isQuarterly && report.metadata?.quarterlySourcesProvided !== true;
-  if (!audit.valid || missingQuarterSources) {
+  if (!audit.valid || missingQuarterSources || financialVerification.status === FINANCIAL_VERIFICATION_STATUSES.BLOCKED) {
     return {
       status: "blocked",
       asOfDate: inheritedDecisionDate(report),
       reasons: [
         ...audit.errors.map((item) => item.code),
+        ...financialVerification.findings.filter((item) => item.status === "BLOCKED").map((item) => item.code),
         ...(missingQuarterSources ? ["QUARTERLY_SOURCE_PROVENANCE_MISSING"] : [])
-      ]
+      ],
+      financialVerification
+    };
+  }
+  if (financialVerification.status === FINANCIAL_VERIFICATION_STATUSES.INSUFFICIENT_DATA) {
+    return {
+      status: "insufficient_data",
+      asOfDate: inheritedDecisionDate(report),
+      reasons: financialVerification.findings.map((item) => item.code),
+      financialVerification
     };
   }
   if (isQuarterly) {
     return {
-      status: "quarterly_inherited",
+      status: "needs_review",
       asOfDate: inheritedDecisionDate(report),
-      reasons: ["FAIR_VALUE_AND_DECISION_INHERITED"]
+      reasons: ["FAIR_VALUE_AND_DECISION_INHERITED"],
+      financialVerification
+    };
+  }
+  if (financialVerification.status !== FINANCIAL_VERIFICATION_STATUSES.VERIFIED) {
+    return {
+      status: "needs_review",
+      asOfDate: inheritedDecisionDate(report) || report.analysisDate || null,
+      reasons: financialVerification.findings.map((item) => item.code),
+      financialVerification
     };
   }
   return {
-    status: "full_analysis_as_of",
+    status: "verified",
     asOfDate: report.metadata?.decisionAsOfDate || report.analysisDate || null,
-    reasons: []
+    reasons: [],
+    financialVerification
+  };
+}
+
+export function financialVerificationForReport(report = {}) {
+  const native = report.metadata?.franklinV3Report;
+  if (native?.schemaVersion === "franklin-fair-value/v3") return verifyFinancialAnalysis(native);
+  if (report.metadata?.financialVerification?.status) return report.metadata.financialVerification;
+  return {
+    status: FINANCIAL_VERIFICATION_STATUSES.NEEDS_REVIEW,
+    complete: false,
+    findings: [{
+      code: "FRANKLIN_RECALCULATION_UNAVAILABLE",
+      field: "metadata.franklinV3Report",
+      message: "The stored report does not contain a canonical model that Franklin can recalculate.",
+      status: "NEEDS_REVIEW"
+    }],
+    warnings: [],
+    sourceOfTruth: "UNAVAILABLE"
   };
 }
 
@@ -76,14 +116,10 @@ function renderDecisionReadiness(store, root) {
 }
 
 function readinessLabel(readiness, ar) {
-  const date = readiness.asOfDate || "—";
-  if (readiness.status === "blocked") {
-    return ar ? "يحتاج مراجعة" : "Review needed";
-  }
-  if (readiness.status === "quarterly_inherited") {
-    return ar ? `تحديث ربع سنوي · ${date}` : `Quarterly update · ${date}`;
-  }
-  return ar ? `تحليل كامل · ${date}` : `Full analysis · ${date}`;
+  if (readiness.status === "verified") return ar ? "مُتحقق منه" : "Verified";
+  if (readiness.status === "insufficient_data") return ar ? "بيانات غير كافية" : "Insufficient Data";
+  if (readiness.status === "blocked") return ar ? "محظور" : "Blocked";
+  return ar ? "يحتاج مراجعة" : "Needs Review";
 }
 
 function inheritedDecisionDate(report = {}) {
@@ -107,7 +143,9 @@ function ensureStyles() {
   style.id = "franklin-decision-readiness-styles";
   style.textContent = `
     .franklin-card-readiness{grid-column:1/-1;margin-top:7px;width:max-content;max-width:100%;padding:5px 9px;border:0;border-radius:999px;background:rgba(59,130,246,.08);font-size:9px;line-height:1.35;font-weight:650;color:var(--muted,#94a3b8)}
-    .franklin-card-readiness[data-status="quarterly_inherited"]{background:rgba(245,158,11,.07);color:#d6a74c}
+    .franklin-card-readiness[data-status="verified"]{background:rgba(16,185,129,.08);color:#54c99b}
+    .franklin-card-readiness[data-status="needs_review"]{background:rgba(245,158,11,.07);color:#d6a74c}
+    .franklin-card-readiness[data-status="insufficient_data"]{background:rgba(148,163,184,.08);color:#a8b3c7}
     .franklin-card-readiness[data-status="blocked"]{background:rgba(244,63,94,.07);color:#e89aa8}
     .v31-library-stock-row.franklin-decision-blocked{box-shadow:none}
   `;

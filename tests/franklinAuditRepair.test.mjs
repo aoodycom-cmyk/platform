@@ -279,6 +279,8 @@ const emptyCalculationAudit = mutate(canonical, (report) => {
 const emptyAuditValidation = validateFranklinV3Report(emptyCalculationAudit);
 assert.equal(emptyAuditValidation.valid, true, JSON.stringify(emptyAuditValidation.errors, null, 2));
 assert.match(emptyAuditValidation.warnings.map((warning) => `${warning.field}: ${warning.message}`).join("\n"), /valuation\.calculationAudit/);
+assert.notEqual(emptyAuditValidation.financialVerification.status, "VERIFIED", "An empty calculationAudit may remain importable for compatibility but must never be displayed as complete.");
+assert.ok(emptyAuditValidation.financialVerification.findings.some((item) => item.code === "CALCULATION_AUDIT_REQUIRED"));
 
 const parsedOwner = await parseExternalAnalysisInput(JSON.stringify(canonical), {
   now: new Date("2026-08-24T15:30:00.000Z"),

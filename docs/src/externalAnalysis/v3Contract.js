@@ -539,7 +539,7 @@ function guidanceTemplate() {
 }
 
 function yearlyForecastTemplate() {
-  const metric = { value: null, basis: null };
+  const metric = { value: null, basis: null, unit: null, asOf: null, sourceId: null };
   return {
     period: null,
     revenue: { ...metric },
@@ -580,6 +580,7 @@ function valuationResultTemplate() {
     weight: null,
     confidence: null,
     inputs: {},
+    inputProvenance: {},
     assumptions: {},
     calculation: {
       formula: null,

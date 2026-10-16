@@ -52,7 +52,12 @@ export async function parseExternalAnalysisInput(text, { parseUnstructured, now 
     if (isFranklinV3Report(dispatched.value)) {
       const normalizedV3 = dispatched.value;
       return {
-        report: normalizeExternalAnalysisReport(normalizedV3, rawAnalysis, { now, importMethod: "franklin_v3_json", currentReport }),
+        report: normalizeExternalAnalysisReport(normalizedV3, rawAnalysis, {
+          now,
+          importMethod: "franklin_v3_json",
+          currentReport,
+          v3Validation: dispatched.validation
+        }),
         route: JSON_IMPORT_ROUTES.FULL_ANALYSIS,
         schemaVersion: dispatched.schemaVersion,
         payloadType: dispatched.payloadType,
@@ -119,7 +124,12 @@ export async function parseExternalAnalysisInput(text, { parseUnstructured, now 
   }
   const normalizedParsedValue = dispatched.value;
   return {
-    report: normalizeExternalAnalysisReport(normalizedParsedValue, rawAnalysis, { now, importMethod: "openai_backend_parser", currentReport }),
+    report: normalizeExternalAnalysisReport(normalizedParsedValue, rawAnalysis, {
+      now,
+      importMethod: "openai_backend_parser",
+      currentReport,
+      v3Validation: dispatched.validation
+    }),
     route: dispatched.route,
     schemaVersion: dispatched.schemaVersion,
     payloadType: dispatched.payloadType,

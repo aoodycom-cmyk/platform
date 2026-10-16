@@ -5,7 +5,7 @@ import {
 } from "./v3Contract.js";
 import { buildDownloadableJsonDeliveryInstructions } from "./downloadableJsonDelivery.js";
 
-export const FRANKLIN_INITIAL_PROMPT_VERSION = "franklin-initial-analysis-prompt/v4";
+export const FRANKLIN_INITIAL_PROMPT_VERSION = "franklin-initial-analysis-prompt/v5";
 
 export function buildInitialAnalysisPrompt(options = {}) {
   const ticker = normalizeTicker(options.tickerHint);
@@ -20,8 +20,8 @@ export function buildInitialAnalysisPrompt(options = {}) {
     ticker: ticker || null,
     authority: {
       analyst: "ChatGPT / Fair Value",
-      franklinRole: "يعرض ويحفظ ويتحقق حسابيًا فقط ولا يصدر الحكم المالي",
-      rule: "كل اختيار مالي أو استثماري، بما في ذلك طرق التقييم والافتراضات وBear/Base/Bull والاحتمالات والقيمة العادلة والقرار والفرضية والمتطلبات، يصدر من ChatGPT / Fair Value فقط."
+      franklinRole: "يحفظ الاستجابة الخام، ثم يعيد حساب طرق التقييم وTerminal Value وBase ويتحقق من القرار والمصادر قبل قبولها للعرض.",
+      rule: "ChatGPT يقترح الطرق والمدخلات والافتراضات والتفسير والقرار. Franklin هو مصدر الحقيقة الحسابي ويحدد VERIFIED أو NEEDS_REVIEW أو INSUFFICIENT_DATA أو BLOCKED؛ لا تدّع تحققًا خارجيًا لم ينفذه Franklin."
     },
     analysisScope: {
       companyUnderstanding: [
@@ -55,7 +55,7 @@ export function buildInitialAnalysisPrompt(options = {}) {
         "عند استخدام EV-based valuation، اعرض الانتقال من Enterprise Value إلى Equity Value باستخدام صافي الدين والبنود غير التشغيلية ثم اقسم على diluted shares؛ لا تخلط EV multiple مع قيمة السهم مباشرة.",
         "حافظ على اتساق العملة والوحدة والأساس المحاسبي والفترة الزمنية بين المقارنات، ولا تجمع طرقًا غير مستقلة لإعطاء دقة زائفة.",
         "لكل valuationResult اكتب formula وcalculation steps والمدخلات، ثم computedFairValue؛ وعند طرق EV املأ Enterprise Value وصافي الدين والتعديلات غير التشغيلية وEquity Value وعدد الأسهم المخفف.",
-        "احسب valuation.calculationAudit.weightedMethodFairValue من نتائج الطرق وأوزانها. إذا اختلف Base بسبب حكم تحليلي، عبّر عنه فقط عبر analystOverlayPct مع سبب صريح، واجعل reconciledBaseFairValue مساويًا لـ Base.",
+        "احسب valuation.calculationAudit.weightedMethodFairValue من نتائج الطرق وأوزانها واجعل Base مساويًا له. يجب أن يكون analystOverlayPct = 0؛ عبّر عن الحكم التحليلي بتعديل المدخلات أو الأوزان أو السيناريوهات مع تفسير صريح، لا بقيمة منفصلة غير قابلة لإعادة الحساب.",
         "استخدم الطريقة الأساسية للحكم والطريقة الثانوية كاختبار معقولية، ولا تجعل المتوسط الحسابي يعوّض افتراضات ضعيفة.",
         "أنشئ ثلاثة سيناريوهات فقط: Bear وBase وBull، وحدد احتمالات تجمع 100% وقيمة عادلة لكل سيناريو.",
         "احسب probabilityWeighted من قيم السيناريوهات واحتمالاتها."
@@ -104,15 +104,20 @@ export function buildInitialAnalysisPrompt(options = {}) {
         "marketPrice.currency وvaluation.current.currency يجب أن يساويا company.tradingCurrency",
         "sources[].date يجب أن يكون تاريخًا حقيقيًا بصيغة YYYY-MM-DD ولا يجوز أن يكون null"
       ],
+      responsibilitySplit: {
+        ai: "اقترح الطرق والمدخلات والافتراضات والتفسيرات والمصادر فقط. لا تعتبر حسابك مصدر الحقيقة ولا تدّع التحقق الخارجي من المصدر.",
+        franklin: "يعيد Franklin حساب كل طريقة وTerminal Value والمتوسط المرجح والقرار، ويحدد VERIFIED أو NEEDS_REVIEW أو INSUFFICIENT_DATA أو BLOCKED قبل العرض.",
+        rawResponse: "تُحفظ الاستجابة الخام للتدقيق، لكنها ليست مصدر الحقيقة الحسابي."
+      },
       valuationInputContracts: {
-        rule: "لا تضع وزنًا موجبًا لطريقة تقييم إلا إذا كانت من الطرق أدناه وكانت كل مدخلاتها أرقام JSON محدودة. استخدم أسماء المفاتيح حرفيًا ولا تضف الفترة أو العملة أو الوحدة إلى اسم المفتاح.",
+        rule: "لا تضع وزنًا موجبًا لطريقة تقييم إلا إذا كانت من الطرق أدناه وكانت كل مدخلاتها أرقام JSON محدودة. استخدم أسماء المفاتيح حرفيًا؛ لا تضف الفترة أو العملة أو الوحدة إلى اسم المفتاح، بل ضعها في حقول provenance المخصصة. أضف inputProvenance لكل مدخل مادي: sourceId أو type=ANALYST_ASSUMPTION، ومعه asOf وunit وperiod. يجب أن تحتوي كل نتيجة على rationale وassumptions غير فارغة.",
         supportedWeightedMethods: ["DCF", "P/E", "EV/EBITDA", "EV/EBIT", "P/FCF", "SOTP"],
         "P/E": { inputs: ["normalizedForwardEps", "impliedMultiple"], formula: "fairValue = normalizedForwardEps * impliedMultiple" },
         "EV/EBITDA": { inputs: ["normalizedEbitda", "evEbitdaMultiple", "netDebt", "dilutedShares", "nonOperatingAdjustments"], formula: "fairValue = ((normalizedEbitda * evEbitdaMultiple) - netDebt + nonOperatingAdjustments) / dilutedShares; use 0 for nonOperatingAdjustments when none" },
         "P/FCF": { inputs: ["normalizedFreeCashFlow", "dilutedShares", "impliedMultiple"], formula: "fairValue = (normalizedFreeCashFlow / dilutedShares) * impliedMultiple" },
         "EV/EBIT": { inputs: ["normalizedEbit", "evEbitMultiple", "netDebt", "dilutedShares"], formula: "fairValue = ((normalizedEbit * evEbitMultiple) - netDebt) / dilutedShares" },
         SOTP: { inputs: ["componentEquityValues", "corporateAdjustments", "dilutedShares"], formula: "fairValue = (sum(componentEquityValues) + corporateAdjustments) / dilutedShares" },
-        DCF: { inputs: ["forecastFreeCashFlows", "discountPeriods", "discountRatePct", "terminalValue", "terminalDiscountPeriod", "cash", "debt", "dilutedShares"], formula: "fairValue = (sum(discounted forecastFreeCashFlows) + discounted terminalValue + cash - debt) / dilutedShares" }
+        DCF: { inputs: ["valuationDate", "cashFlowType", "discountRateType", "forecastFreeCashFlows", "discountPeriods", "discountRatePct", "terminalValueMethod", "terminalCashFlow أو terminalMetric", "terminalGrowthPct أو terminalExitMultiple", "terminalValue", "terminalDiscountPeriod", "cash", "debt", "dilutedShares"], rules: ["FCFF يستخدم WACC ويحوّل Enterprise Value إلى Equity بإضافة cash وطرح debt.", "FCFE يستخدم COST_OF_EQUITY ولا يكرر جسر cash/debt.", "أعد اشتقاق terminalValue من PERPETUITY_GROWTH أو EXIT_MULTIPLE، واستخدم NONE فقط عندما تساوي القيمة النهائية صفرًا."], formula: "Franklin derives terminalValue, discounts every cash flow using its explicit period, applies the correct FCFF/FCFE bridge, then divides by dilutedShares." }
       },
       initialRules: {
         previousAnalysisId: null,
@@ -139,13 +144,19 @@ export function buildInitialAnalysisPrompt(options = {}) {
         "Bear/Base/Bull probabilities total 100%",
         "valuation methodology modelWeights total 100%",
         "weightedMethodFairValue = sum(valuationResults fairValue * weight / 100)",
-        "reconciledBaseFairValue = weightedMethodFairValue * (1 + analystOverlayPct / 100) = valuation.current.base",
+        "analystOverlayPct = 0 وreconciledBaseFairValue = weightedMethodFairValue = valuation.current.base",
         "valuation.current values equal scenario fair values",
         "probabilityWeighted equals scenario probability-weighted value",
         "upsideToBasePct = (Base / marketPrice.value - 1) * 100",
         "marginOfSafetyPct = ((Base - marketPrice.value) / Base) * 100",
         "nextRequirements.currentJustifiedValue = valuation.current.base",
         "nextRequirements weights total 100%"
+      ],
+      completenessGate: [
+        "selectionReason وweightReasoning وvaluationResults[].rationale وvaluationResults[].assumptions وexcludedMethods[].reason إلزامية للتحليل الكامل.",
+        "calculationAudit إلزامي ولا يجوز حذفه أو تركه فارغًا.",
+        "اربط revenue وEPS وEBITDA وFCF والتطبيع المالي بsourceId وasOf وunit وperiod عندما تكون أرقامًا مادية؛ ويجوز حذف sourceId فقط عند basis=analyst_assumption.",
+        "إذا لم تكف البيانات لإعادة الحساب، لا تخمّن: اجعل القرار قابلًا للتصنيف INSUFFICIENT_DATA."
       ],
       marketRules: [
         "marketPrice.value must be a traceable positive market price",
@@ -170,7 +181,7 @@ export function buildInitialAnalysisPrompt(options = {}) {
       "صافي الدين وعدد الأسهم المخفف وأثر SBC/التخفيف داخل التقييم عندما تكون مادية",
       "financialNormalization مكتمل بقدر البيانات المتاحة ومتصالح حسابيًا",
       "كل طريقة تقييم قابلة للتتبع من formula وsteps إلى computedFairValue",
-      "متوسط الطرق والحكم التحليلي يتصالحان حسابيًا مع Base",
+      "متوسط الطرق المعاد حسابه يساوي Base والحكم التحليلي مشفر في المدخلات والأوزان لا في overlay منفصل",
       "الفرضية والمخاطر والمحفزات والمتطلبات القادمة موجودة",
       "صيغة previousQuarter وtargetQuarter هي Q{1-4} YYYY، والأول يطابق ربع التقرير والثاني هو الربع التالي مباشرة",
       "المصادر قابلة للتتبع ولا توجد أرقام مختلقة",

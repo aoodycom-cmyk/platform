@@ -134,6 +134,9 @@ function normalizeValuationResultInputs(result) {
     assignNumericAlias(inputs, "evEbitdaMultiple", [/targetMultiple/i]);
     assignNumericAlias(inputs, "netDebt", [/netDebt/i]);
     assignNumericAlias(inputs, "dilutedShares", [/dilutedShares/i, /^shares(?:_|$)/i]);
+    if (!Object.hasOwn(inputs, "nonOperatingAdjustments") && typeof result.calculation?.nonOperatingAdjustments === "number" && Number.isFinite(result.calculation.nonOperatingAdjustments)) {
+      inputs.nonOperatingAdjustments = result.calculation.nonOperatingAdjustments;
+    }
   } else if (method.includes("P/FCF") || method.includes("PRICE/FCF")) {
     assignNumericAlias(inputs, "normalizedFreeCashFlow", [/(?:^|_)FCF(?:_|$)/i], ["fcfPerShare"]);
     assignNumericAlias(inputs, "dilutedShares", [/dilutedShares/i, /^shares(?:_|$)/i]);

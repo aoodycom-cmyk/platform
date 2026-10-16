@@ -42,12 +42,12 @@ export function validateArabicNarrativeQuality(input = {}) {
   for (const { text } of narratives) {
     for (const phrase of technicalPhrases(text)) {
       const normalized = normalizeEnglish(phrase);
-      if (!normalized || isIgnoredPhrase(normalized) || isDynamicIgnoredPhrase(normalized, dynamicIgnored)) continue;
+      if (!normalized || isIgnoredPhrase(normalized) || isLikelyProperName(phrase) || isDynamicIgnoredPhrase(normalized, dynamicIgnored)) continue;
       if (!glossaryTerms.some((term) => term.includes(normalized) || normalized.includes(term))) unexplained.add(phrase);
     }
   }
   if (unexplained.size) {
-    errors.push(issue("companyGlossary", `مصطلحات إنجليزية غير مشروحة للمستثمر: ${[...unexplained].slice(0, 8).join("، ")}.`));
+    errors.push(issue("companyGlossary", `مصطلحات إنجليزية فنية غير مشروحة للمستثمر: ${[...unexplained].slice(0, 8).join("، ")}. أضف المصطلح الفني إلى companyGlossary؛ أما اسم الشركة أو المنتج فيمكن إبقاؤه بالإنجليزية.`));
   }
 
   return { errors, warnings };
@@ -88,6 +88,11 @@ function isIgnoredPhrase(value) {
   if (IGNORED_PHRASES.has(value)) return true;
   const words = value.split(" ");
   return words.every((word) => word.length <= 5 && word === word.toUpperCase());
+}
+
+function isLikelyProperName(value) {
+  const words = String(value || "").trim().split(/\s+/).filter(Boolean);
+  return words.length >= 2 && words.every((word) => /^[A-Z][A-Za-z0-9&.'’-]*$/.test(word) || /^[A-Z0-9]{2,}$/.test(word));
 }
 
 function dynamicIgnoredTerms(input = {}) {

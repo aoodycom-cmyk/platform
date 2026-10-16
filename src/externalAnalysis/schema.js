@@ -234,7 +234,10 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
     : (originalInput.metadata?.franklinV3Report?.schemaVersion === "franklin-fair-value/v3" ? originalInput.metadata.franklinV3Report : null);
   const nativeV3 = normalizeFiscalQuarterFields(rawNativeV3);
   if (isFranklinV3Report(originalInput)) {
-    input = franklinV3ToExternalReport(nativeV3, rawAnalysis, { currentReport: options.currentReport || null });
+    input = franklinV3ToExternalReport(nativeV3, rawAnalysis, {
+      currentReport: options.currentReport || null,
+      v3Validation: options.v3Validation || null
+    });
   }
   if (isFairValueAnalysisReport(originalInput)) {
     input = fairValueAnalysisToExternalReport(originalInput);
@@ -363,6 +366,8 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
       primaryValuationMethod: input.metadata?.primaryValuationMethod ?? null,
       valuationSelectionReason: input.metadata?.valuationSelectionReason ?? null,
       fairValueLimitations: Array.isArray(input.metadata?.fairValueLimitations) ? input.metadata.fairValueLimitations : [],
+      financialVerification: normalizeOptionalObject(input.metadata?.financialVerification ?? options.v3Validation?.financialVerification),
+      sourceVerification: normalizeOptionalObject(input.metadata?.sourceVerification ?? options.v3Validation?.financialVerification?.sourceVerification),
       analysisType: input.metadata?.analysisType ?? null,
       correctedAnalysisId: input.metadata?.correctedAnalysisId ?? null,
       correctionConflicts: preserveArray(input.metadata?.correctionConflicts),

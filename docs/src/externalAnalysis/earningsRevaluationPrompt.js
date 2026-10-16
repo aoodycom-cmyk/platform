@@ -8,7 +8,7 @@ import {
   previousCanonicalState
 } from "./v3Contract.js";
 
-export const FRANKLIN_EARNINGS_PROMPT_VERSION = "franklin-earnings-revaluation-prompt/v2";
+export const FRANKLIN_EARNINGS_PROMPT_VERSION = "franklin-earnings-revaluation-prompt/v3";
 
 export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
   const ticker = normalizeTicker(report.company?.ticker);
@@ -55,8 +55,8 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
     instruction: "حلل إعلان الأرباح الجديد للربع المحدد، قيّم المتطلبات السابقة المجمدة، ثم أعد underwriting كاملًا للفرضية والتقييم والقرار والمتطلبات القادمة.",
     authority: {
       analyst: "ChatGPT / Fair Value",
-      franklinRole: "ينقل الحالة السابقة، يتحقق حسابيًا ويحفظ التاريخ فقط؛ لا يصدر أو يغير الحكم المالي",
-      rule: "كل تفسير للنتائج، status للمتطلبات، partialCreditPct، thesis impact، Bear/Base/Bull، الاحتمالات، Fair Value، القرار وnextRequirements يأتي من ChatGPT / Fair Value."
+      franklinRole: "يحفظ الاستجابة الخام، ثم يعيد حساب طرق التقييم وTerminal Value وBase ويتحقق من القرار والمصادر قبل قبولها للعرض.",
+      rule: "ChatGPT يقترح الطرق والمدخلات والافتراضات والتفسير والقرار. Franklin هو مصدر الحقيقة الحسابي ويحدد VERIFIED أو NEEDS_REVIEW أو INSUFFICIENT_DATA أو BLOCKED؛ لا تدّع تحققًا خارجيًا لم ينفذه Franklin."
     },
     periodLock: {
       selectedPeriod,
@@ -119,7 +119,7 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
         "حافظ على اتساق طرق التقييم مع التقرير السابق، ولا تغيّر المنهجية إلا لسبب اقتصادي؛ إذا تغيرت فاشرح لماذا أصبحت الطريقة القديمة أقل ملاءمة.",
         "املأ valuation.valuationBridge.whyBaseChangedOrNot بسبب محدد ومادي.",
         "املأ valuation.valuationBridge.baseChangeBridge رقميًا: ابدأ من previousBase، ثم آثار التشغيل، الهوامش والتدفقات، الميزانية، التخفيف، معلمات التقييم، وأي أثر آخر؛ يجب أن يتصالح الناتج مع currentBase.",
-        "لكل طريقة تقييم املأ formula وsteps وcomputedFairValue، ثم صالِح متوسط الطرق والحكم التحليلي مع Base داخل valuation.calculationAudit.",
+        "لكل طريقة تقييم املأ formula وsteps وcomputedFairValue، ثم اجعل متوسط الطرق المعاد حسابه مساويًا لـBase داخل valuation.calculationAudit مع analystOverlayPct = 0؛ ضع الحكم التحليلي في المدخلات والأوزان والتفسير.",
         "حدّث thesis.status إلى STRENGTHENED أو UNCHANGED أو WEAKENED أو BROKEN.",
         "أصدر decision جديدًا على مستوى السهم: BUY أو ADD أو HOLD أو WATCH أو REDUCE أو SELL."
       ],
@@ -161,6 +161,9 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
         "valuation.current.probabilityWeighted يطابق المتوسط الاحتمالي للسيناريوهات.",
         "valuation.methodology.modelWeights تجمع 100%.",
         "valuation.calculationAudit يعيد حساب متوسط الطرق ويتصالح مع Base.",
+        "selectionReason وweightReasoning وvaluationResults[].rationale وvaluationResults[].assumptions وexcludedMethods[].reason إلزامية.",
+        "لكل مدخل تقييم مادي أضف inputProvenance وفيه sourceId أو type=ANALYST_ASSUMPTION، مع asOf وunit وperiod. ولكل رقم في yearlyForecast أضف basis وasOf وunit وsourceId، ويجوز حذف sourceId فقط عند basis=analyst_assumption.",
+        "DCF يصرح valuationDate وcashFlowType وdiscountRateType وterminalValueMethod ويعيد اشتقاق terminalValue؛ FCFF يستخدم WACC وFCFE يستخدم COST_OF_EQUITY.",
         "baseChangeBridge يجمع عدديًا من previous Base إلى current Base.",
         "marketPrice.currency وvaluation.current.currency يساويان company.tradingCurrency.",
         "marketPrice.value موجب وasOf تاريخ حقيقي وpriceType يساوي LIVE أو DELAYED أو LAST_CLOSE وsourceId يطابق مصدر Market Data داخل sources.",
@@ -194,6 +197,8 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
     "financialNormalization محدث ومربوط بمصادر الربع",
     "Guidance وEstimate Revisions منظمة رقميًا وقابلة للتتبع",
     "جسر تغير Base ومتوسط طرق التقييم متصالحان حسابيًا",
+    "كل طريقة لها rationale وافتراضات ومصدر/نوع افتراض لكل مدخل مادي",
+    "DCF يحدد FCFF/FCFE ومعدل الخصم وطريقة Terminal Value وتاريخ القياس صراحة",
     "marketPrice مكتمل وموثق ومربوط بمصدر Market Data",
     "nextRequirements جديدة وقابلة للقياس وأوزانها 100%",
     "كل فترة ربع سنوية بصيغة Q{1-4} YYYY، وpreviousQuarter يطابق ربع التقرير وtargetQuarter هو الربع التالي مباشرة",

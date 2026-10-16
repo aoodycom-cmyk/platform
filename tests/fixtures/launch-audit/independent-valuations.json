@@ -1,0 +1,92 @@
+[
+  {
+    "id": "MATURE-EV-EBITDA",
+    "companyProfile": "Mature profitable company",
+    "marketPrice": 95,
+    "expectedState": "CALCULATED",
+    "expectedFairValue": 119,
+    "valuationResult": {
+      "method": "EV/EBITDA",
+      "inputs": {
+        "normalizedEbitda": 1500,
+        "evEbitdaMultiple": 8,
+        "netDebt": 200,
+        "nonOperatingAdjustments": 100,
+        "dilutedShares": 100
+      }
+    },
+    "reviewNote": "Enterprise value is bridged to equity value and divided by diluted shares; the market price is not an input to fair value."
+  },
+  {
+    "id": "CYCLICAL-NORMALIZED-PE",
+    "companyProfile": "Cyclical company using mid-cycle earnings",
+    "marketPrice": 78,
+    "expectedState": "CALCULATED",
+    "expectedFairValue": 66,
+    "valuationResult": {
+      "method": "Forward P/E",
+      "inputs": {
+        "normalizedForwardEps": 5.5,
+        "impliedMultiple": 12
+      }
+    },
+    "reviewNote": "The EPS input is explicitly normalized rather than copied from a peak or trough year."
+  },
+  {
+    "id": "CAPITAL-INTENSIVE-DCF",
+    "companyProfile": "Capital-intensive company with explicit FCFF timing",
+    "marketPrice": 31,
+    "expectedState": "CALCULATED",
+    "expectedFairValue": 39.16979714500375,
+    "valuationResult": {
+      "method": "DCF",
+      "inputs": {
+        "valuationDate": "2026-10-16",
+        "cashFlowType": "FCFF",
+        "discountRateType": "WACC",
+        "forecastFreeCashFlows": [80, 90, 100],
+        "discountPeriods": [1, 2, 3],
+        "discountRatePct": 10,
+        "terminalValueMethod": "EXIT_MULTIPLE",
+        "terminalMetric": 110,
+        "terminalExitMultiple": 8,
+        "terminalValue": 880,
+        "terminalDiscountPeriod": 3,
+        "cash": 50,
+        "debt": 150,
+        "dilutedShares": 20
+      }
+    },
+    "reviewNote": "Explicit FCFF is discounted with WACC; the terminal value is independently derived and the net-debt bridge is applied once."
+  },
+  {
+    "id": "LOSS-MAKING-INVALID-PE",
+    "companyProfile": "Loss-making company for which P/E is economically invalid",
+    "marketPrice": 22,
+    "expectedState": "BLOCKED",
+    "expectedCode": "INVALID_PE_ECONOMICS",
+    "valuationResult": {
+      "method": "Forward P/E",
+      "inputs": {
+        "normalizedForwardEps": -2,
+        "impliedMultiple": -11
+      }
+    },
+    "reviewNote": "Two negative P/E inputs must not be allowed to manufacture a positive equity value."
+  },
+  {
+    "id": "INSUFFICIENT-DATA-ABSTENTION",
+    "companyProfile": "Company with an incomplete DCF schedule",
+    "marketPrice": 44,
+    "expectedState": "INSUFFICIENT_DATA",
+    "valuationResult": {
+      "method": "DCF",
+      "inputs": {
+        "forecastFreeCashFlows": [10, 20],
+        "discountPeriods": [1],
+        "discountRatePct": 9
+      }
+    },
+    "reviewNote": "Franklin must abstain when timing, terminal derivation, capital bridge, or share count is missing."
+  }
+]

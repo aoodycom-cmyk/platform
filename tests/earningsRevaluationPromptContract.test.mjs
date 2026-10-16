@@ -31,7 +31,7 @@ const previousReport = {
 };
 
 const prompt = buildNewEarningsAnalysisPrompt(previousReport, { quarter: 2, year: 2026 });
-assert.equal(FRANKLIN_EARNINGS_PROMPT_VERSION, "franklin-earnings-revaluation-prompt/v2");
+assert.equal(FRANKLIN_EARNINGS_PROMPT_VERSION, "franklin-earnings-revaluation-prompt/v3");
 assert.ok(prompt.includes("FRANKLIN_EARNINGS_REVALUATION"));
 assert.ok(prompt.includes("franklin-fair-value/v3"));
 assert.ok(prompt.includes("fair-value-methodology/v2"));
@@ -81,8 +81,10 @@ assert.equal(/OPENAI_API|fetch\(/i.test(prompt), false);
 const marker = "نفّذ الطلب التالي كاملًا ثم أخرج عقد V3 فقط:";
 const requestText = prompt.slice(prompt.indexOf(marker) + marker.length).trim();
 const request = JSON.parse(requestText);
-assert.equal(request.promptVersion, "franklin-earnings-revaluation-prompt/v2");
+assert.equal(request.promptVersion, "franklin-earnings-revaluation-prompt/v3");
 assert.equal(request.requestType, "FRANKLIN_EARNINGS_REVALUATION");
+assert.match(request.authority.franklinRole, /يعيد حساب/);
+assert.match(request.authority.rule, /مصدر الحقيقة الحسابي/);
 assert.equal(request.periodLock.selectedPeriod, "Q2 2026");
 assert.equal(request.periodLock.fiscalQuarter, "Q2");
 assert.equal(request.periodLock.fiscalYear, 2026);

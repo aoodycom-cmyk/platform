@@ -14,6 +14,7 @@ export function franklinV3ToExternalReport(input = {}, rawAnalysis = "", options
   const tradingCurrency = company.tradingCurrency || input.marketPrice?.currency || current.currency || "USD";
   const thesisSummary = input.thesis?.updatedSummary || input.thesis?.changeReason || input.thesis?.previousSummary || null;
   const previousAssessment = assessmentFromV3(previousEvaluation?.assessment, previousEvaluation?.requirements);
+  const financialVerification = options.v3Validation?.financialVerification || null;
 
   return {
     source: "ChatGPT",
@@ -28,6 +29,12 @@ export function franklinV3ToExternalReport(input = {}, rawAnalysis = "", options
     },
     companyProfile: normalizeCompanyProfile(input.companyProfile),
     companyGlossary: normalizeCompanyGlossary(input.companyGlossary),
+    dataQuality: financialVerification ? {
+      ...(input.dataQuality || {}),
+      modelReportedScore: input.dataQuality?.score ?? null,
+      score: financialVerification.derivedDataQualityScore,
+      verificationBasis: "Declared material-input provenance coverage; source content was not externally verified."
+    } : (input.dataQuality || null),
     market: {
       priceAtAnalysis: input.marketPrice?.value ?? null
     },
@@ -70,7 +77,11 @@ export function franklinV3ToExternalReport(input = {}, rawAnalysis = "", options
       shortSummary: thesisSummary,
       fullSummary: input.thesis?.updatedSummary || null
     },
-    decision: input.decision || {},
+    decision: financialVerification ? {
+      ...(input.decision || {}),
+      modelReportedConfidence: input.decision?.confidence ?? null,
+      confidence: financialVerification.derivedConfidenceScore
+    } : (input.decision || {}),
     guidance: Array.isArray(latestQuarter.guidance) ? latestQuarter.guidance : [],
     monitoringChecklist: Array.isArray(input.monitoringChecklist) ? input.monitoringChecklist : [],
     estimateRevisions: estimateRevisionsFromForecast(input.forecast),
@@ -91,6 +102,8 @@ export function franklinV3ToExternalReport(input = {}, rawAnalysis = "", options
       nativeMethodologyVersion: input.methodologyVersion,
       analysisType: input.analysisType || null,
       franklinV3Report: input,
+      financialVerification,
+      sourceVerification: financialVerification?.sourceVerification || null,
       franklinV3: {
         schemaVersion: input.schemaVersion,
         methodologyVersion: input.methodologyVersion,
