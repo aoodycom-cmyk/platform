@@ -227,6 +227,30 @@ try {
   assert.equal(finalState.requirementSetCount, beforeHistory.requirementSetCount);
   assert.equal(finalState.sourceCount, beforeHistory.sourceCount);
 
+  const quietLog = console.log;
+  let verifiedNative;
+  try {
+    console.log = () => {};
+    verifiedNative = (await import("./launchAuditFinancialVerification.test.mjs")).verifiedFixture();
+  } finally {
+    console.log = quietLog;
+  }
+  const boundary = await page.evaluate(async (native) => {
+    const { parseExternalAnalysisInput } = await import(new URL("src/externalAnalysis/parser.js", document.baseURI).href);
+    const { classifyDecisionReadiness } = await import(new URL("src/financialSafety/decisionReadinessUi.js", document.baseURI).href);
+    const clean = (await parseExternalAnalysisInput(JSON.stringify(native), { strictJson: true })).report;
+    const accepted = classifyDecisionReadiness(clean).status;
+    clean.decision.action = "BUY";
+    const changed = classifyDecisionReadiness(clean).status;
+    let rejected = false;
+    try { await parseExternalAnalysisInput(JSON.stringify(clean), { strictJson: true }); }
+    catch (error) { rejected = error.code === "CONTRACT_VALIDATION_FAILED"; }
+    native.valuation.valuationResults[0].inputProvenance.normalizedForwardEps.unit = "USD million/share";
+    const scaled = (await parseExternalAnalysisInput(JSON.stringify(native), { strictJson: true })).report;
+    return { accepted, changed, rejected, scaled: classifyDecisionReadiness(scaled).status };
+  }, verifiedNative);
+  assert.deepEqual(boundary, { accepted: "verified", changed: "blocked", rejected: true, scaled: "blocked" });
+
   assert.equal(await page.getAttribute("html", "dir"), "rtl");
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(resourceErrors, []);
