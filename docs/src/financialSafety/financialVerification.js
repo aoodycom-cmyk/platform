@@ -613,6 +613,13 @@ function parseUnit(value) {
     : /MILLION|مليون|MN\b|^[A-Z]{3}M$/.test(unit) ? 1e6
       : /THOUSAND|ألف|^[A-Z]{3}K$/.test(unit) ? 1e3 : 1;
   const shares = /SHARES?|سهم|أسهم/.test(unit);
+  // Do not silently interpret unknown multipliers ("USD trillion/share",
+  // "USD 1000/share") as scale 1 merely because a currency is present.
+  const remainder = (currency ? unit.replace(currency, "") : unit)
+    .replace(/BILLION|MILLION|THOUSAND|مليار|مليون|ألف|\bBN\b|\bMN\b/g, "")
+    .replace(/DILUTED|SHARES?|PER|لكل|أسهم|سهم/g, "")
+    .replace(/[\s/()]/g, "");
+  if (remainder && !(currency && /^[MBK]$/.test(remainder) && new RegExp(`^${currency}[MBK]$`).test(unit))) return null;
   if (currency) return { kind: shares ? "perShare" : "money", currency, scale };
   if (shares) return { kind: "shares", scale };
   return null;

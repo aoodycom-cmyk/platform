@@ -47,6 +47,11 @@ for (const unit of ["USD million/share", "USD billion per share", "USD thousand/
   assert.equal(verification.status, "BLOCKED");
   assert.ok(verification.findings.some((f) => f.code === "VALUATION_INPUT_UNIT_MISMATCH"));
 }
+for (const unit of ["USD trillion/share", "USD 1000/share", "USD mystery/share"]) {
+  const bad = structuredClone(native);
+  bad.valuation.valuationResults[0].inputProvenance.normalizedForwardEps.unit = unit;
+  assert.notEqual(validateFranklinV3Report(bad).financialVerification.status, "VERIFIED", unit);
+}
 const presentation = structuredClone(saved);
 presentation.presentation = { ...presentation.presentation, morningstarFairValue: 120, companyLogoDataUrl: "data:image/png;base64,TEST" };
 assert.equal(classifyDecisionReadiness(presentation).status, "verified", "Presentation edits must not change the model or invalidate it.");
