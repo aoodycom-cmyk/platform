@@ -1,6 +1,7 @@
 import { auditFinancialReport } from "./financialSafety.js";
 import { FINANCIAL_VERIFICATION_STATUSES } from "./financialVerification.js";
 import { validateFranklinV3Report } from "../externalAnalysis/v3Validator.js";
+import { auditVerifiedProjection } from "./verifiedProjection.js";
 import { installCommercialUx } from "./commercialUx.js";
 import { installWorkflowCommercialUx } from "./workflowCommercialUx.js";
 
@@ -78,7 +79,16 @@ export function financialVerificationForReport(report = {}) {
   const native = report.metadata?.franklinV3Report;
   // Stored verification is untrusted input, not a certificate. Re-run both the
   // structural and financial gates after reload/export/import, using current code.
-  if (native?.schemaVersion === "franklin-fair-value/v3") return validateFranklinV3Report(native).financialVerification;
+  if (native?.schemaVersion === "franklin-fair-value/v3") {
+    const verification = validateFranklinV3Report(native).financialVerification;
+    const mismatches = auditVerifiedProjection(report);
+    if (!mismatches.length) return verification;
+    const blocked = mismatches.some((item) => item.status === "BLOCKED") || verification.status === "BLOCKED";
+    const status = blocked ? "BLOCKED" : verification.status === "VERIFIED" ? "NEEDS_REVIEW" : verification.status;
+    return { ...verification, status, complete: false,
+      derivedConfidenceScore: blocked ? 0 : status === "NEEDS_REVIEW" ? 60 : verification.derivedConfidenceScore,
+      findings: [...verification.findings, ...mismatches] };
+  }
   return {
     status: FINANCIAL_VERIFICATION_STATUSES.NEEDS_REVIEW,
     complete: false,

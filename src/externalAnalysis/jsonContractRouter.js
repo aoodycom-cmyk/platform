@@ -17,6 +17,7 @@ import {
 import { FRANKLIN_FAIR_VALUE_SCHEMA_VERSION } from "./v3Contract.js";
 import { normalizeFranklinV3Input } from "./v3InputNormalizer.js";
 import { validateFranklinV3Report } from "./v3Validator.js";
+import { auditVerifiedProjection } from "../financialSafety/verifiedProjection.js";
 
 export const JSON_IMPORT_ROUTES = Object.freeze({
   FULL_ANALYSIS: "full-analysis",
@@ -125,6 +126,12 @@ export function dispatchJsonPayload(value, options = {}) {
   } else if (contractDefinition.route === JSON_IMPORT_ROUTES.FULL_ANALYSIS) {
     normalizedValue = normalizeExternalAnalysisReport(value, options.rawText || "", { now: options.now, currentReport: context.currentReport || options.existingReport || null });
     validation = validateExternalAnalysisReport(normalizedValue);
+    const projectionErrors = auditVerifiedProjection(normalizedValue);
+    if (projectionErrors.length) validation = combineValidations(validation, {
+      valid: !projectionErrors.some((item) => item.status === "BLOCKED"),
+      errors: projectionErrors.filter((item) => item.status === "BLOCKED"),
+      warnings: projectionErrors.filter((item) => item.status !== "BLOCKED")
+    });
     const embeddedV3 = normalizedValue.metadata?.franklinV3Report;
     if (embeddedV3?.schemaVersion === FRANKLIN_FAIR_VALUE_SCHEMA_VERSION
       && (embeddedV3.analysisType === "INITIAL" || context.currentReport)) {

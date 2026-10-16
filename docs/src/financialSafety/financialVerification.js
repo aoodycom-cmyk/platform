@@ -634,7 +634,8 @@ function validateInputUnits(input, results, add) {
         : /eps|pershare/i.test(key) ? "perShare"
           : /pct$/i.test(key) ? "percent"
             : /multiple|discountPeriods|terminalDiscountPeriod/i.test(key) ? "ratio" : "money";
-      if (unit.kind !== expected || (unit.currency && unit.currency !== input.valuation?.current?.currency)) {
+      if (unit.kind !== expected || (unit.currency && unit.currency !== input.valuation?.current?.currency)
+        || (expected === "perShare" && unit.scale !== 1)) {
         add("BLOCKED", "VALUATION_INPUT_UNIT_MISMATCH", `valuation.valuationResults.${index}.inputProvenance.${key}.unit`, `${key} has incompatible units or currency for the valuation.`, "Convert inputs explicitly to the valuation currency and correct dimensional units.");
       }
       if (expected === "money" && unit.kind === "money") money.push(unit.scale);
