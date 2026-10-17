@@ -1,6 +1,7 @@
 import { auditFinancialReport } from "./financialSafety.js";
 import { FINANCIAL_VERIFICATION_STATUSES } from "./financialVerification.js";
 import { validateFranklinV3Report } from "../externalAnalysis/v3Validator.js";
+import { storedRevaluationContext } from "../externalAnalysis/revaluationContext.js";
 import { auditVerifiedProjection } from "./verifiedProjection.js";
 import { installCommercialUx } from "./commercialUx.js";
 import { installWorkflowCommercialUx } from "./workflowCommercialUx.js";
@@ -80,7 +81,7 @@ export function financialVerificationForReport(report = {}) {
   // Stored verification is untrusted input, not a certificate. Re-run both the
   // structural and financial gates after reload/export/import, using current code.
   if (native?.schemaVersion === "franklin-fair-value/v3") {
-    const verification = validateFranklinV3Report(native).financialVerification;
+    const verification = validateFranklinV3Report(native, storedRevaluationContext(report)).financialVerification;
     const mismatches = auditVerifiedProjection(report);
     if (!mismatches.length) return verification;
     const blocked = mismatches.some((item) => item.status === "BLOCKED") || verification.status === "BLOCKED";
@@ -128,7 +129,7 @@ function renderDecisionReadiness(store, root) {
 }
 
 function readinessLabel(readiness, ar) {
-  if (readiness.status === "verified") return ar ? "مُتحقق منه" : "Verified";
+  if (readiness.status === "verified") return ar ? "مُتحقق حسابيًا" : "Calculations verified";
   if (readiness.status === "insufficient_data") return ar ? "بيانات غير كافية" : "Insufficient Data";
   if (readiness.status === "blocked") return ar ? "محظور" : "Blocked";
   return ar ? "يحتاج مراجعة" : "Needs Review";

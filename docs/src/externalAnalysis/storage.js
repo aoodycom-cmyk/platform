@@ -1,4 +1,5 @@
 import { EXTERNAL_ANALYSIS_ORIGIN, hashText, normalizeExternalAnalysisReport } from "./schema.js";
+import { snapshotRevaluationContext } from "./revaluationContext.js";
 import {
   normalizeFiscalQuarterPeriod,
   parseFiscalQuarterPeriod
@@ -14,6 +15,14 @@ export function normalizeExternalAnalysesCollection(collection = {}) {
       .filter((report) => report?.analysisOrigin === EXTERNAL_ANALYSIS_ORIGIN)
       .map((report) => normalizeExternalAnalysisReport(report, report.rawAnalysisOriginal || report.rawAnalysis || ""))
       .sort(compareReportsDesc);
+    // Older saved updates predate context snapshots. Recover from the actual
+    // saved predecessor, never from the new report's evaluated target values.
+    for (const report of normalized[cleanTicker]) {
+      const identity = report.metadata?.franklinV3Report?.reportIdentity;
+      if (!identity?.previousAnalysisId) continue;
+      const previous = normalized[cleanTicker].find((item) => item.id === identity.previousAnalysisId);
+      if (previous) report.metadata.revaluationContext = snapshotRevaluationContext(previous);
+    }
   }
   return normalized;
 }

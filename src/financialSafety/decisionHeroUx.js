@@ -1,3 +1,5 @@
+import { classifyDecisionReadiness } from "./decisionReadinessUi.js";
+
 export function installDecisionHeroUx(store, root = document.getElementById("app")) {
   if (!store || !root || store.__decisionHeroUxInstalled) return;
   store.__decisionHeroUxInstalled = true;
@@ -28,7 +30,7 @@ export function decisionHeroModel(report = {}) {
 
   return {
     probabilityWeighted: finiteOrNull(summary.probabilityWeightedFairValue ?? current.probabilityWeighted),
-    confidence: finiteOrNull(report.decision?.confidence ?? current.confidence),
+    confidence: classifyDecisionReadiness(report).status === "blocked" ? null : finiteOrNull(report.decision?.confidence ?? current.confidence),
     thesis: thesis || null,
     currency,
     scenarios: [
@@ -66,8 +68,8 @@ function renderDecisionHero(store, root) {
         <strong dir="ltr">${formatMoney(model.probabilityWeighted, model.currency)}</strong>
       </article>
       <article>
-        <span>${ar ? "الثقة" : "Confidence"}</span>
-        <small dir="ltr">Confidence</small>
+        <span>${ar ? "ثقة المحلل التقديرية" : "Analyst confidence estimate"}</span>
+        <small dir="ltr">Analyst estimate</small>
         <strong dir="ltr">${formatConfidence(model.confidence)}</strong>
       </article>
     </div>

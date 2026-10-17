@@ -53,7 +53,7 @@ export function buildEarningsRevaluationPrompt(report = {}, options = {}) {
     guidanceDirection: "guidance[].direction: raised أو maintained أو lowered أو new أو not_reported أو null فقط.",
     forecastFields: "forecast.materiality: MATERIAL أو NON_MATERIAL أو null؛ yearlyForecast.*.basis: reported أو consensus أو analyst_assumption أو null؛ changedAssumptions[].direction: UP أو DOWN أو UNCHANGED أو null.",
     financialNormalization: "املأ الأرقام المتاحة مع value/unit/accountingBasis/period/sourceId، واستخدم null فقط عند عدم الإفصاح.",
-    valuationCalculation: "كل valuationResult يحتاج formula وsteps وcomputedFairValue؛ calculationAudit يصالح متوسط الطرق وanalyst overlay مع Base.",
+    valuationCalculation: "كل valuationResult يحتاج formula وsteps وcomputedFairValue؛ analystOverlayPct = 0 إلزاميًا وBase يساوي متوسط الطرق المرجح دون تعديل تقديري منفصل.",
     numericBaseBridge: "في إعادة التقييم يجب أن تجمع آثار baseChangeBridge من previousBase إلى currentBase مع reconciliationGap محسوب.",
     marketPriceType: "marketPrice.priceType: LIVE أو DELAYED أو LAST_CLOSE فقط.",
     requirementFields: "nextRequirements.requirements[].type: minimum أو maximum أو range أو qualitative؛ importance: critical أو high أو medium أو low؛ status: NOT_REPORTED فقط.",

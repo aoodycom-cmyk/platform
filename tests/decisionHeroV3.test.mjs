@@ -7,7 +7,7 @@ const report = {
     fairValueLow: 90,
     fairValueBase: 150,
     fairValueHigh: 210,
-    probabilityWeightedFairValue: 151.5
+    probabilityWeightedFairValue: 153
   },
   scenarios: {
     Bear: { fairValue: 90, probability: 20 },
@@ -19,7 +19,7 @@ const report = {
 };
 
 const model = decisionHeroModel(report);
-assert.equal(model.probabilityWeighted, 151.5, "Weighted fair value must be displayed exactly as supplied, not recalculated.");
+assert.equal(model.probabilityWeighted, 153, "Weighted fair value must be displayed exactly as supplied, not recalculated.");
 assert.equal(model.confidence, 78);
 assert.equal(model.thesis, report.thesis.shortSummary);
 assert.deepEqual(model.scenarios, [

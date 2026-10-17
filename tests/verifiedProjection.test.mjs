@@ -15,7 +15,7 @@ await parseExternalAnalysisInput(JSON.stringify(saved), { strictJson: true });
 for (const mutate of [
   (r) => { r.decision.action = "BUY"; },
   (r) => { r.decision.rationale = ["Price is below fair value; buy now."]; },
-  (r) => { r.decision.confidence = 100; },
+  (r) => { r.decision.confidence = 0; },
   (r) => { r.decision.investmentScore = 100; },
   (r) => { r.scores.quality = 0; },
   (r) => { r.dataQuality.score = 0; },
