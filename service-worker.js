@@ -1,4 +1,4 @@
-const CACHE_NAME = "franklin-research-earnings-verification-20261017-1";
+const CACHE_NAME = "franklin-research-earnings-header-20260905-1-verification-20261017-1";
 const OFFLINE_URL = new URL("./offline.html", self.location.href).href;
 const STATIC_ASSETS = [
   "./src/externalAnalysis/revaluationContext.js",
