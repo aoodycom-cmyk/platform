@@ -1,5 +1,6 @@
 import { reportPeriodFromV3Identity } from "./v3Contract.js";
 import { normalizeFiscalQuarterPeriod } from "./fiscalQuarterPeriod.js";
+import { snapshotRevaluationContext } from "./revaluationContext.js";
 
 export function franklinV3ToExternalReport(input = {}, rawAnalysis = "", options = {}) {
   const identity = input.reportIdentity || {};
@@ -80,7 +81,7 @@ export function franklinV3ToExternalReport(input = {}, rawAnalysis = "", options
     decision: financialVerification ? {
       ...(input.decision || {}),
       modelReportedConfidence: input.decision?.confidence ?? null,
-      confidence: financialVerification.derivedConfidenceScore
+      confidence: input.decision?.confidence ?? null
     } : (input.decision || {}),
     guidance: Array.isArray(latestQuarter.guidance) ? latestQuarter.guidance : [],
     monitoringChecklist: Array.isArray(input.monitoringChecklist) ? input.monitoringChecklist : [],
@@ -103,6 +104,8 @@ export function franklinV3ToExternalReport(input = {}, rawAnalysis = "", options
       analysisType: input.analysisType || null,
       franklinV3Report: input,
       financialVerification,
+      confidenceBasis: "ANALYST_ESTIMATE",
+      revaluationContext: input.analysisType === "EARNINGS_REVALUATION" ? snapshotRevaluationContext(options.currentReport) : null,
       sourceVerification: financialVerification?.sourceVerification || null,
       franklinV3: {
         schemaVersion: input.schemaVersion,

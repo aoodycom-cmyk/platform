@@ -18,6 +18,7 @@ import { FRANKLIN_FAIR_VALUE_SCHEMA_VERSION } from "./v3Contract.js";
 import { normalizeFranklinV3Input } from "./v3InputNormalizer.js";
 import { validateFranklinV3Report } from "./v3Validator.js";
 import { auditVerifiedProjection } from "../financialSafety/verifiedProjection.js";
+import { storedRevaluationContext } from "./revaluationContext.js";
 
 export const JSON_IMPORT_ROUTES = Object.freeze({
   FULL_ANALYSIS: "full-analysis",
@@ -133,9 +134,9 @@ export function dispatchJsonPayload(value, options = {}) {
       warnings: projectionErrors.filter((item) => item.status !== "BLOCKED")
     });
     const embeddedV3 = normalizedValue.metadata?.franklinV3Report;
-    if (embeddedV3?.schemaVersion === FRANKLIN_FAIR_VALUE_SCHEMA_VERSION
-      && (embeddedV3.analysisType === "INITIAL" || context.currentReport)) {
-      validation = combineValidations(validation, validateFranklinV3Report(embeddedV3, context));
+    if (embeddedV3?.schemaVersion === FRANKLIN_FAIR_VALUE_SCHEMA_VERSION) {
+      validation = combineValidations(validation, validateFranklinV3Report(embeddedV3,
+        context.currentReport ? context : storedRevaluationContext(normalizedValue)));
     }
   } else if (contractDefinition.route === JSON_IMPORT_ROUTES.BACKUP) {
     validation = validateBackupEnvelope(value);

@@ -198,7 +198,7 @@ const parsed = await parseExternalAnalysisInput(JSON.stringify(clean), {
 });
 assert.equal(parsed.report.rawAnalysisOriginal, JSON.stringify(clean));
 assert.equal(parsed.report.metadata.financialVerification.status, "VERIFIED");
-assert.equal(parsed.report.decision.confidence, 90, "Displayed confidence must be Franklin-derived.");
+assert.equal(parsed.report.decision.confidence, clean.decision.confidence, "Analyst confidence must remain distinct from calculation checks.");
 assert.equal(parsed.report.dataQuality.score, 100, "Displayed data quality must be derived from complete material-input provenance.");
 assert.equal(parsed.report.dataQuality.modelReportedScore, clean.dataQuality.score);
 assert.equal(parsed.report.valuationResults[0].rationale, clean.valuation.valuationResults[0].rationale);
@@ -216,7 +216,7 @@ try {
   assert.match(methodsHtml, /Weight rationale/);
   assert.match(methodsHtml, /Excluded methods/);
   const banner = financialVerificationBanner(saved.report);
-  assert.match(banner, /Verified/);
+  assert.match(banner, /Calculations verified/);
   assert.match(banner, /Franklin recalculation/);
   assert.doesNotMatch(banner, /Full analysis/);
   for (const score of [0, 55, 72, 82, 100]) {

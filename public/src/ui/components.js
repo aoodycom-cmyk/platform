@@ -1206,6 +1206,11 @@ function externalImportPanel(state) {
           <span>${isArabicUi() ? "لصق JSON" : "Paste JSON"}</span>
         </button>
       </div>
+      <div class="external-import-context">
+        <label><span>${uiLabel("Ticker Symbol")}</span>
+          <input data-external-ticker-hint dir="ltr" autocomplete="off" autocapitalize="characters" inputmode="latin-prose" maxlength="12" placeholder="TSLA" value="${escapeHtml(state.externalImport?.tickerHint || "")}">
+        </label>
+      </div>
       ${state.externalImport?.inputMode === "paste" ? pasteJsonImportMethod(state) : fileJsonImportMethod(state)}
       <details class="json-import-help">
         <summary>${isArabicUi() ? "إنشاء تحليل جديد في ChatGPT" : "Create a new analysis in ChatGPT"}</summary>
@@ -1264,12 +1269,6 @@ function fileJsonImportMethod(state) {
 function pasteJsonImportMethod(state) {
   return `
     <section class="json-paste-import-area">
-      <div class="external-import-context">
-        <label>
-          <span>${uiLabel("Ticker Symbol")}</span>
-          <input data-external-ticker-hint dir="ltr" autocomplete="off" autocapitalize="characters" inputmode="latin-prose" maxlength="12" placeholder="AMZN" value="${escapeHtml(state.externalImport?.tickerHint || "")}">
-        </label>
-      </div>
       <textarea class="paste-box external-paste-box" data-external-raw dir="ltr" spellcheck="false" placeholder="${isArabicUi() ? "الصق JSON الخام أو JSON المحاط بسياج code fence هنا." : "Paste raw JSON or a fenced JSON code block here."}">${escapeHtml(state.externalImport?.rawText || "")}</textarea>
       <div class="external-import-actions">
         <button class="primary-btn" data-action="parse-external-analysis" ${state.loading ? "disabled" : ""}>${state.loading ? uiLabel("Parsing") : (isArabicUi() ? "تحقق من JSON" : "Validate JSON")}</button>
@@ -2384,7 +2383,7 @@ function decisionHeroSummary(report = {}) {
       value: money(model.probabilityWeighted, model.probabilityWeighted >= 100 ? 0 : 2)
     } : null,
     Number.isFinite(model.confidence) ? {
-      label: isArabicUi() ? "الثقة" : "Confidence",
+      label: isArabicUi() ? "ثقة المحلل التقديرية" : "Analyst confidence estimate",
       value: `${Math.round(model.confidence)}%`
     } : null
   ].filter(Boolean);
@@ -3238,9 +3237,10 @@ function externalRecommendationAction(report = {}) {
 }
 
 function externalRecommendationConfidence(report = {}) {
+  if (classifyDecisionReadiness(report).status === "blocked") return "—";
   const confidence = report.decision?.confidence;
   const numeric = numericValue(confidence);
-  return Number.isFinite(numeric) ? `${Math.round(numeric)}% ${uiLabel("Confidence")}` : escapeHtml(localizedExternalText(confidence));
+  return Number.isFinite(numeric) ? `${Math.round(numeric)}% ${isArabicUi() ? "ثقة المحلل التقديرية" : "Analyst confidence estimate"}` : escapeHtml(localizedExternalText(confidence));
 }
 
 function decisionStripMetric(label, value, category = "neutral") {
@@ -3824,8 +3824,8 @@ function scoreToneClass(score) {
 export function financialVerificationBanner(report = {}) {
   const readiness = classifyDecisionReadiness(report);
   const labels = isArabicUi()
-    ? { verified: "مُتحقق منه", needs_review: "يحتاج مراجعة", insufficient_data: "بيانات غير كافية", blocked: "محظور" }
-    : { verified: "Verified", needs_review: "Needs Review", insufficient_data: "Insufficient Data", blocked: "Blocked" };
+    ? { verified: "مُتحقق حسابيًا", needs_review: "يحتاج مراجعة", insufficient_data: "بيانات غير كافية", blocked: "محظور" }
+    : { verified: "Calculations verified", needs_review: "Needs Review", insufficient_data: "Insufficient Data", blocked: "Blocked" };
   const verification = readiness.financialVerification || {};
   const messages = [...(verification.findings || []), ...(verification.warnings || [])].slice(0, 3).map((item) => item.message).filter(Boolean);
   const sourceStatement = verification.sourceVerification?.externalVerification?.statement

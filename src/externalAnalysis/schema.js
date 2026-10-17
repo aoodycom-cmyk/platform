@@ -254,6 +254,14 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
   const priceTargetRequirements = normalizePriceTargetRequirements(input.priceTargetRequirements ?? input.priceTargetMonitoring);
   const requirementsAssessment = normalizeRequirementsAssessment(input.requirementsAssessment || {});
   const decision = normalizeCanonicalDecision(input);
+  // One-time migration of the old computed 90/60/30/0 display confidence.
+  // New reports carry a basis marker, so later edits remain tamper-detectable.
+  if (nativeV3 && !input.metadata?.confidenceBasis
+    && (input.decision?.modelReportedConfidence ?? input.metadata?.financialVerification?.modelReportedConfidence) === nativeV3.decision?.confidence
+    && Number.isFinite(input.metadata?.financialVerification?.derivedConfidenceScore)
+    && decision.confidence === input.metadata.financialVerification.derivedConfidenceScore) {
+    decision.confidence = nativeV3.decision?.confidence ?? null;
+  }
   const report = {
     ...base,
     id: input.id || null,
@@ -368,6 +376,8 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
       fairValueLimitations: Array.isArray(input.metadata?.fairValueLimitations) ? input.metadata.fairValueLimitations : [],
       financialVerification: normalizeOptionalObject(input.metadata?.financialVerification ?? options.v3Validation?.financialVerification),
       sourceVerification: normalizeOptionalObject(input.metadata?.sourceVerification ?? options.v3Validation?.financialVerification?.sourceVerification),
+      confidenceBasis: nativeV3 ? "ANALYST_ESTIMATE" : input.metadata?.confidenceBasis ?? null,
+      revaluationContext: normalizeOptionalObject(input.metadata?.revaluationContext),
       analysisType: input.metadata?.analysisType ?? null,
       correctedAnalysisId: input.metadata?.correctedAnalysisId ?? null,
       correctionConflicts: preserveArray(input.metadata?.correctionConflicts),

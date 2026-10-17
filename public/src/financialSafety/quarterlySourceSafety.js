@@ -21,6 +21,9 @@ export function installQuarterlySourceSafety(store, root = document.getElementBy
 export function appendQuarterlySourceContract(prompt = "") {
   const marker = "[Franklin source provenance contract]";
   const text = String(prompt || "");
+  // V3 already supplies its own sources[].type schema. The legacy lite
+  // sourceType appendix contradicts it and corrupts the final JSON instructions.
+  if (text.includes('"schemaVersion":"franklin-fair-value/v3"') || text.includes('"schemaVersion": "franklin-fair-value/v3"')) return text;
   if (!text || text.includes(marker)) return text;
   return [
     text,
