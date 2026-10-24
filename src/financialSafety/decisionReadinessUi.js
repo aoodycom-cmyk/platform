@@ -4,7 +4,7 @@ import { validateFranklinV3Report } from "../externalAnalysis/v3Validator.js";
 import { storedRevaluationContext } from "../externalAnalysis/revaluationContext.js";
 import { auditVerifiedProjection } from "./verifiedProjection.js";
 import { installCommercialUx } from "./commercialUx.js";
-import { installWorkflowCommercialUx } from "./workflowCommercialUx.js";
+import { installWorkflowCommercialUx } from "./workflowCommercialUx.js?v=earnings-header-20260905-1-experience-20261024-1";
 
 const QUARTERLY_IMPORT_METHOD = "quarterly_earnings_lite";
 

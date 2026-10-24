@@ -137,7 +137,7 @@ try {
 
   const app = await inject(server, { path: "/", headers: { cookie, accept: "text/html" } });
   assert.equal(app.status, 200);
-  assert.ok(app.text.includes("Franklin Research 11.0.0"));
+  assert.ok(app.text.includes("<title>Franklin | أبحاث ومتابعة الأسهم</title>"), "The served application must expose the customer-facing Franklin brand.");
   assert.ok(app.text.includes("apple-mobile-web-app-title"));
   assert.ok(app.text.includes("styles.css?v=earnings-header-20260905-1"));
   assert.ok(app.text.includes("styles-mobile2.css?v=earnings-header-20260905-1"));

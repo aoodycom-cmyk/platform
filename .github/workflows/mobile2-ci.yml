@@ -50,4 +50,24 @@ jobs:
         run: npm run test:real-world
 
       - name: Run tests
+        env:
+          FRANKLIN_UX_ARTIFACT_DIR: artifacts/experience-review
         run: npm test
+
+      - name: Install Safari-compatible test runtime
+        run: npx playwright install --with-deps webkit
+
+      - name: Verify WebKit mobile journeys
+        env:
+          FRANKLIN_E2E_BROWSER: webkit
+          FRANKLIN_UX_ARTIFACT_DIR: artifacts/experience-review
+        run: npm run test:e2e
+
+      - name: Retain interface review captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: franklin-experience-review
+          path: artifacts/experience-review
+          if-no-files-found: ignore
+          retention-days: 7

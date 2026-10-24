@@ -1,5 +1,5 @@
-import { createStore } from "./state/store.js";
-import { mountApp } from "./ui/components.js?v=earnings-header-20260905-1";
+import { createStore } from "./state/store.js?v=earnings-header-20260905-1-experience-20261024-1";
+import { mountApp } from "./ui/components.js?v=earnings-header-20260905-1-experience-20261024-1";
 import { migrateFranklinState, summarizeFranklinState } from "./state/migration.js";
 
 const root = document.getElementById("app");
@@ -51,14 +51,14 @@ function restorePreviousAuditState() {
 
 async function installOptionalRuntime(store, cloud, auditBootstrapError) {
   const earningsTable = await loadOptional(
-    "./ui/earningsTableExperience.js?v=earnings-header-20260905-1",
+    "./ui/earningsTableExperience.js?v=earnings-header-20260905-1-experience-20261024-1",
     "Earnings table experience"
   );
   const earningsTableReady = earningsTable.EARNINGS_TABLE_EXPERIENCE_VERSION === "v57";
 
   // Install the stock workspace shell first and with an explicit version so every
   // stock page receives the same selected-company header before presentation helpers load.
-  await loadOptional("./ui/stockWorkspaceNavigation.js?v=earnings-header-20260905-1", "Shared stock workspace");
+  await loadOptional("./ui/stockWorkspaceNavigation.js?v=earnings-header-20260905-1-experience-20261024-1", "Shared stock workspace");
 
   const optionalModules = [
     loadOptional("./ui/mobile2Enhancer.js", "Mobile enhancer"),
@@ -67,7 +67,7 @@ async function installOptionalRuntime(store, cloud, auditBootstrapError) {
     loadOptional("./ui/quarterlyEarningsJsonPromptV2.js", "Quarterly JSON prompt"),
     loadOptional("./ui/socialImageExport.js", "Social image export"),
     loadOptional("./ui/socialImageExportQualityPatch.js", "Social image export HD quality"),
-    loadOptional("./ui/reportPresentationEditor.js?v=earnings-header-20260905-1", "Report presentation editor")
+    loadOptional("./ui/reportPresentationEditor.js?v=earnings-header-20260905-1-experience-20261024-1", "Report presentation editor")
   ];
   if (!earningsTableReady) {
     optionalModules.push(loadOptional("./ui/quarterlyScorecardMobileFigma.js", "Quarterly scorecard mobile fallback"));
@@ -97,7 +97,7 @@ async function installFinancialGuards(store) {
   const [financialSafety, quarterlySourceSafety, decisionReadiness] = await Promise.all([
     loadOptional("./financialSafety/financialSafety.js", "Financial safety"),
     loadOptional("./financialSafety/quarterlySourceSafety.js", "Quarterly source safety"),
-    loadOptional("./financialSafety/decisionReadinessUi.js", "Decision readiness")
+    loadOptional("./financialSafety/decisionReadinessUi.js?v=earnings-header-20260905-1-experience-20261024-1", "Decision readiness")
   ]);
   try {
     financialSafety.installFinancialSafetyLayer?.(store, root);

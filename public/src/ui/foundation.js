@@ -57,6 +57,7 @@ export function appHeaderMarkup({ title = "", isHome = false, language = "ar", l
     <header class="mobile-app-header global-app-header ${isHome ? "library-app-header v31-library-header" : ""}" aria-label="${escapeHtml(title || text("Franklin Research"))}">
       <div class="mobile-brand" role="img" aria-label="${brandLabel}">
         ${companyLogoMarkup({ name: "Franklin", logoUrl: "./assets/icon-192.png", className: "app-logo" })}
+        <span class="franklin-brand-copy"><strong dir="ltr">Franklin</strong><small>${language === "ar" ? "أبحاث ومتابعة الأسهم" : "Equity research & tracking"}</small></span>
       </div>
       <div class="mobile-header-actions">
         ${isHome
@@ -78,7 +79,7 @@ export function appHeaderMarkup({ title = "", isHome = false, language = "ar", l
   `;
 }
 
-export function bottomNavigationMarkup({ panels = [], activePanel = "home", scorecard = false, label }) {
+export function bottomNavigationMarkup({ panels = [], activePanel = "home", scorecard = false, label, language = "ar" }) {
   const text = typeof label === "function" ? label : (value) => value;
   const icons = {
     home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3l8.5 7.5v9a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 21v-7h6v7"/></svg>',
@@ -92,7 +93,7 @@ export function bottomNavigationMarkup({ panels = [], activePanel = "home", scor
       ${panels.map(([key, panelLabel]) => `
         <button class="${activePanel === key ? "active" : ""}" data-panel="${escapeHtml(key)}" ${activePanel === key ? 'aria-current="page"' : ""}>
           <b aria-hidden="true">${icons[key] || ""}</b>
-          <span>${escapeHtml(text(panelLabel))}</span>
+          <span>${escapeHtml(key === "social-export" && language === "ar" ? "تصدير" : text(panelLabel))}</span>
         </button>
       `).join("")}
     </nav>

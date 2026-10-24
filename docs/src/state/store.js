@@ -1924,6 +1924,10 @@ function wait(ms) {
 
 function createExternalImportState() {
   return {
+    journeyStep: 1,
+    companyQuery: "",
+    companyError: "",
+    promptCopied: false,
     inputMode: "file",
     rawText: "",
     tickerHint: "",

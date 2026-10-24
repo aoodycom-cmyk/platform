@@ -12,7 +12,7 @@ const prompt = buildInitialAnalysisPrompt({ tickerHint: "NVDA" });
 const { canonical } = await importOwnerAcceptanceFixture();
 
 assert.match(components, /اكتب رمز السهم أولًا/);
-assert.match(components, /inputmode="latin-prose"/);
+assert.match(components, /inputmode="text"/, "Company names and symbols must use a text keyboard, including Arabic names.");
 assert.match(prompt, /marketPrice إلزامي بالكامل/);
 assert.match(prompt, /MARKET PRICE GATE/);
 assert.match(prompt, /إذا لم يتوفر سعر LIVE موثق، استخدم أحدث LAST_CLOSE/);

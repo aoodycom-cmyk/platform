@@ -54,6 +54,8 @@ function hideDemoArtifacts(root) {
 function polishImportPanel(root) {
   const panel = root.querySelector(".external-import-panel");
   if (!panel) return;
+  // The canonical journey owns its labels and step state; never mutate it after render.
+  if (panel.classList.contains("analysis-journey")) return;
 
   setText(panel.querySelector(".external-import-head .eyebrow"), "تحليل جديد");
   setText(panel.querySelector(".external-import-head h2"), "أضف شركة إلى Franklin");

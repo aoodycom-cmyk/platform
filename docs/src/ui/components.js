@@ -19,6 +19,7 @@ import { normalizedEarningsPeriod } from "../externalAnalysis/historicalRequirem
 import { buildQuarterlyScorecard } from "../externalAnalysis/quarterlyScorecard.js";
 import { downloadQuarterlyScorecardPng, shareQuarterlyScorecardPng } from "./quarterlyScorecardExport.js";
 import { copyTextForMobile } from "./clipboard.js";
+import { analysisCompanyOptions, resolveAnalysisCompany, analysisJourneyStep, isAnalysisRequest, journeyProgressMarkup, emptyResearchLibraryMarkup } from "./analysisJourney.js";
 import { formatJsonFileSize } from "../externalAnalysis/jsonFileImport.js";
 import { riskAssessmentMetric, valuationAssessmentMetric } from "./reportAssessmentMetrics.js";
 import { decisionHeroModel } from "../financialSafety/decisionHeroUx.js";
@@ -28,7 +29,7 @@ import {
   bindCompanyLogoFallbacks,
   bottomNavigationMarkup,
   companyLogoMarkup
-} from "./foundation.js";
+} from "./foundation.js?v=earnings-header-20260905-1-experience-20261024-1";
 import {
   analysisText,
   decisionLabel,
@@ -74,6 +75,8 @@ function visiblePanel(panel) {
 function inlineNotice(notice, activePanel) {
   const text = String(notice || "").trim();
   if (!text) return "";
+  if (activePanel === "external-import" && /تم نسخ برومبت تحليل السهم|Analysis prompt copied/.test(text)) return "";
+  if (activePanel === "external-import" && /schemaVersion|unknown-object|franklin-fair-value\/v3|Unexpected token|المخطط النشط/.test(text)) return `<div class="notice" role="status">${isArabicUi() ? "تعذر قبول النتيجة. راجع الإرشادات بجانب حقل الإدخال." : "The result could not be accepted. See the guidance beside the input."}</div>`;
   if (activePanel === "external-report" && /(تم حفظ|تم تحديث|saved|updated successfully)/i.test(text)) return "";
   return `<div class="notice">${escapeHtml(text)}</div>`;
 }
@@ -106,8 +109,10 @@ function installPromptCopyDelegation(root, store) {
 function render(root, store, actions) {
   const activePanel = visiblePanel(store.state.activePanel);
   const state = activePanel === store.state.activePanel ? store.state : { ...store.state, activePanel };
-  const panelChanged = root.dataset.renderedPanel !== activePanel;
+  const journeyStep = activePanel === "external-import" ? String(analysisJourneyStep(state.externalImport)) : "";
+  const panelChanged = root.dataset.renderedPanel !== activePanel || root.dataset.renderedJourneyStep !== journeyStep;
   root.dataset.renderedPanel = activePanel;
+  root.dataset.renderedJourneyStep = journeyStep;
   setupArabicDocument(state.language);
   document.documentElement.dataset.theme = "dark";
   if (activePanel === "home") {
@@ -130,6 +135,7 @@ function render(root, store, actions) {
       panels,
       activePanel: state.activePanel,
       scorecard: activePanel === "quarterly-scorecard",
+      language: state.language,
       label: uiLabel
     })}
   `;
@@ -154,7 +160,7 @@ function homeDashboard(state) {
         </div>
       </section>
     </main>
-    ${bottomNavigationMarkup({ panels, activePanel: state.activePanel, label: uiLabel })}
+    ${bottomNavigationMarkup({ panels, activePanel: state.activePanel, language: state.language, label: uiLabel })}
   `;
 }
 
@@ -240,9 +246,10 @@ function externalReportAppBar(state) {
 
 function homePolishedSearch(state) {
   return `
+    ${libraryHero()}
     <section class="home-search home-search-premium library-search-panel">
       <div class="search-line">
-        <input id="searchInput" data-library-search value="${escapeHtml(state.query)}" placeholder="${uiLabel("Search saved reports by ticker or company")}" autocomplete="off">
+        <input id="searchInput" data-library-search aria-label="${isArabicUi() ? "البحث في مكتبتك" : "Search your library"}" value="${escapeHtml(state.query)}" placeholder="${uiLabel("Search saved reports by ticker or company")}" autocomplete="off">
       </div>
     </section>
   `;
@@ -272,7 +279,7 @@ function homeQuickActions(state) {
 }
 
 function externalAnalysesHomeSection(state) {
-  const allReports = listLatestExternalAnalyses(state.externalAnalyses || {}).map(externalAnalysisToHomeCard);
+  const allReports = listLatestExternalAnalyses(state.externalAnalyses || {}).filter((report) => !["DEMO", "FQC"].includes(report.company?.ticker)).map(externalAnalysisToHomeCard);
   const reports = sortExternalReports(filterExternalReports(allReports, state.query, state.libraryFilter), state.librarySort);
   const totalReports = Object.values(state.externalAnalyses || {}).reduce((sum, list) => sum + (Array.isArray(list) ? list.length : 0), 0);
   return `
@@ -328,10 +335,10 @@ function externalHomeCard(report) {
 
 function watchlistToolbar(state) {
   const filters = [
-    ["all", isArabicUi() ? "الكل • All" : "All"],
-    ["buy", isArabicUi() ? "شراء • Buy" : "Buy"],
-    ["hold", isArabicUi() ? "احتفاظ • Hold" : "Hold"],
-    ["watch", isArabicUi() ? "مراقبة • Watch" : "Watch"]
+    ["all", isArabicUi() ? "الكل" : "All"],
+    ["buy", isArabicUi() ? "شراء" : "Buy"],
+    ["hold", isArabicUi() ? "احتفاظ" : "Hold"],
+    ["watch", isArabicUi() ? "مراقبة" : "Watch"]
   ];
   return `
     <div class="watchlist-toolbar">
@@ -436,13 +443,7 @@ function sortExternalReports(reports = [], sort = "latest") {
 }
 
 function externalLibraryEmptyState() {
-  return `
-    <div class="empty-home-state library-empty-state">
-      <strong>${uiLabel("No saved stocks yet.")}</strong>
-      <p>${uiLabel("Start by adding your first investment analysis.")}</p>
-      <button class="primary-btn" data-action="open-external-import">${uiLabel("Analyze / Add Stock")}</button>
-    </div>
-  `;
+  return emptyResearchLibraryMarkup(isArabicUi() ? "ar" : "en");
 }
 
 function formatExternalPercent(value) {
@@ -1176,7 +1177,7 @@ function socialExportAnalysisRow(company, report) {
         <span>${label}</span>
         <small><bdi dir="ltr">${escapeHtml(report.analysisDate || report.reportPeriod || "—")}</bdi></small>
       </div>
-      <button type="button" data-social-image-export="${earnings ? "earnings" : "investment"}" data-social-export-ticker="${escapeHtml(company.ticker)}" data-social-export-report-id="${escapeHtml(report.id || "latest")}">
+      <button type="button" class="primary-btn" data-social-image-export="${earnings ? "earnings" : "investment"}" data-social-export-ticker="${escapeHtml(company.ticker)}" data-social-export-report-id="${escapeHtml(report.id || "latest")}">
         ${isArabicUi() ? "تصدير أو مشاركة" : "Export or Share"}
       </button>
     </div>
@@ -1188,38 +1189,33 @@ function externalImportPanel(state) {
   const validation = state.externalImport?.validation || { errors: [], warnings: [] };
   const completion = draft ? draft.completionStatus || analyzeExternalAnalysisCompletion(draft, validation) : null;
   const visibleValidation = visibleExternalValidation(validation, completion);
+  const step = analysisJourneyStep(state.externalImport);
+  const ticker = draft?.company?.ticker || state.externalImport?.tickerHint || "";
+  const company = resolveAnalysisCompany(ticker, state.externalAnalyses);
+  const ar = isArabicUi();
   return `
-    <section class="panel external-import-panel library-import-panel">
+    <section class="panel external-import-panel library-import-panel analysis-journey" data-analysis-journey-step="${step}">
       <div class="external-import-head">
         <div>
-          <p class="eyebrow">${isArabicUi() ? "تحليلات Franklin" : "Franklin Analyses"}</p>
-          <h2>${isArabicUi() ? "إضافة تحليل جديد" : "Add a new analysis"}</h2>
-          <p>${isArabicUi() ? "استورد ملف التحليل الكامل أو الصق JSON يدويًا." : "Import the complete analysis file or paste JSON manually."}</p>
+          <p class="eyebrow">${ar ? "تحليل جديد" : "NEW RESEARCH"}</p>
+          <h2>${ar ? "أضف شركة إلى Franklin" : "Add a company to Franklin"}</h2>
+          <p>${ar ? "من اختيار الشركة إلى تقرير محفوظ، في ثلاث خطوات." : "From choosing a company to saved research in three steps."}</p>
         </div>
         <button class="icon-btn" data-action="cancel-external-import">${uiLabel("Cancel")}</button>
       </div>
-      <div class="json-import-tabs" role="tablist" aria-label="${isArabicUi() ? "طريقة استيراد التحليل" : "Analysis import method"}">
-        <button type="button" role="tab" aria-selected="${state.externalImport?.inputMode !== "paste"}" class="${state.externalImport?.inputMode !== "paste" ? "active" : ""}" data-external-import-mode="file">
-          <span>${isArabicUi() ? "ملف JSON" : "JSON File"}</span>
-          <small>${isArabicUi() ? "موصى به للتحليلات الطويلة" : "Recommended for long analyses"}</small>
-        </button>
-        <button type="button" role="tab" aria-selected="${state.externalImport?.inputMode === "paste"}" class="${state.externalImport?.inputMode === "paste" ? "active" : ""}" data-external-import-mode="paste">
-          <span>${isArabicUi() ? "لصق JSON" : "Paste JSON"}</span>
-        </button>
-      </div>
-      <div class="external-import-context">
-        <label><span>${uiLabel("Ticker Symbol")}</span>
-          <input data-external-ticker-hint dir="ltr" autocomplete="off" autocapitalize="characters" inputmode="latin-prose" maxlength="12" placeholder="TSLA" value="${escapeHtml(state.externalImport?.tickerHint || "")}">
-        </label>
-      </div>
-      ${state.externalImport?.inputMode === "paste" ? pasteJsonImportMethod(state) : fileJsonImportMethod(state)}
-      <details class="json-import-help">
-        <summary>${isArabicUi() ? "إنشاء تحليل جديد في ChatGPT" : "Create a new analysis in ChatGPT"}</summary>
-        ${externalChatGptPrepCard(state)}
-      </details>
-      ${state.externalImport?.parserSource ? `<p class="muted">${uiLabel("Parser")}: ${escapeHtml(state.externalImport.parserSource)} / ${state.externalImport.usedAi ? "AI Parser" : "Local JSON"}</p>` : ""}
+      ${journeyProgressMarkup(step, state.language, Boolean(draft))}
+      ${step === 1 ? analysisCompanyStep(state) : `
+        <input type="hidden" data-external-ticker-hint value="${escapeHtml(ticker)}">
+        ${ticker ? `<div class="journey-company-summary">${companyLogoMarkup({ ticker, name: draft?.company?.name || company?.name || ticker })}<div><strong dir="auto">${escapeHtml(draft?.company?.name || company?.name || ticker)}</strong><bdi dir="ltr">${escapeHtml(ticker)}</bdi></div>${draft ? "" : `<button class="text-btn" type="button" data-analysis-step="1">${ar ? "تغيير" : "Change"}</button>`}</div>` : ""}
+        ${step === 2 ? `
+          <section class="journey-instruction"><h3>${ar ? "جهّز طلب التحليل" : "Prepare the analysis request"}</h3><p>${ar ? "انسخ الطلب، ثم أرسله في محادثة ChatGPT. بعد اكتمال التحليل، عد إلى Franklin بالملف الذي تحصل عليه." : "Copy the request and send it in ChatGPT. When the analysis is complete, return to Franklin with its result file."}</p></section>
+          ${externalChatGptPrepCard(state)}
+          <button type="button" class="text-btn journey-existing-result" data-analysis-step="3">${ar ? "لدي نتيجة جاهزة بالفعل" : "I already have a result"}</button>
+        ` : analysisResultStep(state)}
+      `}
+      ${step === 3 ? `
       ${draft && completion?.status !== "complete" ? missingDataCompletionCard(draft, validation, completion, state) : ""}
-      ${visibleValidation.errors.length ? validationList(uiLabel("Validation Errors"), visibleValidation.errors, "negative") : ""}
+      ${visibleValidation.errors.length ? `<section class="journey-validation" role="alert"><strong>${ar ? "تحتاج النتيجة إلى تصحيح قبل الحفظ" : "The result needs correction before saving"}</strong><p>${isAnalysisRequest(state.externalImport?.rawText) ? (ar ? "ألصقت طلب التحليل. أضف النتيجة التي أعادها ChatGPT أو اختر ملف التحليل الذي نزّلته." : "You pasted the analysis request. Add the result returned by ChatGPT or choose the downloaded analysis file.") : (ar ? "لم يجتز التحليل التحقق. أعد النتيجة إلى ChatGPT مع تفاصيل الحقول التالية لتصحيحها، ثم أضفها مجددًا." : "The analysis did not pass validation. Send the field details to ChatGPT for correction, then add the result again.")}</p><details><summary>${ar ? "عرض تفاصيل الحقول" : "Show field details"}</summary>${validationList(uiLabel("Validation Errors"), visibleValidation.errors, "negative")}</details></section>` : ""}
       ${languageRepairNeeded(visibleValidation) ? languageRepairCard() : ""}
       ${visibleValidation.warnings.length ? validationList(uiLabel("Warnings"), visibleValidation.warnings, "warning") : ""}
       ${state.externalImport?.duplicate ? duplicateWarning(state.externalImport.duplicate) : ""}
@@ -1228,9 +1224,45 @@ function externalImportPanel(state) {
       ${state.externalImport?.file?.technicalDetails ? technicalImportDetails(state.externalImport.file.technicalDetails) : ""}
       ${state.externalImport?.supplement?.open ? supplementaryInputPanel(draft, completion, state) : ""}
       ${state.externalImport?.missingManualOpen ? missingManualPanel(draft, completion) : ""}
+      <div class="analysis-customization-slot"></div>
       ${draft ? externalPreviewPanel(draft, state) : ""}
+      ` : ""}
     </section>
   `;
+}
+
+function analysisCompanyStep(state) {
+  const ar = isArabicUi();
+  const options = analysisCompanyOptions(state.externalAnalyses);
+  return `<section class="journey-company-step external-import-context">
+    <h3>${ar ? "أي شركة تريد دراستها؟" : "Which company would you like to research?"}</h3>
+    <p>${ar ? "استخدم رمز أي سهم، أو ابحث باسم شركة من الاقتراحات." : "Use any ticker, or choose a company name from the suggestions."}</p>
+    <label for="analysis-company"><span>${ar ? "اسم الشركة أو رمز السهم" : "Company name or ticker"}</span><input id="analysis-company" data-external-ticker-hint data-analysis-company-query list="analysis-company-options" dir="auto" inputmode="text" autocomplete="off" autocapitalize="characters" maxlength="120" placeholder="NVDA، NVIDIA، إنفيديا" value="${escapeHtml(state.externalImport?.companyQuery || state.externalImport?.tickerHint || "")}" aria-describedby="analysis-company-help"></label>
+    <datalist id="analysis-company-options">${options.map((company) => `<option value="${escapeHtml(company.ticker)}">${escapeHtml(`${company.name} ${(company.aliases || []).join(" ")}`)}</option>`).join("")}</datalist>
+    <div class="journey-company-suggestions" aria-label="${ar ? "أمثلة شركات" : "Company suggestions"}">${options.slice(0, 4).map((company) => `<button type="button" data-analysis-company="${escapeHtml(company.ticker)}"><bdi dir="ltr">${escapeHtml(company.ticker)}</bdi><span dir="auto">${escapeHtml(company.name.replace(/ Corporation| Inc\.|\.com, Inc\./g, ""))}</span></button>`).join("")}</div>
+    <p id="analysis-company-help" class="journey-field-feedback" role="status">${escapeHtml(state.externalImport?.companyError || "")}</p>
+    <button type="button" class="primary-btn journey-continue" data-action="analysis-company-continue">${ar ? "متابعة إلى طلب التحليل" : "Continue to the analysis request"}</button>
+    <button type="button" class="text-btn journey-existing-result" data-analysis-step="3">${ar ? "لدي ملف تحليل أو نتيجة جاهزة" : "I have an analysis file or result"}</button>
+  </section>`;
+}
+
+function analysisResultStep(state) {
+  const ar = isArabicUi();
+  return `<section class="journey-result-step">
+      ${state.externalImport?.promptCopied ? `<div class="journey-copy-confirmation" role="status"><b aria-hidden="true">✓</b><div><strong>${ar ? "تم نسخ طلب التحليل" : "Analysis request copied"}</strong><p>${ar ? "أرسله إلى ChatGPT، ثم عد إلى هذه الخطوة لإضافة النتيجة." : "Send it in ChatGPT, then return to this step to add the result."}</p></div></div><a class="secondary-btn journey-chatgpt-link" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">${ar ? "فتح ChatGPT" : "Open ChatGPT"}<span aria-hidden="true">↗</span></a>` : ""}
+      <div class="journey-instruction"><h3>${ar ? "أضف نتيجة التحليل" : "Add the analysis result"}</h3><p>${ar ? "اختر الملف الذي نزّلته من ChatGPT، أو الصق النتيجة هنا. سنعرضها للمراجعة قبل الحفظ." : "Choose the file downloaded from ChatGPT, or paste its result here. Review it before saving."}</p></div>
+      <div class="json-import-tabs" role="tablist" aria-label="${isArabicUi() ? "طريقة استيراد التحليل" : "Analysis import method"}">
+        <button type="button" role="tab" aria-selected="${state.externalImport?.inputMode !== "paste"}" class="${state.externalImport?.inputMode !== "paste" ? "active" : ""}" data-external-import-mode="file">
+          <span>${ar ? "ملف التحليل" : "Analysis file"}</span>
+        </button>
+        <button type="button" role="tab" aria-selected="${state.externalImport?.inputMode === "paste"}" class="${state.externalImport?.inputMode === "paste" ? "active" : ""}" data-external-import-mode="paste">
+          <span>${ar ? "لصق النتيجة" : "Paste result"}</span>
+        </button>
+      </div>
+      <p class="journey-file-hint">${ar ? "ملف JSON موصى به للتحليلات الطويلة." : "A JSON file is recommended for long analyses."}</p>
+      ${state.externalImport?.inputMode === "paste" ? pasteJsonImportMethod(state) : fileJsonImportMethod(state)}
+      <button type="button" class="text-btn journey-existing-result" data-analysis-step="${state.externalImport?.tickerHint ? 2 : 1}">${ar ? "العودة إلى طلب التحليل" : "Back to the analysis request"}</button>
+    </section>`;
 }
 
 function fileJsonImportMethod(state) {
@@ -1240,7 +1272,7 @@ function fileJsonImportMethod(state) {
     <section class="json-file-import-area">
       <input class="json-file-native-input" type="file" accept=".json,application/json" data-external-json-file aria-label="${isArabicUi() ? "اختيار ملف التحليل" : "Choose analysis file"}">
       <button type="button" class="json-file-picker" data-action="choose-external-json-file" ${state.loading ? "disabled" : ""}>
-        <span class="json-file-picker-icon" aria-hidden="true">⇧</span>
+        <span class="json-file-picker-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V3m-4 4 4-4 4 4M5 14v6h14v-6"/></svg></span>
         <b>${state.loading ? (isArabicUi() ? "جاري قراءة الملف..." : "Reading file...") : (isArabicUi() ? "اختيار ملف التحليل" : "Choose analysis file")}</b>
         <small>${isArabicUi() ? "تتم قراءة الملف على جهازك فقط، ولا يُرفع إلى خادم خارجي." : "The file is read only on your device and is not uploaded."}</small>
       </button>
@@ -1270,9 +1302,10 @@ function fileJsonImportMethod(state) {
 function pasteJsonImportMethod(state) {
   return `
     <section class="json-paste-import-area">
-      <textarea class="paste-box external-paste-box" data-external-raw dir="ltr" spellcheck="false" placeholder="${isArabicUi() ? "الصق JSON الخام أو JSON المحاط بسياج code fence هنا." : "Paste raw JSON or a fenced JSON code block here."}">${escapeHtml(state.externalImport?.rawText || "")}</textarea>
+      <label class="journey-result-label" for="analysis-result">${isArabicUi() ? "نتيجة التحليل من ChatGPT" : "Analysis result from ChatGPT"}</label>
+      <textarea id="analysis-result" class="paste-box external-paste-box" data-external-raw dir="auto" spellcheck="false" placeholder="${isArabicUi() ? "ألصق JSON الناتج من ChatGPT هنا" : "Paste the JSON result returned by ChatGPT here"}">${escapeHtml(state.externalImport?.rawText || "")}</textarea>
       <div class="external-import-actions">
-        <button class="primary-btn" data-action="parse-external-analysis" ${state.loading ? "disabled" : ""}>${state.loading ? uiLabel("Parsing") : (isArabicUi() ? "تحقق من JSON" : "Validate JSON")}</button>
+        <button class="primary-btn" data-action="parse-external-analysis" ${state.loading ? "disabled" : ""}>${state.loading ? uiLabel("Parsing") : (isArabicUi() ? "مراجعة النتيجة" : "Review result")}</button>
         <button class="icon-btn" data-action="clear-external-import">${uiLabel("Clear")}</button>
       </div>
     </section>
@@ -1326,12 +1359,12 @@ function externalChatGptPrepCard(state) {
     <section class="chatgpt-prep-card">
       <div class="table-title">
         <div>
-          <p class="eyebrow">${uiLabel("ChatGPT Contract")}</p>
-          <h3>${uiLabel("جهّز ChatGPT قبل اللصق")}</h3>
-          <p>${uiLabel("Copy the official prompt, send it to ChatGPT, then import the downloadable JSON file here.")}</p>
+          <p class="eyebrow">${isArabicUi() ? "طلب التحليل" : "ANALYSIS REQUEST"}</p>
+          <h3>${isArabicUi() ? "بحث متكامل عن الشركة" : "Complete company research"}</h3>
+          <p>${isArabicUi() ? "يشمل نشاط الشركة، نتائجها المالية، القيمة العادلة، المخاطر ومتطلبات المتابعة." : "Covers the business, financial results, fair value, risks and monitoring requirements."}</p>
         </div>
         <div class="prep-actions">
-          <button class="primary-btn" data-action="copy-full-analysis-prompt">${uiLabel("نسخ برومبت تحليل السهم")}</button>
+          <button class="primary-btn" data-action="copy-full-analysis-prompt">${isArabicUi() ? "نسخ طلب التحليل" : "Copy analysis request"}</button>
         </div>
       </div>
       <details class="required-fields-guide advanced-options-guide">
@@ -1553,7 +1586,7 @@ function externalPreviewPanel(report, state) {
           <p>${escapeHtml(report.company?.ticker || "-")} / ${escapeHtml(report.company?.name || "-")}</p>
         </div>
         <div class="external-import-actions">
-          <button class="primary-btn" data-action="save-external-analysis" ${state.externalImport?.validation?.valid ? "" : "disabled"}>${uiLabel("حفظ السهم")}</button>
+          <button class="primary-btn" data-action="save-external-analysis" ${state.externalImport?.validation?.valid ? "" : "disabled"}>${isArabicUi() ? "حفظ وعرض التحليل" : "Save and view analysis"}</button>
         </div>
       </div>
       <div class="quick-summary-card preview-summary">
@@ -1876,24 +1909,34 @@ function externalAnalysisReportView(state) {
       ${stockDecisionHeader(reportWithCompletion, completion)}
       ${financialVerificationBanner(reportWithCompletion)}
       ${dataHealthTerminalGuard(reportWithCompletion, completion)}
+      <nav class="report-section-nav" aria-label="${isArabicUi() ? "أقسام التقرير" : "Report sections"}">
+        <button type="button" data-report-section="report-data">${isArabicUi() ? "البيانات والمتابعة" : "Data & tracking"}</button>
+        <button type="button" data-report-section="report-valuation">${isArabicUi() ? "التقييم" : "Valuation"}</button>
+        <button type="button" data-report-section="report-assessment">${isArabicUi() ? "الجودة والقرار" : "Quality & decision"}</button>
+        <button type="button" data-report-section="report-sources">${isArabicUi() ? "المصادر" : "Sources"}</button>
+      </nav>
       <section class="stock-decision-flow">
+        ${stockSection(isArabicUi() ? "الفرضية الاستثمارية" : "Investment thesis", investmentSummaryWorkspace(report), "investment-opportunity-section")}
+        <div id="report-data">${stockSection(isArabicUi() ? "بيانات الشركة ومتابعتها" : "Company data & tracking", investmentDataTableArea(report), "v31-investment-tabs-section")}</div>
+        <div id="report-valuation">
         ${valuationRangeDashboard(report)}
         ${stockSection(isArabicUi() ? "طرق التقييم" : "Valuation Methods", summaryValuationMethodsDashboard(report), "summary-valuation-methods-section")}
+        </div>
+        <div id="report-assessment">
         ${companyAssessmentPanel(report, { showValuationDetail: false })}
         ${stockSection(uiLabel("الحكم الاستثماري"), finalDecisionDashboard(report), "summary-investment-verdict-section")}
+        </div>
         ${canonicalFinancialCycleSection(report)}
-        ${stockSection(isArabicUi() ? "فرصة الاستثمار" : "Investment Opportunity", investmentSummaryWorkspace(report), "investment-opportunity-section")}
         ${companyGlossarySection(report)}
-        ${stockSection(isArabicUi() ? "بيانات الاستثمار" : "Investment Data", investmentDataTableArea(report), "v31-investment-tabs-section")}
         ${latestEarningsWorkspace(report)}
         ${estimateRevisionsCard(report.estimateRevisions)}
         ${strengthsRisksEntry(report)}
         ${stockSection(uiLabel("المحفزات"), catalystsDashboard(report))}
         ${stockSection(uiLabel("قائمة المتابعة"), monitoringChecklistDashboard(report))}
-        ${stockSection(uiLabel("السجل والمصادر"), `
+        <div id="report-sources">${stockSection(uiLabel("السجل والمصادر"), `
           ${compactTechnicalDetails(reportWithCompletion, completion, history, requirementSets)}
           ${externalDetail(uiLabel("Raw Analysis"), `<pre class="raw-analysis">${escapeHtml(report.rawAnalysisOriginal || report.rawAnalysis || "")}</pre>`)}
-        `)}
+        `)}</div>
       </section>
       <section class="panel external-report-actions">
         <button class="primary-btn" data-action="add-external-analysis-for-ticker" data-external-ticker="${escapeHtml(ticker)}">${uiLabel("تحديث التحليل")}</button>
@@ -2349,7 +2392,7 @@ function stockDecisionHeader(report = {}, completion = {}) {
   return `
     <header id="stock-report-top" class="panel stock-decision-header terminal-stock-header figma-decision-card v31-stock-decision" data-franklin-v2="true">
       <div class="v31-current-price-hero">
-        <span>${isArabicUi() ? "السعر الحالي" : "Current Price"} <b aria-hidden="true">•</b> <bdi dir="ltr">Current Price</bdi></span>
+        <span>${isArabicUi() ? "السعر الحالي" : "Current Price"}</span>
         <strong dir="ltr">${money(current, 0)}</strong>
         <small>
           <bdi dir="ltr">${escapeHtml(report.market?.currency || report.company?.currency || "USD")}</bdi>
@@ -2370,6 +2413,7 @@ function stockDecisionHeader(report = {}, completion = {}) {
           <strong dir="ltr">${money(report.fairValueSummary?.fairValueBase, 0)}</strong>
           <em class="${colorClass(upsideColorCategory(numericValue(upside)), "tone")}" dir="ltr">${formatExternalPercent(upside)}</em>
         </div>
+        <span class="hero-upside-label">${isArabicUi() ? "الفارق إلى القيمة الأساسية" : "Return to Base"}</span>
         ${Number.isFinite(numericValue(priceAtAnalysis)) ? `<p>${uiLabel("Price at Analysis")}: <bdi dir="ltr">${money(priceAtAnalysis, 0)}</bdi></p>` : ""}
         ${Number.isFinite(numericValue(report.presentation?.morningstarFairValue)) ? `<p>Morningstar: <bdi dir="ltr">${money(report.presentation.morningstarFairValue, 0)}</bdi></p>` : ""}
       </div>
@@ -4192,7 +4236,7 @@ function investmentDataTableArea(report = {}) {
   const panels = [
     {
       key: "thesis",
-      label: isArabicUi() ? "الفرضية • Thesis" : "Thesis",
+      label: isArabicUi() ? "المتابعة" : "Tracking",
       body: priceTargetRequirementsView(tracking.requirementsBlock, {
         ticker: report.company?.ticker,
         reportId: report.id,
@@ -4204,7 +4248,7 @@ function investmentDataTableArea(report = {}) {
     },
     {
       key: "financials",
-      label: isArabicUi() ? "المالية • Financials" : "Financials",
+      label: isArabicUi() ? "المالية" : "Financials",
       body: [
         financialPerformanceTableView(report),
         guidanceTableView(report),
@@ -4213,7 +4257,7 @@ function investmentDataTableArea(report = {}) {
     },
     {
       key: "valuation",
-      label: isArabicUi() ? "التقييم • Valuation" : "Valuation",
+      label: isArabicUi() ? "التقييم" : "Valuation",
       body: valuationMethodsDashboard(report) || emptyCompactDataView(uiLabel("Valuation"))
     }
   ];
@@ -4224,12 +4268,12 @@ function investmentDataTableArea(report = {}) {
         ${panels.map((panel, index) => `<option value="${escapeHtml(panel.key)}" ${index === 0 ? "selected" : ""}>${escapeHtml(panel.label)}</option>`).join("")}
       </select>
       <div class="v31-report-tabs" role="tablist" aria-label="${uiLabel("Investment Data")}">
-        ${panels.map((panel, index) => `<button type="button" role="tab" class="${index === 0 ? "active" : ""}" data-investment-data-tab="${escapeHtml(panel.key)}" aria-selected="${index === 0}">${escapeHtml(panel.label)}</button>`).join("")}
+        ${panels.map((panel, index) => `<button type="button" role="tab" id="report-tab-${escapeHtml(panel.key)}" aria-controls="report-panel-${escapeHtml(panel.key)}" class="${index === 0 ? "active" : ""}" data-investment-data-tab="${escapeHtml(panel.key)}" aria-selected="${index === 0}">${escapeHtml(panel.label)}</button>`).join("")}
       </div>
       <div class="data-view-tabs compact-data-selector" aria-label="${uiLabel("Investment Data")}">
         <div class="data-view-panels">
           ${panels.map((panel, index) => `
-            <section class="data-view-panel data-view-panel-${panel.key} ${index === 0 ? "active" : ""}" data-data-view-panel="${escapeHtml(panel.key)}">
+            <section id="report-panel-${escapeHtml(panel.key)}" role="tabpanel" aria-labelledby="report-tab-${escapeHtml(panel.key)}" class="data-view-panel data-view-panel-${panel.key} ${index === 0 ? "active" : ""}" data-data-view-panel="${escapeHtml(panel.key)}">
               ${panel.body}
             </section>
           `).join("")}
@@ -6810,10 +6854,16 @@ function settingsPanel(state) {
   return `
     <section class="panel settings-panel">
       <h3>${uiLabel("Settings")}</h3>
+      <section class="settings-account-panel">
+        <p class="eyebrow">Franklin</p>
+        <h3>${isArabicUi() ? "حسابك ومزامنة أبحاثك" : "Your account & research sync"}</h3>
+        <p>${isArabicUi() ? "ادخل إلى حسابك لإدارة مزامنة تقاريرك بين أجهزتك." : "Open your account to manage research synchronization across your devices."}</p>
+        <button class="secondary-btn" type="button" data-action="open-franklin-account">${isArabicUi() ? "فتح حساب Franklin" : "Open Franklin account"}</button>
+      </section>
       <div class="settings-grid">
         <div class="settings-status">
-          <span>${uiLabel("Private Server")}</span>
-          <strong>${uiLabel("API keys are configured on the private server only.")}</strong>
+          <span>${isArabicUi() ? "لغة الواجهة" : "Interface language"}</span>
+          <strong>${state.language === "ar" ? "العربية" : "English"}</strong>
         </div>
         <div class="settings-status">
           <span>${uiLabel("Saved reports")}</span>
@@ -6825,22 +6875,22 @@ function settingsPanel(state) {
           <div>
             <p class="eyebrow">${uiLabel("Investment Data")}</p>
             <h3>${uiLabel("Export and Restore")}</h3>
-            <p>${uiLabel("Export saved Franklin reports, history, settings, and watch data. API keys are never included.")}</p>
+            <p>${isArabicUi() ? "احتفظ بنسخة من تقاريرك وسجلها وإعداداتك، أو استعد نسخة سابقة على هذا الجهاز." : "Keep a copy of your reports, history and settings, or restore a previous copy on this device."}</p>
           </div>
           <button class="primary-btn" data-action="export-all-investment-data">${uiLabel("Export All Investment Data")}</button>
         </div>
         <label class="restore-file-input">
           <span>${uiLabel("Restore Investment Data")}</span>
-          <input type="file" accept="application/json,.json" data-restore-investment-backup>
+          <input type="file" accept="application/json,.json" data-restore-investment-backup aria-label="${isArabicUi() ? "اختيار نسخة احتياطية للاستعادة" : "Choose a backup to restore"}">
         </label>
         ${localRecoveryBackupsPanel(state.localBackupRegistry || [])}
         ${restorePreviewPanel(state.restorePreview)}
       </section>
-      <button class="icon-btn" data-action="load-external-demo">${uiLabel("Open DEMO External Report")}</button>
-      <button class="icon-btn danger-action" data-action="clear-local-data">${uiLabel("Clear Local Data")}</button>
-      <div class="settings-note">
-        ${analysisText("API keys are stored only as server-side environment variables. Imported reports remain local in this browser until cleared. Franklin stores research knowledge and does not create investment analysis.")}
-      </div>
+      <details class="settings-advanced"><summary>${isArabicUi() ? "خيارات إضافية" : "Additional options"}</summary>
+        <button class="icon-btn" data-action="load-external-demo">${isArabicUi() ? "استعراض تقرير توضيحي" : "Explore an illustrative report"}</button>
+        <p class="settings-note">${isArabicUi() ? "التقرير التوضيحي يستخدم بيانات افتراضية. تقاريرك المستوردة تبقى على هذا المتصفح، والمزامنة تتطلب تسجيل الدخول." : "The illustrative report uses fictional data. Imported research stays in this browser; synchronization requires signing in."}</p>
+        <button class="icon-btn danger-action" data-action="clear-local-data">${uiLabel("Clear Local Data")}</button>
+      </details>
     </section>
   `;
 }
@@ -7142,6 +7192,39 @@ function bind(root, store, actions) {
   root.querySelectorAll("[data-action='open-external-import']").forEach((button) => {
     button.addEventListener("click", store.openExternalImport);
   });
+  root.querySelectorAll("[data-analysis-step]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const step = Number(button.dataset.analysisStep);
+      if (store.state.externalImport?.draftReport && step !== 3) return;
+      if (step === 2 && !store.state.externalImport?.tickerHint) {
+        store.set({ externalImport: { ...store.state.externalImport, journeyStep: 1, companyError: isArabicUi() ? "اختر الشركة أولًا، ثم جهّز طلب التحليل." : "Choose a company before preparing its request." }, notice: "" });
+        return;
+      }
+      store.set({ externalImport: { ...store.state.externalImport, journeyStep: step }, notice: "" });
+    });
+  });
+  const continueCompany = (value) => {
+    const input = root.querySelector("[data-analysis-company-query]");
+    const query = value ?? input?.value ?? store.state.externalImport?.companyQuery ?? "";
+    const company = resolveAnalysisCompany(query, store.state.externalAnalyses);
+    if (!company) {
+      store.set({ externalImport: { ...store.state.externalImport, companyQuery: query, companyError: isArabicUi() ? "اختر اسمًا من الاقتراحات أو اكتب رمز السهم، مثل NVDA." : "Choose a suggested company or enter its ticker, such as NVDA." }, notice: "" });
+      root.querySelector("[data-analysis-company-query]")?.focus();
+      return;
+    }
+    const previous = store.state.externalImport || {};
+    const previousTicker = previous.file?.summary?.ticker || previous.copyForTicker;
+    const changed = previousTicker && previousTicker !== company.ticker;
+    store.set({ externalImport: { ...previous, ...(changed ? { rawText: "", file: null, draftReport: null, draftJson: "", ownerPresentation: {}, validation: { valid: false, errors: [], warnings: [] } } : {}), tickerHint: company.ticker, companyQuery: company.name || company.ticker, companyError: "", promptCopied: Boolean(previous.promptCopied && previous.copyForTicker === company.ticker), journeyStep: 2 }, notice: "" });
+  };
+  root.querySelector("[data-action='analysis-company-continue']")?.addEventListener("click", () => continueCompany());
+  root.querySelector("[data-analysis-company-query]")?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") { event.preventDefault(); continueCompany(); }
+  });
+  root.querySelectorAll("[data-analysis-company]").forEach((button) => button.addEventListener("click", () => continueCompany(button.dataset.analysisCompany)));
+  root.querySelector("[data-external-raw]")?.addEventListener("input", (event) => {
+    store.state.externalImport = { ...store.state.externalImport, rawText: event.target.value };
+  });
   root.querySelectorAll("[data-external-import-mode]").forEach((button) => {
     button.addEventListener("click", () => store.setExternalImportMode(button.dataset.externalImportMode));
   });
@@ -7179,11 +7262,22 @@ function bind(root, store, actions) {
   root.querySelector("[data-action='parse-external-analysis']")?.addEventListener("click", () => {
     const text = root.querySelector("[data-external-raw]")?.value || "";
     const tickerHint = root.querySelector("[data-external-ticker-hint]")?.value || "";
+    if (isAnalysisRequest(text)) {
+      store.set({ externalImport: { ...store.state.externalImport, rawText: text, draftReport: null, draftJson: "", validation: { valid: false, errors: [{ field: "input", message: isArabicUi() ? "المحتوى هو طلب التحليل وليس نتيجة التحليل." : "The content is the analysis request, not its result." }], warnings: [] }, technicalDetails: "" }, notice: "" });
+      root.querySelector(".journey-validation")?.scrollIntoView({ block: "center" });
+      return;
+    }
     store.parseExternalImport(text, { tickerHint });
   });
   root.querySelector("[data-external-ticker-hint]")?.addEventListener("input", (event) => {
-    const tickerHint = String(event.target.value || "").toUpperCase().replace(/[^A-Z0-9.-]/g, "").slice(0, 12);
-    store.state.externalImport = { ...store.state.externalImport, tickerHint };
+    const companyQuery = String(event.target.value || "");
+    const tickerHint = resolveAnalysisCompany(companyQuery, store.state.externalAnalyses)?.ticker || "";
+    store.state.externalImport = { ...store.state.externalImport, tickerHint, companyQuery };
+  });
+  root.querySelector("[data-action='open-franklin-account']")?.addEventListener("click", () => {
+    const trigger = document.querySelector(".franklin-cloud-trigger");
+    if (trigger) trigger.click();
+    else store.set({ notice: isArabicUi() ? "تعذر فتح الحساب حاليًا. أعد المحاولة بعد لحظات." : "Account is temporarily unavailable. Please try again shortly." });
   });
   root.querySelectorAll("[data-action='copy-new-earnings-prompt']").forEach((button) => {
     button.addEventListener("click", () => copyNewEarningsAnalysisPrompt(store));
@@ -7231,6 +7325,12 @@ function bind(root, store, actions) {
       const select = area?.querySelector("[data-investment-data-select]");
       if (select) select.value = value;
       activateInvestmentDataPanel(area, value);
+    });
+  });
+  root.querySelectorAll("[data-report-section]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const section = root.querySelector(`#${button.dataset.reportSection}`);
+      section?.scrollIntoView({ block: "start", behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
     });
   });
   root.querySelectorAll("[data-action='copy-missing-requirements']").forEach((button) => {
@@ -7815,7 +7915,7 @@ async function copyEarningsUpdatePrompt(store) {
 
 async function copyExternalAnalysisPrep(store, kind, tickerHint = "") {
   const isTemplate = kind === "template";
-  const normalizedTicker = String(tickerHint || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").slice(0, 12);
+  const normalizedTicker = resolveAnalysisCompany(tickerHint, store.state.externalAnalyses)?.ticker || "";
   if (!normalizedTicker) {
     store.set({
       externalImport: { ...store.state.externalImport, tickerHint: "" },
@@ -7841,6 +7941,7 @@ async function copyExternalAnalysisPrep(store, kind, tickerHint = "") {
       externalImport: {
         ...store.state.externalImport,
         tickerHint: normalizedTicker,
+        ...(!isTemplate ? { journeyStep: 3, promptCopied: true, copyForTicker: normalizedTicker } : {}),
         copyFallbackText: "",
         copyFallbackTitle: "",
         copyFallbackAction: ""

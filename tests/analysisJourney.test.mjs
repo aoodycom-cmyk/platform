@@ -1,0 +1,27 @@
+import assert from "node:assert/strict";
+import { analysisCompanyOptions, resolveAnalysisCompany, analysisJourneyStep, isAnalysisRequest } from "../src/ui/analysisJourney.js";
+
+assert.equal(resolveAnalysisCompany("إنفيديا").ticker, "NVDA");
+assert.equal(resolveAnalysisCompany(" nvidia corporation ").ticker, "NVDA");
+assert.equal(resolveAnalysisCompany("Apple").ticker, "AAPL");
+assert.equal(resolveAnalysisCompany("تكساس إنسترومنتس").ticker, "TXN");
+assert.equal(resolveAnalysisCompany("BRK.B").ticker, "BRK.B");
+assert.equal(resolveAnalysisCompany("شركة غير معروفة"), null, "A company name must never be guessed into a ticker.");
+assert.equal(resolveAnalysisCompany(""), null);
+assert.equal(resolveAnalysisCompany('<img src=x onerror=alert(1)>'), null);
+const saved = { LOCAL: [{ company: { ticker: "LOCAL", name: "شركة محفوظة" } }], DEMO: [{ company: { ticker: "DEMO", name: "Demo" } }] };
+const before = structuredClone(saved);
+assert.equal(resolveAnalysisCompany("شركة محفوظة", saved).ticker, "LOCAL");
+assert.equal(analysisCompanyOptions(saved).some((item) => item.ticker === "DEMO"), false);
+assert.deepEqual(saved, before, "Company lookup must not mutate saved research.");
+assert.equal(analysisJourneyStep({}), 1);
+assert.equal(analysisJourneyStep({ file: { name: "result.json" } }), 3);
+assert.equal(analysisJourneyStep({ journeyStep: 2, file: { name: "result.json" } }), 2, "A selected file must not trap the investor on the result step.");
+assert.equal(analysisJourneyStep({ journeyStep: 1, draftReport: {} }), 3);
+assert.equal(analysisJourneyStep({ editing: true }), 3);
+assert.equal(isAnalysisRequest('Fair value / ChatGPT هو نظام التحليل المالي'), true);
+assert.equal(isAnalysisRequest(JSON.stringify({ requestType: "FRANKLIN_INITIAL_ANALYSIS", jsonTemplate: {} })), true);
+assert.equal(isAnalysisRequest('```json\n{"promptVersion":"v6","jsonTemplate":{}}\n```'), true);
+assert.equal(isAnalysisRequest('{"schemaVersion":"franklin-fair-value/v3","reportIdentity":{}}'), false, "Report validity belongs to the financial validator, not the presentation helper.");
+assert.equal(isAnalysisRequest('{"schemaVersion":'), false);
+console.log("Analysis journey company lookup and request/result distinction: PASS");
