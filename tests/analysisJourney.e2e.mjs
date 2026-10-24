@@ -42,6 +42,7 @@ try {
       assert.match(copied, /"ticker":\s*"NVDA"/);
     }
     await page.locator("[data-external-import-mode='paste']").click();
+    assert.ok((await page.locator("[data-external-raw]").boundingBox()).height >= 200, "Pasting a complete analysis needs a comfortably sized input area.");
     const draftText = "نص النتيجة قبل الرجوع بين الخطوات";
     await page.locator("[data-external-raw]").fill(draftText);
     await page.locator(".analysis-progress [data-analysis-step='2']").click();

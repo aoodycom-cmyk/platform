@@ -82,6 +82,7 @@ html[data-theme="dark"] .mobile-app-frame .mobile-page-content .eyebrow { font-s
 .v31-library-stock-row .v31-fair-value-line strong { color: var(--experience-ink) !important; }
 .mobile-app-frame .v2-library-scenarios b { font-size: 16px !important; }
 .mobile-app-frame .analysis-journey { width: min(100%, 640px); max-width: 640px; margin: 0 auto; padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
+.mobile-app-frame .panel { animation: none !important; }
 .analysis-journey .external-import-head { display: flex !important; flex-direction: row !important; align-items: flex-start !important; gap: 16px; margin-bottom: 24px !important; }
 .external-import-head > div { min-width: 0; flex: 1; }
 .analysis-journey .external-import-head .eyebrow { margin: 0 0 6px; color: var(--experience-accent); font-size: 12px; }
@@ -143,7 +144,7 @@ html[data-theme="dark"] .mobile-app-frame .mobile-page-content .eyebrow { font-s
 .json-file-picker-icon svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .analysis-journey .json-file-native-input { position: absolute; width: 1px; height: 1px; padding: 0; opacity: 0; overflow: hidden; pointer-events: none; }
 .analysis-journey .json-paste-import-area { display: grid; gap: 10px; }
-.mobile-app-frame .analysis-journey .external-paste-box { width: 100%; min-height: 220px !important; max-height: 50vh; font-size: 14px !important; line-height: 1.8 !important; }
+.mobile-app-frame .analysis-journey textarea.external-paste-box { width: 100%; min-height: 220px !important; max-height: 50vh; font-size: 14px !important; line-height: 1.8 !important; }
 .analysis-journey .external-import-actions { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
 .journey-result-label { font-size: 14px; font-weight: 500; }
 .journey-validation { margin-top: 22px; padding: 18px; border: 1px solid #fc8c9960; border-radius: 14px; background: #321e29; }
