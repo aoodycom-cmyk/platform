@@ -15,6 +15,7 @@ const browser = await playwright[browserName].launch({ headless: true, ...(brows
 
 try {
   for (const width of [320, 390, 430, 1440]) {
+    console.log(`Checking analysis journey [${browserName}, ${width}px]`);
     const context = await browser.newContext({ viewport: { width, height: 900 }, isMobile: width < 500, hasTouch: width < 500, locale: "ar-SA", colorScheme: "dark" });
     if (browserName === "chromium") await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     const page = await context.newPage();
@@ -93,7 +94,6 @@ async function assertLayout(page, label) {
 async function capture(page, width, screen) {
   const directory = process.env.FRANKLIN_UX_ARTIFACT_DIR;
   if (!directory) return;
-  await page.evaluate(() => Promise.all(document.getAnimations().filter((animation) => animation.effect?.getTiming().iterations !== Infinity).map((animation) => animation.finished.catch(() => {}))));
   await mkdir(directory, { recursive: true });
-  await page.screenshot({ path: join(directory, `${browserName}-${width}-${screen}.png`), fullPage: true });
+  await page.screenshot({ path: join(directory, `${browserName}-${width}-${screen}.png`), fullPage: true, animations: "disabled", timeout: 20_000 });
 }
