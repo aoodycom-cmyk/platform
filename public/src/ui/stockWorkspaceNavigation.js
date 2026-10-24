@@ -243,6 +243,7 @@ function markLegacyEarningsDetail(root) {
   const flow = root.querySelector(".panel-external-report .stock-decision-flow");
   if (!flow) return;
   [...flow.children].forEach((child) => {
+    if (child.id === "report-data" || child.classList.contains("v31-investment-tabs-section")) return;
     if (child.classList.contains("latest-earnings-summary-section")) return;
     if (child.querySelector?.("[data-action='open-quarterly-scorecard']")) child.classList.add("franklin-summary-legacy-earnings-detail");
   });

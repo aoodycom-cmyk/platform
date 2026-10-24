@@ -92,6 +92,7 @@ async function assertLayout(page, label) {
 async function capture(page, width, screen) {
   const directory = process.env.FRANKLIN_UX_ARTIFACT_DIR;
   if (!directory) return;
+  await page.evaluate(() => Promise.all(document.getAnimations().filter((animation) => animation.effect?.getTiming().iterations !== Infinity).map((animation) => animation.finished.catch(() => {}))));
   await mkdir(directory, { recursive: true });
   await page.screenshot({ path: join(directory, `${browserName}-${width}-${screen}.png`), fullPage: true });
 }
