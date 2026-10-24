@@ -153,3 +153,14 @@ actualValue = null
 ```
 
 Franklin preserves that result and does not reinterpret it.
+
+## External risk score convention
+
+For the active external-report and supplement contract, `scores.risk` is severity:
+0 = lowest risk, 100 = highest risk. Every new numeric risk supplement must include
+`scores.riskScale: "higher-is-riskier"` in `fields`, together with `scores.risk`.
+This is separate from the legacy deterministic engine's higher-is-safer safety score.
+No automatic complement or migration of old scores is permitted. Stored untyped
+scores retain their original number and history, are marked direction-unverified,
+and must be reassessed by the analyst before comparison. The score and scale are
+an atomic pair during conflict resolution. Reaffirm both even if the number is unchanged.

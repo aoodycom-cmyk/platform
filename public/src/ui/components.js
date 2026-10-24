@@ -1,3 +1,4 @@
+import { hasComparableRiskScore, RISK_SCALE_EXPLANATION_AR } from "../externalAnalysis/riskScoreContract.js";
 import { compact, money, percent } from "../domain/financialMetrics.js";
 import {
   colorClass,
@@ -1647,7 +1648,8 @@ export function localizedValidationMessage(item = {}) {
     "scores.quality": "Quality Score إذا كان موجودًا يجب أن يكون بين 0 و100.",
     "scores.growth": "Growth Score إذا كان موجودًا يجب أن يكون بين 0 و100.",
     "scores.valuation": "Valuation Score إذا كان موجودًا يجب أن يكون بين 0 و100.",
-    "scores.risk": "Risk Score إذا كان موجودًا يجب أن يكون بين 0 و100.",
+    "scores.risk": "شدة المخاطر من 0 إلى 100: الأعلى أخطر، مع توثيق اتجاه الدرجة.",
+    "scores.riskScale": "أعد مراجعة درجة المخاطر وأرسلها مع scores.riskScale = higher-is-riskier. لا تعكس الدرجة القديمة تلقائيًا.",
     "fairValueSummary.fairValueLow": "Bear Fair Value مطلوب ويجب أن يكون أكبر من صفر.",
     "fairValueSummary.fairValueBase": "Base Fair Value مطلوب ويجب أن يكون أكبر من صفر.",
     "fairValueSummary.fairValueHigh": "Bull Fair Value مطلوب ويجب أن يكون أكبر من صفر.",
@@ -1665,6 +1667,7 @@ export function localizedValidationMessage(item = {}) {
   };
   if (field === "fields" && message.includes("Unknown supplement field path")) return "بعض الحقول لا تطابق مسارات معروفة في Schema التحليل.";
   if (field === "fields" && message.includes("non-empty values")) return "لم يُرجع ChatGPT أي قيم غير فارغة للحقول المطلوبة.";
+  if (field === "fields.scores.riskScale") return messages["scores.riskScale"];
   if (messages[field]) return messages[field];
   if (field === "methodologyVersion") return "إصدار منهجية Franklin غير مدعوم.";
   if (field === "analysisType") return "نوع التحليل يجب أن يكون تحليلًا أوليًا أو تحديث أرباح.";
@@ -2532,21 +2535,21 @@ function stockScoreBar(report = {}) {
     [financialTerm("Quality"), report.scores?.quality],
     [financialTerm("Growth"), report.scores?.growth],
     [uiLabel("Valuation"), report.scores?.valuation],
-    [financialTerm("Risk"), report.scores?.risk],
+    [isArabicUi() ? "شدة المخاطر (الأعلى أخطر)" : "Risk severity (higher is riskier)", hasComparableRiskScore(report) ? report.scores?.risk : null, true],
     [uiLabel("Investment Score"), report.decision?.investmentScore]
   ];
   return `
     <section class="stock-score-bar" aria-label="${uiLabel("Investment Score")}">
-      ${metrics.map(([label, value]) => scoreBarItem(label, value)).join("")}
+      ${metrics.map(([label, value, risk]) => scoreBarItem(label, value, risk)).join("")}
     </section>
   `;
 }
 
-function scoreBarItem(label, value) {
+function scoreBarItem(label, value, risk = false) {
   const score = numericValue(value);
   const pct = Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : 0;
   return `
-    <article class="${scoreToneClass(score)}">
+    <article class="${risk ? "risk" : scoreToneClass(score)}">
       <span>${escapeHtml(label)}</span>
       <strong dir="ltr">${scoreText(value, 1)}</strong>
       <i><b style="width:${pct}%"></b></i>
@@ -2710,13 +2713,13 @@ function companyAssessmentPanel(report = {}, options = {}) {
       detail: paragraphBlock([report.quality?.moat])
     },
     {
-      ar: "المخاطر",
-      en: "Risk",
-      value: report.scores?.risk,
+      ar: "شدة المخاطر (الأعلى أخطر)",
+      en: "Risk severity (higher is riskier)",
+      value: hasComparableRiskScore(report) ? report.scores?.risk : null,
       displayValue: assessmentMetricText(riskMetric),
       progress: riskMetric.progress,
       tone: "risk",
-      detail: paragraphBlock([riskCompactSummary(report)])
+      detail: paragraphBlock([isArabicUi() ? RISK_SCALE_EXPLANATION_AR : "0 lowest risk, 100 highest risk. Unknown legacy scales must be reviewed before comparison.", riskCompactSummary(report)])
     }
   ].filter((row) => Number.isFinite(numericValue(row.value)) || row.displayValue || hasRenderableContent(row.detail));
   if (!rows.length && !Number.isFinite(overall)) return "";
@@ -2765,6 +2768,7 @@ export function companyAssessmentRow(row = {}) {
 }
 
 function assessmentMetricText(metric = {}) {
+  if (metric.kind === "unverified-risk") return isArabicUi() ? "اتجاه الدرجة غير موثق — يلزم مراجعة" : "Unknown score direction — review required";
   if (metric.kind === "score" && Number.isFinite(metric.score)) return `${metric.score.toFixed(1)}/100`;
   if (metric.kind === "upside" && Number.isFinite(metric.value)) {
     const rounded = Math.round(metric.value * 10) / 10;
@@ -2798,9 +2802,9 @@ function qualityGrowthRiskPanel(report = {}) {
     },
     {
       label: uiLabel("المخاطر"),
-      value: report.scores?.risk,
-      status: qualitativeScoreLabel(report.scores?.risk, true),
-      detail: paragraphBlock([riskCompactSummary(report)])
+      value: hasComparableRiskScore(report) ? report.scores?.risk : null,
+      status: hasComparableRiskScore(report) ? qualitativeScoreLabel(report.scores?.risk, true) : assessmentMetricText(riskAssessmentMetric(report)),
+      detail: paragraphBlock([isArabicUi() ? RISK_SCALE_EXPLANATION_AR : "0 lowest risk, 100 highest risk. Unknown legacy scales must be reviewed before comparison.", riskCompactSummary(report)])
     }
   ].filter((row) => !isEmptyDisplayValue(row.value) || hasRenderableContent(row.detail));
   if (!rows.length) return "";
@@ -3309,7 +3313,7 @@ function compactScoreRowsView(report = {}) {
   const rows = [
     [financialTerm("Quality"), scoreText(report.scores?.quality, 1), qualityCompactSummary(report)],
     [financialTerm("Growth"), scoreText(report.scores?.growth, 1), growthCompactSummary(report)],
-    [financialTerm("Risk"), scoreText(report.scores?.risk, 1), riskCompactSummary(report)],
+    [isArabicUi() ? "شدة المخاطر (الأعلى أخطر)" : "Risk severity (higher is riskier)", assessmentMetricText(riskAssessmentMetric(report)), riskCompactSummary(report)],
     [uiLabel("Investment Score"), scoreText(report.decision?.investmentScore, 1), investmentCompactSummary(report)]
   ].filter(([, value, detail]) => value !== "—" || localizedExternalText(detail).trim());
   if (!rows.length) return "";
@@ -5038,7 +5042,7 @@ function externalVersionHistory(currentReport, history = []) {
           <span>${escapeHtml(report.analysisDate || "-")} / ${localizedExternalText(externalRecommendationAction(report) || "-")} / ${uiLabel("Weighted Achievement")}: ${Number.isFinite(numericValue(report.requirementsAssessment?.weightedAchievement)) ? `${Math.round(numericValue(report.requirementsAssessment.weightedAchievement))}%` : "—"}</span>
           <small>
             Bear ${money(report.fairValueSummary?.fairValueLow, 0)} / Base ${money(report.fairValueSummary?.fairValueBase, 0)} / Bull ${money(report.fairValueSummary?.fairValueHigh, 0)}
-            · Quality ${scoreText(report.scores?.quality, 1)} · Growth ${scoreText(report.scores?.growth, 1)} · Risk ${scoreText(report.scores?.risk, 1)}
+            · Quality ${scoreText(report.scores?.quality, 1)} · Growth ${scoreText(report.scores?.growth, 1)} · ${isArabicUi() ? "شدة المخاطر (الأعلى أخطر)" : "Risk severity (higher is riskier)"} ${escapeHtml(assessmentMetricText(riskAssessmentMetric(report)))}
           </small>
         </button>
       `).join("")}

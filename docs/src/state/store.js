@@ -1,3 +1,4 @@
+import { hasComparableRiskScore } from "../externalAnalysis/riskScoreContract.js";
 import { createCompanyShell } from "../data/sampleData.js";
 import { DEMO_ANALYSIS_FIXTURE } from "../data/demoFlow.js";
 import { createDemoExternalAnalysisReport, createDemoExternalAnalysisScenario } from "../data/externalDemo.js";
@@ -2040,7 +2041,7 @@ function createQuarterlyScorecardState() {
   };
 }
 
-function createEarningsUpdatePreview(currentReport = {}, incomingReport = {}, validation = {}) {
+export function createEarningsUpdatePreview(currentReport = {}, incomingReport = {}, validation = {}) {
   const paths = [
     ["analysisDate", "Analysis Date"],
     ["reportPeriod", "Report Period"],
@@ -2056,7 +2057,7 @@ function createEarningsUpdatePreview(currentReport = {}, incomingReport = {}, va
     ["scores.quality", "Quality"],
     ["scores.growth", "Growth"],
     ["scores.valuation", "Valuation"],
-    ["scores.risk", "Risk"],
+    ["scores.risk", "Risk severity / شدة المخاطر"],
     ["decision.investmentScore", "Overall"],
     ["decision.action", "Recommendation"],
     ["decision.confidence", "Confidence"],
@@ -2083,8 +2084,8 @@ function createEarningsUpdatePreview(currentReport = {}, incomingReport = {}, va
   let newFields = 0;
   let updatedFields = 0;
   for (const [path, label] of paths) {
-    const before = getPathValue(currentReport, path);
-    const after = getPathValue(incomingReport, path);
+    const before = path === "scores.risk" ? riskPreviewValue(currentReport) : getPathValue(currentReport, path);
+    const after = path === "scores.risk" ? riskPreviewValue(incomingReport) : getPathValue(incomingReport, path);
     if (isDisplayMissing(after)) continue;
     if (isDisplayMissing(before)) {
       newFields += 1;
@@ -2107,8 +2108,8 @@ function createEarningsUpdatePreview(currentReport = {}, incomingReport = {}, va
     ["priceTargetRequirements.requirements", "Next Requirements"]
   ];
   for (const [path, label] of collectionFields) {
-    const before = getPathValue(currentReport, path);
-    const after = getPathValue(incomingReport, path);
+    const before = path === "scores.risk" ? riskPreviewValue(currentReport) : getPathValue(currentReport, path);
+    const after = path === "scores.risk" ? riskPreviewValue(incomingReport) : getPathValue(incomingReport, path);
     const beforeCount = Array.isArray(before) ? before.length : isDisplayMissing(before) ? 0 : 1;
     const afterCount = Array.isArray(after) ? after.length : isDisplayMissing(after) ? 0 : 1;
     if (afterCount > 0 && (afterCount !== beforeCount || !sameDisplayValue(before, after))) {
@@ -2125,6 +2126,12 @@ function createEarningsUpdatePreview(currentReport = {}, incomingReport = {}, va
     warningFields: (validation.warnings || []).length,
     changes: changes.slice(0, 12)
   };
+}
+
+function riskPreviewValue(report = {}) {
+  const risk = report.scores?.risk;
+  if (risk == null) return null;
+  return `${risk}/100 (${hasComparableRiskScore(report) ? "الأعلى أخطر / higher is riskier" : "اتجاه غير موثق / unknown direction"})`;
 }
 
 function getPathValue(object = {}, path = "") {

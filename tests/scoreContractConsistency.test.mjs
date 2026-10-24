@@ -60,7 +60,7 @@ test("native V3 business-quality scores use the same 0-100 boundaries", () => {
 test("supplement scores use the same 0-100 contract", () => {
   const supplement = {
     schemaVersion: "external-analysis-supplement/v1",
-    fields: { "scores.valuation": 65, "scores.risk": 72 }
+    fields: { "scores.valuation": 65, "scores.risk": 72, "scores.riskScale": "higher-is-riskier" }
   };
   assert.equal(validateExternalAnalysisSupplement(supplement, validReport()).valid, true);
   for (const value of [-1, 100.01, 101, Number.NaN, Number.POSITIVE_INFINITY, "80"]) {

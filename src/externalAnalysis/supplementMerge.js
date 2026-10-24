@@ -94,6 +94,13 @@ export function mergeExternalAnalysisSupplement(existingReport = {}, supplement 
     };
   }
 
+  if (supplementFields["scores.risk"] != null && supplementFields["scores.riskScale"] != null
+      && (mergedReport.scores?.risk !== supplementFields["scores.risk"]
+        || mergedReport.scores?.riskScale !== supplementFields["scores.riskScale"])) {
+    return unchangedMergeResult(existingReport, {
+      valid: false, warnings: [], errors: [{ field: "fields.scores.riskScale", message: "Risk score and scale must be accepted together; no partial risk update was saved." }]
+    }, diagnostics, supplementFields);
+  }
   if (!appliedFields.length) {
     return {
       report: clone(existingReport),

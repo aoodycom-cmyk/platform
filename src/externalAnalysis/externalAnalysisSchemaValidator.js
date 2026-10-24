@@ -1,3 +1,4 @@
+import { EXTERNAL_RISK_SCALE } from "./riskScoreContract.js";
 import { getByPath } from "./fieldPaths.js";
 import { FRANKLIN_V3_SOURCE_TYPES } from "./v3Contract.js";
 
@@ -17,6 +18,12 @@ export function validateExternalAnalysisReport(report = {}) {
 
   for (const [key, label] of [["fairValueLow", "bear"], ["fairValueBase", "base"], ["fairValueHigh", "bull"]]) {
     if (!isPositiveNumber(report.fairValueSummary?.[key])) errors.push(fieldError(`fairValueSummary.${key}`, `${label} fair value is required and must be greater than zero.`));
+  }
+  if (report.scores?.riskScale != null && report.scores.riskScale !== EXTERNAL_RISK_SCALE) {
+    errors.push(fieldError("scores.riskScale", "Risk score scale must be higher-is-riskier."));
+  }
+  if (report.scores?.risk != null && !report.scores?.riskScale) {
+    warnings.push(fieldError("scores.riskScale", "Legacy risk score has an unknown direction; preserve it but do not compare it until reviewed."));
   }
   validateFairValueOrdering(report, errors);
   validateOptionalPositiveFairValues(report, errors);

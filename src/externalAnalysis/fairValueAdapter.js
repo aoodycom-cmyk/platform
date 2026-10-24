@@ -364,6 +364,7 @@ export function fairValueAnalysisToExternalReport(input = {}) {
       growth: normalizedScore(components.growth),
       valuation: normalizedScore(input.scores?.valuation ?? input.valuationScore),
       risk: normalizedScore(input.scores?.risk ?? input.riskScore),
+      riskScale: input.scores?.riskScale ?? null,
       moat: normalizedScore(components.competitiveAdvantage),
       management: normalizedScore(components.management)
     },

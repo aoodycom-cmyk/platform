@@ -1,3 +1,5 @@
+import { hasComparableRiskScore } from "../externalAnalysis/riskScoreContract.js";
+
 const RISK_SEVERITY_ORDER = {
   low: 1,
   medium: 2,
@@ -29,6 +31,7 @@ export function valuationAssessmentMetric(report = {}) {
 export function riskAssessmentMetric(report = {}) {
   const explicitScore = finiteNumber(report.scores?.risk);
   if (explicitScore !== null) {
+    if (!hasComparableRiskScore(report)) return { kind: "unverified-risk", score: explicitScore, progress: null, tone: "warning" };
     return { kind: "score", score: explicitScore, progress: clamp(explicitScore, 0, 100), tone: "risk" };
   }
 

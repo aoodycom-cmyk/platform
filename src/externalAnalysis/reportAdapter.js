@@ -20,6 +20,7 @@ export function externalAnalysisToHomeCard(report = {}) {
     growthScore: report.scores?.growth ?? null,
     valuationScore: report.scores?.valuation ?? null,
     riskScore: report.scores?.risk ?? null,
+    riskScale: report.scores?.riskScale ?? null,
     overallScore: report.decision?.investmentScore ?? null,
     bearFairValue: report.fairValueSummary?.fairValueLow ?? null,
     baseFairValue: report.fairValueSummary?.fairValueBase ?? null,
