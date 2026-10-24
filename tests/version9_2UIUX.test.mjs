@@ -10,6 +10,7 @@ import {
 } from "../public/src/valuationWorkflow/workflow.js";
 
 const components = readFileSync(new URL("../public/src/ui/components.js", import.meta.url), "utf8");
+const analysisJourney = readFileSync(new URL("../public/src/ui/analysisJourney.js", import.meta.url), "utf8");
 const foundation = readFileSync(new URL("../public/src/ui/foundation.js", import.meta.url), "utf8");
 const styles = readFileSync(new URL("../public/styles.css", import.meta.url), "utf8");
 const language = readFileSync(new URL("../public/src/i18n/language.js", import.meta.url), "utf8");
@@ -28,7 +29,7 @@ assert.ok(homeDashboard.includes("My Stocks"), "Home must present Franklin as My
 assert.ok(homeDashboard.includes("externalAnalysesHomeSection"), "Home must focus on saved imported reports.");
 assert.ok(foundation.includes("data-action=\"open-external-import\""), "Home must expose Import Analysis through the shared app header.");
 assert.ok(components.includes("investmentLibrarySummary"), "Home must show a compact saved-stock status summary.");
-assert.ok(components.includes("Analyze / Add Stock"), "Home primary CTA must focus on analyzing or adding a stock.");
+assert.ok(analysisJourney.includes('data-action="open-external-import"') && analysisJourney.includes("أضف أول شركة"), "Home primary CTA must focus on adding the first company analysis.");
 assert.equal(homeDashboard.includes("data-action=\"new-analysis\""), false, "Home must not surface the legacy internal New Analysis flow.");
 assert.equal(homeDashboard.includes("data-action=\"load-demo-analysis\""), false, "Home must not surface demo analysis loading.");
 assert.equal(visiblePanelConfig.includes("\"workspace\""), false, "Visible navigation must not expose the legacy workspace.");

@@ -41,6 +41,7 @@ try {
 
   const openImport = page.locator("[data-action='open-external-import']:visible").first();
   await openImport.click();
+  await page.locator(".analysis-progress [data-analysis-step='3']").click();
   await page.locator("[data-external-import-mode='paste']").click();
   await page.locator("[data-external-raw]").fill(JSON.stringify(canonical));
   await page.locator("[data-action='parse-external-analysis']").click();
@@ -195,6 +196,7 @@ try {
   assert.equal(exported.supplements.length, 1);
 
   await page.evaluate(() => window.__equityResearchStore.openExternalImport());
+  await page.locator(".analysis-progress [data-analysis-step='3']").click();
   await page.locator("[data-external-import-mode='file']").click();
   await page.locator("[data-external-json-file]").setInputFiles({
     name: download.suggestedFilename(),

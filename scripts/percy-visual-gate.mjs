@@ -206,6 +206,7 @@ async function measureGlobalPage() {
       header: rect(header),
       frame: rect(frame),
       content: rect(content),
+      contentPadding: content ? { left: parseFloat(getComputedStyle(content).paddingLeft), right: parseFloat(getComputedStyle(content).paddingRight) } : null,
       logo: rect(logo),
       logoFilter: logo ? getComputedStyle(logo).filter : null,
       brandDirectChildren: brand?.children.length ?? 0,
@@ -257,6 +258,7 @@ async function measureStockPage() {
       sharedHeader: rect(header),
       nav: rect(nav),
       content: rect(content),
+      contentPadding: content ? { left: parseFloat(getComputedStyle(content).paddingLeft), right: parseFloat(getComputedStyle(content).paddingRight) } : null,
       companyLogo: rect(companyLogo),
       controlHeights: controls.map(control => round(control.getBoundingClientRect().height)),
       horizontalOverflow: Math.max(0, document.documentElement.scrollWidth - innerWidth),
@@ -294,15 +296,16 @@ function validateGlobalPages(measurements, failures, suffix = '') {
     }
     if (value.horizontalOverflow > 0) failures.push(`${label}: horizontal overflow ${value.horizontalOverflow}px`);
     if (Math.abs(reference.header.height - value.header.height) > 1) failures.push(`${label}: header height ${value.header.height}px differs from Library ${reference.header.height}px`);
-    if (value.header.height > 64) failures.push(`${label}: global header is too tall at ${value.header.height}px`);
+    if (value.header.height < 76 || value.header.height > 84) failures.push(`${label}: branded header must remain 76–84px tall`);
     if (Math.abs(reference.content.x - value.content.x) > 1 || Math.abs(reference.content.width - value.content.width) > 1) failures.push(`${label}: content geometry differs from Library`);
-    if (Math.abs(value.content.x - 16) > 1 || Math.abs(value.content.width - (value.frame.width - 32)) > 1) failures.push(`${label}: content must retain 16px horizontal padding`);
-    if (value.brandDirectChildren !== 1) failures.push(`${label}: global brand must contain only the Franklin mark`);
-    if (!value.logo || value.logo.width < 28 || value.logo.width > 36) failures.push(`${label}: Franklin mark width must remain 28–36px`);
+    if (Math.abs(value.content.x + value.contentPadding.left - 16) > 1 || Math.abs(value.content.width - value.contentPadding.left - value.contentPadding.right - (value.frame.width - 32)) > 1) failures.push(`${label}: content must retain 16px horizontal padding`);
+    if (value.brandDirectChildren !== 2) failures.push(`${label}: global brand must contain the Franklin mark and wordmark`);
+    if (!value.logo || value.logo.width < 34 || value.logo.width > 42.5) failures.push(`${label}: Franklin mark width must remain 34–42px`);
     if (!value.logoFilter || value.logoFilter === 'none') failures.push(`${label}: Franklin mark is not using its monochrome treatment`);
-    if (value.controlHeights.some(height => height < 36 || height > 40.5)) failures.push(`${label}: header controls must remain 36–40px`);
+    if (value.controlHeights.some(height => height < 44 || height > 48.5)) failures.push(`${label}: header controls must retain a 44px touch target`);
     if (value.cloudNavOverlap > 0) failures.push(`${label}: Cloud control overlaps bottom navigation by ${value.cloudNavOverlap}px`);
-    if (value.typography.heading?.size > 22) failures.push(`${label}: page heading exceeds 22px`);
+    if (value.typography.heading?.size < 22 || value.typography.heading?.size > 27.5) failures.push(`${label}: page heading must remain 22–27px`);
+    if (value.typography.metadata?.size < 12) failures.push(`${label}: metadata must remain at least 12px`);
     if (value.pageBackground !== reference.pageBackground) failures.push(`${label}: page background differs from Library`);
   }
 }
@@ -324,17 +327,17 @@ function validateStockPages(measurements, failures, suffix = '') {
     if (Math.abs(reference.sharedHeader.height - value.sharedHeader.height) > 1) failures.push(`${label}: header height differs from Summary`);
     if (Math.abs(reference.nav.height - value.nav.height) > 1) failures.push(`${label}: tab rail height differs from Summary`);
     if (Math.abs(reference.content.x - value.content.x) > 1 || Math.abs(reference.content.y - value.content.y) > 1 || Math.abs(reference.content.width - value.content.width) > 1) failures.push(`${label}: content geometry differs from Summary`);
-    if (Math.abs(value.content.x - 16) > 1 || Math.abs(value.content.width - (value.sharedHeader.width - 32)) > 1) failures.push(`${label}: content must retain 16px horizontal padding`);
-    if (value.sharedHeader.height > 76) failures.push(`${label}: company header is too tall at ${value.sharedHeader.height}px`);
+    if (Math.abs(value.content.x + value.contentPadding.left - 16) > 1 || Math.abs(value.content.width - value.contentPadding.left - value.contentPadding.right - (value.sharedHeader.width - 32)) > 1) failures.push(`${label}: content must retain 16px horizontal padding`);
+    if (value.sharedHeader.height < 76 || value.sharedHeader.height > 84) failures.push(`${label}: company header must remain 76–84px tall`);
     if (value.nav.height > 50) failures.push(`${label}: stock tab rail is too tall at ${value.nav.height}px`);
     if (!value.companyLogo || value.companyLogo.width < 34 || value.companyLogo.width > 38) failures.push(`${label}: company logo must remain compact`);
-    if (value.controlHeights.some(height => height < 36 || height > 40.5)) failures.push(`${label}: stock header controls must remain 36–40px`);
+    if (value.controlHeights.some(height => height < 44 || height > 48.5)) failures.push(`${label}: stock header controls must retain a 44px touch target`);
     if (value.typography.companyName?.size > 16) failures.push(`${label}: company name exceeds 16px`);
     if (value.typography.tab?.size > 13.5) failures.push(`${label}: stock tab text exceeds 13.5px`);
     if (value.typography.heroValue?.size > 32.5) failures.push(`${label}: primary financial value exceeds 32px`);
-    if (value.typography.h1?.size > 21) failures.push(`${label}: h1 exceeds 21px`);
-    if (value.typography.h2?.size > 18.5) failures.push(`${label}: h2 exceeds 18px`);
-    if (value.typography.body?.size > 14) failures.push(`${label}: body copy exceeds 14px`);
+    if (value.typography.h1?.size > 26.5) failures.push(`${label}: h1 exceeds 26px`);
+    if (value.typography.h2?.size > 24.5) failures.push(`${label}: h2 exceeds 24px`);
+    if (value.typography.body?.size < 14 || value.typography.body?.size > 16.5) failures.push(`${label}: body copy must remain 14–16px`);
     if (value.typography.tab?.family !== reference.typography.tab?.family) failures.push(`${label}: stock typography family differs from Summary`);
     if (value.pageBackground !== reference.pageBackground) failures.push(`${label}: page background differs from Summary`);
   }

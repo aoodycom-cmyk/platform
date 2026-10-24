@@ -14,6 +14,7 @@ const DIRECTORY_PAIRS = [
 ];
 
 const FILES = [
+  "styles-franklin-experience.css",
   "index.html",
   "styles.css",
   "styles-mobile2.css",

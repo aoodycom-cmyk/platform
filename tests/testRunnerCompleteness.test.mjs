@@ -19,5 +19,5 @@ test("the authoritative runner owns every Franklin test executable", async () =>
 
   assert.deepEqual([...inventory.unit, ...inventory.e2e].sort(), files);
   assert.ok(inventory.unit.includes("testRunnerCompleteness.test.mjs"));
-  assert.deepEqual(inventory.e2e, ["jsonArchitecture.e2e.mjs", "phase6MobilePwa.e2e.mjs"]);
+  assert.deepEqual(inventory.e2e, ["analysisJourney.e2e.mjs", "jsonArchitecture.e2e.mjs", "phase6MobilePwa.e2e.mjs"]);
 });
