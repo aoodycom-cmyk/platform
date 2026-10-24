@@ -64,6 +64,13 @@ export function buildMissingRequirementsPrompt(report = {}, completionStatus = a
   ];
   const candidateFields = fields;
   const targetFields = candidateFields.filter((item) => !requirementSatisfied(report, item));
+  // A score and its meaning must be reviewed/reaffirmed together, even when
+  // the old numeric value exists. Never merely label an ambiguous old number.
+  if (targetFields.some((item) => ["scores.risk", "scores.riskScale"].includes(item.path))) {
+    for (const path of ["scores.risk", "scores.riskScale"]) {
+      if (!targetFields.some((item) => item.path === path)) targetFields.push(FIELD_REQUIREMENTS.find((item) => item.path === path));
+    }
+  }
   if (options.debug) {
     console.table(diagnosticRowsForPaths(report, candidateFields));
   }
@@ -108,6 +115,7 @@ export function buildMissingRequirementsPrompt(report = {}, completionStatus = a
     `Analysis Date: ${report.analysisDate || "-"}`,
     `Report Period: ${report.reportPeriod || "-"}`,
     `Price at Analysis: ${report.fairValueSummary?.currentPrice ?? "-"}`,
+    `Risk score currently stored (not assumed comparable): ${report.scores?.risk ?? "null"}; scale: ${report.scores?.riskScale ?? "unknown"}`,
     "",
     "الحقول المطلوبة:",
     "",
@@ -115,7 +123,7 @@ export function buildMissingRequirementsPrompt(report = {}, completionStatus = a
       `${index + 1}. ${item.path}`,
       `الاسم: ${item.labelAr}`,
       `النوع: ${item.expectedType}`,
-      ...(item.path.startsWith("scores.") ? ["النطاق: رقم من 0 إلى 100 (0–100)"] : []),
+      ...(item.path.startsWith("scores.") && item.expectedType === "Number" ? ["النطاق: رقم من 0 إلى 100 (0–100)"] : []),
       `الحالة: ${priorityArabic(item.priority)}`,
       `السبب: ${item.reasonAr}`,
       ""
@@ -150,6 +158,7 @@ export function missingByPriority(report, priority) {
 }
 
 export function requirementSatisfied(report, item) {
+  if (item.path === "scores.risk" && report.scores?.riskScale !== "higher-is-riskier") return false;
   const paths = [item.path, ...(item.alternatives || [])];
   return paths.some((path) => !isMissing(getByPath(report, path), path));
 }

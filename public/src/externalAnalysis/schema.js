@@ -59,6 +59,7 @@ export function createEmptyExternalAnalysisReport(rawAnalysis = "", now = new Da
       growth: null,
       valuation: null,
       risk: null,
+      riskScale: null,
       moat: null,
       management: null
     },
@@ -302,6 +303,7 @@ export function normalizeExternalAnalysisReport(input = {}, rawAnalysis = "", op
       growth: toNullableNumber(scoresInput.growth ?? input.growthScore),
       valuation: toNullableNumber(scoresInput.valuation ?? input.valuationScore),
       risk: toNullableNumber(scoresInput.risk ?? input.riskScore),
+      riskScale: nullableString(scoresInput.riskScale),
       moat: toNullableNumber(scoresInput.moat ?? input.moatScore),
       management: toNullableNumber(scoresInput.management ?? input.managementScore)
     },
@@ -822,6 +824,7 @@ function normalizeDate(value) {
 }
 
 function coercePathValue(path, value) {
+  if (path === "scores.riskScale") return nullableString(value);
   const numericPath = /(^scores\.|^fairValue\.|^market\.|Pct$|price|Price|value|Value|revenue|Income|cash|debt|capex|eps|flow|Flow)/i.test(path);
   if (numericPath) return toNullableNumber(value);
   return nullableString(value);

@@ -19,7 +19,7 @@ test("supplement persistence failure rolls storage and in-memory analysis back a
       schemaVersion: "external-analysis-supplement/v1",
       ticker: "TEST",
       targetAnalysisId: "TEST-SAVED",
-      fields: { "scores.risk": 0 },
+      fields: { "scores.risk": 0, "scores.riskScale": "higher-is-riskier" },
       notes: [],
       sources: []
     };

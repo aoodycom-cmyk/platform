@@ -131,7 +131,7 @@ test("supplement in full importer is redirected only when its target validates",
     ticker: "INTC",
     targetAnalysisId: "INTC-TARGET",
     analysisDate: canonical.reportIdentity.analysisDate,
-    fields: { "scores.risk": 0 },
+    fields: { "scores.risk": 0, "scores.riskScale": "higher-is-riskier" },
     notes: []
   };
   const routed = await parseExternalAnalysisInput(JSON.stringify(supplement), { now, currentReport: existingReport });
@@ -157,7 +157,7 @@ test("supplement merge preserves zero, negatives, precision, nulls, and atomic c
     ticker: "INTC",
     targetAnalysisId: "INTC-TARGET",
     fields: {
-      "scores.risk": 0,
+      "scores.risk": 0, "scores.riskScale": "higher-is-riskier",
       "market.userAverageCost": -12.345678901,
       "thesis.shortSummary": null
     },
@@ -170,7 +170,7 @@ test("supplement merge preserves zero, negatives, precision, nulls, and atomic c
 
   const conflicting = {
     ...supplement,
-    fields: { "scores.risk": 0, "fairValueSummary.fairValueBase": canonical.valuation.current.base + 1 }
+    fields: { "scores.risk": 0, "scores.riskScale": "higher-is-riskier", "fairValueSummary.fairValueBase": canonical.valuation.current.base + 1 }
   };
   const atomic = mergeExternalAnalysisSupplement(existing, conflicting, { now });
   assert.deepEqual(atomic.report, existing);

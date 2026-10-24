@@ -1,3 +1,4 @@
+import { EXTERNAL_RISK_SCALE } from "./riskScoreContract.js";
 import { getByPath, isMissing, valuePresent } from "./fieldPaths.js";
 import { EXTERNAL_ANALYSIS_SUPPLEMENT_SCHEMA_VERSION } from "./supplementSchema.js";
 import {
@@ -55,6 +56,14 @@ export function validateExternalAnalysisSupplement(supplement = {}, existingRepo
     errors.push(fieldError("fields", "Supplement did not include any non-empty values for the requested fields."));
   }
 
+  const risk = fields["scores.risk"];
+  const scale = fields["scores.riskScale"];
+  if (risk !== null && risk !== undefined && scale !== EXTERNAL_RISK_SCALE) {
+    errors.push(fieldError("fields.scores.riskScale", "A numeric risk score requires scores.riskScale = higher-is-riskier (0 lowest risk, 100 highest risk)."));
+  }
+  if (scale !== null && scale !== undefined && (scale !== EXTERNAL_RISK_SCALE || !isScore(risk))) {
+    errors.push(fieldError("fields.scores.riskScale", "Reaffirm a valid scores.risk together with higher-is-riskier; never relabel an old score alone."));
+  }
   validateCombinedFairValueOrdering(existingReport, fields, errors);
   validateIncomingSources([...(supplement.sources || []), ...(Array.isArray(fields.sources) ? fields.sources : [])], errors);
   validateSupplementSourceReferences(supplement, existingReport, fields, errors);
@@ -113,7 +122,7 @@ function validateFieldValue(path, value, errors) {
     errors.push(fieldError(`fields.${path}`, "Numbers cannot be NaN or Infinity.", "finite number", value));
     return;
   }
-  if (/^scores\./.test(path) && !isScore(value)) {
+  if (/^scores\./.test(path) && path !== "scores.riskScale" && !isScore(value)) {
     errors.push(fieldError(`fields.${path}`, "Scores must be between 0 and 100.", "number from 0 to 100", value));
   }
   if (/^fairValueSummary\./.test(path) && ["fairValueSummary.fairValueLow", "fairValueSummary.fairValueBase", "fairValueSummary.fairValueHigh", "fairValueSummary.probabilityWeightedFairValue"].includes(path) && !isPositiveNumber(value)) {

@@ -14,7 +14,7 @@ assert.deepEqual(
 
 for (const score of [0, 55, 72, 82, 100]) {
   assert.equal(valuationAssessmentMetric({ scores: { valuation: score } }).progress, score);
-  assert.equal(riskAssessmentMetric({ scores: { risk: score } }).progress, score);
+  assert.equal(riskAssessmentMetric({ scores: { risk: score, riskScale: "higher-is-riskier" } }).progress, score);
 }
 
 assert.deepEqual(

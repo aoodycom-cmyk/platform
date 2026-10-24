@@ -151,7 +151,7 @@ try {
     ticker: "INTC",
     targetAnalysisId,
     analysisDate: canonical.reportIdentity.analysisDate,
-    fields: { "scores.risk": 0 },
+    fields: { "scores.risk": 0, "scores.riskScale": "higher-is-riskier" },
     notes: ["E2E persistence contract check"]
   };
   await page.locator("[data-supplement-raw]").fill(JSON.stringify(supplement));
@@ -165,7 +165,7 @@ try {
       conflicts: supplementState.mergePreview.conflicts.length
     };
   });
-  assert.deepEqual(supplementPreview, { valid: true, applied: ["scores.risk"], conflicts: 0 });
+  assert.deepEqual(supplementPreview, { valid: true, applied: ["scores.risk", "scores.riskScale"], conflicts: 0 });
   await page.locator("[data-action='apply-external-supplement']").click();
   await waitForState(page, (state) => state.externalAnalyses?.INTC?.[0]?.scores?.risk === 0);
 
