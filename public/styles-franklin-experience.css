@@ -144,7 +144,7 @@ html[data-theme="dark"] .mobile-app-frame .mobile-page-content .eyebrow { font-s
 .json-file-picker-icon svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .analysis-journey .json-file-native-input { position: absolute; width: 1px; height: 1px; padding: 0; opacity: 0; overflow: hidden; pointer-events: none; }
 .analysis-journey .json-paste-import-area { display: grid; gap: 10px; }
-.mobile-app-frame .analysis-journey textarea.external-paste-box { width: 100%; min-height: 220px !important; max-height: 50vh; font-size: 14px !important; line-height: 1.8 !important; }
+.mobile-app-frame .analysis-journey textarea.external-paste-box { width: 100%; min-height: 220px !important; max-height: 50vh; font-size: 16px !important; line-height: 1.8 !important; }
 .analysis-journey .external-import-actions { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
 .journey-result-label { font-size: 14px; font-weight: 500; }
 .journey-validation { margin-top: 22px; padding: 18px; border: 1px solid #fc8c9960; border-radius: 14px; background: #321e29; }
