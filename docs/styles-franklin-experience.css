@@ -16,6 +16,8 @@
   --line: var(--experience-line);
   --teal: var(--experience-accent);
   --app-max-width: 1080px;
+  --franklin-safe-area-top: env(safe-area-inset-top, 0px);
+  --franklin-mobile-header-height: 78px;
 }
 html[data-theme="dark"], html[data-theme="dark"] body { background: var(--experience-bg) !important; color: var(--experience-ink); }
 body { font-size: 16px; line-height: 1.75; -webkit-text-size-adjust: 100%; }
@@ -323,6 +325,22 @@ body .franklin-cloud-panel { background: var(--experience-surface) !important; c
   .analysis-journey .external-import-head { gap: 10px; }
   .v31-stock-decision .v31-base-value-number strong { font-size: 28px !important; }
   .v31-stock-decision .v31-current-price-hero > strong { font-size: 26px !important; }
+}
+/* One document scrollport. Keep installed iPhone app controls below the status bar. */
+@media (max-width: 899px) {
+  html, body, #app, .mobile-app-shell, .mobile-app-frame { overflow-x: clip !important; }
+  body { padding-block: 0; }
+  html[data-theme="dark"] .mobile-app-shell .mobile-app-frame > .mobile-app-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 40 !important;
+    min-height: calc(var(--franklin-mobile-header-height) + var(--franklin-safe-area-top)) !important;
+    padding-top: calc(12px + var(--franklin-safe-area-top)) !important;
+    padding-bottom: 12px !important;
+  }
+  html.franklin-stock-workspace-active .franklin-stock-page-nav {
+    top: calc(var(--franklin-mobile-header-height) + var(--franklin-safe-area-top));
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
