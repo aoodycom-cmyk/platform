@@ -1,5 +1,5 @@
-import { createStore } from "./state/store.js?v=earnings-header-20260905-1-experience-20261024-1";
-import { mountApp } from "./ui/components.js?v=earnings-header-20260905-1-experience-20261024-1";
+import { createStore } from "./state/store.js?v=earnings-header-20260905-1-experience-20261024-1-import-diagnostics-20261025-1";
+import { mountApp } from "./ui/components.js?v=earnings-header-20260905-1-experience-20261024-1-import-diagnostics-20261025-1";
 import { migrateFranklinState, summarizeFranklinState } from "./state/migration.js";
 
 const root = document.getElementById("app");

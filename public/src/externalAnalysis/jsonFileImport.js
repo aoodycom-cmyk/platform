@@ -1,8 +1,9 @@
 import {
   dispatchJsonPayload,
+  assertDispatchedRouteAccepted,
   formatArabicDiagnostic,
   JSON_IMPORT_ROUTES
-} from "./jsonContractRouter.js";
+} from "./jsonContractRouter.js?v=import-diagnostics-20261025-1";
 
 export const JSON_IMPORT_MAX_BYTES = 12 * 1024 * 1024;
 
@@ -70,6 +71,7 @@ export function inspectJsonImportText(text, options = {}) {
     rawText,
     context: options.validationContext || {}
   });
+  assertDispatchedRouteAccepted(dispatched, value);
   const missingCoreSections = value.schemaVersion === "franklin-fair-value/v3"
     ? ["reportIdentity", "valuation", "sources"].filter((field) => field === "sources"
       ? !Array.isArray(value[field])
@@ -178,25 +180,28 @@ export function describeImportValidationErrors(errors = [], value = {}) {
   return (Array.isArray(errors) ? errors : []).map((item) => {
     const field = String(item?.field || "json");
     const message = String(item?.message || "Validation failed.");
+    const jsonPath = item.jsonPath || (field.startsWith("$") ? field : `$.${field}`);
+    const received = item.received !== undefined ? item.received : readPath(value, jsonPath);
     const diagnostic = {
       ...item,
       field,
-      currentValue: displayValue(readPath(value, field)),
+      jsonPath,
+      currentValue: displayValue(received),
       requiredValue: item.expected || expectedValue(field, message),
       suggestion: item.recommendedRoute || repairSuggestion(field, message),
       schemaVersion: item.schemaVersion || value?.schemaVersion || "غير معروف",
       payloadType: item.payloadType || null,
-      received: item.received !== undefined ? item.received : readPath(value, field),
-      receivedType: item.receivedType || valueType(readPath(value, field))
+      received,
+      receivedType: valueType(received)
     };
     return { ...diagnostic, technicalMessage: message, messageAr: formatArabicDiagnostic({
       ...diagnostic,
-      field: item.jsonPath || `$.${field}`,
+      field: jsonPath,
       expected: diagnostic.requiredValue,
       recommendedRoute: diagnostic.suggestion
     }), message: formatArabicDiagnostic({
       ...diagnostic,
-      field: item.jsonPath || `$.${field}`,
+      field: jsonPath,
       expected: diagnostic.requiredValue,
       recommendedRoute: diagnostic.suggestion
     }) };
@@ -204,7 +209,7 @@ export function describeImportValidationErrors(errors = [], value = {}) {
 }
 
 function readPath(value, path) {
-  return String(path || "").split(".").filter(Boolean).reduce((cursor, part) => {
+  return String(path || "").replace(/^\$\.?/, "").replace(/\[(\d+)\]/g, ".$1").split(".").filter(Boolean).reduce((cursor, part) => {
     if (cursor === null || cursor === undefined) return undefined;
     return cursor[part];
   }, value);
@@ -220,7 +225,7 @@ function displayValue(value) {
 }
 
 function expectedValue(field, message) {
-  if (field === "schemaVersion") return "franklin-fair-value/v3";
+  if (/^(?:\$\.)?schemaVersion$/.test(field)) return "إصدار JSON الخاص بعقد مسار الاستيراد المستخدم";
   if (field.includes("ticker")) return "رمز سهم صحيح";
   if (field === "analysisType") return "INITIAL أو EARNINGS_REVALUATION";
   if (field === "marketPrice.sourceId") return "معرّف مصدر Market Data مطابق ومستخدم لسعر السوق";
@@ -231,7 +236,7 @@ function expectedValue(field, message) {
 }
 
 function repairSuggestion(field, message) {
-  if (field === "schemaVersion") return "نزّل نتيجة برومبت Franklin v3 الكاملة ولا تغيّر إصدار العقد.";
+  if (/^(?:\$\.)?schemaVersion$/.test(field)) return "تحقق من مسار استيراد الملف والعقد المتوقع؛ لا تعدّل إصدار JSON الصحيح لتجاوز الخطأ.";
   if (field.includes("ticker")) return "أكمل رمز السهم داخل reportIdentity.ticker.";
   if (field === "marketPrice.sourceId") return "اربط سعر السوق بمصدر من sources نوعه Market Data ويحتوي marketPrice في usedFor.";
   if (/arithmetic|inconsistent|must equal|sum to 100/i.test(message)) return "اطلب من ChatGPT إعادة إخراج JSON بعد تصحيح الحساب فقط، من دون تعديل بيانات المصادر.";

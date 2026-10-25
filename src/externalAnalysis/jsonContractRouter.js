@@ -8,7 +8,7 @@ import {
   EXTERNAL_ANALYSIS_SUPPLEMENT_SCHEMA_VERSION,
   normalizeExternalAnalysisSupplement
 } from "./supplementSchema.js";
-import { validateExternalAnalysisSupplement } from "./supplementValidator.js";
+import { validateExternalAnalysisSupplement } from "./supplementValidator.js?v=import-diagnostics-20261025-1";
 import {
   LEGACY_QUARTERLY_EARNINGS_LITE_SCHEMA,
   QUARTERLY_EARNINGS_LITE_SCHEMA,
@@ -16,7 +16,7 @@ import {
 } from "./quarterlyEarningsLite.js";
 import { FRANKLIN_FAIR_VALUE_SCHEMA_VERSION } from "./v3Contract.js";
 import { normalizeFranklinV3Input } from "./v3InputNormalizer.js";
-import { validateFranklinV3Report } from "./v3Validator.js";
+import { validateFranklinV3Report } from "./v3Validator.js?v=import-diagnostics-20261025-1";
 import { auditVerifiedProjection } from "../financialSafety/verifiedProjection.js";
 import { storedRevaluationContext } from "./revaluationContext.js";
 
@@ -60,8 +60,8 @@ export class JsonContractRoutingError extends Error {
     this.code = code;
     this.userMessage = detail;
     this.technicalDetails = diagnostic.technicalMessage || detail;
-    this.importErrors = [diagnostic];
-    this.diagnostic = diagnostic;
+    this.diagnostic = { ...diagnostic, message: detail, messageAr: detail };
+    this.importErrors = [this.diagnostic];
   }
 }
 
@@ -173,7 +173,9 @@ export function assertDispatchedPayloadValid(dispatched, sourceValue = dispatche
 export function assertDispatchedRouteAccepted(dispatched, sourceValue = dispatched?.value) {
   if (dispatched?.action === "accept" || dispatched?.action === "redirect-to-supplement" || dispatched?.action === "extract-approved-missing-fields") return dispatched;
   throw routingError("WRONG_IMPORT_ROUTE", sourceValue, {
-    field: "$.schemaVersion",
+    field: "$",
+    intendedRoute: dispatched?.intendedRoute,
+    actualRoute: dispatched?.route,
     expected: `مخطط يقبله مسار ${dispatched?.intendedRoute || "الاستيراد"}`,
     received: dispatched?.schemaVersion,
     schemaVersion: dispatched?.schemaVersion,
@@ -200,7 +202,9 @@ export function formatArabicDiagnostic(diagnostic = {}) {
   const schema = diagnostic.schemaVersion || "غير معروف";
   const payloadType = diagnostic.payloadType || "غير معروف";
   return [
-    `فشل التحقق من JSON عند المسار ${diagnostic.field || "$"}.`,
+    diagnostic.code === "WRONG_IMPORT_ROUTE"
+      ? "إصدار JSON مدعوم، لكن الملف موجّه إلى مسار استيراد مختلف."
+      : `فشل التحقق من JSON عند المسار ${diagnostic.field || "$"}.`,
     `المخطط النشط/المستلم: ${schema}.`,
     `نوع الحمولة المكتشف: ${payloadType}.`,
     `المتوقع: ${display(diagnostic.expected)}.`,
@@ -259,6 +263,7 @@ function routingError(code, value, details) {
   const schemaVersion = details.schemaVersion || (typeof value?.schemaVersion === "string" ? value.schemaVersion : "غير موجود");
   const payloadType = details.payloadType || detectPayloadType(value);
   return new JsonContractRoutingError(code, {
+    code,
     field: details.field,
     jsonPath: details.field,
     expected: details.expected,
@@ -266,6 +271,8 @@ function routingError(code, value, details) {
     receivedType: jsonType(details.received),
     schemaVersion,
     payloadType,
+    intendedRoute: details.intendedRoute,
+    actualRoute: details.actualRoute,
     recommendedRoute: details.recommendedRoute,
     technicalMessage: details.technicalMessage || `${code}: ${details.field}`,
     message: "JSON contract validation failed."

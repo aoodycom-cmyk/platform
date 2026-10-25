@@ -2,13 +2,13 @@ import { normalizeExternalAnalysisReport } from "./schema.js";
 import { upsertQuarterlyEarningsDigestSupplement } from "./quarterlyEarningsDigest.js";
 import { inflateQuarterlyEarningsLitePayload, isQuarterlyEarningsLitePayload } from "./quarterlyEarningsLite.js";
 import { isFranklinV3Report } from "./v3Contract.js";
-import { inspectJsonImportText, JsonImportError } from "./jsonFileImport.js";
+import { inspectJsonImportText, JsonImportError } from "./jsonFileImport.js?v=import-diagnostics-20261025-1";
 import {
   assertDispatchedPayloadValid,
   assertDispatchedRouteAccepted,
   dispatchJsonPayload,
   JSON_IMPORT_ROUTES
-} from "./jsonContractRouter.js";
+} from "./jsonContractRouter.js?v=import-diagnostics-20261025-1";
 
 let quarterlyEarningsLiteReportResolver = null;
 

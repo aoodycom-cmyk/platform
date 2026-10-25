@@ -1190,6 +1190,7 @@ function externalImportPanel(state) {
   const completion = draft ? draft.completionStatus || analyzeExternalAnalysisCompletion(draft, validation) : null;
   const visibleValidation = visibleExternalValidation(validation, completion);
   const step = analysisJourneyStep(state.externalImport);
+  const wrongImportRoute = visibleValidation.errors.find((issue) => issue.code === "WRONG_IMPORT_ROUTE");
   const ticker = draft?.company?.ticker || state.externalImport?.tickerHint || "";
   const company = resolveAnalysisCompany(ticker, state.externalAnalyses);
   const ar = isArabicUi();
@@ -1215,7 +1216,7 @@ function externalImportPanel(state) {
       `}
       ${step === 3 ? `
       ${draft && completion?.status !== "complete" ? missingDataCompletionCard(draft, validation, completion, state) : ""}
-      ${visibleValidation.errors.length ? `<section class="journey-validation" role="alert"><strong>${ar ? "تحتاج النتيجة إلى تصحيح قبل الحفظ" : "The result needs correction before saving"}</strong><p>${isAnalysisRequest(state.externalImport?.rawText) ? (ar ? "ألصقت طلب التحليل. أضف النتيجة التي أعادها ChatGPT أو اختر ملف التحليل الذي نزّلته." : "You pasted the analysis request. Add the result returned by ChatGPT or choose the downloaded analysis file.") : (ar ? "لم يجتز التحليل التحقق. أعد النتيجة إلى ChatGPT مع تفاصيل الحقول التالية لتصحيحها، ثم أضفها مجددًا." : "The analysis did not pass validation. Send the field details to ChatGPT for correction, then add the result again.")}</p><details><summary>${ar ? "عرض تفاصيل الحقول" : "Show field details"}</summary>${validationList(uiLabel("Validation Errors"), visibleValidation.errors, "negative")}</details></section>` : ""}
+      ${visibleValidation.errors.length ? `<section class="journey-validation" role="alert"><strong>${wrongImportRoute ? (ar ? "نوع الملف لا يناسب شاشة الاستيراد الحالية" : "This file belongs in another import flow") : (ar ? "تحتاج النتيجة إلى تصحيح قبل الحفظ" : "The result needs correction before saving")}</strong><p>${wrongImportRoute ? escapeHtml(wrongImportRoute.recommendedRoute || (ar ? "إصدار JSON مدعوم. اختر مسار الاستيراد المناسب لهذا النوع من الملفات." : "The JSON schema is supported. Choose the appropriate import flow.")) : isAnalysisRequest(state.externalImport?.rawText) ? (ar ? "ألصقت طلب التحليل. أضف النتيجة التي أعادها ChatGPT أو اختر ملف التحليل الذي نزّلته." : "You pasted the analysis request. Add the result returned by ChatGPT or choose the downloaded analysis file.") : (ar ? "لم يجتز التحليل التحقق. أعد النتيجة إلى ChatGPT مع تفاصيل الحقول التالية لتصحيحها، ثم أضفها مجددًا." : "The analysis did not pass validation. Send the field details to ChatGPT for correction, then add the result again.")}</p><details><summary>${ar ? "عرض تفاصيل الحقول" : "Show field details"}</summary>${validationList(uiLabel("Validation Errors"), visibleValidation.errors, "negative")}</details></section>` : ""}
       ${languageRepairNeeded(visibleValidation) ? languageRepairCard() : ""}
       ${visibleValidation.warnings.length ? validationList(uiLabel("Warnings"), visibleValidation.warnings, "warning") : ""}
       ${state.externalImport?.duplicate ? duplicateWarning(state.externalImport.duplicate) : ""}
@@ -1671,6 +1672,7 @@ function validationList(title, items, tone) {
 }
 
 export function localizedValidationMessage(item = {}) {
+  if (typeof item.messageAr === "string" && item.messageAr.trim()) return item.messageAr;
   const field = item.field || "";
   const message = item.message || "";
   const messages = {
