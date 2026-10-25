@@ -71,6 +71,7 @@ try {
     await page.locator("[data-investment-data-tab='financials']").click();
     await capture(page, width, "report");
     await assertLayout(page, `${width}px financial report`);
+    if (width < 500) await assertIphoneScrollRecovery(page, width);
     await page.locator(".external-report-actions [data-panel='home']").click();
     await page.locator("[data-library-card][data-external-ticker='INTC']").waitFor();
     await capture(page, width, "library");
@@ -96,4 +97,62 @@ async function capture(page, width, screen) {
   if (!directory) return;
   await mkdir(directory, { recursive: true });
   await page.screenshot({ path: join(directory, `${browserName}-${width}-${screen}.png`), fullPage: true, animations: "disabled", timeout: 20_000 });
+}
+
+async function assertIphoneScrollRecovery(page, width) {
+  // Desktop WebKit has no physical status bar. Inject its inset through the
+  // same CSS token used by env(safe-area-inset-top) in an installed iPhone app.
+  const inset = await page.addStyleTag({ content: ":root { --franklin-safe-area-top: 59px; }" });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await assertHeader(59);
+  await page.waitForTimeout(120); // Let the existing 80ms Safari navigation reset finish.
+  await page.mouse.move(width / 2, 220);
+  await page.mouse.wheel(0, 700);
+  await page.waitForFunction(() => window.scrollY > 100);
+  await assertHeader(59);
+  await page.mouse.wheel(0, -3000);
+  await page.waitForFunction(() => window.scrollY <= 1);
+  await assertHeader(59);
+  await capture(page, width, "iphone-safe-area");
+  await page.locator("[data-stock-page='earnings']").click();
+  await page.waitForFunction(() => window.__equityResearchStore.state.activePanel === "quarterly-scorecard");
+  await assertHeader(59);
+  await page.locator("[data-stock-page='summary']").click();
+  await page.waitForFunction(() => window.__equityResearchStore.state.activePanel === "external-report");
+  await assertHeader(59);
+  await inset.evaluate((node) => node.remove());
+  if (width === 390) {
+    await page.setViewportSize({ width: 844, height: 390 });
+    await assertHeader(0);
+    await page.waitForTimeout(120);
+    await page.mouse.move(422, 220);
+    await page.mouse.wheel(0, 600);
+    await page.waitForFunction(() => window.scrollY > 100);
+    await assertHeader(0);
+    await page.mouse.wheel(0, -3000);
+    await page.waitForFunction(() => window.scrollY <= 1);
+    await page.setViewportSize({ width, height: 900 });
+  }
+  console.log(`iPhone inset, sticky header and scroll recovery [${browserName}, ${width}px]: PASS`);
+
+  async function assertHeader(safeTop) {
+    await page.waitForFunction((top) => {
+      const header = document.querySelector(".franklin-shared-stock-header");
+      const nav = document.querySelector(".franklin-stock-page-nav");
+      if (!header || !nav) return false;
+      const h = header.getBoundingClientRect();
+      const n = nav.getBoundingClientRect();
+      return Math.abs(h.top) <= 1 && h.height >= 78 + top && n.top >= h.bottom - 1;
+    }, safeTop);
+    const geometry = await page.evaluate(() => {
+      const header = document.querySelector(".franklin-shared-stock-header");
+      const button = header.querySelector(".header-icon-button");
+      const r = button.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      return { top: r.top, reachable: button.contains(hit), nestedScrollports: [...document.querySelectorAll("#app,.mobile-app-shell,.mobile-app-frame")].filter((node) => /auto|scroll|hidden/.test(getComputedStyle(node).overflowY)).length };
+    });
+    assert.ok(geometry.top >= safeTop, "Company controls must clear the iPhone status bar.");
+    assert.ok(geometry.reachable, "The back button must remain reachable after scrolling.");
+    assert.equal(geometry.nestedScrollports, 0, "The page must use the document's vertical scrollport.");
+  }
 }
