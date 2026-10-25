@@ -107,10 +107,10 @@ async function assertIphoneScrollRecovery(page, width) {
   await assertHeader(59);
   await page.waitForTimeout(120); // Let the existing 80ms Safari navigation reset finish.
   await page.mouse.move(width / 2, 220);
-  await page.mouse.wheel(0, 700);
+  await scrollPage(700);
   await page.waitForFunction(() => window.scrollY > 100);
   await assertHeader(59);
-  await page.mouse.wheel(0, -3000);
+  await scrollPage(-3000);
   await page.waitForFunction(() => window.scrollY <= 1);
   await assertHeader(59);
   await capture(page, width, "iphone-safe-area");
@@ -126,14 +126,21 @@ async function assertIphoneScrollRecovery(page, width) {
     await assertHeader(0);
     await page.waitForTimeout(120);
     await page.mouse.move(422, 220);
-    await page.mouse.wheel(0, 600);
+    await scrollPage(600);
     await page.waitForFunction(() => window.scrollY > 100);
     await assertHeader(0);
-    await page.mouse.wheel(0, -3000);
+    await scrollPage(-3000);
     await page.waitForFunction(() => window.scrollY <= 1);
     await page.setViewportSize({ width, height: 900 });
   }
   console.log(`iPhone inset, sticky header and scroll recovery [${browserName}, ${width}px]: PASS`);
+
+  async function scrollPage(delta) {
+    // Playwright mobile WebKit rejects mouse.wheel. Verify the same document
+    // scroll and hit-testing there; Chromium additionally exercises wheel input.
+    if (browserName === "webkit") await page.evaluate((amount) => window.scrollBy(0, amount), delta);
+    else await page.mouse.wheel(0, delta);
+  }
 
   async function assertHeader(safeTop) {
     await page.waitForFunction((top) => {
