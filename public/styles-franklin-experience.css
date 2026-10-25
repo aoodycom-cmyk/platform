@@ -329,6 +329,7 @@ body .franklin-cloud-panel { background: var(--experience-surface) !important; c
 /* One document scrollport. Keep installed iPhone app controls below the status bar. */
 @media (max-width: 899px) {
   html, body, #app, .mobile-app-shell, .mobile-app-frame { overflow-x: clip !important; }
+  body { padding-block: 0; }
   html[data-theme="dark"] .mobile-app-shell .mobile-app-frame > .mobile-app-header {
     position: sticky !important;
     top: 0 !important;
