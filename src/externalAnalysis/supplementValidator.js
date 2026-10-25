@@ -20,7 +20,7 @@ export function validateExternalAnalysisSupplement(supplement = {}, existingRepo
   const warnings = [];
 
   if (supplement.schemaVersion !== EXTERNAL_ANALYSIS_SUPPLEMENT_SCHEMA_VERSION) {
-    errors.push(fieldError("schemaVersion", "Supplement schemaVersion must be external-analysis-supplement/v1."));
+    errors.push(fieldError("schemaVersion", "Supplement schemaVersion must be external-analysis-supplement/v1.", EXTERNAL_ANALYSIS_SUPPLEMENT_SCHEMA_VERSION, supplement.schemaVersion));
   }
   if (!supplement.fields || typeof supplement.fields !== "object" || Array.isArray(supplement.fields)) {
     errors.push(fieldError("fields", "Supplement fields object is required."));

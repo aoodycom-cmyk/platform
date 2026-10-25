@@ -143,7 +143,7 @@ export function validateFranklinV3Report(input = {}, context = {}) {
   const warnings = [];
   const valuationMethodVerifications = [];
   if (!isFranklinV3Report(input)) {
-    errors.push(fieldError("schemaVersion", `schemaVersion must be ${FRANKLIN_FAIR_VALUE_SCHEMA_VERSION}.`));
+    errors.push(validationError("schemaVersion", FRANKLIN_FAIR_VALUE_SCHEMA_VERSION, input?.schemaVersion, `schemaVersion must be ${FRANKLIN_FAIR_VALUE_SCHEMA_VERSION}.`));
     return {
       valid: false,
       errors,
@@ -153,7 +153,7 @@ export function validateFranklinV3Report(input = {}, context = {}) {
     };
   }
   if (input.methodologyVersion !== FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION) {
-    errors.push(fieldError("methodologyVersion", `methodologyVersion must be ${FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION}.`));
+    errors.push(validationError("methodologyVersion", FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION, input.methodologyVersion, `methodologyVersion must be ${FRANKLIN_FAIR_VALUE_METHODOLOGY_VERSION}.`));
   }
   if (!FRANKLIN_V3_ANALYSIS_TYPES.includes(input.analysisType)) {
     errors.push(fieldError("analysisType", "analysisType must be INITIAL or EARNINGS_REVALUATION."));

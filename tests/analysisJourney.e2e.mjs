@@ -53,6 +53,13 @@ try {
     await page.locator("[data-action='parse-external-analysis']").click();
     assert.match(await page.locator(".journey-validation").innerText(), /ألصقت طلب التحليل/);
     assert.equal(await page.locator("[data-action='save-external-analysis']").count(), 0, "A copied request must never expose a save action.");
+    await page.locator("[data-external-raw]").fill(JSON.stringify({ schemaVersion: "franklin-investment-backup/v1", data: {} }));
+    await page.locator("[data-action='parse-external-analysis']").click();
+    const routeMessage = await page.locator(".journey-validation").innerText();
+    assert.match(routeMessage, /نوع الملف لا يناسب/);
+    assert.match(routeMessage, /استعادة النسخة الاحتياطية/);
+    assert.doesNotMatch(routeMessage, /أعد النتيجة إلى ChatGPT/);
+    assert.equal(await page.locator("[data-action='save-external-analysis']").count(), 0, "Wrong-route payloads remain blocked.");
     await page.locator(".analysis-progress [data-analysis-step='1']").click();
     await page.locator("[data-analysis-company-query]").fill("INTC");
     await page.locator("[data-action='analysis-company-continue']").click();
